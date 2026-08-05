@@ -1,8 +1,11 @@
-# App Náutico — Especificação v1.0
+# App Náutico — Especificação v1.1
 
 > Revisão completa da v0.1 (gerada por GPT). Decisões desta versão: **mobile-first (PWA)**,
 > **gestão do barco como coração do MVP**, marketplace entra simples e evolui na Fase 2.
 > Nome provisório: **GestNav** (candidatos: Bordo, Timoneiro — decidir antes do lançamento).
+>
+> **v1.1 (05/08/2026):** adiciona a camada de rastreamento GPS e telemetria (§12) e a
+> estratégia de infraestrutura com custo operacional quase zero (§13).
 
 ---
 
@@ -201,8 +204,9 @@ o checklist do selo. Quando lançar, é uma tela nova sobre dados que já existe
 
 | Fase | Escopo | Critério de pronto |
 |---|---|---|
-| **F1 — MVP** | Telas do §6, alertas push+e-mail, assinatura, convite CMDT, vitrine simples de comandantes | Proprietário real usando por 30 dias sem voltar pra planilha |
-| **F2** | Verificação de comandantes (pós-advogado), Selo Ouro, WhatsApp nos alertas, relatório anual de custos | Primeira receita de comandante + primeiro selo emitido |
+| **F1 — MVP** | Telas do §6, alertas push+e-mail, assinatura, convite CMDT, vitrine simples de comandantes, **GPS Tier 0** (trilha pelo celular + boletim do mar) | Proprietário real usando por 30 dias sem voltar pra planilha |
+| **F1.5** | **Tier 1**: integração Traccar + modo marina (antifurto) + monitor de bateria; venda do kit rastreador instalado | Primeiros 10 rastreadores ativos |
+| **F2** | Verificação de comandantes (pós-advogado), Selo Ouro, WhatsApp nos alertas, relatório anual de custos, **Tier 2**: telemetria NMEA 2000 como premium | Primeira receita de comandante + primeiro selo emitido |
 | **F3** | Prestadores de serviço como papel, anúncios, cursos com certificação, multi-embarcação com desconto | Massa crítica definida em F2 |
 
 ---
@@ -217,7 +221,89 @@ Protótipo navegável publicado junto com esta espec valida a direção.
 
 ---
 
-## 12. Riscos e pendências
+## 12. Camada de rastreamento e telemetria (GPS)
+
+Três níveis, do custo zero à máxima tecnologia. O princípio: **o hardware é pago pelo
+proprietário; a plataforma só opera software** — assim o custo operacional não cresce com a frota.
+
+### Tier 0 — GPS do celular + dados do mar (custo zero, entra no MVP)
+
+- **Trilha de navegação:** com o app aberto durante o passeio (mesmo padrão de uso do
+  Navionics), o celular grava a rota — distância, velocidade média/máxima, tempo de operação.
+  A trilha vira um evento no Diário de Bordo com mapa.
+- **Horas sugeridas automaticamente:** tempo em deslocamento acima de ~2 nós ≈ tempo de motor.
+  Ao encerrar a navegação, o Registro Rápido já vem preenchido — o dono só confirma.
+- **Boletim do mar na Home:** altura de onda, período, vento e temperatura da água via
+  Open-Meteo Marine (API gratuita, previsão de 7 dias). A tela "Hoje" responde também
+  "dá pra sair hoje?". *Atenção: gratuita para uso não comercial; a licença comercial da
+  Open-Meteo (~€29/mês) entra quando houver receita.*
+- **Tráfego AIS ao redor:** via aisstream.io (WebSocket gratuito de posições AIS), exibir
+  embarcações com transponder próximas durante a navegação. Se o barco do usuário tiver
+  transponder AIS Classe B, a própria posição dele chega de graça — sem hardware extra.
+  *Limite honesto: a maioria das lanchas de recreio no Brasil não transmite AIS, e a
+  cobertura depende de estações costeiras — é complemento, não o rastreio principal.*
+
+### Tier 1 — Rastreador 4G + antifurto (hardware do dono, plataforma quase zero)
+
+- **Servidor:** [Traccar](https://www.traccar.org/) — open source, gratuito, suporta 200+
+  protocolos e 2.000+ modelos de rastreador, com geofence e REST API. Uma única instância
+  (VPS de ~R$ 25–50/mês, ou Oracle Cloud Always Free) atende a frota inteira.
+- **Hardware:** rastreador 4G à prova d'água (Teltonika IP67 na faixa premium; genéricos
+  GT06/Coban a partir de ~R$ 150) + chip M2M (~R$ 15–20/mês) — **comprados pelo dono**,
+  com opção de a plataforma vender o kit instalado com margem (receita nova).
+- **O que destrava:**
+  - **Modo marina (antifurto):** geofence da marina → push imediato "seu barco saiu da
+    marina e você não está nele". As rastreadoras náuticas brasileiras (Olicar, Savcar,
+    Maximize, Probase…) vendem só isso por R$ 60–120/mês — aqui vira recurso do plano.
+  - Posição em tempo real e histórico de rotas sem o celular a bordo.
+  - **Tensão da bateria de bordo:** a maioria dos rastreadores reporta a voltagem da
+    alimentação → alerta "bateria do barco em 11,8 V" antes de o dono chegar na marina e
+    não conseguir dar partida. Integra direto com a aba Elétrica.
+
+### Tier 2 — Telemetria NMEA 2000 (máxima tecnologia, premium)
+
+- **Gateway:** Yacht Devices YDWG-02 (~€ 200) ou Raspberry Pi com
+  [Signal K](https://signalk.org/) (open source) conectado à rede NMEA 2000 do barco
+  (padrão em barcos 2010+ com IPS/pods, como o perfil-alvo).
+- **O que destrava:** horas de motor reais lidas do barramento (PGN 127489), RPM, fluxo e
+  nível de combustível, temperaturas e alarmes do motor — **a ficha se atualiza sozinha**,
+  o Registro Rápido vira opcional e os alertas por horas ficam exatos.
+- Requer internet a bordo (roteador 4G) — mesmo chip M2M do Tier 1 pode servir.
+- Posicionamento de produto: plano premium ("o barco que se gerencia sozinho") ou serviço
+  de instalação avulso. Nenhum concorrente nacional oferece isso integrado à manutenção.
+
+**Sequência recomendada:** Tier 0 no MVP; integração Traccar (Tier 1) logo atrás — o modo
+marina é argumento de venda forte e o custo de plataforma é um VPS; Tier 2 na Fase 2 como
+premium/upsell.
+
+---
+
+## 13. Infraestrutura — custo operacional quase zero
+
+Regra: tudo em managed services com free tier **que permita uso comercial**, pagando só
+quando a receita existir. (Vercel Hobby proíbe uso comercial — por isso Cloudflare.)
+
+| Camada | Escolha | Free tier | Quando começa a custar |
+|---|---|---|---|
+| Front + API | Next.js na Cloudflare (Workers/Pages via OpenNext) | 100 mil req/dia, uso comercial permitido | Muito além de 500 assinantes (US$ 5/mês no plano pago) |
+| Banco + Auth + Storage | Supabase | 500 MB banco, 500 MB storage, 50 mil MAU, uso comercial ok | Pro US$ 25/mês quando o banco crescer (ou para evitar o auto-pause de 7 dias sem tráfego — mitigável com cron ping no início) |
+| Fotos/anexos | Cloudflare R2 | 10 GB grátis, sem taxa de egresso | ~US$ 0,015/GB/mês acima disso |
+| Push | Web Push (padrão aberto) | Gratuito, sem serviço pago | Nunca |
+| E-mail transacional | Resend | 3 mil e-mails/mês | US$ 20/mês acima disso |
+| Pagamento | Stripe | Sem mensalidade | % por transação (só quando há receita) |
+| Rastreamento | Traccar self-hosted | Software gratuito | VPS R$ 25–50/mês quando o Tier 1 ativar |
+| Mar/clima | Open-Meteo Marine | Gratuito não comercial, sem API key | ~€ 29/mês na licença comercial, quando houver receita |
+| AIS | aisstream.io | Gratuito (WebSocket) | — |
+
+**Conta realista:** do lançamento até ~100 assinantes, o custo mensal fica entre **R$ 0 e
+~R$ 200** (Supabase Pro + VPS do Traccar sendo os primeiros itens pagos). Com 100 fundadores
+a R$ 69,99 (≈ R$ 7 mil/mês de receita), a infraestrutura consome menos de 3% da receita.
+WhatsApp nos alertas segue fora do MVP: a API da Meta cobra por conversa e é o único canal
+com custo variável por usuário — e-mail + push cobrem o MVP de graça.
+
+---
+
+## 14. Riscos e pendências
 
 1. **Jurídico (bloqueia F2):** verificação de carteira/antecedentes de comandantes — validar
    com advogado o que pode ser "verificado" vs "declarado", e o termo de responsabilidade.
@@ -227,10 +313,21 @@ Protótipo navegável publicado junto com esta espec valida a direção.
    guiar a instalação. E-mail é o fallback sempre ativo.
 4. **Cota de storage:** fotos de barco pesam; definir cota e compressão desde o dia 1.
 5. **Nome e marca:** decidir nome definitivo e registrar domínio antes do checkout existir.
+6. **GPS em background no iOS:** PWA não rastreia com a tela bloqueada — a trilha do Tier 0
+   funciona com o app aberto (padrão Navionics). Rastreio 24 h de verdade é o Tier 1
+   (hardware). Não prometer no marketing o que o Tier 0 não entrega.
+7. **LGPD:** posição do barco é dado sensível na prática (revela onde a pessoa está).
+   Política de privacidade clara, retenção definida e posição visível só para PROP e CMDT
+   autorizado.
+8. **Licença Open-Meteo:** free tier é não comercial — orçar a licença (~€ 29/mês) no
+   momento em que o produto cobrar assinatura.
 
-## 13. Perguntas em aberto (para o Erick)
+## 15. Perguntas em aberto (para o Erick)
 
 - Preço multi-embarcação: 2º barco paga cheio ou tem desconto?
 - Trial: 14 dias sem cartão, ok?
 - Alerta por WhatsApp já no MVP (tem custo por mensagem) ou só F2?
 - Nome do produto: GestNav, Bordo, Timoneiro ou outro?
+- Kit rastreador (Tier 1): vender instalado com margem, ou só homologar aparelhos que o
+  dono compra por conta própria?
+- Tier 1 incluso na assinatura de R$ 119 ou plano separado (ex.: +R$ 29,90/mês)?
