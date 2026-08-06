@@ -7,6 +7,11 @@ export const ROTULO_CASCO: Record<string, string> = {
   vidros: "Vidros", estofados: "Estofados", casco_outros: "Outros",
 }
 
+export const TIPO_ROTULO: Record<string, string> = {
+  manutencao: "Manutenção", abastecimento: "Abastecimento", navegacao: "Navegação",
+  avaria: "Avaria", docagem: "Docagem", leitura_horas: "Leitura de horas", outro: "Outro",
+}
+
 export interface EventoParaFiltro {
   tipo: string
   categoria: string | null

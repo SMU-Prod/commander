@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { grupoDoEvento } from "@/lib/domain/diario"
+import { grupoDoEvento, TIPO_ROTULO } from "@/lib/domain/diario"
 import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento } from "@/lib/db/types"
@@ -79,7 +79,7 @@ export default async function GastosPage() {
         {comCusto.slice(0, 20).map((e) => (
           <div key={e.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{e.descricao ?? e.tipo}</p>
+              <p className="text-sm font-medium">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
               <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
                 {e.data.split("-").reverse().join("/")}
               </p>

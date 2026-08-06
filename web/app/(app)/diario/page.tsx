@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { carregarPainel } from "@/lib/consultas"
-import { agruparPorMes, eventoNoFiltro, type FiltroDiario } from "@/lib/domain/diario"
+import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Contato, Evento } from "@/lib/db/types"
@@ -11,11 +11,6 @@ const FILTROS: { valor: FiltroDiario; rotulo: string }[] = [
   { valor: "eletrica", rotulo: "Elétrica" }, { valor: "casco", rotulo: "Casco" },
   { valor: "docs", rotulo: "Docs" }, { valor: "gastos", rotulo: "Gastos" },
 ]
-
-const TIPO_ROTULO: Record<string, string> = {
-  manutencao: "Manutenção", abastecimento: "Abastecimento", navegacao: "Navegação",
-  avaria: "Avaria", docagem: "Docagem", leitura_horas: "Leitura de horas", outro: "Outro",
-}
 
 export default async function DiarioPage({
   searchParams,
