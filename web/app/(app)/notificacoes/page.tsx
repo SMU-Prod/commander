@@ -3,6 +3,7 @@ import { Farol } from "@/components/farol"
 import { AtivarAlertas } from "@/components/ativar-alertas"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
+import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { AlertaEnviado } from "@/lib/db/types"
 
@@ -22,7 +23,7 @@ export default async function NotificacoesPage() {
     .map((i) => {
       const eq = painel.equipamentos.find((e) => e.id === i.equipamento_id)
       const r = calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje)
-      const onde = eq ? `${i.nome} — Motor ${eq.posicao ?? ""}`.trim() : i.nome
+      const onde = eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome
       return { i, r, onde }
     })
     .filter((a) => a.r.status !== "ok")
