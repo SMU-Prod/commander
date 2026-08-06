@@ -19,7 +19,7 @@ export async function salvarAssinaturaPush(assinatura: {
       p256dh: assinatura.keys.p256dh,
       auth: assinatura.keys.auth,
     },
-    { onConflict: "endpoint" },
+    { onConflict: "usuario_id,endpoint" },
   )
   if (error) return { ok: false, erro: "Não foi possível salvar a ativação. Tente de novo." }
   revalidatePath("/notificacoes")
