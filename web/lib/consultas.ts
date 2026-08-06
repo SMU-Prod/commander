@@ -10,7 +10,7 @@ export const carregarPainel = cache(async (): Promise<{
   const supabase = await supabaseServer()
   const { data: embarcacao, error } = await supabase
     .from("embarcacoes")
-    .select("id, nome, estaleiro, modelo, ano, marina")
+    .select("*")
     .order("created_at")
     .limit(1)
     .maybeSingle()
