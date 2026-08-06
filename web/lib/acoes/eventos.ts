@@ -36,7 +36,11 @@ export async function criarEvento(formData: FormData) {
 
   const horasBruto = texto("horas")
   const horas = horasBruto != null ? parseDecimalPtBr(horasBruto) : null
-  if (horasBruto != null && horas === null) erroNovo("Informe horas válidas.")
+  if (horasBruto != null && (horas === null || horas < 0)) erroNovo("Informe horas válidas.")
+
+  const itemId = texto("item_id")
+  const item = itemId ? (painel.itens.find((i) => i.id === itemId) ?? null) : null
+  if (itemId && !item) erroNovo("Item monitorado inválido.")
 
   let anexoPath: string | null = null
   const anexo = formData.get("anexo")
@@ -45,12 +49,10 @@ export async function criarEvento(formData: FormData) {
     if ("erro" in r) erroNovo(r.erro)
     else anexoPath = r.path
   }
-
-  const itemId = texto("item_id")
   const { error } = await supabase.from("eventos").insert({
     embarcacao_id: painel.embarcacao.id,
     equipamento_id: equipamentoId,
-    item_monitorado_id: itemId,
+    item_monitorado_id: item?.id ?? null,
     contato_id: texto("contato_id"),
     tipo,
     categoria,
@@ -61,19 +63,19 @@ export async function criarEvento(formData: FormData) {
     anexo_path: anexoPath,
     criado_por: user.id,
   })
-  if (error) erroNovo("Não foi possível salvar o evento. Tente de novo.")
+  if (error) {
+    if (anexoPath) await supabase.storage.from("acervo").remove([anexoPath])
+    erroNovo("Não foi possível salvar o evento. Tente de novo.")
+  }
 
-  if (itemId) {
-    const item = painel.itens.find((i) => i.id === itemId)
-    if (item) {
-      const eq = painel.equipamentos.find((e) => e.id === item.equipamento_id)
-      const atualizacao = zerarCiclo(item, { data, horas: horas ?? eq?.horas_atuais ?? null })
-      const { error: erroItem } = await supabase
-        .from("itens_monitorados").update(atualizacao).eq("id", itemId)
-      if (erroItem) {
-        revalidatePath("/diario")
-        redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo do item não foi zerado. Confira o item.")}`)
-      }
+  if (item) {
+    const eq = painel.equipamentos.find((e) => e.id === item.equipamento_id)
+    const atualizacao = zerarCiclo(item, { data, horas: horas ?? eq?.horas_atuais ?? null })
+    const { error: erroItem } = await supabase
+      .from("itens_monitorados").update(atualizacao).eq("id", item.id)
+    if (erroItem) {
+      revalidatePath("/diario")
+      redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo do item não foi zerado. Confira o item.")}`)
     }
   }
 
