@@ -1,10 +1,116 @@
-export default function DiarioPage() {
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { carregarPainel } from "@/lib/consultas"
+import { agruparPorMes, eventoNoFiltro, type FiltroDiario } from "@/lib/domain/diario"
+import { formatarReais } from "@/lib/domain/gastos"
+import { supabaseServer } from "@/lib/supabase/server"
+import type { Contato, Evento } from "@/lib/db/types"
+
+const FILTROS: { valor: FiltroDiario; rotulo: string }[] = [
+  { valor: "tudo", rotulo: "Tudo" }, { valor: "motores", rotulo: "Motores" },
+  { valor: "eletrica", rotulo: "Elétrica" }, { valor: "casco", rotulo: "Casco" },
+  { valor: "docs", rotulo: "Docs" }, { valor: "gastos", rotulo: "Gastos" },
+]
+
+const TIPO_ROTULO: Record<string, string> = {
+  manutencao: "Manutenção", abastecimento: "Abastecimento", navegacao: "Navegação",
+  avaria: "Avaria", docagem: "Docagem", leitura_horas: "Leitura de horas", outro: "Outro",
+}
+
+export default async function DiarioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filtro?: string; erro?: string }>
+}) {
+  const { filtro: bruto, erro } = await searchParams
+  const filtro = (FILTROS.some((f) => f.valor === bruto) ? bruto : "tudo") as FiltroDiario
+
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+  const supabase = await supabaseServer()
+  const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
+    supabase.from("eventos").select("*").eq("embarcacao_id", painel.embarcacao.id)
+      .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
+    supabase.from("contatos").select("id, nome"),
+  ])
+  if (erroEventos) throw new Error("Não foi possível carregar o diário. Recarregue a página.")
+
+  const porId = new Map(painel.equipamentos.map((e) => [e.id, e]))
+  const nomeContato = new Map((contatos ?? []).map((c: Pick<Contato, "id" | "nome">) => [c.id, c.nome]))
+
+  const visiveis = ((eventos ?? []) as Evento[]).filter((e) =>
+    eventoNoFiltro(
+      {
+        tipo: e.tipo, categoria: e.categoria, custoCentavos: e.custo_centavos,
+        tipoEquipamento: e.equipamento_id ? porId.get(e.equipamento_id)?.tipo ?? null : null,
+      },
+      filtro,
+    ),
+  )
+  const grupos = agruparPorMes(visiveis)
+
   return (
-    <div className="pt-10 text-center">
-      <h1 className="text-lg font-semibold">Diário de Bordo</h1>
-      <p className="mt-2 text-sm text-dim">
-        A linha do tempo completa da embarcação chega na próxima etapa.
-      </p>
-    </div>
+    <main>
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold">Diário de Bordo</h1>
+        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">+ Evento</Link>
+      </div>
+      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+
+      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        {FILTROS.map((f) => (
+          <Link
+            key={f.valor}
+            href={f.valor === "tudo" ? "/diario" : `/diario?filtro=${f.valor}`}
+            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
+              filtro === f.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
+            }`}
+          >
+            {f.rotulo}
+          </Link>
+        ))}
+      </div>
+
+      {grupos.length === 0 && (
+        <div className="mt-6 rounded-[14px] border border-line bg-panel p-5 text-center text-sm text-dim">
+          Nenhum evento por aqui ainda. Toque em "+ Evento" para registrar o primeiro —
+          cada serviço registrado vira histórico e dossiê do barco.
+        </div>
+      )}
+
+      {grupos.map((g) => (
+        <section key={g.rotulo}>
+          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">{g.rotulo}</p>
+          <div className="rounded-[14px] border border-line bg-panel px-4">
+            {g.eventos.map((e) => {
+              const eq = e.equipamento_id ? porId.get(e.equipamento_id) : null
+              const meta = [
+                e.horas_no_momento != null ? `${e.horas_no_momento.toLocaleString("pt-BR")} h` : null,
+                e.contato_id ? nomeContato.get(e.contato_id) : null,
+                e.custo_centavos != null ? formatarReais(e.custo_centavos) : null,
+                e.anexo_path ? "anexo" : null,
+              ].filter(Boolean).join(" · ")
+              return (
+                <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
+                  <div className="w-11 shrink-0 text-center font-mono-instr text-[11px] leading-tight text-dim">
+                    <span className="block text-base text-texto">{e.data.slice(8, 10)}</span>
+                    {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
+                      .format(new Date(`${e.data}T00:00:00Z`)).replace(".", "")}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {TIPO_ROTULO[e.tipo] ?? e.tipo}
+                      {eq ? ` — ${eq.tipo === "motor" ? "Motor" : "Gerador"} ${eq.posicao ?? ""}` : ""}
+                    </p>
+                    {e.descricao && <p className="mt-0.5 text-xs text-dim">{e.descricao}</p>}
+                    {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+    </main>
   )
 }
