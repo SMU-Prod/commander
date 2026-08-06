@@ -68,7 +68,7 @@ export default async function DiarioPage({
 
       {grupos.length === 0 && (
         <div className="mt-6 rounded-[14px] border border-line bg-panel p-5 text-center text-sm text-dim">
-          Nenhum evento por aqui ainda. Toque em "+ Evento" para registrar o primeiro —
+          Nenhum evento por aqui ainda. Toque em &quot;+ Evento&quot; para registrar o primeiro —
           cada serviço registrado vira histórico e dossiê do barco.
         </div>
       )}
@@ -84,6 +84,7 @@ export default async function DiarioPage({
                 e.contato_id ? nomeContato.get(e.contato_id) : null,
                 e.custo_centavos != null ? formatarReais(e.custo_centavos) : null,
                 e.anexo_path ? "anexo" : null,
+                e.trilha ? "trilha" : null,
               ].filter(Boolean).join(" · ")
               return (
                 <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
@@ -109,6 +110,11 @@ export default async function DiarioPage({
                     </p>
                     {e.descricao && <p className="mt-0.5 text-xs text-dim">{e.descricao}</p>}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
+                    {e.trilha && (
+                      <Link href={`/diario/trilha/${e.id}`} className="mt-1 inline-block text-xs text-accent-forte">
+                        Ver trilha na carta
+                      </Link>
+                    )}
                   </div>
                 </div>
               )
