@@ -16,7 +16,7 @@ export async function criarContato(formData: FormData) {
   if (nome === "") volta("Informe o nome do contato.")
   const texto = (k: string) => String(formData.get(k) ?? "").trim() || null
   const { error } = await supabase.from("contatos").insert({
-    embarcacao_id: painel!.embarcacao.id, nome,
+    embarcacao_id: painel.embarcacao.id, nome,
     especialidade: texto("especialidade"), telefone: texto("telefone"),
   })
   if (error) volta("Não foi possível salvar o contato.")
@@ -43,7 +43,7 @@ export async function excluirContato(formData: FormData) {
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("contato_id") ?? "")
   const { error } = await supabase.from("contatos").delete().eq("id", id).eq("embarcacao_id", painel.embarcacao.id)
-  if (error) volta("Não foi possível excluir — confira se há eventos ligados a ele.")
+  if (error) volta("Não foi possível excluir. Tente de novo.")
   revalidatePath("/barco/contatos")
   volta()
 }
