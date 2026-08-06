@@ -1,5 +1,6 @@
 import { BottomNav } from "@/components/bottom-nav"
 import { RegistroRapido } from "@/components/registro-rapido"
+import { RegistrarSw } from "@/components/registrar-sw"
 import { carregarPainel } from "@/lib/consultas"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -9,6 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
   return (
     <div className="mx-auto min-h-dvh max-w-[430px] px-4 pb-24 pt-5">
+      <RegistrarSw />
       {children}
       {motores.length > 0 && <RegistroRapido motores={motores} />}
       <BottomNav />
