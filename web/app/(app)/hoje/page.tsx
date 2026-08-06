@@ -6,6 +6,7 @@ import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
+import { boletimDoMar } from "@/lib/mar"
 
 export default async function HojePage({
   searchParams,
@@ -34,6 +35,11 @@ export default async function HojePage({
     ok: avaliados.filter((a) => a.r.status === "ok").length,
   }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
+
+  const boletim =
+    embarcacao.marina_lat != null && embarcacao.marina_lon != null
+      ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
+      : null
 
   return (
     <main>
@@ -75,6 +81,35 @@ export default async function HojePage({
           </div>
         ))}
       </div>
+
+      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Mar agora</p>
+      {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
+        <Link href="/barco/local" className="block rounded-[14px] border border-line bg-panel p-4">
+          <p className="text-sm font-semibold">Ligue o boletim do mar</p>
+          <p className="mt-0.5 text-xs text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
+        </Link>
+      ) : boletim == null ? (
+        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
+          Boletim indisponível agora. Tente mais tarde.
+        </div>
+      ) : (
+        <div className="rounded-[14px] border border-line bg-panel p-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
+            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
+            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
+            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
+            <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] ${
+              boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
+              : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
+              : "border border-crit/40 text-crit"
+            }`}>{boletim.selo.rotulo}</span>
+          </div>
+        </div>
+      )}
+
+      <Link href="/navegar" className="mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">
+        ⛵ Iniciar navegação — gravar trilha
+      </Link>
 
       {motores.length > 0 && (
         <>
