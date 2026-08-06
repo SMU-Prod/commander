@@ -18,10 +18,19 @@ export default async function LoginPage({
       )}
       <form action={cadastro ? cadastrar : entrar} className="mt-6 space-y-4">
         {cadastro && (
-          <input name="nome" required placeholder="Seu nome" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+          <div>
+            <label htmlFor="nome" className="sr-only">Nome</label>
+            <input id="nome" name="nome" required placeholder="Seu nome" autoComplete="name" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+          </div>
         )}
-        <input name="email" type="email" required placeholder="E-mail" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
-        <input name="senha" type="password" required minLength={8} placeholder="Senha (mín. 8 caracteres)" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+        <div>
+          <label htmlFor="email" className="sr-only">E-mail</label>
+          <input id="email" name="email" type="email" required placeholder="E-mail" autoComplete="email" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+        </div>
+        <div>
+          <label htmlFor="senha" className="sr-only">Senha</label>
+          <input id="senha" name="senha" type="password" required minLength={8} placeholder="Senha (mín. 8 caracteres)" autoComplete={cadastro ? "new-password" : "current-password"} className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+        </div>
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-[#04121d]">
           {cadastro ? "Criar conta" : "Entrar"}
         </button>

@@ -19,7 +19,7 @@ export async function cadastrar(formData: FormData) {
     password: String(formData.get("senha") ?? ""),
     options: { data: { nome: String(formData.get("nome") ?? "") } },
   })
-  if (error) redirect(`/login?erro=${encodeURIComponent(error.message)}`)
+  if (error) redirect(`/login?modo=cadastro&erro=${encodeURIComponent("Não foi possível criar a conta. Confira os dados e tente novamente.")}`)
   redirect("/onboarding")
 }
 
