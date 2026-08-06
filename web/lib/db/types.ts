@@ -88,3 +88,24 @@ export interface Documento {
   item_monitorado_id: string | null
   created_at: string
 }
+
+export interface PushAssinatura {
+  id: string
+  usuario_id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  created_at: string
+}
+
+export type JanelaAlertaDb = "d30" | "d15" | "d5" | "vencido" | "h_margem" | "h_vencido"
+
+export interface AlertaEnviado {
+  id: string
+  embarcacao_id: string
+  item_monitorado_id: string
+  janela: JanelaAlertaDb
+  ciclo_ref: string
+  titulo: string
+  enviado_em: string
+}
