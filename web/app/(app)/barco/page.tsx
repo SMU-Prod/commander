@@ -89,6 +89,21 @@ export default async function BarcoPage() {
           )
         })}
       </div>
+
+      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acervo do barco</p>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { href: "/diario", rotulo: "Diário de Bordo", desc: "todo o histórico" },
+          { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos" },
+          { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco" },
+          { href: "/barco/gastos", rotulo: "Gastos", desc: "custos por mês" },
+        ].map((c) => (
+          <Link key={c.href} href={c.href} className="rounded-[14px] border border-line bg-panel p-3.5">
+            <p className="text-sm font-semibold">{c.rotulo}</p>
+            <p className="mt-0.5 text-xs text-dim">{c.desc}</p>
+          </Link>
+        ))}
+      </div>
     </main>
   )
 }
