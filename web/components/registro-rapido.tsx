@@ -11,6 +11,19 @@ export function RegistroRapido({
   motores: { id: string; rotulo: string; horas: number | null }[]
 }) {
   const [aberto, setAberto] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+
+  async function enviar(formData: FormData) {
+    if (enviando) return
+    setEnviando(true)
+    setAberto(false)
+    try {
+      await registrarVoltaAoMar(formData)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <>
       <button
@@ -27,7 +40,7 @@ export function RegistroRapido({
           <div className="w-full rounded-t-[20px] border-t border-line bg-panel px-5 pb-8 pt-5">
             <h2 className="text-lg font-semibold">Registrar volta ao mar</h2>
             <p className="mb-4 text-sm text-dim">30 segundos — é isso que mantém os alertas vivos.</p>
-            <form action={registrarVoltaAoMar} className="space-y-3">
+            <form action={enviar} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 {motores.map((m) => (
                   <div key={m.id}>
@@ -50,7 +63,7 @@ export function RegistroRapido({
                 <label className={rotulo} htmlFor="obs">Observação — opcional</label>
                 <input id="obs" name="obs" placeholder="Ex.: saída às Cagarras" className={campo} />
               </div>
-              <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-[#04121d]">
+              <button disabled={enviando} className="w-full rounded-xl bg-accent py-3.5 font-semibold text-[#04121d] disabled:opacity-60">
                 Salvar no diário
               </button>
               <button type="button" onClick={() => setAberto(false)} className="w-full py-2 text-sm text-dim">
