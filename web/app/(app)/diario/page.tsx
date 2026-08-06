@@ -92,7 +92,7 @@ export default async function DiarioPage({
               ].filter(Boolean).join(" · ")
               return (
                 <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
-                  <div className="w-11 shrink-0 text-center font-mono-instr text-[11px] leading-tight text-dim">
+                  <div className="w-11 shrink-0 text-center font-mono-instr tabular-nums text-[11px] leading-tight text-dim">
                     <span className="block text-base text-texto">{e.data.slice(8, 10)}</span>
                     {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
                       .format(new Date(`${e.data}T00:00:00Z`)).replace(".", "")}
