@@ -21,7 +21,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
   return (
     <main>
-      <Link href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent">
+      <Link href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">
         ‹ Barco
       </Link>
       <div className="mt-3">
