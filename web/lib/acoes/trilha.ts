@@ -1,15 +1,14 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { resumoTrilha, type PontoTrilha } from "@/lib/domain/geo"
+import { MAX_PONTOS_TRILHA, resumoTrilha, type PontoTrilha } from "@/lib/domain/geo"
 import { supabaseServer } from "@/lib/supabase/server"
-
-const MAX_PONTOS = 4000
 
 export async function salvarTrilha(
   pontos: PontoTrilha[],
   observacao: string,
 ): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const textoObs = typeof observacao === "string" ? observacao : ""
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, erro: "Sessão expirada — entre de novo." }
@@ -22,14 +21,14 @@ export async function salvarTrilha(
         typeof p?.t === "number" && typeof p?.la === "number" && typeof p?.lo === "number" &&
         p.la >= -90 && p.la <= 90 && p.lo >= -180 && p.lo <= 180,
     )
-    .slice(0, MAX_PONTOS)
+    .slice(0, MAX_PONTOS_TRILHA)
   if (validos.length < 2) return { ok: false, erro: "Trilha curta demais para salvar." }
 
   const r = resumoTrilha(validos)
   const descricao = [
     `${r.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} nm em ${r.duracaoH.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`,
     `máx ${r.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt`,
-    observacao.trim() || null,
+    textoObs.trim() || null,
   ]
     .filter(Boolean)
     .join(" · ")

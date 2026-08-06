@@ -6,6 +6,7 @@ export interface PontoTrilha {
 
 const RAIO_TERRA_NM = 3440.065
 const LIMIAR_MOVIMENTO_KT = 2
+export const MAX_PONTOS_TRILHA = 4000
 
 export function haversineNm(a: { la: number; lo: number }, b: { la: number; lo: number }): number {
   const rad = Math.PI / 180
