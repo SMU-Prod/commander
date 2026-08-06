@@ -1,9 +1,16 @@
 import { BottomNav } from "@/components/bottom-nav"
+import { RegistroRapido } from "@/components/registro-rapido"
+import { carregarPainel } from "@/lib/consultas"
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const painel = await carregarPainel()
+  const motores = (painel?.equipamentos ?? [])
+    .filter((e) => e.tipo === "motor")
+    .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
   return (
     <div className="mx-auto min-h-dvh max-w-[430px] px-4 pb-24 pt-5">
       {children}
+      {motores.length > 0 && <RegistroRapido motores={motores} />}
       <BottomNav />
     </div>
   )
