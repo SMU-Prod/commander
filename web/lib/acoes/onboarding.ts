@@ -1,6 +1,8 @@
 "use server"
 import { redirect } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase/server"
+import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { hojeISO } from "@/lib/domain/datas"
 
 // Itens padrão por motor (espec §6.1): revisão 500 h, óleo 250 h ou 12 meses
 const ITENS_MOTOR = [
@@ -14,10 +16,7 @@ export async function concluirOnboarding(formData: FormData) {
     const v = String(formData.get(k) ?? "").trim()
     return v === "" ? null : v
   }
-  const numero = (k: string) => {
-    const v = texto(k)
-    return v === null ? null : Number(v.replace(",", "."))
-  }
+  const numero = (k: string) => parseDecimalPtBr(String(formData.get(k) ?? ""))
 
   const { data: embarcacaoId, error } = await supabase.rpc("criar_embarcacao", {
     p_nome: texto("nome") ?? "Minha embarcação",
@@ -36,8 +35,10 @@ export async function concluirOnboarding(formData: FormData) {
       ]
     : [{ posicao: "central", horas: numero("horas_bb") }]
 
+  let falhas = 0
+
   for (const m of motores) {
-    const { data: eq } = await supabase
+    const { data: eq, error: eqError } = await supabase
       .from("equipamentos")
       .insert({
         embarcacao_id: embarcacaoId,
@@ -50,8 +51,10 @@ export async function concluirOnboarding(formData: FormData) {
       })
       .select("id")
       .single()
-    if (eq) {
-      await supabase.from("itens_monitorados").insert(
+    if (eqError || !eq) {
+      falhas++
+    } else {
+      const { error: itensError } = await supabase.from("itens_monitorados").insert(
         ITENS_MOTOR.map((i) => ({
           embarcacao_id: embarcacaoId,
           equipamento_id: eq.id,
@@ -59,9 +62,10 @@ export async function concluirOnboarding(formData: FormData) {
           intervalo_horas: i.intervalo_horas,
           intervalo_meses: i.intervalo_meses,
           ultimo_ciclo_horas: m.horas ?? 0,
-          ultimo_ciclo_data: new Date().toISOString().slice(0, 10),
+          ultimo_ciclo_data: hojeISO(),
         })),
       )
+      if (itensError) falhas++
     }
   }
 
@@ -70,10 +74,14 @@ export async function concluirOnboarding(formData: FormData) {
     { nome: "TIE", validade: texto("tie_validade") },
   ].filter((d) => d.validade != null)
   if (documentos.length > 0) {
-    await supabase.from("itens_monitorados").insert(
+    const { error: docsError } = await supabase.from("itens_monitorados").insert(
       documentos.map((d) => ({ embarcacao_id: embarcacaoId, nome: d.nome, data_fixa: d.validade })),
     )
+    if (docsError) falhas++
   }
 
+  if (falhas > 0) {
+    redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte dos itens não foi cadastrada. Confira a aba Barco.")}`)
+  }
   redirect("/hoje")
 }
