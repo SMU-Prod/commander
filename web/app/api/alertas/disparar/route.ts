@@ -85,9 +85,13 @@ export async function POST(req: NextRequest) {
             JSON.stringify({ titulo, corpo, url: "/notificacoes" }),
           )
           pushes++
-        } catch {
-          await admin.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
-          removidas++
+        } catch (err) {
+          // só remove assinatura morta (404/410); erro transitório (429/5xx/rede) mantém
+          const codigo = err instanceof webpush.WebPushError ? err.statusCode : null
+          if (codigo === 404 || codigo === 410) {
+            await admin.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
+            removidas++
+          }
         }
       }
       if (process.env.RESEND_API_KEY) {

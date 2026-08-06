@@ -54,8 +54,12 @@ export async function enviarPushTeste(): Promise<Resultado> {
         JSON.stringify({ titulo: "Commander", corpo: "Alertas ativados. Bom vento e mar calmo!", url: "/notificacoes" }),
       )
       enviados++
-    } catch {
-      await supabase.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
+    } catch (err) {
+      // só remove assinatura morta (404/410); erro transitório mantém o aparelho ativado
+      const codigo = err instanceof webpush.WebPushError ? err.statusCode : null
+      if (codigo === 404 || codigo === 410) {
+        await supabase.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
+      }
     }
   }
   return enviados > 0
