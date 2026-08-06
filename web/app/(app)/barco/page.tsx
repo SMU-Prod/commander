@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
+import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 
@@ -21,7 +22,7 @@ export default async function BarcoPage() {
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
   const motores = equipamentos.filter((e) => e.tipo === "motor")
-  const documentos = itens.filter((i) => i.equipamento_id === null)
+  const documentos = itens.filter((i) => i.categoria === "documento")
 
   return (
     <main>
@@ -41,6 +42,29 @@ export default async function BarcoPage() {
             />
           </Link>
         ))}
+      </div>
+
+      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Casco</p>
+      <div className="rounded-[14px] border border-line bg-panel px-4">
+        {CATEGORIAS_CASCO.map((c) => {
+          const doGrupo = itens.filter((i) => i.categoria === c)
+          const status = doGrupo
+            .map((i) => calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje).status)
+            .sort((a, b) => PESO[b] - PESO[a])[0]
+          return (
+            <div key={c} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
+              {status ? <Farol status={status} /> : <span className="size-2 rounded-full border border-line" />}
+              <span className="flex-1 text-sm">{ROTULO_CASCO[c]}</span>
+              {doGrupo.length === 0 ? (
+                <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`} className="text-xs text-accent-forte">
+                  Monitorar
+                </Link>
+              ) : (
+                <span className="font-mono-instr text-xs tabular-nums text-dim">{doGrupo.length} itens</span>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Documentos e embarcação</p>
