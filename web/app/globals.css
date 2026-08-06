@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0a1420;
+  --color-panel: #101d2c;
+  --color-panel2: #152638;
+  --color-line: #1e3550;
+  --color-texto: #e9f1f8;
+  --color-dim: #7c93ab;
+  --color-ok: #2fd07a;
+  --color-warn: #ffb020;
+  --color-crit: #ff5c5c;
+  --color-accent: #56b8e8;
+  --font-mono-instr: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-texto);
+}
