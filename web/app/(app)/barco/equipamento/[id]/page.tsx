@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, type StatusFarol } from "@/lib/domain/semaforo"
@@ -10,8 +10,9 @@ const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
 export default async function EquipamentoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const painel = await carregarPainel()
-  const equipamento = painel?.equipamentos.find((e) => e.id === id)
-  if (!painel || !equipamento) notFound()
+  if (!painel) redirect("/onboarding")
+  const equipamento = painel.equipamentos.find((e) => e.id === id)
+  if (!equipamento) notFound()
 
   const hoje = hojeISO()
   const itens = painel.itens

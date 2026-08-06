@@ -1,6 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
-import type { ItemCalc } from "@/lib/domain/semaforo"
 
 export async function carregarPainel(): Promise<{
   embarcacao: Embarcacao
@@ -23,14 +22,5 @@ export async function carregarPainel(): Promise<{
   return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [] }
 }
 
-export function itemMonitoradoToItemCalc(item: ItemMonitorado): ItemCalc {
-  return {
-    intervaloHoras: item.intervalo_horas,
-    intervaloMeses: item.intervalo_meses,
-    dataFixa: item.data_fixa,
-    ultimoCicloData: item.ultimo_ciclo_data,
-    ultimoCicloHoras: item.ultimo_ciclo_horas,
-  }
-}
-
+export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 export { hojeISO } from "@/lib/domain/datas"
