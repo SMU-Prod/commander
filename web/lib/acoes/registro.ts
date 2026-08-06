@@ -5,6 +5,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { validarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { supabaseServer } from "@/lib/supabase/server"
+import { hojeISO } from "@/lib/domain/datas"
 
 export async function registrarVoltaAoMar(formData: FormData) {
   const supabase = await supabaseServer()
@@ -41,6 +42,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
       tipo: "leitura_horas",
       horas_no_momento: l.nova,
       criado_por: user.id,
+      data: hojeISO(),
     })
     if (upErro || evErro) falhas++
   }
@@ -53,6 +55,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
       tipo: litros !== "" ? "abastecimento" : "navegacao",
       descricao: [obs || null, litros !== "" ? `${litros} L abastecidos` : null].filter(Boolean).join(" · "),
       criado_por: user.id,
+      data: hojeISO(),
     })
     if (error) falhas++
   }

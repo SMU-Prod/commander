@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase/server"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { hojeISO } from "@/lib/domain/datas"
+import { carregarPainel } from "@/lib/consultas"
 
 // Itens padrão por motor (espec §6.1): revisão 500 h, óleo 250 h ou 12 meses
 const ITENS_MOTOR = [
@@ -11,6 +12,9 @@ const ITENS_MOTOR = [
 ]
 
 export async function concluirOnboarding(formData: FormData) {
+  const painelExistente = await carregarPainel()
+  if (painelExistente) redirect("/hoje")
+
   const supabase = await supabaseServer()
   const texto = (k: string) => {
     const v = String(formData.get(k) ?? "").trim()
@@ -61,7 +65,7 @@ export async function concluirOnboarding(formData: FormData) {
           nome: i.nome,
           intervalo_horas: i.intervalo_horas,
           intervalo_meses: i.intervalo_meses,
-          ultimo_ciclo_horas: m.horas ?? 0,
+          ultimo_ciclo_horas: m.horas,
           ultimo_ciclo_data: hojeISO(),
         })),
       )
