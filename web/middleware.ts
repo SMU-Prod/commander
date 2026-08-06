@@ -27,5 +27,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|webmanifest)$).*)"],
+  // Rotas /api/* ficam FORA da guarda de sessão deste middleware: cada route
+  // handler faz a própria autenticação (ex.: Bearer ALERTAS_SEGREDO em
+  // /api/alertas/disparar). Nunca crie uma rota /api que dependa de sessão
+  // sem checar o usuário dentro do próprio handler.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|webmanifest)$).*)"],
 }

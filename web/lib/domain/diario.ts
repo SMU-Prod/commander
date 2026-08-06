@@ -85,3 +85,9 @@ export function validarNovoItem(i: {
   }
   return { ok: true }
 }
+
+export function nomeDoEquipamento(eq: { tipo: string; posicao: string | null }): string {
+  const tipo =
+    eq.tipo === "motor" ? "Motor" : eq.tipo === "gerador" ? "Gerador" : eq.tipo === "bateria" ? "Bateria" : "Equipamento"
+  return eq.posicao ? `${tipo} ${eq.posicao}` : tipo
+}

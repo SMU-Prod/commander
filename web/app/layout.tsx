@@ -11,6 +11,7 @@ const urbanist = Urbanist({
 export const metadata: Metadata = {
   title: "Commander",
   description: "Gestão completa da sua embarcação",
+  icons: { apple: "/apple-touch-icon.png" },
 }
 
 export const viewport: Viewport = { themeColor: "#f5f7fa" }

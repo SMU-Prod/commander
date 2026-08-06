@@ -5,6 +5,7 @@ import { Logo } from "@/components/logo"
 import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { nomeDoEquipamento } from "@/lib/domain/diario"
 
 export default async function HojePage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function HojePage({
     .map((i) => {
       const eq = equipamentos.find((e) => e.id === i.equipamento_id)
       const r = calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje)
-      const onde = eq ? `${i.nome} — Motor ${eq.posicao ?? ""}`.trim() : i.nome
+      const onde = eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome
       return { item: i, r, onde }
     })
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
