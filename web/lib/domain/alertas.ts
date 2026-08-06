@@ -1,12 +1,12 @@
 import type { ItemMonitorado } from "@/lib/db/types"
-import type { ResultadoCalc } from "@/lib/domain/semaforo"
+import { MARGEM_DIAS, type ResultadoCalc } from "@/lib/domain/semaforo"
 
 export type JanelaAlerta = "d30" | "d15" | "d5" | "vencido" | "h_margem" | "h_vencido"
 
 export function janelaDoAlerta(r: ResultadoCalc): JanelaAlerta | null {
   if (r.horasRestantes != null && r.horasRestantes < 0) return "h_vencido"
   if (r.diasRestantes != null && r.diasRestantes < 0) return "vencido"
-  if (r.diasRestantes != null && r.diasRestantes <= 30) {
+  if (r.diasRestantes != null && r.diasRestantes <= MARGEM_DIAS) {
     if (r.diasRestantes <= 5) return "d5"
     if (r.diasRestantes <= 15) return "d15"
     return "d30"

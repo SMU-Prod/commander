@@ -14,7 +14,7 @@ export interface ResultadoCalc {
   diasRestantes: number | null
 }
 
-const MARGEM_DIAS = 30 // documentos/datas: atenção a 30 dias (espec §4.1)
+export const MARGEM_DIAS = 30 // documentos/datas: atenção a 30 dias (espec §4.1)
 const MARGEM_HORAS_PCT = 0.15 // horas: atenção nos últimos 15% do intervalo (espec §4.1)
 
 function paraUTC(iso: string): number {
