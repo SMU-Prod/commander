@@ -36,6 +36,7 @@ export function grupoDoEvento(e: EventoParaFiltro): "Motores" | "Elétrica" | "C
   return "Geral"
 }
 
+/** Assume eventos já ordenados desc por data — entradas fora de ordem geram grupos duplicados. */
 export function agruparPorMes<T extends { data: string }>(eventos: T[]): { rotulo: string; eventos: T[] }[] {
   const grupos: { chave: string; rotulo: string; eventos: T[] }[] = []
   for (const e of eventos) {
