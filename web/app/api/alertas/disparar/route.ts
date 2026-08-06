@@ -91,23 +91,28 @@ export async function POST(req: NextRequest) {
         }
       }
       if (process.env.RESEND_API_KEY) {
-        const { data: dadosUsuario } = await admin.auth.admin.getUserById(u)
-        const email = dadosUsuario?.user?.email
-        if (email) {
-          const resposta = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: "Commander <onboarding@resend.dev>",
-              to: email,
-              subject: titulo,
-              text: `${titulo}\n\n${corpo}\n\nAbra o Commander para ver os detalhes.`,
-            }),
-          })
-          if (resposta.ok) emails++
+        // best-effort: falha de e-mail em um usuário não pode abortar o lote
+        try {
+          const { data: dadosUsuario } = await admin.auth.admin.getUserById(u)
+          const email = dadosUsuario?.user?.email
+          if (email) {
+            const resposta = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              },
+              body: JSON.stringify({
+                from: "Commander <onboarding@resend.dev>",
+                to: email,
+                subject: titulo,
+                text: `${titulo}\n\n${corpo}\n\nAbra o Commander para ver os detalhes.`,
+              }),
+            })
+            if (resposta.ok) emails++
+          }
+        } catch {
+          // segue para o próximo usuário; push é o canal primário
         }
       }
     }
