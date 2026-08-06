@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { sair } from "@/lib/acoes/auth"
@@ -28,9 +29,15 @@ export default async function MenuPage() {
         </p>
       </div>
 
+      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Alertas</p>
+      <Link href="/notificacoes" className="block rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <p className="text-sm font-medium">Configurar alertas</p>
+        <p className="mt-0.5 text-xs text-dim">Ative os avisos por aparelho e veja o histórico</p>
+      </Link>
+
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Em breve</p>
       <div className="rounded-[14px] border border-line bg-panel px-4">
-        {["Assinatura e faturas", "Convidar comandante", "Configurar alertas"].map((item) => (
+        {["Assinatura e faturas", "Convidar comandante"].map((item) => (
           <p key={item} className="border-b border-line py-3 text-sm text-dim last:border-0">
             {item}
           </p>
