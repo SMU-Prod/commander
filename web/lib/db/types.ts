@@ -13,6 +13,8 @@ export interface Embarcacao {
   capitania: string | null
   propulsao: string | null
   marina: string | null
+  marina_lat: number | null
+  marina_lon: number | null
   created_at: string
 }
 
@@ -52,6 +54,12 @@ export interface ItemMonitorado {
 export type TipoEvento =
   | "manutencao" | "abastecimento" | "navegacao" | "avaria" | "docagem" | "leitura_horas" | "outro"
 
+export interface PontoTrilhaDb {
+  t: number
+  la: number
+  lo: number
+}
+
 export interface Evento {
   id: string
   embarcacao_id: string
@@ -65,6 +73,7 @@ export interface Evento {
   descricao: string | null
   custo_centavos: number | null
   anexo_path: string | null
+  trilha: PontoTrilhaDb[] | null
   criado_por: string | null
   created_at: string
 }
