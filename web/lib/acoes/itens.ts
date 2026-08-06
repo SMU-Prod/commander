@@ -23,12 +23,15 @@ export async function criarItemMonitorado(formData: FormData) {
   const equipamentoId = alvo.startsWith("eq:") ? alvo.slice(3) : null
   const categoria = alvo.startsWith("cat:") ? alvo.slice(4) : null
 
-  const numero = (k: string) => {
+  const numero = (k: string, msg: string) => {
     const v = texto(k)
-    return v === null ? null : parseDecimalPtBr(v)
+    if (v === null) return null
+    const n = parseDecimalPtBr(v)
+    if (n === null) erroNovo(msg)
+    return n
   }
-  const intervaloHoras = numero("intervalo_horas")
-  const intervaloMeses = numero("intervalo_meses")
+  const intervaloHoras = numero("intervalo_horas", "Informe um intervalo de horas válido.")
+  const intervaloMeses = numero("intervalo_meses", "Informe um intervalo de meses válido.")
   const dataFixa = texto("data_fixa")
 
   const v = validarNovoItem({ intervaloHoras, intervaloMeses, dataFixa })
@@ -43,7 +46,7 @@ export async function criarItemMonitorado(formData: FormData) {
     intervalo_meses: intervaloMeses,
     data_fixa: dataFixa,
     ultimo_ciclo_data: texto("ultimo_ciclo_data") ?? hojeISO(),
-    ultimo_ciclo_horas: numero("ultimo_ciclo_horas"),
+    ultimo_ciclo_horas: numero("ultimo_ciclo_horas", "Informe horas válidas no último serviço."),
   })
   if (error) erroNovo("Não foi possível criar o item. Tente de novo.")
 

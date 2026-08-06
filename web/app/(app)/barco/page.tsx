@@ -22,7 +22,9 @@ export default async function BarcoPage() {
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
   const motores = equipamentos.filter((e) => e.tipo === "motor")
-  const documentos = itens.filter((i) => i.categoria === "documento")
+  const documentos = itens.filter(
+    (i) => i.categoria === "documento" || (i.categoria === null && i.equipamento_id === null),
+  )
 
   return (
     <main>

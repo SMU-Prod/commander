@@ -7,7 +7,9 @@ import { zerarCiclo } from "@/lib/domain/diario"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { supabaseServer } from "@/lib/supabase/server"
 
-const erroNovo = (msg: string) => redirect(`/diario/novo?erro=${encodeURIComponent(msg)}`)
+function erroNovo(msg: string): never {
+  redirect(`/diario/novo?erro=${encodeURIComponent(msg)}`)
+}
 
 export async function criarEvento(formData: FormData) {
   const supabase = await supabaseServer()
@@ -25,13 +27,16 @@ export async function criarEvento(formData: FormData) {
   const alvo = texto("alvo")
   const equipamentoId = alvo?.startsWith("eq:") ? alvo.slice(3) : null
   const categoria = alvo?.startsWith("cat:") ? alvo.slice(4) : null
+  if (equipamentoId && !painel.equipamentos.some((e) => e.id === equipamentoId)) {
+    erroNovo("Equipamento inválido.")
+  }
 
   const custoBruto = texto("custo")
   let custoCentavos: number | null = null
   if (custoBruto != null) {
     const reais = parseDecimalPtBr(custoBruto)
     if (reais === null || reais < 0) erroNovo("Informe um custo válido (ex.: 1.850,00).")
-    custoCentavos = Math.round(reais! * 100)
+    custoCentavos = Math.round(reais * 100)
   }
 
   const horasBruto = texto("horas")
@@ -41,6 +46,13 @@ export async function criarEvento(formData: FormData) {
   const itemId = texto("item_id")
   const item = itemId ? (painel.itens.find((i) => i.id === itemId) ?? null) : null
   if (itemId && !item) erroNovo("Item monitorado inválido.")
+
+  const contatoId = texto("contato_id")
+  if (contatoId) {
+    const { data: contato } = await supabase.from("contatos")
+      .select("id").eq("id", contatoId).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
+    if (!contato) erroNovo("Contato inválido.")
+  }
 
   let anexoPath: string | null = null
   const anexo = formData.get("anexo")
@@ -53,7 +65,7 @@ export async function criarEvento(formData: FormData) {
     embarcacao_id: painel.embarcacao.id,
     equipamento_id: equipamentoId,
     item_monitorado_id: item?.id ?? null,
-    contato_id: texto("contato_id"),
+    contato_id: contatoId,
     tipo,
     categoria,
     data,

@@ -95,7 +95,17 @@ export default async function DiarioPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium">
                       {TIPO_ROTULO[e.tipo] ?? e.tipo}
-                      {eq ? ` — ${eq.tipo === "motor" ? "Motor" : "Gerador"} ${eq.posicao ?? ""}` : ""}
+                      {eq
+                        ? ` — ${
+                            eq.tipo === "motor"
+                              ? "Motor"
+                              : eq.tipo === "gerador"
+                                ? "Gerador"
+                                : eq.tipo === "bateria"
+                                  ? "Bateria"
+                                  : "Equipamento"
+                          } ${eq.posicao ?? ""}`
+                        : ""}
                     </p>
                     {e.descricao && <p className="mt-0.5 text-xs text-dim">{e.descricao}</p>}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}

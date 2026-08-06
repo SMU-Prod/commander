@@ -36,7 +36,7 @@ export default async function GastosPage() {
       <a href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Embarcação</a>
       <div className="mt-3 flex items-baseline justify-between">
         <h1 className="text-xl font-semibold">Gastos</h1>
-        <Link href="/diario/novo?custo=0,00" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
+        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
           + Lançamento
         </Link>
       </div>

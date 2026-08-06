@@ -71,13 +71,26 @@ export async function anexarArquivo(formData: FormData) {
   if ("erro" in r) volta(r.erro)
 
   const arquivoPath = (r as { path: string }).path
-  const { error } = await supabase.from("documentos").insert({
-    embarcacao_id: painel.embarcacao.id, nome: item!.nome,
-    arquivo_path: arquivoPath, validade: item!.data_fixa, item_monitorado_id: itemId,
-  })
-  if (error) {
-    await supabase.storage.from("acervo").remove([arquivoPath])
-    volta("Não foi possível vincular o arquivo.")
+
+  const { data: existente } = await supabase.from("documentos")
+    .select("id").eq("item_monitorado_id", itemId).is("arquivo_path", null).maybeSingle()
+
+  if (existente) {
+    const { error } = await supabase.from("documentos")
+      .update({ arquivo_path: arquivoPath }).eq("id", existente.id)
+    if (error) {
+      await supabase.storage.from("acervo").remove([arquivoPath])
+      volta("Não foi possível vincular o arquivo.")
+    }
+  } else {
+    const { error } = await supabase.from("documentos").insert({
+      embarcacao_id: painel.embarcacao.id, nome: item!.nome,
+      arquivo_path: arquivoPath, validade: item!.data_fixa, item_monitorado_id: itemId,
+    })
+    if (error) {
+      await supabase.storage.from("acervo").remove([arquivoPath])
+      volta("Não foi possível vincular o arquivo.")
+    }
   }
   revalidatePath("/barco/documentos")
   volta()
