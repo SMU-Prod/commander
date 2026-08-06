@@ -28,11 +28,11 @@ export async function boletimDoMar(lat: number, lon: number): Promise<BoletimMar
     const [marinho, tempo] = await Promise.all([
       fetch(
         `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,sea_surface_temperature&timezone=America%2FSao_Paulo&forecast_days=1`,
-        { next: { revalidate: 3600 } },
+        { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) },
       ).then((r) => (r.ok ? r.json() : null)),
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m&wind_speed_unit=kn&timezone=America%2FSao_Paulo&forecast_days=1`,
-        { next: { revalidate: 3600 } },
+        { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) },
       ).then((r) => (r.ok ? r.json() : null)),
     ])
     if (!marinho && !tempo) return null

@@ -10,7 +10,7 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
   const { data: evento } = await supabase
     .from("eventos").select("*").eq("id", id).maybeSingle()
   const e = evento as Evento | null
-  if (!e || !e.trilha || e.trilha.length < 2) notFound()
+  if (!e || !Array.isArray(e.trilha) || e.trilha.length < 2) notFound()
 
   const r = resumoTrilha(e.trilha)
   const stats: [string, string][] = [

@@ -74,6 +74,7 @@ export interface Evento {
   custo_centavos: number | null
   anexo_path: string | null
   trilha: PontoTrilhaDb[] | null
+  tem_trilha: boolean
   criado_por: string | null
   created_at: string
 }

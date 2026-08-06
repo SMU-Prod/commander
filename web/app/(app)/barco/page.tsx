@@ -110,8 +110,8 @@ export default async function BarcoPage() {
       <Link href="/barco/local" className="mt-2 block rounded-[14px] border border-line bg-panel p-3.5">
         <p className="text-sm font-semibold">Posição da marina</p>
         <p className="mt-0.5 text-xs text-dim">
-          {embarcacao.marina_lat != null
-            ? `${embarcacao.marina_lat.toFixed(4)}, ${embarcacao.marina_lon?.toFixed(4)}`
+          {embarcacao.marina_lat != null && embarcacao.marina_lon != null
+            ? `${embarcacao.marina_lat.toFixed(4)}, ${embarcacao.marina_lon.toFixed(4)}`
             : "Defina para ligar o boletim do mar"}
         </p>
       </Link>

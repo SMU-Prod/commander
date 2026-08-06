@@ -5,7 +5,7 @@ const ALTURA = 220
 const MARGEM = 18
 
 export function TrilhaSvg({ pontos }: { pontos: PontoTrilha[] }) {
-  if (pontos.length < 2) return null
+  if (!Array.isArray(pontos) || pontos.length < 2) return null
   const rad = Math.PI / 180
   const laMedia = pontos.reduce((s, p) => s + p.la, 0) / pontos.length
   const fatorLon = Math.cos(laMedia * rad)
