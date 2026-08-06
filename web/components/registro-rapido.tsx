@@ -2,7 +2,7 @@
 import { useState } from "react"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
 
-const campo = "w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 font-mono-instr text-base tabular-nums"
+const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
 const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
 
 export function RegistroRapido({
@@ -28,7 +28,7 @@ export function RegistroRapido({
     <>
       <button
         onClick={() => setAberto(true)}
-        className="fixed bottom-20 right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-[#04121d] shadow-lg shadow-accent/30"
+        className="fixed bottom-20 right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
       >
         + Registrar
       </button>
@@ -63,7 +63,7 @@ export function RegistroRapido({
                 <label className={rotulo} htmlFor="obs">Observação — opcional</label>
                 <input id="obs" name="obs" placeholder="Ex.: saída às Cagarras" className={campo} />
               </div>
-              <button disabled={enviando} className="w-full rounded-xl bg-accent py-3.5 font-semibold text-[#04121d] disabled:opacity-60">
+              <button disabled={enviando} className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto disabled:opacity-60">
                 Salvar no diário
               </button>
               <button type="button" onClick={() => setAberto(false)} className="w-full py-2 text-sm text-dim">

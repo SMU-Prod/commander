@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
+import { Logo } from "@/components/logo"
 import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
@@ -34,6 +35,9 @@ export default async function HojePage({
 
   return (
     <main>
+      <div className="mb-5 text-[13px]">
+        <Logo />
+      </div>
       <header className="flex items-baseline justify-between">
         <div>
           <h1 className="text-xl font-semibold">{embarcacao.nome}</h1>

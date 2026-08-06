@@ -1,20 +1,75 @@
 @import "tailwindcss";
 
-@theme {
-  --color-ink: #0a1420;
-  --color-panel: #101d2c;
-  --color-panel2: #152638;
-  --color-line: #1e3550;
-  --color-texto: #e9f1f8;
-  --color-dim: #7c93ab;
-  --color-ok: #2fd07a;
-  --color-warn: #ffb020;
-  --color-crit: #ff5c5c;
-  --color-accent: #56b8e8;
+/* Commander — tokens dos dois temas. Light é o padrão (uso sob sol na marina);
+   dark é preferência do usuário via [data-theme="dark"] no <html>. */
+:root {
+  --fundo: #f5f7fa;
+  --superficie: #ffffff;
+  --superficie-2: #eef1f5;
+  --linha: #e2e7ed;
+  --texto: #0b1d2d;
+  --texto-dim: #60717f;
+  --ok: #15803d;
+  --warn: #b45309;
+  --crit: #d2373c;
+  --acao: #d4af37;
+  --acao-forte: #8a6d1c;
+  --acao-texto: #0b1d2d;
+  --campo: #ffffff;
+  --meter: #0b1d2d;
+  --meter-texto: #e9f1f8;
+  --meter-dim: #7c93ab;
+}
+
+[data-theme="dark"] {
+  --fundo: #0b1d2d;
+  --superficie: #12283a;
+  --superficie-2: #16324a;
+  --linha: #1e3550;
+  --texto: #e9f1f8;
+  --texto-dim: #7c93ab;
+  --ok: #2fd07a;
+  --warn: #ffb020;
+  --crit: #ff5c5c;
+  --acao: #d4af37;
+  --acao-forte: #e5c55c;
+  --acao-texto: #0b1d2d;
+  --campo: #0a1521;
+  --meter: #060d16;
+  --meter-texto: #e9f1f8;
+  --meter-dim: #7c93ab;
+}
+
+@theme inline {
+  --color-ink: var(--fundo);
+  --color-panel: var(--superficie);
+  --color-panel2: var(--superficie-2);
+  --color-line: var(--linha);
+  --color-texto: var(--texto);
+  --color-dim: var(--texto-dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-crit: var(--crit);
+  --color-accent: var(--acao);
+  --color-accent-forte: var(--acao-forte);
+  --color-acao-texto: var(--acao-texto);
+  --color-campo: var(--campo);
+  --color-meter: var(--meter);
+  --color-meter-texto: var(--meter-texto);
+  --color-meter-dim: var(--meter-dim);
   --font-mono-instr: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
 }
 
+/* Dentro do horímetro (cartucho escuro nos dois temas), o semáforo usa as
+   luzes vivas do dark para manter contraste sobre o fundo de instrumento. */
+.bg-meter {
+  --ok: #2fd07a;
+  --warn: #ffb020;
+  --crit: #ff5c5c;
+}
+
 body {
-  background: var(--color-ink);
-  color: var(--color-texto);
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--font-urbanist), system-ui, -apple-system, "Segoe UI", sans-serif;
 }

@@ -1,3 +1,4 @@
+import { Logo } from "@/components/logo"
 import { cadastrar, entrar } from "@/lib/acoes/auth"
 
 export default async function LoginPage({
@@ -9,8 +10,11 @@ export default async function LoginPage({
   const cadastro = modo === "cadastro"
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center px-6 pb-16">
-      <p className="font-mono-instr text-[11px] uppercase tracking-[.2em] text-accent">GestNav</p>
-      <h1 className="mt-2 text-2xl font-semibold">
+      <div className="text-lg"><Logo /></div>
+      <p className="mt-1 text-xs uppercase tracking-[.18em] text-dim">
+        Gestão completa da sua embarcação
+      </p>
+      <h1 className="mt-6 text-2xl font-semibold">
         {cadastro ? "Crie sua conta" : "Entre na sua conta"}
       </h1>
       {erro && (
@@ -20,18 +24,18 @@ export default async function LoginPage({
         {cadastro && (
           <div>
             <label htmlFor="nome" className="sr-only">Nome</label>
-            <input id="nome" name="nome" required placeholder="Seu nome" autoComplete="name" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+            <input id="nome" name="nome" required placeholder="Seu nome" autoComplete="name" className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base" />
           </div>
         )}
         <div>
           <label htmlFor="email" className="sr-only">E-mail</label>
-          <input id="email" name="email" type="email" required placeholder="E-mail" autoComplete="email" className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+          <input id="email" name="email" type="email" required placeholder="E-mail" autoComplete="email" className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base" />
         </div>
         <div>
           <label htmlFor="senha" className="sr-only">Senha</label>
-          <input id="senha" name="senha" type="password" required minLength={8} placeholder="Senha (mín. 8 caracteres)" autoComplete={cadastro ? "new-password" : "current-password"} className="w-full rounded-[10px] border border-line bg-[#0a1521] px-3 py-3 text-base" />
+          <input id="senha" name="senha" type="password" required minLength={8} placeholder="Senha (mín. 8 caracteres)" autoComplete={cadastro ? "new-password" : "current-password"} className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base" />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-[#04121d]">
+        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
           {cadastro ? "Criar conta" : "Entrar"}
         </button>
       </form>
