@@ -5,7 +5,7 @@ import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
 
-const volta = (msg?: string) =>
+const volta = (msg?: string): never =>
   redirect(msg ? `/barco/documentos?erro=${encodeURIComponent(msg)}` : "/barco/documentos")
 
 async function contexto() {
@@ -37,15 +37,21 @@ export async function criarDocumento(formData: FormData) {
   const arquivo = formData.get("arquivo")
   if (arquivo instanceof File && arquivo.size > 0) {
     const r = await subirArquivo(supabase, painel.embarcacao.id, "documentos", arquivo)
-    if ("erro" in r) volta(r.erro)
-    else arquivoPath = r.path
+    if ("erro" in r) {
+      if (itemId) await supabase.from("itens_monitorados").delete().eq("id", itemId)
+      volta(r.erro)
+    } else arquivoPath = r.path
   }
 
   const { error } = await supabase.from("documentos").insert({
     embarcacao_id: painel.embarcacao.id, nome, arquivo_path: arquivoPath,
     validade, item_monitorado_id: itemId,
   })
-  if (error) volta("Não foi possível salvar o documento.")
+  if (error) {
+    if (arquivoPath) await supabase.storage.from("acervo").remove([arquivoPath])
+    if (itemId) await supabase.from("itens_monitorados").delete().eq("id", itemId)
+    volta("Não foi possível salvar o documento.")
+  }
 
   revalidatePath("/barco/documentos")
   revalidatePath("/barco")
@@ -64,27 +70,37 @@ export async function anexarArquivo(formData: FormData) {
   const r = await subirArquivo(supabase, painel.embarcacao.id, "documentos", arquivo as File)
   if ("erro" in r) volta(r.erro)
 
+  const arquivoPath = (r as { path: string }).path
   const { error } = await supabase.from("documentos").insert({
     embarcacao_id: painel.embarcacao.id, nome: item!.nome,
-    arquivo_path: (r as { path: string }).path, validade: item!.data_fixa, item_monitorado_id: itemId,
+    arquivo_path: arquivoPath, validade: item!.data_fixa, item_monitorado_id: itemId,
   })
-  if (error) volta("Não foi possível vincular o arquivo.")
+  if (error) {
+    await supabase.storage.from("acervo").remove([arquivoPath])
+    volta("Não foi possível vincular o arquivo.")
+  }
   revalidatePath("/barco/documentos")
   volta()
 }
 
 export async function excluirDocumento(formData: FormData) {
-  const { supabase } = await contexto()
+  const { supabase, painel } = await contexto()
   const id = String(formData.get("documento_id") ?? "")
   const { data: doc } = await supabase.from("documentos")
-    .select("id, arquivo_path, item_monitorado_id").eq("id", id).maybeSingle()
+    .select("id, arquivo_path, item_monitorado_id")
+    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
   if (!doc) volta("Documento não encontrado.")
 
-  if (doc!.arquivo_path) await supabase.storage.from("acervo").remove([doc!.arquivo_path])
-  const { error } = await supabase.from("documentos").delete().eq("id", id)
-  if (error) volta("Não foi possível excluir.")
   if (doc!.item_monitorado_id) {
-    await supabase.from("itens_monitorados").delete().eq("id", doc!.item_monitorado_id)
+    const { error: erroItem } = await supabase
+      .from("itens_monitorados").delete().eq("id", doc!.item_monitorado_id)
+    if (erroItem) volta("Não foi possível excluir o vencimento vinculado. Tente de novo.")
+  }
+  const { error } = await supabase.from("documentos").delete().eq("id", id)
+  if (error) volta("Não foi possível excluir. Tente de novo.")
+  if (doc!.arquivo_path) {
+    // best-effort: arquivo órfão é aceitável; linha fantasma não.
+    await supabase.storage.from("acervo").remove([doc!.arquivo_path])
   }
   revalidatePath("/barco/documentos")
   revalidatePath("/barco")

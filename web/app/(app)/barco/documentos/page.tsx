@@ -59,7 +59,7 @@ export default async function DocumentosPage({
                 </p>
               </div>
               {url ? (
-                <a href={url} target="_blank" className="text-sm text-accent-forte">Abrir</a>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>
               ) : (
                 <form action={anexarArquivo} className="flex items-center gap-2">
                   <input type="hidden" name="item_id" value={i.id} />
@@ -84,7 +84,7 @@ export default async function DocumentosPage({
               return (
                 <div key={d.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
                   <p className="min-w-0 flex-1 text-sm font-medium">{d.nome}</p>
-                  {url && <a href={url} target="_blank" className="text-sm text-accent-forte">Abrir</a>}
+                  {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>}
                   <form action={excluirDocumento}>
                     <input type="hidden" name="documento_id" value={d.id} />
                     <button className="text-xs text-crit">Excluir</button>
