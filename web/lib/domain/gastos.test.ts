@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+﻿import { describe, expect, it } from "vitest"
 import { formatarReais, resumoGastos } from "./gastos"
 
 describe("resumoGastos", () => {
@@ -33,6 +33,6 @@ describe("resumoGastos", () => {
 
 describe("formatarReais", () => {
   it("formata centavos como BRL", () => {
-    expect(formatarReais(185000).replace(/ /g, " ")).toBe("R$ 1.850,00")
+    expect(formatarReais(185000).replace(/\u00a0/g, " ")).toBe("R$ 1.850,00")
   })
 })
