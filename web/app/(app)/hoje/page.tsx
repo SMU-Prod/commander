@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
-import { calcularSemaforo, type StatusFarol } from "@/lib/domain/semaforo"
+import { calcularSemaforo, textoRestante, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-
-const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
 
 export default async function HojePage({
   searchParams,
@@ -33,17 +31,6 @@ export default async function HojePage({
     ok: avaliados.filter((a) => a.r.status === "ok").length,
   }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
-
-  const restante = (r: { horasRestantes: number | null; diasRestantes: number | null }) =>
-    r.horasRestantes != null && (r.diasRestantes == null || r.horasRestantes >= 0)
-      ? r.horasRestantes < 0
-        ? `vencido há ${Math.round(-r.horasRestantes)} h`
-        : `em ${Math.round(r.horasRestantes)} h`
-      : r.diasRestantes != null
-        ? r.diasRestantes < 0
-          ? `vencido há ${-r.diasRestantes} dias`
-          : `em ${r.diasRestantes} dias`
-        : ""
 
   return (
     <main>
@@ -77,7 +64,7 @@ export default async function HojePage({
             <span className={`w-[3px] shrink-0 self-stretch rounded ${r.status === "vencido" ? "bg-crit" : "bg-warn"}`} />
             <div>
               <p className="text-sm font-semibold">{onde}</p>
-              <p className="mt-0.5 text-xs text-dim">{restante(r)}</p>
+              <p className="mt-0.5 text-xs text-dim">{textoRestante(r)}</p>
             </div>
           </div>
         ))}

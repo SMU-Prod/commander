@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { calcularSemaforo } from "./semaforo"
+import { calcularSemaforo, textoRestante } from "./semaforo"
 
 const HOJE = "2026-08-05"
 
@@ -99,5 +99,23 @@ describe("combinado — o que vencer primeiro manda", () => {
       HOJE,
     )
     expect(r.status).toBe("vencido") // 12 meses de 2025-06-01 = 2026-06-01, já passou
+  })
+})
+
+describe("textoRestante", () => {
+  it("data vencida com horas ok mostra o vencimento", () => {
+    expect(textoRestante({ status: "vencido", horasRestantes: 150, diasRestantes: -36 })).toBe("vencido há 36 dias")
+  })
+  it("horas vencidas com data ok mostra o vencimento", () => {
+    expect(textoRestante({ status: "vencido", horasRestantes: -50, diasRestantes: 298 })).toBe("vencido há 50 h")
+  })
+  it("combinado em dia mostra os dois prazos", () => {
+    expect(textoRestante({ status: "ok", horasRestantes: 213, diasRestantes: 298 })).toBe("em 213 h ou 298 dias")
+  })
+  it("só data", () => {
+    expect(textoRestante({ status: "atencao", horasRestantes: null, diasRestantes: 12 })).toBe("em 12 dias")
+  })
+  it("só horas", () => {
+    expect(textoRestante({ status: "atencao", horasRestantes: 37, diasRestantes: null })).toBe("em 37 h")
   })
 })

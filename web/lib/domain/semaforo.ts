@@ -36,7 +36,7 @@ function diffDias(de: string, ate: string): number {
   return Math.round((paraUTC(ate) - paraUTC(de)) / 86_400_000)
 }
 
-const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
+export const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
 
 export function calcularSemaforo(item: ItemCalc, horasAtuais: number | null, hoje: string): ResultadoCalc {
   let statusHoras: StatusFarol | null = null
@@ -65,4 +65,15 @@ export function calcularSemaforo(item: ItemCalc, horasAtuais: number | null, hoj
   const candidatos = [statusHoras, statusData].filter((s): s is StatusFarol => s != null)
   const status = candidatos.length === 0 ? "ok" : candidatos.sort((a, b) => PESO[b] - PESO[a])[0]
   return { status, horasRestantes, diasRestantes }
+}
+
+export function textoRestante(r: ResultadoCalc): string {
+  const h = r.horasRestantes
+  const d = r.diasRestantes
+  if (h != null && h < 0) return `vencido há ${Math.round(-h)} h`
+  if (d != null && d < 0) return `vencido há ${-d} dias`
+  const partes: string[] = []
+  if (h != null) partes.push(`${Math.round(h)} h`)
+  if (d != null) partes.push(`${d} dias`)
+  return partes.length > 0 ? `em ${partes.join(" ou ")}` : ""
 }

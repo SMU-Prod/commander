@@ -2,10 +2,8 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
-import { calcularSemaforo, type StatusFarol } from "@/lib/domain/semaforo"
+import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-
-const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
 
 export default async function BarcoPage() {
   const painel = await carregarPainel()
