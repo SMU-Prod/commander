@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Logo } from "@/components/logo"
@@ -89,6 +90,20 @@ export default async function HojePage({
           </div>
         </>
       )}
+
+      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acesso rápido</p>
+      <div className="grid grid-cols-4 gap-2 text-center">
+        {[
+          { href: "/barco", rotulo: "Motores" },
+          { href: "/barco/documentos", rotulo: "Docs" },
+          { href: "/diario", rotulo: "Diário" },
+          { href: "/barco/contatos", rotulo: "Contatos" },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
+            {a.rotulo}
+          </Link>
+        ))}
+      </div>
     </main>
   )
 }

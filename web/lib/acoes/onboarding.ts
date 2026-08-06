@@ -79,7 +79,7 @@ export async function concluirOnboarding(formData: FormData) {
   ].filter((d) => d.validade != null)
   if (documentos.length > 0) {
     const { error: docsError } = await supabase.from("itens_monitorados").insert(
-      documentos.map((d) => ({ embarcacao_id: embarcacaoId, nome: d.nome, data_fixa: d.validade })),
+      documentos.map((d) => ({ embarcacao_id: embarcacaoId, nome: d.nome, data_fixa: d.validade, categoria: "documento" })),
     )
     if (docsError) falhas++
   }
