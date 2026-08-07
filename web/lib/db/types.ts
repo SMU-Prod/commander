@@ -30,6 +30,10 @@ export interface Equipamento {
   ano: number | null
   potencia_hp: number | null
   combustivel: string | null
+  identificacao_interna: string | null
+  quantidade: number | null
+  foto_path: string | null
+  observacoes: string | null
   horas_atuais: number | null
   ultima_leitura: string | null
   created_at: string
@@ -43,6 +47,8 @@ export interface ItemMonitorado {
   embarcacao_id: string
   equipamento_id: string | null
   nome: string
+  especificacao: string | null
+  quantidade: string | null
   categoria: CategoriaItem | null
   intervalo_horas: number | null
   intervalo_meses: number | null
@@ -167,5 +173,13 @@ export interface Foto {
   bytes: number
   legenda: string | null
   criado_por: string | null
+  created_at: string
+}
+
+export interface Perfil {
+  id: string
+  nome: string
+  telefone: string | null
+  avatar_path: string | null
   created_at: string
 }
