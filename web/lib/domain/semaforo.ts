@@ -38,6 +38,18 @@ function diffDias(de: string, ate: string): number {
 
 export const PESO: Record<StatusFarol, number> = { ok: 0, atencao: 1, vencido: 2 }
 
+/** Vencimento por data de um item: data fixa, ou ultimo ciclo + intervalo em meses.
+ *  E a MESMA regra do farol — quem listar vencimentos (relatorio mensal) usa esta
+ *  funcao para nunca divergir da tela. */
+export function vencimentoPorData(item: ItemCalc): string | null {
+  return (
+    item.dataFixa ??
+    (item.intervaloMeses != null && item.ultimoCicloData != null
+      ? somarMeses(item.ultimoCicloData, item.intervaloMeses)
+      : null)
+  )
+}
+
 export function calcularSemaforo(item: ItemCalc, horasAtuais: number | null, hoje: string): ResultadoCalc {
   let statusHoras: StatusFarol | null = null
   let horasRestantes: number | null = null
@@ -50,11 +62,7 @@ export function calcularSemaforo(item: ItemCalc, horasAtuais: number | null, hoj
 
   let statusData: StatusFarol | null = null
   let diasRestantes: number | null = null
-  const vencimento =
-    item.dataFixa ??
-    (item.intervaloMeses != null && item.ultimoCicloData != null
-      ? somarMeses(item.ultimoCicloData, item.intervaloMeses)
-      : null)
+  const vencimento = vencimentoPorData(item)
   if (vencimento != null) {
     diasRestantes = diffDias(hoje, vencimento)
     if (diasRestantes < 0) statusData = "vencido"

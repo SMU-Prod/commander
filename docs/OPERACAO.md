@@ -114,8 +114,9 @@ Sem `RESEND_API_KEY` configurada a rota responde `500 {erro}` — diferente do d
 (onde o e-mail é best-effort), aqui o e-mail É o produto, então a chave é obrigatória.
 
 **Para ligar em produção:**
-1. Garanta que `COMMANDER_URL`/`APP_URL` e `ALERTAS_SEGREDO` já estão cadastrados no GitHub (mesmos
-   secrets dos alertas — a rota de relatório usa o secret `APP_URL`).
+1. Atenção: o relatório usa um secret PRÓPRIO, `APP_URL` — ele NÃO existe ainda se você só
+   configurou os alertas (que usam `COMMANDER_URL`). Cadastre `APP_URL` no GitHub com a mesma
+   URL, além do `ALERTAS_SEGREDO` que os dois workflows compartilham.
 2. Crie a variável de repositório `RELATORIOS_ATIVOS = 1`.
 3. O workflow `.github/workflows/relatorio.yml` roda no dia 1 de cada mês, 09:00 de Brasília, e
    fecha o mês que acabou de terminar (inclusive na virada de ano: relatório de janeiro cobre

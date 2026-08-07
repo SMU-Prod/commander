@@ -25,7 +25,7 @@ function corpoDoEmail(nomeEmbarcacao: string, resumo: ResumoMes, mesNome: string
   const linhas = [
     `${nomeEmbarcacao} em ${mesNome}:`,
     "",
-    `· ${resumo.horasMotor} h de motor`,
+    `· ${Math.round(resumo.horasMotor)} h de motor`,
     `· ${formatarReais(resumo.totalGastosCentavos)} em gastos`,
     `· ${resumo.saidas} saídas registradas`,
   ]

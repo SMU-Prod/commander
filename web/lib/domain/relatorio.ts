@@ -1,3 +1,5 @@
+import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
+import { vencimentoPorData } from "@/lib/domain/semaforo"
 import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 
 export interface ResumoMes {
@@ -31,7 +33,7 @@ export function resumoDoMes(
   const doMes = dados.eventos.filter((e) => e.data.startsWith(mesISO))
 
   let horasMotor = 0
-  for (const eq of dados.equipamentos) {
+  for (const eq of dados.equipamentos.filter((e) => e.tipo === "motor")) {
     const leituras = doMes
       .filter((e) => e.tipo === "leitura_horas" && e.equipamento_id === eq.id && e.horas_no_momento != null)
       .map((e) => ({ data: e.data, horas: e.horas_no_momento as number }))
@@ -45,10 +47,12 @@ export function resumoDoMes(
   const totalGastosCentavos = doMes.reduce((s, e) => s + (e.custo_centavos ?? 0), 0)
   const saidas = doMes.filter((e) => e.tipo === "navegacao").length
 
+  // mesma derivacao do farol (data fixa OU ultimo ciclo + intervalo em meses):
+  // um item "revisao a cada 6 meses" aparece aqui como aparece na tela
   const proximo = mesSeguinte(mesISO)
   const aVencer = dados.itens
-    .filter((i) => i.data_fixa?.startsWith(proximo))
-    .map((i) => ({ nome: i.nome, quando: i.data_fixa as string }))
+    .map((i) => ({ nome: i.nome, quando: vencimentoPorData(itemMonitoradoToItemCalc(i)) }))
+    .filter((i): i is { nome: string; quando: string } => i.quando?.startsWith(proximo) ?? false)
     .sort((a, b) => a.quando.localeCompare(b.quando))
 
   return { horasMotor, totalGastosCentavos, saidas, aVencer }

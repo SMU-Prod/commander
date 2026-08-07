@@ -68,6 +68,15 @@ describe("resumoDoMes", () => {
     const r = resumoDoMes({ eventos: [], itens: [item], equipamentos: [] }, "2026-08")
     expect(r.aVencer).toEqual([{ nome: "Seguro casco", quando: "2026-09-12" }])
   })
+  it("item sem data fixa vence por ultimo ciclo + intervalo em meses, como no farol", () => {
+    const item: ItemMonitorado = {
+      id: "i2", embarcacao_id: "b1", equipamento_id: null, nome: "Revisão do guincho", especificacao: null,
+      quantidade: null, categoria: "deck", intervalo_horas: null, intervalo_meses: 6,
+      data_fixa: null, ultimo_ciclo_data: "2026-03-12", ultimo_ciclo_horas: null, created_at: "2026-01-01",
+    }
+    const r = resumoDoMes({ eventos: [], itens: [item], equipamentos: [] }, "2026-08")
+    expect(r.aVencer).toEqual([{ nome: "Revisão do guincho", quando: "2026-09-12" }])
+  })
 })
 
 describe("mesAnteriorISO", () => {
