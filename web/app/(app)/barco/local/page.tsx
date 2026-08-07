@@ -23,7 +23,7 @@ export default async function LocalPage({
       <h1 className="mt-3 text-xl font-semibold">Posição da marina</h1>
       <p className="mt-1 text-sm text-dim">
         É daqui que saem o boletim do mar da tela Início e, no futuro, o modo marina.
-        Vá até o barco e toque em "Usar minha posição atual" — ou preencha as coordenadas.
+        Vá até o barco e toque em “Usar minha posição atual” — ou preencha as coordenadas.
       </p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 

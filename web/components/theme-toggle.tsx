@@ -10,12 +10,15 @@ export function ThemeToggle() {
   const [tema, setTema] = useState<"light" | "dark">("light")
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza estado inicial com o DOM pos-hydration
     setTema(document.documentElement.dataset.theme === "dark" ? "dark" : "light")
   }, [])
 
   function trocar(novo: "light" | "dark") {
     setTema(novo)
+    // eslint-disable-next-line react-hooks/immutability -- troca de tema muta o DOM de proposito
     if (novo === "dark") document.documentElement.dataset.theme = "dark"
+    // eslint-disable-next-line react-hooks/immutability -- troca de tema muta o DOM de proposito
     else delete document.documentElement.dataset.theme
     try {
       localStorage.setItem("tema", novo)
