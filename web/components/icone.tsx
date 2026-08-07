@@ -15,7 +15,7 @@ const PATHS = {
   calendario: <><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></>,
   camera: <><path d="M4 8h3l2-3h6l2 3h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></>,
   grafico: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  chat: <path d="M20 12a8 8 0 1 1-3.4-6.5M20 4v5h-5" />,
+  chat: <path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3.5 20.5l1.4-5.2A8.5 8.5 0 1 1 21 11.5z" />,
   selo: <><circle cx="12" cy="9" r="6" /><path d="M9 14.5 8 22l4-2 4 2-1-7.5" /></>,
   cifrao: <path d="M12 3v18M16 7.5C16 5.6 14.2 4.5 12 4.5S8 5.6 8 7.5s1.8 3 4 3.5 4 1.6 4 3.5-1.8 3-4 3-4-1.1-4-3" />,
   bateria: <><rect x="3" y="8" width="16" height="9" rx="2" /><path d="M21 11v3M7 12.5h4M9 10.5v4" /></>,
