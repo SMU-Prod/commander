@@ -58,9 +58,17 @@ export default async function BarcoPage({
         podeEditarFotos={podeEditar(permissoes, "fotos")}
       />
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="motor" className="size-3.5" /> Motores
-      </p>
+      <div className="mt-6 mb-2 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="motor" className="size-3.5" /> Motores
+        </p>
+        {podeEditar(permissoes, "motores") && (
+          <Link href="/barco/equipamento/novo?tipo=motor" className="corpo text-accent-forte">+ Motor</Link>
+        )}
+      </div>
+      {motores.length === 0 && (
+        <p className="apoio text-dim">Nenhum motor cadastrado ainda.</p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {motores.map((m) => (
           <Link key={m.id} href={`/barco/equipamento/${m.id}`}>

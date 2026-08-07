@@ -32,9 +32,10 @@ export default async function PerfilPage({
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <div className="mt-5 flex items-center gap-3">
-        <Avatar url={url} nome={perfil?.nome ?? "?"} tamanho="size-16" />
+        {/* || e não ??: profiles.nome é NOT NULL e nasce vazio no cadastro */}
+        <Avatar url={url} nome={perfil?.nome || "?"} tamanho="size-16" />
         <div>
-          <p className="titulo-card">{perfil?.nome ?? "Sem nome"}</p>
+          <p className="titulo-card">{perfil?.nome || "Sem nome"}</p>
           <p className="apoio text-dim">{user.email}</p>
         </div>
       </div>

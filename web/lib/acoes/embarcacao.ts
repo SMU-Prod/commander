@@ -32,7 +32,7 @@ export async function salvarDadosGerais(formData: FormData) {
     erroEditar("Informe um ano válido (ex.: 2016).")
   }
 
-  const { error } = await supabase
+  const { data: salva, error } = await supabase
     .from("embarcacoes")
     .update({
       nome,
@@ -50,7 +50,10 @@ export async function salvarDadosGerais(formData: FormData) {
       propulsao: texto("propulsao"),
     })
     .eq("id", painel.embarcacao.id)
-  if (error) erroEditar("Não foi possível salvar. Confira seu acesso e tente de novo.")
+    .select("id")
+  // sem o select, uma linha barrada pela RLS voltaria com error null e a tela
+  // diria "salvo" sem ter salvado nada
+  if (error || !salva?.length) erroEditar("Não foi possível salvar. Confira seu acesso e tente de novo.")
 
   revalidatePath("/barco")
   revalidatePath("/hoje")
