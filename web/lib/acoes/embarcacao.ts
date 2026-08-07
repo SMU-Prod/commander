@@ -1,0 +1,58 @@
+"use server"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+import { carregarPainel } from "@/lib/consultas"
+import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { supabaseServer } from "@/lib/supabase/server"
+
+function erroEditar(msg: string): never {
+  redirect(`/barco/editar?erro=${encodeURIComponent(msg)}`)
+}
+
+export async function salvarDadosGerais(formData: FormData) {
+  const supabase = await supabaseServer()
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+  if (painel.papel !== "PROP") erroEditar("Só o proprietário edita os dados da embarcação.")
+
+  const texto = (k: string) => String(formData.get(k) ?? "").trim() || null
+  const nome = texto("nome")
+  if (!nome) erroEditar("O barco precisa de um nome.")
+
+  const medida = (k: string, rotulo: string) => {
+    const bruto = texto(k)
+    if (bruto === null) return null
+    const n = parseDecimalPtBr(bruto)
+    if (n === null || n <= 0) erroEditar(`Informe ${rotulo} em metros (ex.: 14,60).`)
+    return n
+  }
+  const anoBruto = texto("ano")
+  const ano = anoBruto === null ? null : parseDecimalPtBr(anoBruto)
+  if (anoBruto !== null && (ano === null || ano < 1900 || ano > 2100)) {
+    erroEditar("Informe um ano válido (ex.: 2016).")
+  }
+
+  const { error } = await supabase
+    .from("embarcacoes")
+    .update({
+      nome,
+      estaleiro: texto("estaleiro"),
+      modelo: texto("modelo"),
+      ano,
+      marina: texto("marina"),
+      comprimento_m: medida("comprimento_m", "o comprimento"),
+      boca_m: medida("boca_m", "a boca"),
+      calado_m: medida("calado_m", "o calado"),
+      casco_material: texto("casco_material"),
+      casco_numero: texto("casco_numero"),
+      tie: texto("tie"),
+      capitania: texto("capitania"),
+      propulsao: texto("propulsao"),
+    })
+    .eq("id", painel.embarcacao.id)
+  if (error) erroEditar("Não foi possível salvar. Confira seu acesso e tente de novo.")
+
+  revalidatePath("/barco")
+  revalidatePath("/hoje")
+  redirect(`/barco?ok=${encodeURIComponent("Dados da embarcação salvos")}`)
+}

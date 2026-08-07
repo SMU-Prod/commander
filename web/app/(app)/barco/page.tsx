@@ -117,6 +117,33 @@ export default async function BarcoPage() {
         })}
       </div>
 
+      <div className="mt-6 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="embarcacao" className="size-3.5" /> Dados gerais
+        </p>
+        {papel === "PROP" && (
+          <Link href="/barco/editar" className="corpo text-accent-forte">Editar</Link>
+        )}
+      </div>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {([
+            ["Comprimento", embarcacao.comprimento_m != null ? `${embarcacao.comprimento_m.toLocaleString("pt-BR")} m` : null],
+            ["Boca", embarcacao.boca_m != null ? `${embarcacao.boca_m.toLocaleString("pt-BR")} m` : null],
+            ["Calado", embarcacao.calado_m != null ? `${embarcacao.calado_m.toLocaleString("pt-BR")} m` : null],
+            ["Casco", [embarcacao.casco_material, embarcacao.casco_numero].filter(Boolean).join(" · ") || null],
+            ["Propulsão", embarcacao.propulsao],
+            ["TIE", embarcacao.tie],
+            ["Capitania", embarcacao.capitania],
+          ] as [string, string | null][]).map(([nome, valor]) => (
+            <div key={nome}>
+              <dt className="rotulo text-dim">{nome}</dt>
+              <dd className="corpo mt-0.5">{valor ?? <span className="text-dim">—</span>}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="imagem" className="size-3.5" /> Acervo do barco
       </p>
