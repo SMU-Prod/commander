@@ -5,11 +5,12 @@ import { Horimetro } from "@/components/horimetro"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { podeVer, type Aba } from "@/lib/domain/permissoes"
 
 export default async function BarcoPage() {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  const { embarcacao, equipamentos, itens } = painel
+  const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
 
   const statusDoEquipamento = (eqId: string): StatusFarol =>
@@ -94,27 +95,33 @@ export default async function BarcoPage() {
 
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acervo do barco</p>
       <div className="grid grid-cols-2 gap-2">
-        {[
-          { href: "/diario", rotulo: "Diário de Bordo", desc: "todo o histórico" },
-          { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos" },
-          { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco" },
-          { href: "/barco/gastos", rotulo: "Gastos", desc: "custos por mês" },
-        ].map((c) => (
-          <Link key={c.href} href={c.href} className="rounded-[14px] border border-line bg-panel p-3.5">
-            <p className="text-sm font-semibold">{c.rotulo}</p>
-            <p className="mt-0.5 text-xs text-dim">{c.desc}</p>
-          </Link>
-        ))}
+        {(
+          [
+            { href: "/diario", rotulo: "Diário de Bordo", desc: "todo o histórico" },
+            { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos", aba: "documentos" },
+            { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco", aba: "contatos" },
+            { href: "/barco/gastos", rotulo: "Gastos", desc: "custos por mês", aba: "gastos" },
+          ] as { href: string; rotulo: string; desc: string; aba?: Aba }[]
+        )
+          .filter((c) => !c.aba || podeVer(permissoes, c.aba))
+          .map((c) => (
+            <Link key={c.href} href={c.href} className="rounded-[14px] border border-line bg-panel p-3.5">
+              <p className="text-sm font-semibold">{c.rotulo}</p>
+              <p className="mt-0.5 text-xs text-dim">{c.desc}</p>
+            </Link>
+          ))}
       </div>
 
-      <Link href="/barco/local" className="mt-2 block rounded-[14px] border border-line bg-panel p-3.5">
-        <p className="text-sm font-semibold">Posição da marina</p>
-        <p className="mt-0.5 text-xs text-dim">
-          {embarcacao.marina_lat != null && embarcacao.marina_lon != null
-            ? `${embarcacao.marina_lat.toFixed(4)}, ${embarcacao.marina_lon.toFixed(4)}`
-            : "Defina para ligar o boletim do mar"}
-        </p>
-      </Link>
+      {papel === "PROP" && (
+        <Link href="/barco/local" className="mt-2 block rounded-[14px] border border-line bg-panel p-3.5">
+          <p className="text-sm font-semibold">Posição da marina</p>
+          <p className="mt-0.5 text-xs text-dim">
+            {embarcacao.marina_lat != null && embarcacao.marina_lon != null
+              ? `${embarcacao.marina_lat.toFixed(4)}, ${embarcacao.marina_lon.toFixed(4)}`
+              : "Defina para ligar o boletim do mar"}
+          </p>
+        </Link>
+      )}
     </main>
   )
 }

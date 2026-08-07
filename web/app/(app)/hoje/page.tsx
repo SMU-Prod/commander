@@ -6,6 +6,7 @@ import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
+import { podeVer, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 
 export default async function HojePage({
@@ -16,7 +17,7 @@ export default async function HojePage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  const { embarcacao, equipamentos, itens } = painel
+  const { embarcacao, equipamentos, itens, permissoes } = painel
   const hoje = hojeISO()
 
   const avaliados = itens
@@ -129,16 +130,20 @@ export default async function HojePage({
 
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acesso rápido</p>
       <div className="grid grid-cols-4 gap-2 text-center">
-        {[
-          { href: "/barco", rotulo: "Motores" },
-          { href: "/barco/documentos", rotulo: "Docs" },
-          { href: "/diario", rotulo: "Diário" },
-          { href: "/barco/contatos", rotulo: "Contatos" },
-        ].map((a) => (
-          <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
-            {a.rotulo}
-          </Link>
-        ))}
+        {(
+          [
+            { href: "/barco", rotulo: "Motores" },
+            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos" },
+            { href: "/diario", rotulo: "Diário" },
+            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos" },
+          ] as { href: string; rotulo: string; aba?: Aba }[]
+        )
+          .filter((a) => !a.aba || podeVer(permissoes, a.aba))
+          .map((a) => (
+            <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
+              {a.rotulo}
+            </Link>
+          ))}
       </div>
     </main>
   )

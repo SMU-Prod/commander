@@ -3,12 +3,14 @@ import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { grupoDoEvento, TIPO_ROTULO } from "@/lib/domain/diario"
 import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
+import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento } from "@/lib/db/types"
 
 export default async function GastosPage() {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  if (!podeVer(painel.permissoes, "gastos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os gastos."))
   const hoje = hojeISO()
   const inicioJanela = `${Number(hoje.slice(0, 4)) - 1}-01-01`
   const supabase = await supabaseServer()

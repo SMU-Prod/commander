@@ -14,6 +14,7 @@ export default async function LocalPage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  if (painel.papel !== "PROP") redirect("/hoje?erro=" + encodeURIComponent("Só o proprietário altera a posição da marina."))
   const { embarcacao } = painel
 
   return (
