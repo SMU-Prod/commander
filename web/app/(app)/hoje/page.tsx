@@ -1,10 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
+import { Avatar } from "@/components/avatar"
 import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
@@ -67,6 +69,13 @@ export default async function HojePage({
 
   const statusGeral = avaliados[0]?.r.status ?? "ok"
   const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: perfil } = await supabase
+    .from("profiles").select("nome, avatar_path").eq("id", user?.id ?? "").maybeSingle()
+  const nomeUsuario = perfil?.nome?.trim() || "comandante"
+  const urlAvatar = perfil?.avatar_path
+    ? (await supabase.storage.from("acervo").createSignedUrl(perfil.avatar_path, 3600)).data?.signedUrl ?? null
+    : null
   const urlCapa = embarcacao.foto_capa_path
     ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
     : null
@@ -76,6 +85,16 @@ export default async function HojePage({
 
   return (
     <main>
+      <div className="mb-4 flex items-center gap-3">
+        <Avatar url={urlAvatar} nome={nomeUsuario} />
+        <div className="min-w-0">
+          <p className="apoio text-dim">Olá, {nomeUsuario.split(" ")[0]}</p>
+          <SeletorEmbarcacao
+            atual={{ id: embarcacao.id, nome: embarcacao.nome }}
+            opcoes={painel.embarcacoes}
+          />
+        </div>
+      </div>
       <CardEmbarcacao
         embarcacao={embarcacao}
         statusGeral={statusGeral}
