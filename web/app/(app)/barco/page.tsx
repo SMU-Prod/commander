@@ -1,11 +1,13 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
+import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { podeVer, type Aba } from "@/lib/domain/permissoes"
+import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
+import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function BarcoPage() {
   const painel = await carregarPainel()
@@ -27,12 +29,27 @@ export default async function BarcoPage() {
     (i) => i.categoria === "documento" || (i.categoria === null && i.equipamento_id === null),
   )
 
+  const statusGeral: StatusFarol =
+    itens
+      .map((i) => {
+        const eq = equipamentos.find((e) => e.id === i.equipamento_id)
+        return calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje).status
+      })
+      .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
+
+  const supabase = await supabaseServer()
+  const urlCapa = embarcacao.foto_capa_path
+    ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
+    : null
+
   return (
     <main>
-      <h1 className="text-xl font-semibold">{embarcacao.nome}</h1>
-      <p className="text-sm text-dim">
-        {[embarcacao.estaleiro, embarcacao.modelo, embarcacao.ano].filter(Boolean).join(" · ")}
-      </p>
+      <CardEmbarcacao
+        embarcacao={embarcacao}
+        statusGeral={statusGeral}
+        urlCapa={urlCapa}
+        podeEditarFotos={podeEditar(permissoes, "fotos")}
+      />
 
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Motores</p>
       <div className="grid grid-cols-2 gap-2">

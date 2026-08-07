@@ -1,12 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
-import { Logo } from "@/components/logo"
+import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
-import { podeVer, type Aba } from "@/lib/domain/permissoes"
+import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -43,27 +43,28 @@ export default async function HojePage({
       ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
       : null
 
+  const statusGeral = avaliados[0]?.r.status ?? "ok"
   const supabase = await supabaseServer()
+  const urlCapa = embarcacao.foto_capa_path
+    ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
+    : null
   const { data: comandantes } = await supabase
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
     .eq("visivel", true).limit(2)
 
   return (
     <main>
-      <div className="mb-5 text-[13px]">
-        <Logo />
+      <CardEmbarcacao
+        embarcacao={embarcacao}
+        statusGeral={statusGeral}
+        urlCapa={urlCapa}
+        podeEditarFotos={podeEditar(permissoes, "fotos")}
+      />
+      <div className="mt-3 flex justify-end gap-2.5 font-mono-instr text-xs tabular-nums text-dim">
+        <span className="flex items-center gap-1"><Farol status="vencido" />{contagem.vencido}</span>
+        <span className="flex items-center gap-1"><Farol status="atencao" />{contagem.atencao}</span>
+        <span className="flex items-center gap-1"><Farol status="ok" />{contagem.ok}</span>
       </div>
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">{embarcacao.nome}</h1>
-          <p className="text-sm text-dim">{embarcacao.marina ?? "Marina não informada"}</p>
-        </div>
-        <div className="flex gap-2.5 font-mono-instr text-xs tabular-nums text-dim">
-          <span className="flex items-center gap-1"><Farol status="vencido" />{contagem.vencido}</span>
-          <span className="flex items-center gap-1"><Farol status="atencao" />{contagem.atencao}</span>
-          <span className="flex items-center gap-1"><Farol status="ok" />{contagem.ok}</span>
-        </div>
-      </header>
 
       {erro && (
         <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
