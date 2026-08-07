@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { UsarPosicao } from "@/components/usar-posicao"
@@ -20,9 +21,9 @@ export default async function LocalPage({
 
   return (
     <main>
-      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Embarcação
-      </a>
+      </Link>
       <h1 className="mt-3 text-xl font-semibold">Posição da marina</h1>
       <p className="mt-1 text-sm text-dim">
         É daqui que saem o boletim do mar da tela Início e, no futuro, o modo marina.

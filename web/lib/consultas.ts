@@ -1,6 +1,7 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
+import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
 
 export const carregarPainel = cache(async (): Promise<{
@@ -9,20 +10,26 @@ export const carregarPainel = cache(async (): Promise<{
   itens: ItemMonitorado[]
   papel: "PROP" | "CMDT"
   permissoes: Permissoes | null
+  embarcacoes: { id: string; nome: string }[]
 } | null> => {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // O barco exibido segue o vínculo do usuário: prioriza onde ele é PROP;
-  // como CMDT de vários barcos, vale o vínculo mais antigo. (Seletor de
-  // embarcação no topo fica para a fase do multi-embarcação pleno.)
+  // O barco exibido segue o vínculo do usuário: prioriza o que está marcado
+  // como ativo no cookie; sem cookie (ou apontando pra barco sem vínculo),
+  // prioriza onde ele é PROP; como CMDT de vários barcos, vale o vínculo
+  // mais antigo.
   const { data: meusVinculos, error: erroVinculos } = await supabase
     .from("vinculos")
     .select("embarcacao_id, papel, permissoes")
     .eq("usuario_id", user?.id ?? "")
     .order("created_at")
   if (erroVinculos) throw new Error("Não foi possível carregar seu acesso. Recarregue a página.")
-  const vinculo = (meusVinculos ?? []).find((v) => v.papel === "PROP") ?? (meusVinculos ?? [])[0]
+  const ativa = await lerEmbarcacaoAtiva()
+  const vinculo =
+    (ativa ? (meusVinculos ?? []).find((v) => v.embarcacao_id === ativa) : undefined) ??
+    (meusVinculos ?? []).find((v) => v.papel === "PROP") ??
+    (meusVinculos ?? [])[0]
   if (!vinculo) return null
 
   const { data: embarcacao, error } = await supabase
@@ -39,10 +46,12 @@ export const carregarPainel = cache(async (): Promise<{
   ])
   if (equipamentosError || itensError) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
 
+  const { data: todas } = await supabase.from("embarcacoes").select("id, nome").order("nome")
+
   const papel = vinculo.papel as "PROP" | "CMDT"
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
 
-  return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes }
+  return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes, embarcacoes: todas ?? [] }
 })
 
 export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"

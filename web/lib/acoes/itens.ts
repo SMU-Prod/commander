@@ -18,6 +18,8 @@ export async function criarItemMonitorado(formData: FormData) {
   const texto = (k: string) => String(formData.get(k) ?? "").trim() || null
   const nome = texto("nome")
   if (!nome) erroNovo("Dê um nome ao item.")
+  const especificacao = texto("especificacao")
+  const quantidade = texto("quantidade")
 
   const alvo = texto("alvo") ?? "emb"
   const equipamentoId = alvo.startsWith("eq:") ? alvo.slice(3) : null
@@ -42,6 +44,8 @@ export async function criarItemMonitorado(formData: FormData) {
     equipamento_id: equipamentoId,
     categoria,
     nome,
+    especificacao,
+    quantidade,
     intervalo_horas: intervaloHoras,
     intervalo_meses: intervaloMeses,
     data_fixa: dataFixa,

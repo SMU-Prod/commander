@@ -7,6 +7,8 @@ import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { hojeISO } from "@/lib/domain/datas"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   const segredo = process.env.ALERTAS_SEGREDO
   if (!segredo || req.headers.get("authorization") !== `Bearer ${segredo}`) {
@@ -78,20 +80,26 @@ export async function POST(req: NextRequest) {
 
     const usuarios = usuariosPorBarco.get(item.embarcacao_id) ?? []
     for (const u of usuarios) {
-      for (const a of assinaturas.filter((s) => s.usuario_id === u)) {
-        try {
-          await webpush.sendNotification(
+      const doUsuario = assinaturas.filter((s) => s.usuario_id === u)
+      const resultados = await Promise.allSettled(
+        doUsuario.map((a) =>
+          webpush.sendNotification(
             { endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
             JSON.stringify({ titulo, corpo, url: "/notificacoes" }),
-          )
+          ),
+        ),
+      )
+      for (let i = 0; i < resultados.length; i++) {
+        const r = resultados[i]
+        if (r.status === "fulfilled") {
           pushes++
-        } catch (err) {
-          // só remove assinatura morta (404/410); erro transitório (429/5xx/rede) mantém
-          const codigo = err instanceof webpush.WebPushError ? err.statusCode : null
-          if (codigo === 404 || codigo === 410) {
-            await admin.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
-            removidas++
-          }
+          continue
+        }
+        // só remove assinatura morta (404/410); erro transitório (429/5xx/rede) mantém
+        const codigo = r.reason instanceof webpush.WebPushError ? r.reason.statusCode : null
+        if (codigo === 404 || codigo === 410) {
+          await admin.from("push_assinaturas").delete().eq("endpoint", doUsuario[i].endpoint)
+          removidas++
         }
       }
       if (process.env.RESEND_API_KEY) {
@@ -121,6 +129,8 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  console.log(`[alertas] ${alertas} alertas · ${pushes} pushes · ${emails} e-mails · ${removidas} assinaturas removidas`)
 
   return NextResponse.json({ alertas, pushes, emails, removidas })
 }

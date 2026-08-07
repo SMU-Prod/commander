@@ -10,7 +10,12 @@ import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consult
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
-export default async function BarcoPage() {
+export default async function BarcoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; erro?: string }>
+}) {
+  const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
@@ -45,6 +50,7 @@ export default async function BarcoPage() {
 
   return (
     <main>
+      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
       <CardEmbarcacao
         embarcacao={embarcacao}
         statusGeral={statusGeral}
@@ -52,9 +58,19 @@ export default async function BarcoPage() {
         podeEditarFotos={podeEditar(permissoes, "fotos")}
       />
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="motor" className="size-3.5" /> Motores
-      </p>
+      <div className="mt-6 mb-2 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="motor" className="size-3.5" /> Motores
+        </p>
+        {podeEditar(permissoes, "motores") && (
+          <Link href="/barco/equipamento/novo?tipo=motor" className="corpo inline-flex items-center gap-1 text-accent-forte">
+            <Icone nome="mais" className="size-4" /> Motor
+          </Link>
+        )}
+      </div>
+      {motores.length === 0 && (
+        <p className="apoio text-dim">Nenhum motor cadastrado ainda.</p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {motores.map((m) => (
           <Link key={m.id} href={`/barco/equipamento/${m.id}`}>
@@ -66,6 +82,21 @@ export default async function BarcoPage() {
           </Link>
         ))}
       </div>
+
+      <div className="mt-6 mb-2 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="raio" className="size-3.5" /> Elétrica
+        </p>
+        <Link href="/barco/eletrica" className="corpo text-accent-forte">Ver tudo</Link>
+      </div>
+      <Link href="/barco/eletrica" className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5">
+        <p className="titulo-card">
+          {equipamentos.filter((e) => e.tipo !== "motor").length === 0
+            ? "Cadastre gerador e baterias"
+            : `${equipamentos.filter((e) => e.tipo !== "motor").length} equipamentos`}
+        </p>
+        <p className="apoio mt-0.5 text-dim">Manutenção do gerador, troca das baterias e painel de bordo</p>
+      </Link>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="escudo" className="size-3.5" /> Casco
@@ -115,6 +146,33 @@ export default async function BarcoPage() {
             </div>
           )
         })}
+      </div>
+
+      <div className="mt-6 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="embarcacao" className="size-3.5" /> Dados gerais
+        </p>
+        {papel === "PROP" && (
+          <Link href="/barco/editar" className="corpo text-accent-forte">Editar</Link>
+        )}
+      </div>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {([
+            ["Comprimento", embarcacao.comprimento_m != null ? `${embarcacao.comprimento_m.toLocaleString("pt-BR")} m` : null],
+            ["Boca", embarcacao.boca_m != null ? `${embarcacao.boca_m.toLocaleString("pt-BR")} m` : null],
+            ["Calado", embarcacao.calado_m != null ? `${embarcacao.calado_m.toLocaleString("pt-BR")} m` : null],
+            ["Casco", [embarcacao.casco_material, embarcacao.casco_numero].filter(Boolean).join(" · ") || null],
+            ["Propulsão", embarcacao.propulsao],
+            ["TIE", embarcacao.tie],
+            ["Capitania", embarcacao.capitania],
+          ] as [string, string | null][]).map(([nome, valor]) => (
+            <div key={nome}>
+              <dt className="rotulo text-dim">{nome}</dt>
+              <dd className="corpo mt-0.5">{valor ?? <span className="text-dim">—</span>}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">

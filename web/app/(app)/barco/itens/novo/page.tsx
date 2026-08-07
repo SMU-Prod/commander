@@ -1,10 +1,11 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
+import { campo } from "@/lib/ui/form"
 
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function NovoItemPage({
@@ -18,9 +19,9 @@ export default async function NovoItemPage({
 
   return (
     <main>
-      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Embarcação
-      </a>
+      </Link>
       <h1 className="mt-3 text-xl font-semibold">Novo item monitorado</h1>
       <p className="mt-1 text-sm text-dim">
         Tudo que vence por horas de uso e/ou por data — o semáforo cuida do resto.
@@ -31,6 +32,16 @@ export default async function NovoItemPage({
         <div>
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required placeholder="Ex.: Antifouling" className={campo} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={rotulo} htmlFor="especificacao">Especificação</label>
+            <input id="especificacao" name="especificacao" placeholder="Ex.: 15W40" className={campo} />
+          </div>
+          <div>
+            <label className={rotulo} htmlFor="quantidade">Quantidade</label>
+            <input id="quantidade" name="quantidade" placeholder="Ex.: 4 L" className={campo} />
+          </div>
         </div>
         <div>
           <label className={rotulo} htmlFor="alvo">Pertence a</label>
