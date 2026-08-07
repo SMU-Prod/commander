@@ -8,7 +8,7 @@ export async function aceitarConvite(formData: FormData) {
   function erroAceite(msg: string): never {
     redirect(`/convite/${encodeURIComponent(codigo)}?erro=${encodeURIComponent(msg)}`)
   }
-  if (codigo === "") erroAceite("Convite inválido.")
+  if (codigo === "") redirect("/hoje?erro=" + encodeURIComponent("Convite inválido."))
   const supabase = await supabaseServer()
   const { error } = await supabase.rpc("aceitar_convite", { p_codigo: codigo })
   if (error) {

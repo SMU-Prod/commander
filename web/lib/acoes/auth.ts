@@ -4,7 +4,9 @@ import { supabaseServer } from "@/lib/supabase/server"
 
 function destinoSeguro(bruto: FormDataEntryValue | null, padrao: string): string {
   const v = String(bruto ?? "")
-  return v.startsWith("/") && !v.startsWith("//") ? v : padrao
+  // WHATWG URL normaliza "\" para "/" em http(s): "/\evil.com" viraria "//evil.com".
+  const norm = v.replace(/\\/g, "/")
+  return norm.startsWith("/") && !norm.startsWith("//") ? norm : padrao
 }
 
 export async function entrar(formData: FormData) {
