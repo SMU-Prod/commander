@@ -6,7 +6,12 @@ import { sair } from "@/lib/acoes/auth"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; erro?: string }>
+}) {
+  const { erro } = await searchParams
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   const painel = await carregarPainel()
@@ -17,6 +22,7 @@ export default async function MenuPage() {
         <h1 className="titulo-pagina">Menu</h1>
         <Logo compacto />
       </div>
+      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="pessoas" className="size-3.5" /> Conta

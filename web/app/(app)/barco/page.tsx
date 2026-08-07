@@ -10,7 +10,12 @@ import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consult
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
-export default async function BarcoPage() {
+export default async function BarcoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; erro?: string }>
+}) {
+  const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
@@ -45,6 +50,7 @@ export default async function BarcoPage() {
 
   return (
     <main>
+      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
       <CardEmbarcacao
         embarcacao={embarcacao}
         statusGeral={statusGeral}

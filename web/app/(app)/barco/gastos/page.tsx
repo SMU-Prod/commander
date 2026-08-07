@@ -36,9 +36,9 @@ export default async function GastosPage() {
 
   return (
     <main>
-      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Embarcação
-      </a>
+      </Link>
       <div className="mt-3 flex items-baseline justify-between">
         <h1 className="titulo-pagina">Gastos</h1>
         <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">

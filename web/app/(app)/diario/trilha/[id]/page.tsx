@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { TrilhaSvg } from "@/components/trilha-svg"
@@ -24,9 +25,9 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
 
   return (
     <main>
-      <a href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Diário
-      </a>
+      </Link>
       <h1 className="mt-3 text-xl font-semibold">Trilha — {e.data.split("-").reverse().join("/")}</h1>
       {e.descricao && <p className="mt-1 text-sm text-dim">{e.descricao}</p>}
 

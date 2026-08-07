@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
@@ -18,9 +19,9 @@ export default async function NovoItemPage({
 
   return (
     <main>
-      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Embarcação
-      </a>
+      </Link>
       <h1 className="mt-3 text-xl font-semibold">Novo item monitorado</h1>
       <p className="mt-1 text-sm text-dim">
         Tudo que vence por horas de uso e/ou por data — o semáforo cuida do resto.

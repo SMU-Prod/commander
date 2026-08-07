@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { avaliarContato, criarContato, excluirContato } from "@/lib/acoes/contatos"
@@ -31,9 +32,9 @@ export default async function ContatosPage({
 
   return (
     <main>
-      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Embarcação
-      </a>
+      </Link>
       <h1 className="titulo-pagina mt-3">Contatos</h1>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
