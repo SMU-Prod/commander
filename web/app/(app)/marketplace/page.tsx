@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Icone } from "@/components/icone"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
@@ -11,14 +12,14 @@ export default async function MarketplacePage() {
   return (
     <main>
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Marketplace</h1>
-        <Link href="/marketplace/perfil" className="text-sm text-accent-forte">Sou comandante</Link>
+        <h1 className="titulo-pagina">Marketplace</h1>
+        <Link href="/marketplace/perfil" className="inline-flex items-center gap-1 corpo text-accent-forte"><Icone nome="pessoas" className="size-4" /> Sou comandante</Link>
       </div>
-      <p className="mt-1 text-sm text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
+      <p className="apoio mt-1 text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
 
-      <div className="mt-5 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {((perfis ?? []) as PerfilComandante[]).length === 0 && (
-          <p className="py-5 text-sm text-dim">
+          <p className="corpo py-5 text-dim">
             Nenhum comandante na vitrine ainda. É comandante? Toque em &quot;Sou comandante&quot; e crie seu perfil.
           </p>
         )}
@@ -29,8 +30,8 @@ export default async function MarketplacePage() {
                 {p.nome_publico.slice(0, 2).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{p.nome_publico}</p>
-                <p className="mt-0.5 text-xs text-dim">
+                <p className="titulo-card">{p.nome_publico}</p>
+                <p className="apoio mt-0.5 text-dim">
                   {[p.categoria, p.cidade, p.disponibilidade].filter(Boolean).join(" · ")}
                 </p>
               </div>
@@ -42,15 +43,15 @@ export default async function MarketplacePage() {
                 </a>
               )}
             </div>
-            {p.bio && <p className="mt-2 text-xs text-dim">{p.bio}</p>}
-            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[9.5px] uppercase tracking-[.1em] text-dim">
+            {p.bio && <p className="apoio mt-2 text-dim">{p.bio}</p>}
+            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.1em] text-dim">
               {p.verificado ? "Verificado" : "Documentação declarada"}
             </span>
           </div>
         ))}
       </div>
 
-      <p className="mt-4 text-xs leading-relaxed text-dim">
+      <p className="apoio mt-4 leading-relaxed text-dim">
         O selo &quot;Verificado&quot; será emitido quando a validação documental entrar em operação.
         Até lá, os dados são declarados pelo próprio profissional e a contratação é combinada
         diretamente entre as partes.

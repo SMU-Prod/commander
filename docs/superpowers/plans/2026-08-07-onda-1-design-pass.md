@@ -625,12 +625,12 @@ export default async function FotosPage({
         <Icone nome="voltar" className="size-4" /> Embarcação
       </Link>
       <h1 className="titulo-pagina mt-3">Fotos</h1>
-      <p className="apoio mt-1">O álbum do barco — e o dossiê que vale na hora de vender.</p>
+      <p className="apoio mt-1 text-dim">O álbum do barco — e o dossiê que vale na hora de vender.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="mt-4 rounded-[14px] border border-line bg-panel p-4 sombra-1">
         <div className="flex items-baseline justify-between">
-          <p className="rotulo">Cota de nuvem</p>
+          <p className="rotulo text-dim">Cota de nuvem</p>
           <p className="font-mono-instr text-xs tabular-nums text-dim">
             {formatarBytes(uso.usadoBytes)} de {formatarBytes(uso.limiteBytes)}
           </p>
@@ -663,7 +663,7 @@ export default async function FotosPage({
         <div className="mt-4 rounded-[14px] border border-line bg-panel p-6 text-center sombra-1">
           <Icone nome="camera" className="mx-auto size-7 text-dim" />
           <p className="corpo mt-2 font-medium">Nenhuma foto em {ROTULO_ALBUM[albumAtivo]}</p>
-          <p className="apoio mt-1">Fotos boas valorizam o barco e contam a história dele.</p>
+          <p className="apoio mt-1 text-dim">Fotos boas valorizam o barco e contam a história dele.</p>
         </div>
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -703,18 +703,18 @@ export default async function FotosPage({
 
       {editavel && (
         <>
-          <p className="rotulo mt-6 mb-2">Adicionar foto</p>
+          <p className="rotulo mt-6 mb-2 text-dim">Adicionar foto</p>
           <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
             <input type="hidden" name="album" value={albumAtivo} />
             <div>
-              <label htmlFor="arquivo" className="rotulo mb-1.5 block">
+              <label htmlFor="arquivo" className="rotulo mb-1.5 block text-dim">
                 Foto para {ROTULO_ALBUM[albumAtivo]} — JPG, PNG ou WebP, até 10 MB
               </label>
               <input id="arquivo" name="arquivo" type="file" accept="image/jpeg,image/png,image/webp"
                 className="w-full rounded-[10px] border border-line bg-campo px-3 py-2.5 corpo" />
             </div>
             <div>
-              <label htmlFor="legenda" className="rotulo mb-1.5 block">Legenda — opcional</label>
+              <label htmlFor="legenda" className="rotulo mb-1.5 block text-dim">Legenda — opcional</label>
               <input id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem"
                 className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 corpo" />
             </div>
@@ -909,7 +909,7 @@ export function Confirmar({
   }
   return (
     <span className="flex items-center gap-2">
-      <span className="apoio">{mensagem}</span>
+      <span className="apoio text-dim">{mensagem}</span>
       <button type="submit" className="rounded-lg bg-crit px-2.5 py-1.5 text-xs font-semibold text-white">
         Confirmar
       </button>
@@ -975,7 +975,7 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="titulo-card truncate">{onde}</p>
-              <p className="apoio mt-0.5">{item.nome}</p>
+              <p className="apoio mt-0.5 text-dim">{item.nome}</p>
             </div>
             <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
               r.status === "vencido" ? "text-crit" : "text-warn"

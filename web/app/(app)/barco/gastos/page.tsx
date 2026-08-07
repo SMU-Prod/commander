@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { grupoDoEvento, TIPO_ROTULO } from "@/lib/domain/diario"
 import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
@@ -35,21 +36,27 @@ export default async function GastosPage() {
 
   return (
     <main>
-      <a href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Embarcação</a>
+      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Embarcação
+      </a>
       <div className="mt-3 flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Gastos</h1>
+        <h1 className="titulo-pagina">Gastos</h1>
         <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-          + Lançamento
+          <span className="inline-flex items-center gap-1">
+            <Icone nome="mais" className="size-4" /> Lançamento
+          </span>
         </Link>
       </div>
 
-      <div className="mt-5 rounded-[14px] border border-line bg-panel p-4">
-        <p className="font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Total do mês</p>
+      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+        <p className="rotulo text-dim inline-flex items-center gap-1.5">
+          <Icone nome="cifrao" className="size-3.5" /> Total do mês
+        </p>
         <p className="mt-1 font-mono-instr text-3xl tabular-nums">{formatarReais(r.totalMesCentavos)}</p>
         {r.porGrupo.length > 0 && (
           <div className="mt-3 space-y-1.5">
             {r.porGrupo.map((g) => (
-              <div key={g.grupo} className="flex justify-between text-sm">
+              <div key={g.grupo} className="corpo flex justify-between">
                 <span className="text-dim">{g.grupo}</span>
                 <span className="font-mono-instr tabular-nums">{formatarReais(g.totalCentavos)}</span>
               </div>
@@ -58,30 +65,32 @@ export default async function GastosPage() {
         )}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Últimos 6 meses</p>
-      <div className="flex items-end gap-2 rounded-[14px] border border-line bg-panel p-4" style={{ height: 132 }}>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="grafico" className="size-3.5" /> Últimos 6 meses
+      </p>
+      <div className="sombra-1 flex items-end gap-2 rounded-[14px] border border-line bg-panel p-4" style={{ height: 132 }}>
         {r.meses.map((m) => (
           <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
             <div
-              className={`w-full rounded-t ${m.mes === hoje.slice(0, 7) ? "bg-accent" : "bg-panel2 border border-line"}`}
+              className={`w-full rounded-t ${m.mes === hoje.slice(0, 7) ? "bg-accent-forte" : "bg-panel2 border border-line"}`}
               style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
             />
-            <span className="font-mono-instr text-[10px] uppercase text-dim">{m.rotulo}</span>
+            <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
           </div>
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Lançamentos recentes</p>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
+      <p className="rotulo text-dim mt-6 mb-2">Lançamentos recentes</p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {comCusto.length === 0 && (
-          <p className="py-4 text-sm text-dim">
+          <p className="corpo py-4 text-dim">
             Nenhum gasto registrado. Registre custos nos eventos do diário e eles aparecem aqui.
           </p>
         )}
         {comCusto.slice(0, 20).map((e) => (
           <div key={e.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
+              <p className="titulo-card">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
               <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
                 {e.data.split("-").reverse().join("/")}
               </p>

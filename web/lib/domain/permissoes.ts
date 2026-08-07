@@ -1,13 +1,13 @@
 export const ABAS = [
   "embarcacao", "motores", "eletrica", "casco",
-  "documentos", "contatos", "gastos", "diario",
+  "documentos", "fotos", "contatos", "gastos", "diario",
 ] as const
 
 export type Aba = (typeof ABAS)[number]
 
 export const ROTULO_ABA: Record<Aba, string> = {
   embarcacao: "Embarcação", motores: "Motores", eletrica: "Elétrica", casco: "Casco",
-  documentos: "Documentos", contatos: "Contatos", gastos: "Gastos", diario: "Diário",
+  documentos: "Documentos", fotos: "Fotos", contatos: "Contatos", gastos: "Gastos", diario: "Diário",
 }
 
 export interface PermissaoAba {
@@ -34,6 +34,7 @@ export const PRESETS: Record<"completo" | "operacional", Permissoes> = {
     motores: { ver: true, editar: true },
     eletrica: { ver: true, editar: true },
     casco: { ver: true, editar: false },
+    fotos: { ver: true, editar: true },
     diario: { ver: true, editar: true },
   }),
 }

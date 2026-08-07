@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   icons: { apple: "/apple-touch-icon.png" },
 }
 
-export const viewport: Viewport = { themeColor: "#f5f7fa" }
+export const viewport: Viewport = { themeColor: "#f5f7fa", viewportFit: "cover" }
 
 // Aplica o tema salvo antes da pintura para evitar flash ao recarregar no dark.
 const temaInicial = `try{if(localStorage.getItem("tema")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`

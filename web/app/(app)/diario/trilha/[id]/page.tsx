@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { TrilhaSvg } from "@/components/trilha-svg"
 import { resumoTrilha } from "@/lib/domain/geo"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -23,7 +24,9 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
 
   return (
     <main>
-      <a href="/diario" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Diário</a>
+      <a href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Diário
+      </a>
       <h1 className="mt-3 text-xl font-semibold">Trilha — {e.data.split("-").reverse().join("/")}</h1>
       {e.descricao && <p className="mt-1 text-sm text-dim">{e.descricao}</p>}
 
@@ -34,7 +37,7 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
       <div className="mt-4 grid grid-cols-2 gap-2">
         {stats.map(([nome, valor]) => (
           <div key={nome} className="rounded-[12px] border border-line bg-panel p-3">
-            <p className="font-mono-instr text-[10px] uppercase tracking-[.14em] text-dim">{nome}</p>
+            <p className="font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">{nome}</p>
             <p className="mt-0.5 font-mono-instr text-lg tabular-nums">{valor}</p>
           </div>
         ))}

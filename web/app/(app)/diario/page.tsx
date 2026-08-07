@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { carregarPainel } from "@/lib/consultas"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -47,10 +48,14 @@ export default async function DiarioPage({
   return (
     <main>
       <div className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Diário de Bordo</h1>
-        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">+ Evento</Link>
+        <h1 className="titulo-pagina">Diário de Bordo</h1>
+        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
+          <span className="inline-flex items-center gap-1">
+            <Icone nome="mais" className="size-4" /> Evento
+          </span>
+        </Link>
       </div>
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
         {FILTROS.map((f) => (
@@ -67,7 +72,7 @@ export default async function DiarioPage({
       </div>
 
       {grupos.length === 0 && (
-        <div className="mt-6 rounded-[14px] border border-line bg-panel p-5 text-center text-sm text-dim">
+        <div className="sombra-1 mt-6 rounded-[14px] border border-line bg-panel p-5 text-center corpo text-dim">
           Nenhum evento por aqui ainda. Toque em &quot;+ Evento&quot; para registrar o primeiro —
           cada serviço registrado vira histórico e dossiê do barco.
         </div>
@@ -75,8 +80,8 @@ export default async function DiarioPage({
 
       {grupos.map((g) => (
         <section key={g.rotulo}>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">{g.rotulo}</p>
-          <div className="rounded-[14px] border border-line bg-panel px-4">
+          <p className="rotulo text-dim mt-6 mb-2">{g.rotulo}</p>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {g.eventos.map((e) => {
               const eq = e.equipamento_id ? porId.get(e.equipamento_id) : null
               const meta = [
@@ -94,7 +99,7 @@ export default async function DiarioPage({
                       .format(new Date(`${e.data}T00:00:00Z`)).replace(".", "")}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">
+                    <p className="titulo-card">
                       {TIPO_ROTULO[e.tipo] ?? e.tipo}
                       {eq
                         ? ` — ${
@@ -108,10 +113,10 @@ export default async function DiarioPage({
                           } ${eq.posicao ?? ""}`
                         : ""}
                     </p>
-                    {e.descricao && <p className="mt-0.5 text-xs text-dim">{e.descricao}</p>}
+                    {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
                     {e.tem_trilha && (
-                      <Link href={`/diario/trilha/${e.id}`} className="mt-1 inline-block text-xs text-accent-forte">
+                      <Link href={`/diario/trilha/${e.id}`} className="apoio mt-1 inline-block text-accent-forte">
                         Ver trilha na carta
                       </Link>
                     )}

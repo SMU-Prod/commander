@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { criarEvento } from "@/lib/acoes/eventos"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { supabaseServer } from "@/lib/supabase/server"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 const TIPOS = [
   ["manutencao", "Manutenção"], ["abastecimento", "Abastecimento"], ["navegacao", "Navegação"],
@@ -31,7 +32,9 @@ export default async function NovoEventoPage({
 
   return (
     <main>
-      <a href="/diario" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Diário</a>
+      <a href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Diário
+      </a>
       <h1 className="mt-3 text-xl font-semibold">Novo evento</h1>
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 

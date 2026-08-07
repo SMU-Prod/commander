@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { UsarPosicao } from "@/components/usar-posicao"
 import { salvarLocalMarina } from "@/lib/acoes/local"
 import { carregarPainel } from "@/lib/consultas"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function LocalPage({
   searchParams,
@@ -19,7 +20,9 @@ export default async function LocalPage({
 
   return (
     <main>
-      <a href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Embarcação</a>
+      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Embarcação
+      </a>
       <h1 className="mt-3 text-xl font-semibold">Posição da marina</h1>
       <p className="mt-1 text-sm text-dim">
         É daqui que saem o boletim do mar da tela Início e, no futuro, o modo marina.

@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
+import { Icone } from "@/components/icone"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
+import { Confirmar } from "@/components/confirmar"
 import type { Documento } from "@/lib/db/types"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function DocumentosPage({
   searchParams,
@@ -36,14 +38,16 @@ export default async function DocumentosPage({
 
   return (
     <main>
-      <a href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Embarcação</a>
-      <h1 className="mt-3 text-xl font-semibold">Documentos</h1>
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Embarcação
+      </a>
+      <h1 className="titulo-pagina mt-3">Documentos</h1>
+      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <p className="mt-5 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Com vencimento</p>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
+      <p className="rotulo text-dim mt-5 mb-2">Com vencimento</p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {itensDocumento.length === 0 && (
-          <p className="py-4 text-sm text-dim">Nenhum documento com vencimento cadastrado.</p>
+          <p className="corpo py-4 text-dim">Nenhum documento com vencimento cadastrado.</p>
         )}
         {await Promise.all(itensDocumento.map(async (i) => {
           const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
@@ -53,7 +57,7 @@ export default async function DocumentosPage({
             <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
               <Farol status={r.status} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{i.nome}</p>
+                <p className="titulo-card">{i.nome}</p>
                 <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
                   {i.data_fixa ? `vence ${i.data_fixa.split("-").reverse().join("/")}` : "sem data"}
                   {r.diasRestantes != null && r.diasRestantes >= 0 ? ` · ${r.diasRestantes} dias` : ""}
@@ -69,7 +73,7 @@ export default async function DocumentosPage({
                     Anexar
                     <input type="file" name="arquivo" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" />
                   </label>
-                  <button className="rounded-lg border border-line px-2.5 py-1 text-xs text-dim">Enviar</button>
+                  <button className="apoio rounded-lg border border-line px-2.5 py-1 text-dim">Enviar</button>
                 </form>
               )}
             </div>
@@ -79,17 +83,17 @@ export default async function DocumentosPage({
 
       {avulsos.length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Arquivos sem vencimento</p>
-          <div className="rounded-[14px] border border-line bg-panel px-4">
+          <p className="rotulo text-dim mt-6 mb-2">Arquivos sem vencimento</p>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {await Promise.all(avulsos.map(async (d) => {
               const url = d.arquivo_path ? await linkAssinado(d.arquivo_path) : null
               return (
                 <div key={d.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-                  <p className="min-w-0 flex-1 text-sm font-medium">{d.nome}</p>
+                  <p className="titulo-card min-w-0 flex-1">{d.nome}</p>
                   {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>}
                   <form action={excluirDocumento}>
                     <input type="hidden" name="documento_id" value={d.id} />
-                    <button className="text-xs text-crit">Excluir</button>
+                    <Confirmar mensagem="Excluir documento?" rotulo="Excluir" className="flex h-11 items-center text-xs text-crit" />
                   </form>
                 </div>
               )
@@ -98,8 +102,8 @@ export default async function DocumentosPage({
         </>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Novo documento</p>
-      <form action={criarDocumento} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <p className="rotulo text-dim mt-6 mb-2">Novo documento</p>
+      <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
         <div>
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required list="tipos-doc" placeholder="Ex.: Seguro da embarcação" className={campo} />

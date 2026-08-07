@@ -1,14 +1,41 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 import { Farol } from "@/components/farol"
-import { Logo } from "@/components/logo"
+import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
+import { Icone, type NomeIcone } from "@/components/icone"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
-import { podeVer, type Aba } from "@/lib/domain/permissoes"
+import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
+
+async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
+  const boletim = await boletimDoMar(lat, lon)
+  if (!boletim) {
+    return (
+      <div className="rounded-[14px] border border-line bg-panel p-4 corpo text-dim sombra-1">
+        Boletim indisponível agora. Tente mais tarde.
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-[14px] border border-line bg-panel p-4 sombra-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
+        <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
+          boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
+          : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
+          : "border border-crit/40 text-crit"
+        }`}>{boletim.selo.rotulo}</span>
+      </div>
+    </div>
+  )
+}
 
 export default async function HojePage({
   searchParams,
@@ -38,89 +65,88 @@ export default async function HojePage({
   }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
 
-  const boletim =
-    embarcacao.marina_lat != null && embarcacao.marina_lon != null
-      ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
-      : null
-
+  const statusGeral = avaliados[0]?.r.status ?? "ok"
   const supabase = await supabaseServer()
+  const urlCapa = embarcacao.foto_capa_path
+    ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
+    : null
   const { data: comandantes } = await supabase
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
     .eq("visivel", true).limit(2)
 
   return (
     <main>
-      <div className="mb-5 text-[13px]">
-        <Logo />
+      <CardEmbarcacao
+        embarcacao={embarcacao}
+        statusGeral={statusGeral}
+        urlCapa={urlCapa}
+        podeEditarFotos={podeEditar(permissoes, "fotos")}
+      />
+      <div className="mt-3 flex justify-end gap-2.5 font-mono-instr text-xs tabular-nums text-dim">
+        <span className="flex items-center gap-1"><Farol status="vencido" />{contagem.vencido}</span>
+        <span className="flex items-center gap-1"><Farol status="atencao" />{contagem.atencao}</span>
+        <span className="flex items-center gap-1"><Farol status="ok" />{contagem.ok}</span>
       </div>
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">{embarcacao.nome}</h1>
-          <p className="text-sm text-dim">{embarcacao.marina ?? "Marina não informada"}</p>
-        </div>
-        <div className="flex gap-2.5 font-mono-instr text-xs tabular-nums text-dim">
-          <span className="flex items-center gap-1"><Farol status="vencido" />{contagem.vencido}</span>
-          <span className="flex items-center gap-1"><Farol status="atencao" />{contagem.atencao}</span>
-          <span className="flex items-center gap-1"><Farol status="ok" />{contagem.ok}</span>
-        </div>
-      </header>
 
       {erro && (
-        <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
+        <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="alerta" className="size-3.5" />
         {alertas.length > 0 ? "Precisa de atenção" : "Tudo em dia"}
       </p>
       {alertas.length === 0 && (
-        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
           Nenhum vencimento na margem. Bom vento e mar calmo.
         </div>
       )}
       <div className="space-y-2">
         {alertas.map(({ item, r, onde }) => (
-          <div key={item.id} className="flex gap-3 rounded-[14px] border border-line bg-panel p-3.5">
-            <span className={`w-[3px] shrink-0 self-stretch rounded ${r.status === "vencido" ? "bg-crit" : "bg-warn"}`} />
-            <div>
-              <p className="text-sm font-semibold">{onde}</p>
-              <p className="mt-0.5 text-xs text-dim">{textoRestante(r)}</p>
+          <div key={item.id} className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+            <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
+              r.status === "vencido" ? "bg-crit/12 text-crit" : "bg-warn/12 text-warn"
+            }`}>
+              <Icone nome={item.equipamento_id ? "motor" : "documento"} className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="titulo-card truncate">{onde}</p>
+              <p className="apoio mt-0.5 text-dim">{item.nome}</p>
             </div>
+            <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
+              r.status === "vencido" ? "text-crit" : "text-warn"
+            }`}>
+              {textoRestante(r)}
+            </span>
           </div>
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Mar agora</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="mapa" className="size-3.5" /> Mar agora
+      </p>
       {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
-        <Link href="/barco/local" className="block rounded-[14px] border border-line bg-panel p-4">
-          <p className="text-sm font-semibold">Ligue o boletim do mar</p>
-          <p className="mt-0.5 text-xs text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
+        <Link href="/barco/local" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+          <p className="titulo-card">Ligue o boletim do mar</p>
+          <p className="apoio mt-0.5 text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
         </Link>
-      ) : boletim == null ? (
-        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
-          Boletim indisponível agora. Tente mais tarde.
-        </div>
       ) : (
-        <div className="rounded-[14px] border border-line bg-panel p-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
-            <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] ${
-              boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
-              : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
-              : "border border-crit/40 text-crit"
-            }`}>{boletim.selo.rotulo}</span>
-          </div>
-        </div>
+        <Suspense fallback={<div className="h-[74px] animate-pulse rounded-[14px] bg-panel2" />}>
+          <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
+        </Suspense>
       )}
 
-      <Link href="/navegar" className="mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">
-        ⛵ Iniciar navegação — gravar trilha
+      <Link href="/navegar" className="sombra-1 mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">
+        <span className="inline-flex items-center justify-center gap-2">
+          <Icone nome="mapa" className="size-4" /> Iniciar navegação — gravar trilha
+        </span>
       </Link>
 
       {motores.length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Horas de motor</p>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="relogio" className="size-3.5" /> Horas de motor
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {motores.map((m) => {
               const status =
@@ -134,33 +160,39 @@ export default async function HojePage({
         </>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acesso rápido</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="raio" className="size-3.5" /> Acesso rápido
+      </p>
       <div className="grid grid-cols-4 gap-2 text-center">
         {(
           [
-            { href: "/barco", rotulo: "Motores" },
-            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos" },
-            { href: "/diario", rotulo: "Diário" },
-            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos" },
-          ] as { href: string; rotulo: string; aba?: Aba }[]
+            { href: "/barco", rotulo: "Motores", icone: "motor" },
+            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
+            { href: "/diario", rotulo: "Diário", icone: "calendario" },
+            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
+          ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
         )
           .filter((a) => !a.aba || podeVer(permissoes, a.aba))
           .map((a) => (
-            <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
-              {a.rotulo}
+            <Link key={a.href} href={a.href}
+              className="sombra-1 flex flex-col items-center gap-1.5 rounded-[12px] border border-line bg-panel px-1 py-3">
+              <Icone nome={a.icone} className="size-5 text-accent-forte" />
+              <span className="text-[11px] font-medium">{a.rotulo}</span>
             </Link>
           ))}
       </div>
 
       {(comandantes ?? []).length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Comandantes disponíveis</p>
-          <div className="rounded-[14px] border border-line bg-panel px-4">
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="pessoas" className="size-3.5" /> Comandantes disponíveis
+          </p>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {(comandantes ?? []).map((c) => (
               <div key={c.usuario_id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{c.nome_publico}</p>
-                  <p className="mt-0.5 text-xs text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
+                  <p className="titulo-card">{c.nome_publico}</p>
+                  <p className="apoio mt-0.5 text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
                 </div>
                 <Link href="/marketplace" className="text-xs text-accent-forte">Ver</Link>
               </div>

@@ -14,6 +14,7 @@ describe("presets", () => {
     expect(PRESETS.operacional.embarcacao).toEqual({ ver: true, editar: false })
     expect(PRESETS.operacional.casco).toEqual({ ver: true, editar: false })
     expect(PRESETS.operacional.documentos).toEqual({ ver: false, editar: false })
+    expect(PRESETS.operacional.fotos).toEqual({ ver: true, editar: true })
     expect(PRESETS.operacional.contatos).toEqual({ ver: false, editar: false })
     expect(PRESETS.operacional.gastos).toEqual({ ver: false, editar: false })
   })

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { AtivarAlertas } from "@/components/ativar-alertas"
+import { Icone } from "@/components/icone"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
@@ -31,43 +32,43 @@ export default async function NotificacoesPage() {
 
   return (
     <main>
-      <h1 className="text-xl font-semibold">Notificações</h1>
+      <h1 className="titulo-pagina">Notificações</h1>
 
       <div className="mt-4">
         <AtivarAlertas />
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">
-        Alertas ativos
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="alerta" className="size-3.5" /> Alertas ativos
       </p>
       {ativos.length === 0 ? (
-        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
           Nada vencido nem na margem. Bom vento e mar calmo.
         </div>
       ) : (
-        <div className="rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
           {ativos.map(({ i, r, onde }) => (
             <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
               <Farol status={r.status} />
-              <p className="min-w-0 flex-1 text-sm font-medium">{onde}</p>
+              <p className="titulo-card min-w-0 flex-1">{onde}</p>
               <span className="font-mono-instr text-xs tabular-nums text-dim">{textoRestante(r)}</span>
             </div>
           ))}
         </div>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">
-        Avisos enviados
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="calendario" className="size-3.5" /> Avisos enviados
       </p>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {(enviados ?? []).length === 0 && (
-          <p className="py-4 text-sm text-dim">
+          <p className="corpo py-4 text-dim">
             Nenhum aviso enviado ainda. Quando um item entrar na margem, você recebe aqui e no aparelho.
           </p>
         )}
         {((enviados ?? []) as Pick<AlertaEnviado, "id" | "titulo" | "janela" | "enviado_em">[]).map((a) => (
           <div key={a.id} className="border-b border-line py-3 last:border-0">
-            <p className="text-sm font-medium">{a.titulo}</p>
+            <p className="titulo-card">{a.titulo}</p>
             <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
               {new Date(a.enviado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
             </p>
