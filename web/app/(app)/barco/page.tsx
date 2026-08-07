@@ -67,6 +67,21 @@ export default async function BarcoPage() {
         ))}
       </div>
 
+      <div className="mt-6 mb-2 flex items-baseline justify-between">
+        <p className="rotulo flex items-center gap-1.5 text-dim">
+          <Icone nome="raio" className="size-3.5" /> Elétrica
+        </p>
+        <Link href="/barco/eletrica" className="corpo text-accent-forte">Ver tudo</Link>
+      </div>
+      <Link href="/barco/eletrica" className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5">
+        <p className="titulo-card">
+          {equipamentos.filter((e) => e.tipo !== "motor").length === 0
+            ? "Cadastre gerador e baterias"
+            : `${equipamentos.filter((e) => e.tipo !== "motor").length} equipamentos`}
+        </p>
+        <p className="apoio mt-0.5 text-dim">Manutenção do gerador, troca das baterias e painel de bordo</p>
+      </Link>
+
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="escudo" className="size-3.5" /> Casco
       </p>
