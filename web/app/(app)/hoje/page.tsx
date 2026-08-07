@@ -8,6 +8,7 @@ import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consult
 import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
+import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function HojePage({
   searchParams,
@@ -41,6 +42,11 @@ export default async function HojePage({
     embarcacao.marina_lat != null && embarcacao.marina_lon != null
       ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
       : null
+
+  const supabase = await supabaseServer()
+  const { data: comandantes } = await supabase
+    .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
+    .eq("visivel", true).limit(2)
 
   return (
     <main>
@@ -145,6 +151,23 @@ export default async function HojePage({
             </Link>
           ))}
       </div>
+
+      {(comandantes ?? []).length > 0 && (
+        <>
+          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Comandantes disponíveis</p>
+          <div className="rounded-[14px] border border-line bg-panel px-4">
+            {(comandantes ?? []).map((c) => (
+              <div key={c.usuario_id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{c.nome_publico}</p>
+                  <p className="mt-0.5 text-xs text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
+                </div>
+                <Link href="/marketplace" className="text-xs text-accent-forte">Ver</Link>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </main>
   )
 }
