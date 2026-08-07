@@ -4,9 +4,9 @@ import { cadastrar, entrar } from "@/lib/acoes/auth"
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string; modo?: string }>
+  searchParams: Promise<{ erro?: string; modo?: string; volta?: string }>
 }) {
-  const { erro, modo } = await searchParams
+  const { erro, modo, volta } = await searchParams
   const cadastro = modo === "cadastro"
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center px-6 pb-16">
@@ -21,6 +21,7 @@ export default async function LoginPage({
         <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
       )}
       <form action={cadastro ? cadastrar : entrar} className="mt-6 space-y-4">
+        <input type="hidden" name="volta" value={volta ?? ""} />
         {cadastro && (
           <div>
             <label htmlFor="nome" className="sr-only">Nome</label>
@@ -39,7 +40,10 @@ export default async function LoginPage({
           {cadastro ? "Criar conta" : "Entrar"}
         </button>
       </form>
-      <a href={cadastro ? "/login" : "/login?modo=cadastro"} className="mt-5 text-center text-sm text-dim">
+      <a
+        href={cadastro ? `/login${volta ? `?volta=${encodeURIComponent(volta)}` : ""}` : `/login?modo=cadastro${volta ? `&volta=${encodeURIComponent(volta)}` : ""}`}
+        className="mt-5 text-center text-sm text-dim"
+      >
         {cadastro ? "Já tenho conta — entrar" : "Não tem conta? Criar agora"}
       </a>
     </main>
