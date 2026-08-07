@@ -5,6 +5,7 @@ import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consult
 import { podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
+import { Confirmar } from "@/components/confirmar"
 import type { Documento } from "@/lib/db/types"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
@@ -89,7 +90,7 @@ export default async function DocumentosPage({
                   {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>}
                   <form action={excluirDocumento}>
                     <input type="hidden" name="documento_id" value={d.id} />
-                    <button className="text-xs text-crit">Excluir</button>
+                    <Confirmar mensagem="Excluir documento?" rotulo="Excluir" className="flex h-11 items-center text-xs text-crit" />
                   </form>
                 </div>
               )

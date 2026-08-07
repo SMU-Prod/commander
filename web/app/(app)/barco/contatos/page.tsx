@@ -3,6 +3,7 @@ import { avaliarContato, criarContato, excluirContato } from "@/lib/acoes/contat
 import { carregarPainel } from "@/lib/consultas"
 import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { Confirmar } from "@/components/confirmar"
 import type { Contato } from "@/lib/db/types"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
@@ -53,7 +54,7 @@ export default async function ContatosPage({
               )}
               <form action={excluirContato}>
                 <input type="hidden" name="contato_id" value={c.id} />
-                <button className="text-xs text-crit">Excluir</button>
+                <Confirmar mensagem="Excluir contato?" rotulo="Excluir" className="flex h-11 items-center text-xs text-crit" />
               </form>
             </div>
             <form action={avaliarContato} className="mt-2 flex items-center gap-1" aria-label={`Avaliar ${c.nome}`}>

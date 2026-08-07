@@ -1,14 +1,41 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
+import { Icone } from "@/components/icone"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
+
+async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
+  const boletim = await boletimDoMar(lat, lon)
+  if (!boletim) {
+    return (
+      <div className="rounded-[14px] border border-line bg-panel p-4 corpo text-dim sombra-1">
+        Boletim indisponível agora. Tente mais tarde.
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-[14px] border border-line bg-panel p-4 sombra-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
+        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
+        <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.1em] ${
+          boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
+          : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
+          : "border border-crit/40 text-crit"
+        }`}>{boletim.selo.rotulo}</span>
+      </div>
+    </div>
+  )
+}
 
 export default async function HojePage({
   searchParams,
@@ -37,11 +64,6 @@ export default async function HojePage({
     ok: avaliados.filter((a) => a.r.status === "ok").length,
   }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
-
-  const boletim =
-    embarcacao.marina_lat != null && embarcacao.marina_lon != null
-      ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
-      : null
 
   const statusGeral = avaliados[0]?.r.status ?? "ok"
   const supabase = await supabaseServer()
@@ -80,12 +102,21 @@ export default async function HojePage({
       )}
       <div className="space-y-2">
         {alertas.map(({ item, r, onde }) => (
-          <div key={item.id} className="flex gap-3 rounded-[14px] border border-line bg-panel p-3.5">
-            <span className={`w-[3px] shrink-0 self-stretch rounded ${r.status === "vencido" ? "bg-crit" : "bg-warn"}`} />
-            <div>
-              <p className="text-sm font-semibold">{onde}</p>
-              <p className="mt-0.5 text-xs text-dim">{textoRestante(r)}</p>
+          <div key={item.id} className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+            <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
+              r.status === "vencido" ? "bg-crit/12 text-crit" : "bg-warn/12 text-warn"
+            }`}>
+              <Icone nome={item.equipamento_id ? "motor" : "documento"} className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="titulo-card truncate">{onde}</p>
+              <p className="apoio mt-0.5 text-dim">{item.nome}</p>
             </div>
+            <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
+              r.status === "vencido" ? "text-crit" : "text-warn"
+            }`}>
+              {textoRestante(r)}
+            </span>
           </div>
         ))}
       </div>
@@ -96,23 +127,10 @@ export default async function HojePage({
           <p className="text-sm font-semibold">Ligue o boletim do mar</p>
           <p className="mt-0.5 text-xs text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
         </Link>
-      ) : boletim == null ? (
-        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
-          Boletim indisponível agora. Tente mais tarde.
-        </div>
       ) : (
-        <div className="rounded-[14px] border border-line bg-panel p-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
-            <span><span className="mr-1.5 text-[10px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
-            <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] ${
-              boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
-              : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
-              : "border border-crit/40 text-crit"
-            }`}>{boletim.selo.rotulo}</span>
-          </div>
-        </div>
+        <Suspense fallback={<div className="h-[74px] animate-pulse rounded-[14px] bg-panel2" />}>
+          <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
+        </Suspense>
       )}
 
       <Link href="/navegar" className="mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">

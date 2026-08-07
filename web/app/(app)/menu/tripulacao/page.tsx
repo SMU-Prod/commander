@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
+import { Confirmar } from "@/components/confirmar"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
 export default async function TripulacaoPage({
@@ -80,7 +81,7 @@ export default async function TripulacaoPage({
             </div>
             <form action={revogarConvite}>
               <input type="hidden" name="convite_id" value={c.id} />
-              <button className="text-xs text-crit">Revogar</button>
+              <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-xs text-crit" />
             </form>
           </div>
         ))}
