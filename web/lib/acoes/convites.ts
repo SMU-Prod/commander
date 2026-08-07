@@ -1,6 +1,8 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { carregarPainel } from "@/lib/consultas"
+import { PRESETS } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export async function aceitarConvite(formData: FormData) {
@@ -22,4 +24,35 @@ export async function aceitarConvite(formData: FormData) {
   }
   revalidatePath("/hoje")
   redirect("/hoje")
+}
+
+function erroTripulacao(msg: string): never {
+  redirect(`/menu/tripulacao?erro=${encodeURIComponent(msg)}`)
+}
+
+export async function criarConvite(formData: FormData) {
+  const supabase = await supabaseServer()
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+  if (painel.papel !== "PROP") erroTripulacao("Só o proprietário convida tripulação.")
+
+  const nivel = String(formData.get("nivel") ?? "operacional") === "completo" ? "completo" : "operacional"
+  const { data, error } = await supabase
+    .from("convites")
+    .insert({ embarcacao_id: painel.embarcacao.id, permissoes: PRESETS[nivel], nivel })
+    .select("codigo")
+    .single()
+  if (error || !data) erroTripulacao("Não foi possível criar o convite. Tente de novo.")
+
+  revalidatePath("/menu/tripulacao")
+  redirect(`/menu/tripulacao?criado=${encodeURIComponent(data.codigo)}`)
+}
+
+export async function revogarConvite(formData: FormData) {
+  const supabase = await supabaseServer()
+  const id = String(formData.get("convite_id") ?? "")
+  const { error } = await supabase.from("convites").delete().eq("id", id).is("usado_em", null)
+  if (error) erroTripulacao("Não foi possível revogar.")
+  revalidatePath("/menu/tripulacao")
+  redirect("/menu/tripulacao")
 }
