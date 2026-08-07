@@ -28,7 +28,7 @@ export function RegistroRapido({
     <>
       <button
         onClick={() => setAberto(true)}
-        className="fixed bottom-20 right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
       >
         + Registrar
       </button>
@@ -37,7 +37,7 @@ export function RegistroRapido({
           className="fixed inset-0 z-30 flex items-end bg-black/60"
           onClick={(e) => e.target === e.currentTarget && setAberto(false)}
         >
-          <div className="w-full rounded-t-[20px] border-t border-line bg-panel px-5 pb-8 pt-5">
+          <div className="w-full rounded-t-[20px] border-t border-line bg-panel px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5">
             <h2 className="text-lg font-semibold">Registrar volta ao mar</h2>
             <p className="mb-4 text-sm text-dim">30 segundos — é isso que mantém os alertas vivos.</p>
             <form action={enviar} className="space-y-3">

@@ -42,7 +42,7 @@ export function BottomNav() {
               key={a.href}
               href={a.href}
               aria-current={ativa ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center gap-1 pb-2.5 pt-2 text-[9.5px] font-medium uppercase tracking-wider ${
+              className={`flex flex-1 flex-col items-center gap-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[9.5px] font-medium uppercase tracking-wider ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >
