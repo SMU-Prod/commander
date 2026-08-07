@@ -33,6 +33,16 @@ export default async function NovoItemPage({
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required placeholder="Ex.: Antifouling" className={campo} />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={rotulo} htmlFor="especificacao">Especificação</label>
+            <input id="especificacao" name="especificacao" placeholder="Ex.: 15W40" className={campo} />
+          </div>
+          <div>
+            <label className={rotulo} htmlFor="quantidade">Quantidade</label>
+            <input id="quantidade" name="quantidade" placeholder="Ex.: 4 L" className={campo} />
+          </div>
+        </div>
         <div>
           <label className={rotulo} htmlFor="alvo">Pertence a</label>
           <select id="alvo" name="alvo" defaultValue={alvo ?? "emb"} className={campo}>
