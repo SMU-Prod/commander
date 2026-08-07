@@ -183,3 +183,18 @@ export interface Perfil {
   avatar_path: string | null
   created_at: string
 }
+
+export type StatusAssinatura = "pendente" | "ativa" | "inadimplente" | "cancelada"
+
+export interface Assinatura {
+  id: string
+  usuario_id: string
+  asaas_customer_id: string
+  asaas_subscription_id: string
+  plano: "fundador_mensal" | "fundador_anual"
+  status: StatusAssinatura
+  valor_centavos: number
+  fundador_numero: number | null
+  criado_em: string
+  atualizado_em: string
+}
