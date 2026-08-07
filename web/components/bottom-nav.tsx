@@ -1,32 +1,33 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Icone, type NomeIcone } from "./icone"
 
-const abas = [
+const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
   {
     href: "/hoje",
     rotulo: "Início",
-    icone: <path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8z" />,
+    icone: "inicio",
   },
   {
     href: "/barco",
     rotulo: "Embarcação",
-    icone: <path d="M3 15h18l-3 5H6l-3-5zM6 15V9h12v6M12 9V4" />,
+    icone: "embarcacao",
   },
   {
     href: "/marketplace",
     rotulo: "Marketplace",
-    icone: <path d="M4 9l1.5-5h13L20 9M4 9h16M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M9 13h6" />,
+    icone: "marketplace",
   },
   {
     href: "/notificacoes",
     rotulo: "Avisos",
-    icone: <path d="M6 16V10a6 6 0 0 1 12 0v6l2 3H4l2-3zM10 19a2 2 0 0 0 4 0" />,
+    icone: "alerta",
   },
   {
     href: "/menu",
     rotulo: "Menu",
-    icone: <path d="M4 6h16M4 12h16M4 18h16" />,
+    icone: "menu",
   },
 ]
 
@@ -46,17 +47,7 @@ export function BottomNav() {
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="size-[21px]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {a.icone}
-              </svg>
+              <Icone nome={a.icone} className="size-[21px]" />
               {a.rotulo}
             </Link>
           )
