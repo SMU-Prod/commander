@@ -9,8 +9,13 @@ import type { AlbumFoto } from "@/lib/db/types"
 
 const ALBUNS_VALIDOS = ["exterior", "interior", "conves", "documentacao"]
 
-function voltar(msg?: string): never {
-  redirect(msg ? `/barco/fotos?erro=${encodeURIComponent(msg)}` : "/barco/fotos")
+/** Volta para o álbum em que a pessoa estava — senão a foto recém-enviada "some". */
+function voltar(album?: string | null, msg?: string): never {
+  const params = new URLSearchParams()
+  if (album && album !== "exterior" && ALBUNS_VALIDOS.includes(album)) params.set("album", album)
+  if (msg) params.set("erro", msg)
+  const query = params.toString()
+  redirect(query ? `/barco/fotos?${query}` : "/barco/fotos")
 }
 
 export async function subirFoto(formData: FormData) {
@@ -21,23 +26,23 @@ export async function subirFoto(formData: FormData) {
   if (!painel) redirect("/onboarding")
 
   const album = String(formData.get("album") ?? "")
-  if (!ALBUNS_VALIDOS.includes(album)) voltar("Escolha um álbum válido.")
+  if (!ALBUNS_VALIDOS.includes(album)) voltar(null, "Escolha um álbum válido.")
 
   const arquivo = formData.get("arquivo")
-  if (!(arquivo instanceof File) || arquivo.size === 0) voltar("Escolha uma foto.")
+  if (!(arquivo instanceof File) || arquivo.size === 0) voltar(album, "Escolha uma foto.")
   if (!["image/jpeg", "image/png", "image/webp"].includes((arquivo as File).type)) {
-    voltar("Use JPG, PNG ou WebP.")
+    voltar(album, "Use JPG, PNG ou WebP.")
   }
 
   const { data: usadas } = await supabase
     .from("fotos").select("bytes").eq("embarcacao_id", painel.embarcacao.id)
   const usado = (usadas ?? []).reduce((s, f: { bytes: number }) => s + f.bytes, 0)
   if (usoDaCota(usado + (arquivo as File).size).cheio) {
-    voltar("Cota de nuvem cheia. Apague fotos antigas para liberar espaço.")
+    voltar(album, "Cota de nuvem cheia. Apague fotos antigas para liberar espaço.")
   }
 
   const r = await subirArquivo(supabase, painel.embarcacao.id, "fotos", arquivo as File)
-  if ("erro" in r) voltar(r.erro)
+  if ("erro" in r) voltar(album, r.erro)
 
   const { error } = await supabase.from("fotos").insert({
     embarcacao_id: painel.embarcacao.id,
@@ -49,12 +54,12 @@ export async function subirFoto(formData: FormData) {
   })
   if (error) {
     await supabase.storage.from("acervo").remove([r.path])
-    voltar("Não foi possível salvar a foto. Tente de novo.")
+    voltar(album, "Não foi possível salvar a foto. Tente de novo.")
   }
 
   revalidatePath("/barco/fotos")
   revalidatePath("/barco")
-  voltar()
+  voltar(album)
 }
 
 export async function excluirFoto(formData: FormData) {
@@ -62,11 +67,16 @@ export async function excluirFoto(formData: FormData) {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("foto_id") ?? "")
+  const album = String(formData.get("album") ?? "") || null
 
   const { data: foto } = await supabase
     .from("fotos").select("id, arquivo_path")
     .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
-  if (!foto) voltar("Foto não encontrada.")
+  if (!foto) voltar(album, "Foto não encontrada.")
+
+  // apaga a linha primeiro: se falhar, a capa continua íntegra
+  const { error } = await supabase.from("fotos").delete().eq("id", id)
+  if (error) voltar(album, "Não foi possível excluir a foto.")
 
   if (painel.embarcacao.foto_capa_path === foto.arquivo_path) {
     // via RPC: a capa é do álbum, e a policy de embarcacoes só aceita o PROP
@@ -74,16 +84,14 @@ export async function excluirFoto(formData: FormData) {
       p_embarcacao_id: painel.embarcacao.id,
       p_path: null,
     })
-    if (erroCapa) voltar("Não foi possível limpar a foto de capa. Tente de novo.")
+    if (erroCapa) voltar(album, "Foto excluída, mas a capa não foi limpa. Escolha outra capa.")
   }
-  const { error } = await supabase.from("fotos").delete().eq("id", id)
-  if (error) voltar("Não foi possível excluir a foto.")
   await supabase.storage.from("acervo").remove([foto.arquivo_path])
 
   revalidatePath("/barco/fotos")
   revalidatePath("/barco")
   revalidatePath("/hoje")
-  voltar()
+  voltar(album)
 }
 
 export async function definirCapa(formData: FormData) {
@@ -91,20 +99,21 @@ export async function definirCapa(formData: FormData) {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("foto_id") ?? "")
+  const album = String(formData.get("album") ?? "") || null
 
   const { data: foto } = await supabase
     .from("fotos").select("arquivo_path")
     .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
-  if (!foto) voltar("Foto não encontrada.")
+  if (!foto) voltar(album, "Foto não encontrada.")
 
   const { error } = await supabase.rpc("definir_capa", {
     p_embarcacao_id: painel.embarcacao.id,
     p_path: foto.arquivo_path,
   })
-  if (error) voltar("Não foi possível definir a capa — confira seu acesso.")
+  if (error) voltar(album, "Não foi possível definir a capa — confira seu acesso.")
 
   revalidatePath("/hoje")
   revalidatePath("/barco")
   revalidatePath("/barco/fotos")
-  voltar()
+  voltar(album)
 }

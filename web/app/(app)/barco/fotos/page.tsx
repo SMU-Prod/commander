@@ -55,7 +55,7 @@ export default async function FotosPage({
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
           <div
-            className={`h-full rounded-full ${uso.percentual > 90 ? "bg-crit" : "bg-accent"}`}
+            className={`h-full rounded-full ${uso.percentual > 90 ? "bg-crit" : "bg-accent-forte"}`}
             style={{ width: `${Math.max(2, uso.percentual)}%` }}
           />
         </div>
@@ -92,12 +92,14 @@ export default async function FotosPage({
               <div key={f.id} className="overflow-hidden rounded-[12px] border border-line bg-panel sombra-1">
                 {url && (
                   /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
-                  <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" />
+                  <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" loading="lazy" />
                 )}
+                {f.legenda && <p className="apoio truncate px-2 pt-1.5 text-dim">{f.legenda}</p>}
                 {editavel && (
                   <div className="flex items-center justify-between px-1.5 py-1">
                     <form action={definirCapa}>
                       <input type="hidden" name="foto_id" value={f.id} />
+                      <input type="hidden" name="album" value={albumAtivo} />
                       <button
                         className={`flex size-11 items-center justify-center ${ehCapa ? "text-accent-forte" : "text-dim"}`}
                         aria-label={ehCapa ? "Foto de capa" : "Usar como capa"}
@@ -107,6 +109,7 @@ export default async function FotosPage({
                     </form>
                     <form action={excluirFoto}>
                       <input type="hidden" name="foto_id" value={f.id} />
+                      <input type="hidden" name="album" value={albumAtivo} />
                       <button className="flex size-11 items-center justify-center text-crit" aria-label="Excluir foto">
                         <Icone nome="mais" className="size-4 rotate-45" />
                       </button>
