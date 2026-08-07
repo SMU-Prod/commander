@@ -15,6 +15,7 @@ export interface Embarcacao {
   marina: string | null
   marina_lat: number | null
   marina_lon: number | null
+  foto_capa_path: string | null
   created_at: string
 }
 
@@ -154,4 +155,17 @@ export interface AlertaEnviado {
   ciclo_ref: string
   titulo: string
   enviado_em: string
+}
+
+export type AlbumFoto = "exterior" | "interior" | "conves" | "documentacao"
+
+export interface Foto {
+  id: string
+  embarcacao_id: string
+  album: AlbumFoto
+  arquivo_path: string
+  bytes: number
+  legenda: string | null
+  criado_por: string | null
+  created_at: string
 }
