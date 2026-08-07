@@ -198,3 +198,34 @@ export interface Assinatura {
   criado_em: string
   atualizado_em: string
 }
+
+export type CategoriaParceiro = "marina" | "posto" | "pousada" | "restaurante"
+export type PlanoParceiro = "cortesia" | "basico" | "destaque"
+
+export interface Parceiro {
+  id: string
+  usuario_id: string
+  categoria: CategoriaParceiro
+  nome: string
+  sobre: string | null
+  telefone: string | null
+  email: string | null
+  horario: string | null
+  lat: number
+  lng: number
+  preco_diaria_centavos: number | null
+  preco_diesel_centavos: number | null
+  calado_max_m: number | null
+  tem_poita: boolean
+  qtd_poitas: number | null
+  traslado_incluso: boolean | null
+  vaga_cortesia: boolean | null
+  culinaria: string | null
+  plano: PlanoParceiro
+  visivel: boolean
+  fotos: string[]
+  visualizacoes: number
+  precos_atualizados_em: string | null
+  criado_em: string
+  atualizado_em: string
+}
