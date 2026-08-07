@@ -10,6 +10,11 @@ function erroAssinar(msg: string): never {
   redirect(`/assinar?erro=${encodeURIComponent(msg)}`)
 }
 
+/** Para onde o Asaas devolve o assinante depois de pagar. */
+function urlRetornoPosPagamento(): string {
+  return `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/menu/assinatura`
+}
+
 /** CPF: 11 digitos apos limpar mascara. A validacao forte fica no Asaas. */
 function cpfLimpo(bruto: string): string | null {
   const d = bruto.replace(/\D/g, "")
@@ -36,7 +41,7 @@ export async function assinar(formData: FormData) {
   if (existente) {
     const viva = existente as Assinatura
     if (viva.status === "pendente") {
-      const url = await urlPrimeiraCobranca(viva.asaas_subscription_id).catch(() => null)
+      const url = await urlPrimeiraCobranca(viva.asaas_subscription_id, urlRetornoPosPagamento()).catch(() => null)
       if (url) redirect(url)
     }
     redirect("/menu/assinatura")
@@ -74,7 +79,7 @@ export async function assinar(formData: FormData) {
     erroAssinar("Não foi possível registrar a assinatura. Tente de novo.")
   }
 
-  const url = await urlPrimeiraCobranca(subscriptionId).catch(() => null)
+  const url = await urlPrimeiraCobranca(subscriptionId, urlRetornoPosPagamento()).catch(() => null)
   revalidatePath("/menu/assinatura")
   if (url) redirect(url)
   redirect("/menu/assinatura?ok=" + encodeURIComponent("Assinatura criada — o link de pagamento chega por e-mail"))

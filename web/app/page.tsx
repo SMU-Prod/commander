@@ -6,8 +6,8 @@ import { MockTelas } from "@/components/landing/mock-telas"
 import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS, VAGAS_FUNDADOR } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 
-// O contador de vagas não precisa ser real-time — revalida a cada 5 min.
-export const revalidate = 300
+// A página é dinâmica (o redirect de logado lê cookies), então não há ISR a
+// configurar — o contador de vagas é buscado a cada request e isso basta.
 
 const VALORES: { icone: NomeIcone; titulo: string; desc: string }[] = [
   {

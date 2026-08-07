@@ -67,11 +67,21 @@ export async function criarAssinaturaAsaas(dados: {
   return a.id
 }
 
-export async function urlPrimeiraCobranca(subscriptionId: string): Promise<string | null> {
-  const r = await asaas<{ data: Array<{ invoiceUrl?: string; status: string }> }>(
+export async function urlPrimeiraCobranca(subscriptionId: string, urlRetorno?: string): Promise<string | null> {
+  const r = await asaas<{ data: Array<{ id: string; invoiceUrl?: string; status: string }> }>(
     `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=1`,
   )
-  return r.data[0]?.invoiceUrl ?? null
+  const cobranca = r.data[0]
+  if (!cobranca) return null
+  if (urlRetorno && cobranca.id) {
+    // sem callback o assinante paga e fica preso na pagina do Asaas, sem caminho
+    // de volta. Best-effort: se o PUT falhar, o fluxo segue — o webhook ativa igual.
+    await asaas(`/payments/${encodeURIComponent(cobranca.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ callback: { successUrl: urlRetorno, autoRedirect: true } }),
+    }).catch(() => {})
+  }
+  return cobranca.invoiceUrl ?? null
 }
 
 export async function cancelarAssinaturaAsaas(subscriptionId: string) {

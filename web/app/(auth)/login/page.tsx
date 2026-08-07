@@ -7,9 +7,9 @@ const campo =
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string; modo?: string; volta?: string }>
+  searchParams: Promise<{ erro?: string; aviso?: string; modo?: string; volta?: string }>
 }) {
-  const { erro, modo, volta } = await searchParams
+  const { erro, aviso, modo, volta } = await searchParams
   const cadastro = modo === "cadastro"
   return (
     <main
@@ -19,11 +19,14 @@ export default async function LoginPage({
     >
       <div className="text-xl"><Logo /></div>
       <p className="mt-2 text-xs uppercase tracking-[.18em] text-dim">
-        Gestão completa da sua embarcação
+        O dossiê do seu barco
       </p>
       <h1 className="titulo-pagina mt-7">{cadastro ? "Crie sua conta" : "Entre na sua conta"}</h1>
       {erro && (
         <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>
+      )}
+      {aviso && (
+        <p className="mt-4 rounded-lg border border-line bg-white/5 px-3 py-2 corpo">{aviso}</p>
       )}
       <form action={cadastro ? cadastrar : entrar} className="mt-6 space-y-3.5">
         <input type="hidden" name="volta" value={volta ?? ""} />

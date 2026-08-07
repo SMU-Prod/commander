@@ -19,13 +19,18 @@ export async function entrar(formData: FormData) {
 export async function cadastrar(formData: FormData) {
   const volta = formData.get("volta")
   const supabase = await supabaseServer()
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("senha") ?? ""),
     options: { data: { nome: String(formData.get("nome") ?? "") } },
   })
   if (error) {
     redirect(`/login?modo=cadastro&erro=${encodeURIComponent("Não foi possível criar a conta. Confira os dados e tente novamente.")}&volta=${encodeURIComponent(String(volta ?? ""))}`)
+  }
+  // Confirm email ligado: signUp cria o usuario mas NAO abre sessao — sem este
+  // aviso a pessoa seria devolvida ao login sem explicacao nenhuma.
+  if (!data.session) {
+    redirect(`/login?aviso=${encodeURIComponent("Enviamos um link de confirmação para o seu e-mail. Abra-o para ativar a conta.")}`)
   }
   redirect(destinoSeguro(volta, "/onboarding"))
 }

@@ -17,9 +17,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const supabase = await supabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      // pendente NAO libera: quem nunca pagou cai em /assinar, que reabre a
+      // cobranca em aberto. Inadimplente entra (carencia — o Asaas cobra;
+      // SUBSCRIPTION_DELETED encerra a carencia via webhook).
       const { data: viva } = await supabase
         .from("assinaturas").select("status")
-        .eq("usuario_id", user.id).neq("status", "cancelada")
+        .eq("usuario_id", user.id).in("status", ["ativa", "inadimplente"])
         .maybeSingle()
       if (!viva) redirect("/assinar")
     }
