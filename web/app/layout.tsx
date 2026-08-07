@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Urbanist } from "next/font/google"
+import { Analytics } from "@/components/analytics"
 import "./globals.css"
 
 const urbanist = Urbanist({
@@ -8,9 +9,20 @@ const urbanist = Urbanist({
   variable: "--font-urbanist",
 })
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+const DESCRICAO = "Manutenção em dia, documentos alertados e um histórico que vale dinheiro na hora de vender."
+
 export const metadata: Metadata = {
-  title: "Commander",
-  description: "Gestão completa da sua embarcação",
+  metadataBase: new URL(APP_URL),
+  title: "Commander — o dossiê do seu barco",
+  description: DESCRICAO,
+  openGraph: {
+    title: "Commander — o dossiê do seu barco",
+    description: DESCRICAO,
+    locale: "pt_BR",
+    type: "website",
+    url: "/",
+  },
   icons: { apple: "/apple-touch-icon.png" },
 }
 
@@ -24,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${urbanist.variable} antialiased`}>
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
+        <Analytics />
         {children}
       </body>
     </html>

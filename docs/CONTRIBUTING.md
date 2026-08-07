@@ -17,5 +17,6 @@ com o mesmo SQL. Nunca altere o banco sem gravar o arquivo.
 
 ## Antes de fechar uma fase
 1. `npm test` e `npm run build` verdes
-2. Passe visual contra as pranchas da marca (navy/dourado, ícones, tipografia)
+2. Passe visual contra as pranchas da marca (navy/dourado, ícones, tipografia),
+   incluindo a landing pública e a tela `/assinar`
 3. Conferir cobertura da espec: `docs/superpowers/specs/2026-08-06-commander-v2-design.md`
