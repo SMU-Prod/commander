@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Icone } from "@/components/icone"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { sair } from "@/lib/acoes/auth"
@@ -13,44 +14,52 @@ export default async function MenuPage() {
   return (
     <main>
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Menu</h1>
+        <h1 className="titulo-pagina">Menu</h1>
         <Logo compacto />
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Conta</p>
-      <div className="rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="text-sm font-medium">{user?.email ?? "—"}</p>
-        <p className="mt-0.5 text-xs text-dim">Proprietário</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="pessoas" className="size-3.5" /> Conta
+      </p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <p className="titulo-card">{user?.email ?? "—"}</p>
+        <p className="apoio mt-0.5 text-dim">Proprietário</p>
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Aparência</p>
-      <div className="rounded-[14px] border border-line bg-panel px-4 py-3.5">
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="imagem" className="size-3.5" /> Aparência
+      </p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
         <ThemeToggle />
-        <p className="mt-2 text-xs text-dim">
+        <p className="apoio mt-2 text-dim">
           O modo claro é o padrão — feito para leitura sob sol forte na marina.
         </p>
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Alertas</p>
-      <Link href="/notificacoes" className="block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="text-sm font-medium">Configurar alertas</p>
-        <p className="mt-0.5 text-xs text-dim">Ative os avisos por aparelho e veja o histórico</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="alerta" className="size-3.5" /> Alertas
+      </p>
+      <Link href="/notificacoes" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <p className="titulo-card">Configurar alertas</p>
+        <p className="apoio mt-0.5 text-dim">Ative os avisos por aparelho e veja o histórico</p>
       </Link>
 
       {painel?.papel === "PROP" && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Tripulação</p>
-          <Link href="/menu/tripulacao" className="block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-            <p className="text-sm font-medium">Tripulação</p>
-            <p className="mt-0.5 text-xs text-dim">Convide comandantes e ajuste as permissões</p>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="pessoas" className="size-3.5" /> Tripulação
+          </p>
+          <Link href="/menu/tripulacao" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
+            <p className="titulo-card">Tripulação</p>
+            <p className="apoio mt-0.5 text-dim">Convide comandantes e ajuste as permissões</p>
           </Link>
         </>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Em breve</p>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
+      <p className="rotulo text-dim mt-6 mb-2">Em breve</p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {["Assinatura e faturas"].map((item) => (
-          <p key={item} className="border-b border-line py-3 text-sm text-dim last:border-0">
+          <p key={item} className="corpo border-b border-line py-3 text-dim last:border-0">
             {item}
           </p>
         ))}

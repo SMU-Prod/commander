@@ -4,7 +4,7 @@ import { Suspense } from "react"
 import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
-import { Icone } from "@/components/icone"
+import { Icone, type NomeIcone } from "@/components/icone"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
@@ -89,14 +89,15 @@ export default async function HojePage({
       </div>
 
       {erro && (
-        <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
+        <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="alerta" className="size-3.5" />
         {alertas.length > 0 ? "Precisa de atenção" : "Tudo em dia"}
       </p>
       {alertas.length === 0 && (
-        <div className="rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
           Nenhum vencimento na margem. Bom vento e mar calmo.
         </div>
       )}
@@ -121,11 +122,13 @@ export default async function HojePage({
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Mar agora</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="mapa" className="size-3.5" /> Mar agora
+      </p>
       {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
-        <Link href="/barco/local" className="block rounded-[14px] border border-line bg-panel p-4">
-          <p className="text-sm font-semibold">Ligue o boletim do mar</p>
-          <p className="mt-0.5 text-xs text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
+        <Link href="/barco/local" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+          <p className="titulo-card">Ligue o boletim do mar</p>
+          <p className="apoio mt-0.5 text-dim">Defina a posição da marina para ver onda, vento e água aqui.</p>
         </Link>
       ) : (
         <Suspense fallback={<div className="h-[74px] animate-pulse rounded-[14px] bg-panel2" />}>
@@ -133,13 +136,17 @@ export default async function HojePage({
         </Suspense>
       )}
 
-      <Link href="/navegar" className="mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">
-        ⛵ Iniciar navegação — gravar trilha
+      <Link href="/navegar" className="sombra-1 mt-3 block rounded-[14px] border border-accent/40 bg-panel p-3.5 text-center text-sm font-semibold text-accent-forte">
+        <span className="inline-flex items-center justify-center gap-2">
+          <Icone nome="mapa" className="size-4" /> Iniciar navegação — gravar trilha
+        </span>
       </Link>
 
       {motores.length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Horas de motor</p>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="relogio" className="size-3.5" /> Horas de motor
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {motores.map((m) => {
               const status =
@@ -153,33 +160,39 @@ export default async function HojePage({
         </>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acesso rápido</p>
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="raio" className="size-3.5" /> Acesso rápido
+      </p>
       <div className="grid grid-cols-4 gap-2 text-center">
         {(
           [
-            { href: "/barco", rotulo: "Motores" },
-            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos" },
-            { href: "/diario", rotulo: "Diário" },
-            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos" },
-          ] as { href: string; rotulo: string; aba?: Aba }[]
+            { href: "/barco", rotulo: "Motores", icone: "motor" },
+            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
+            { href: "/diario", rotulo: "Diário", icone: "calendario" },
+            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
+          ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
         )
           .filter((a) => !a.aba || podeVer(permissoes, a.aba))
           .map((a) => (
-            <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
-              {a.rotulo}
+            <Link key={a.href} href={a.href}
+              className="sombra-1 flex flex-col items-center gap-1.5 rounded-[12px] border border-line bg-panel px-1 py-3">
+              <Icone nome={a.icone} className="size-5 text-accent-forte" />
+              <span className="text-[11px] font-medium">{a.rotulo}</span>
             </Link>
           ))}
       </div>
 
       {(comandantes ?? []).length > 0 && (
         <>
-          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Comandantes disponíveis</p>
-          <div className="rounded-[14px] border border-line bg-panel px-4">
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="pessoas" className="size-3.5" /> Comandantes disponíveis
+          </p>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {(comandantes ?? []).map((c) => (
               <div key={c.usuario_id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{c.nome_publico}</p>
-                  <p className="mt-0.5 text-xs text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
+                  <p className="titulo-card">{c.nome_publico}</p>
+                  <p className="apoio mt-0.5 text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
                 </div>
                 <Link href="/marketplace" className="text-xs text-accent-forte">Ver</Link>
               </div>

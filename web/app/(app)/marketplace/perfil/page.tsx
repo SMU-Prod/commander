@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { salvarPerfilComandante } from "@/lib/acoes/perfil-comandante"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
@@ -21,7 +22,9 @@ export default async function PerfilComandantePage({
 
   return (
     <main>
-      <a href="/marketplace" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Marketplace</a>
+      <a href="/marketplace" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Marketplace
+      </a>
       <h1 className="mt-3 text-xl font-semibold">Meu perfil de comandante</h1>
       <p className="mt-1 text-sm text-dim">Sua vitrine para os proprietários da plataforma.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}

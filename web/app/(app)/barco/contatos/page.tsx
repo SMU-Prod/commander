@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { avaliarContato, criarContato, excluirContato } from "@/lib/acoes/contatos"
 import { carregarPainel } from "@/lib/consultas"
 import { podeVer } from "@/lib/domain/permissoes"
@@ -30,20 +31,22 @@ export default async function ContatosPage({
 
   return (
     <main>
-      <a href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Embarcação</a>
-      <h1 className="mt-3 text-xl font-semibold">Contatos</h1>
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      <a href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Embarcação
+      </a>
+      <h1 className="titulo-pagina mt-3">Contatos</h1>
+      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <div className="mt-5 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {(contatos ?? []).length === 0 && (
-          <p className="py-4 text-sm text-dim">Salve aqui o mecânico, o eletricista e todo mundo que cuida do barco.</p>
+          <p className="corpo py-4 text-dim">Salve aqui o mecânico, o eletricista e todo mundo que cuida do barco.</p>
         )}
         {((contatos ?? []) as Contato[]).map((c) => (
           <div key={c.id} className="border-b border-line py-3 last:border-0">
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{c.nome}</p>
-                <p className="mt-0.5 text-xs text-dim">
+                <p className="titulo-card">{c.nome}</p>
+                <p className="apoio mt-0.5 text-dim">
                   {[c.especialidade, c.telefone, `${servicos.get(c.id) ?? 0} serviços neste barco`]
                     .filter(Boolean).join(" · ")}
                 </p>
@@ -61,8 +64,8 @@ export default async function ContatosPage({
               <input type="hidden" name="contato_id" value={c.id} />
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} name="avaliacao" value={n} aria-label={`${n} estrelas`}
-                  className={`text-lg leading-none ${c.avaliacao != null && n <= c.avaliacao ? "text-warn" : "text-line"}`}>
-                  ★
+                  className={`flex size-11 items-center justify-center ${c.avaliacao != null && n <= c.avaliacao ? "text-warn" : "text-line"}`}>
+                  <Icone nome="estrela" className="size-5" />
                 </button>
               ))}
             </form>
@@ -70,8 +73,8 @@ export default async function ContatosPage({
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Novo contato</p>
-      <form action={criarContato} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <p className="rotulo text-dim mt-6 mb-2">Novo contato</p>
+      <form action={criarContato} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
         <div>
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required className={campo} />

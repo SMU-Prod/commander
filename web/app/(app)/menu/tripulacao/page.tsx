@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -29,7 +30,9 @@ export default async function TripulacaoPage({
 
   return (
     <main>
-      <a href="/menu" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">‹ Menu</a>
+      <a href="/menu" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Menu
+      </a>
       <h1 className="mt-3 text-xl font-semibold">Tripulação</h1>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
@@ -61,7 +64,7 @@ export default async function TripulacaoPage({
                 {v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"}
               </p>
             </div>
-            <span className="text-dim">›</span>
+            <Icone nome="chevron" className="size-4 text-dim" />
           </Link>
         ))}
       </div>

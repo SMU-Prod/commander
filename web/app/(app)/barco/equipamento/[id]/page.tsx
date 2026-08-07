@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
+import { Icone } from "@/components/icone"
 import { calcularSemaforo, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -28,8 +29,8 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
   return (
     <main>
-      <Link href="/barco" className="font-mono-instr text-xs uppercase tracking-widest text-accent-forte">
-        ‹ Barco
+      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <div className="mt-3">
         <Horimetro
