@@ -3,7 +3,7 @@ import { useState } from "react"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export function RegistroRapido({
   motores,

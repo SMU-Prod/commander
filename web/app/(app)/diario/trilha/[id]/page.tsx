@@ -37,7 +37,7 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
       <div className="mt-4 grid grid-cols-2 gap-2">
         {stats.map(([nome, valor]) => (
           <div key={nome} className="rounded-[12px] border border-line bg-panel p-3">
-            <p className="font-mono-instr text-[10px] uppercase tracking-[.14em] text-dim">{nome}</p>
+            <p className="font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">{nome}</p>
             <p className="mt-0.5 font-mono-instr text-lg tabular-nums">{valor}</p>
           </div>
         ))}

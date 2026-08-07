@@ -10,7 +10,7 @@ import { Confirmar } from "@/components/confirmar"
 import type { Documento } from "@/lib/db/types"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function DocumentosPage({
   searchParams,

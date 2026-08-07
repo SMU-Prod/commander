@@ -75,7 +75,7 @@ export default async function GastosPage() {
               className={`w-full rounded-t ${m.mes === hoje.slice(0, 7) ? "bg-accent-forte" : "bg-panel2 border border-line"}`}
               style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
             />
-            <span className="font-mono-instr text-[10px] uppercase text-dim">{m.rotulo}</span>
+            <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
           </div>
         ))}
       </div>

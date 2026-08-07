@@ -41,7 +41,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         />
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Itens monitorados</p>
+      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Itens monitorados</p>
       <div className="rounded-[14px] border border-line bg-panel px-4">
         {itens.map(({ item, r }) => (
           <div key={item.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
@@ -68,7 +68,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="mt-6 flex items-baseline justify-between">
-        <p className="font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Histórico</p>
+        <p className="font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Histórico</p>
         <Link href={`/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`} className="text-sm text-accent-forte">
           Registrar serviço
         </Link>

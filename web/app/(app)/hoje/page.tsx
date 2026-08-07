@@ -27,7 +27,7 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
         <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
         <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
         <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
-        <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.1em] ${
+        <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
           boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
           : boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
           : "border border-crit/40 text-crit"

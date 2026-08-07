@@ -61,9 +61,9 @@ export default async function MatrizPage({
         <input type="hidden" name="vinculo_id" value={v.id} />
         <div className="rounded-[14px] border border-line bg-panel px-4">
           <div className="flex items-center gap-3 border-b border-line py-2.5">
-            <span className="flex-1 font-mono-instr text-[10px] uppercase tracking-[.14em] text-dim">Aba</span>
-            <span className="w-12 text-center font-mono-instr text-[10px] uppercase tracking-[.14em] text-dim">Ver</span>
-            <span className="w-12 text-center font-mono-instr text-[10px] uppercase tracking-[.14em] text-dim">Editar</span>
+            <span className="flex-1 font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Aba</span>
+            <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Ver</span>
+            <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Editar</span>
           </div>
           {ABAS.map((aba) => (
             <div key={aba} className="flex items-center gap-3 border-b border-line py-3 last:border-0">

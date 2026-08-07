@@ -50,7 +50,7 @@ export default async function TripulacaoPage({
         </div>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Comandantes com acesso</p>
+      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Comandantes com acesso</p>
       <div className="rounded-[14px] border border-line bg-panel px-4">
         {((vinculos ?? []) as Vinculo[]).length === 0 && (
           <p className="py-4 text-sm text-dim">Ninguém além de você ainda. Crie um convite abaixo.</p>
@@ -69,7 +69,7 @@ export default async function TripulacaoPage({
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Convites pendentes</p>
+      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Convites pendentes</p>
       <div className="rounded-[14px] border border-line bg-panel px-4">
         {((convites ?? []) as Convite[]).length === 0 && (
           <p className="py-4 text-sm text-dim">Nenhum convite aguardando.</p>
@@ -90,10 +90,10 @@ export default async function TripulacaoPage({
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Novo convite</p>
+      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Novo convite</p>
       <form action={criarConvite} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
         <div>
-          <label className="mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim" htmlFor="nivel">
+          <label className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim" htmlFor="nivel">
             Acesso inicial
           </label>
           <select id="nivel" name="nivel" defaultValue="operacional"

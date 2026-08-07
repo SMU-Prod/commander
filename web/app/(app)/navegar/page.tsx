@@ -78,7 +78,7 @@ export default function NavegarPage() {
   }
 
   const mostrador = "rounded-[10px] border border-line bg-meter px-3 py-2 font-mono-instr tabular-nums text-meter-texto"
-  const etiqueta = "text-[10px] uppercase tracking-[.14em] text-meter-dim"
+  const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
 
   return (
     <main>
@@ -120,7 +120,7 @@ export default function NavegarPage() {
       {estado !== "pronto" && (
         <>
           <div className="mt-5">
-            <label htmlFor="obs" className="mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim">
+            <label htmlFor="obs" className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">
               Observação — opcional
             </label>
             <input id="obs" value={obs} onChange={(e) => setObs(e.target.value)}

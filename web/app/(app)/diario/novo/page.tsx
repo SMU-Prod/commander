@@ -6,7 +6,7 @@ import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { supabaseServer } from "@/lib/supabase/server"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[10.5px] uppercase tracking-[.14em] text-dim"
+const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 const TIPOS = [
   ["manutencao", "Manutenção"], ["abastecimento", "Abastecimento"], ["navegacao", "Navegação"],
