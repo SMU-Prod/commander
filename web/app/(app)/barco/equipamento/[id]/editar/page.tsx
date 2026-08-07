@@ -5,9 +5,7 @@ import { Icone } from "@/components/icone"
 import { excluirEquipamento, salvarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
 import { podeEditar } from "@/lib/domain/permissoes"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rot = "rotulo mb-1.5 block text-dim"
+import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarEquipamentoPage({
   params,
@@ -26,8 +24,6 @@ export default async function EditarEquipamentoPage({
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite editar este equipamento.")}`)
   }
-  const n = (v: number | null) => (v == null ? "" : String(v).replace(".", ","))
-
   return (
     <main>
       <Link href={`/barco/equipamento/${id}`} className="inline-flex items-center gap-1 rotulo text-accent-forte">
@@ -100,7 +96,7 @@ export default async function EditarEquipamentoPage({
             </div>
             <div>
               <label className={rot} htmlFor="horas_atuais">Horas atuais</label>
-              <input id="horas_atuais" name="horas_atuais" inputMode="decimal" defaultValue={n(eq.horas_atuais)} className={`${campo} font-mono-instr tabular-nums`} />
+              <input id="horas_atuais" name="horas_atuais" inputMode="decimal" defaultValue={numeroParaCampoPtBr(eq.horas_atuais)} className={`${campo} font-mono-instr tabular-nums`} />
             </div>
           </div>
           <div>

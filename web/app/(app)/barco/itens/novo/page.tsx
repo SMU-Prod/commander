@@ -4,8 +4,8 @@ import { Icone } from "@/components/icone"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
+import { campo } from "@/lib/ui/form"
 
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function NovoItemPage({

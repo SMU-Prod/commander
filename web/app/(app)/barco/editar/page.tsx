@@ -3,9 +3,7 @@ import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { salvarDadosGerais } from "@/lib/acoes/embarcacao"
 import { carregarPainel } from "@/lib/consultas"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rot = "rotulo mb-1.5 block text-dim"
+import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarEmbarcacaoPage({
   searchParams,
@@ -19,7 +17,6 @@ export default async function EditarEmbarcacaoPage({
     redirect(`/barco?erro=${encodeURIComponent("Só o proprietário edita os dados da embarcação.")}`)
   }
   const e = painel.embarcacao
-  const num = (v: number | null) => (v == null ? "" : String(v).replace(".", ","))
 
   return (
     <main>
@@ -65,17 +62,17 @@ export default async function EditarEmbarcacaoPage({
             <div>
               <label className={rot} htmlFor="comprimento_m">Compr. (m)</label>
               <input id="comprimento_m" name="comprimento_m" inputMode="decimal" placeholder="14,60"
-                defaultValue={num(e.comprimento_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.comprimento_m)} className={`${campo} font-mono-instr tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="boca_m">Boca (m)</label>
               <input id="boca_m" name="boca_m" inputMode="decimal" placeholder="4,35"
-                defaultValue={num(e.boca_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.boca_m)} className={`${campo} font-mono-instr tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="calado_m">Calado (m)</label>
               <input id="calado_m" name="calado_m" inputMode="decimal" placeholder="1,20"
-                defaultValue={num(e.calado_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.calado_m)} className={`${campo} font-mono-instr tabular-nums`} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

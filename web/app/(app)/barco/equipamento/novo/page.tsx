@@ -4,9 +4,7 @@ import { Icone } from "@/components/icone"
 import { criarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
 import { podeEditar } from "@/lib/domain/permissoes"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rot = "rotulo mb-1.5 block text-dim"
+import { campo, rot } from "@/lib/ui/form"
 
 export default async function NovoEquipamentoPage({
   searchParams,
