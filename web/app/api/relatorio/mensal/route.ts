@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
 
   const [embarcacoesR, eventosR, itensR, equipamentosR, vinculosR] = await Promise.all([
     admin.from("embarcacoes").select("*"),
-    admin.from("eventos").select("*"),
+    // so o mes do relatorio — evita carregar o diario inteiro de todas as embarcacoes a cada disparo
+    admin.from("eventos").select("*").gte("data", `${mesISO}-01`).lt("data", `${mesSeguinte(mesISO)}-01`),
     admin.from("itens_monitorados").select("*"),
     admin.from("equipamentos").select("*"),
     admin.from("vinculos").select("usuario_id, embarcacao_id, papel").eq("papel", "PROP"),
