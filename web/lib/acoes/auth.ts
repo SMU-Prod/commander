@@ -4,9 +4,16 @@ import { supabaseServer } from "@/lib/supabase/server"
 
 function destinoSeguro(bruto: FormDataEntryValue | null, padrao: string): string {
   const v = String(bruto ?? "")
-  // WHATWG URL normaliza "\" para "/" em http(s): "/\evil.com" viraria "//evil.com".
-  const norm = v.replace(/\\/g, "/")
-  return norm.startsWith("/") && !norm.startsWith("//") ? norm : padrao
+  if (!v.startsWith("/")) return padrao
+  try {
+    // canonicaliza com o MESMO algoritmo que o browser usa no Location:
+    // qualquer truque (\, TAB, LF, CR, //host) que mude o host é pego aqui.
+    const u = new URL(v, "http://interno.local")
+    if (u.host !== "interno.local" || u.protocol !== "http:") return padrao
+    return u.pathname + u.search + u.hash
+  } catch {
+    return padrao
+  }
 }
 
 export async function entrar(formData: FormData) {
