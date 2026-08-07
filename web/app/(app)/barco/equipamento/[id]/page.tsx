@@ -29,6 +29,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
   const statusGeral = itens[0]?.r.status ?? "ok"
 
   const supabase = await supabaseServer()
+  const urlFoto = equipamento.foto_path
+    ? (await supabase.storage.from("acervo").createSignedUrl(equipamento.foto_path, 3600)).data?.signedUrl ?? null
+    : null
   const [{ data: eventos }, { data: leituras }] = await Promise.all([
     supabase.from("eventos")
       .select("id, data, tipo, descricao, horas_no_momento, custo_centavos")
@@ -71,6 +74,13 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
               {nomeCurto(e)}
             </Link>
           ))}
+        </div>
+      )}
+
+      {urlFoto && (
+        <div className="sombra-1 mt-3 overflow-hidden rounded-[14px] border border-line bg-panel">
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */}
+          <img src={urlFoto} alt={`Foto de ${nomeCurto(equipamento)}`} className="h-44 w-full object-cover" />
         </div>
       )}
 

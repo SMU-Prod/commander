@@ -1,6 +1,7 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -49,22 +50,42 @@ function camposDoForm(formData: FormData, falhar: (msg: string) => never) {
   }
 }
 
+/** Mesma validação de MIME do avatar (`lib/acoes/perfil.ts`) — sem arquivo, devolve null sem tocar no foto_path atual. */
+async function fotoDoForm(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  embarcacaoId: string,
+  formData: FormData,
+  falhar: (msg: string) => never,
+): Promise<string | null> {
+  const foto = formData.get("foto")
+  if (!(foto instanceof File) || foto.size === 0) return null
+  if (!["image/jpeg", "image/png", "image/webp"].includes(foto.type)) falhar("Use JPG, PNG ou WebP.")
+  const r = await subirArquivo(supabase, embarcacaoId, "fotos", foto)
+  if ("erro" in r) falhar(r.erro)
+  return r.path
+}
+
 export async function criarEquipamento(formData: FormData) {
   const supabase = await supabaseServer()
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const dados = camposDoForm(formData, erroNovo)
+  const fotoPath = await fotoDoForm(supabase, painel.embarcacao.id, formData, erroNovo)
 
   const { data, error } = await supabase
     .from("equipamentos")
     .insert({
       embarcacao_id: painel.embarcacao.id,
       ...dados,
+      ...(fotoPath ? { foto_path: fotoPath } : {}),
       ultima_leitura: dados.horas_atuais != null ? new Date().toISOString() : null,
     })
     .select("id, tipo")
     .single()
-  if (error || !data) erroNovo("Não foi possível criar — confira seu acesso a esta aba.")
+  if (error || !data) {
+    if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
+    erroNovo("Não foi possível criar — confira seu acesso a esta aba.")
+  }
 
   revalidatePath("/barco")
   revalidatePath("/barco/eletrica")
@@ -81,12 +102,24 @@ export async function salvarEquipamento(formData: FormData) {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("equipamento_id") ?? "")
-  if (!painel.equipamentos.some((e) => e.id === id)) erroEditar(id, "Equipamento não encontrado.")
+  const atual = painel.equipamentos.find((e) => e.id === id)
+  if (!atual) erroEditar(id, "Equipamento não encontrado.")
   const dados = camposDoForm(formData, (msg) => erroEditar(id, msg))
+  const fotoPath = await fotoDoForm(supabase, painel.embarcacao.id, formData, (msg) => erroEditar(id, msg))
 
   const { data, error } = await supabase
-    .from("equipamentos").update(dados).eq("id", id).select("id").maybeSingle()
-  if (error || !data) erroEditar(id, "Não foi possível salvar — confira seu acesso a esta aba.")
+    .from("equipamentos")
+    .update({ ...dados, ...(fotoPath ? { foto_path: fotoPath } : {}) })
+    .eq("id", id).select("id").maybeSingle()
+  if (error || !data) {
+    if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
+    erroEditar(id, "Não foi possível salvar — confira seu acesso a esta aba.")
+  }
+
+  // troca de foto: só apaga a antiga do storage depois de confirmar que o update deu certo
+  if (fotoPath && atual.foto_path) {
+    await supabase.storage.from("acervo").remove([atual.foto_path])
+  }
 
   revalidatePath("/barco")
   revalidatePath("/barco/eletrica")
@@ -107,6 +140,11 @@ export async function excluirEquipamento(formData: FormData) {
   const { data: apagado, error } = await supabase
     .from("equipamentos").delete().eq("id", id).select("id")
   if (error || !apagado?.length) erroEditar(id, "Não foi possível excluir — confira seu acesso.")
+
+  if (equipamento.foto_path) {
+    // best-effort: arquivo órfão é aceitável; linha fantasma não.
+    await supabase.storage.from("acervo").remove([equipamento.foto_path])
+  }
 
   revalidatePath("/barco")
   revalidatePath("/barco/eletrica")

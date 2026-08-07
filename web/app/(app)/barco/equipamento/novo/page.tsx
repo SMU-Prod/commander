@@ -105,6 +105,11 @@ export default async function NovoEquipamentoPage({
             <label className={rot} htmlFor="observacoes">Observações</label>
             <input id="observacoes" name="observacoes" placeholder="Ex.: revenda autorizada em Niterói" className={campo} />
           </div>
+          <div>
+            <label className={rot} htmlFor="foto">Foto — opcional</label>
+            <input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp"
+              className={`${campo} py-2.5 corpo`} />
+          </div>
         </div>
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Criar equipamento</button>
       </form>
