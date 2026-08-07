@@ -97,6 +97,7 @@ export default async function BarcoPage() {
       <div className="grid grid-cols-2 gap-2">
         {(
           [
+            { href: "/barco/fotos", rotulo: "Fotos", desc: "álbuns do barco", aba: "fotos" },
             { href: "/diario", rotulo: "Diário de Bordo", desc: "todo o histórico" },
             { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos", aba: "documentos" },
             { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco", aba: "contatos" },
