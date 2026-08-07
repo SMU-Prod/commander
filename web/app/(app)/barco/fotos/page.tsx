@@ -94,7 +94,7 @@ export default async function FotosPage({
                   /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
                   <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" loading="lazy" />
                 )}
-                {f.legenda && <p className="apoio truncate px-2 pt-1.5 text-dim">{f.legenda}</p>}
+                {f.legenda && <p className={`apoio truncate px-2 pt-1.5 text-dim ${editavel ? "" : "pb-1.5"}`}>{f.legenda}</p>}
                 {editavel && (
                   <div className="flex items-center justify-between px-1.5 py-1">
                     <form action={definirCapa}>
