@@ -11,11 +11,24 @@ export const carregarPainel = cache(async (): Promise<{
   permissoes: Permissoes | null
 } | null> => {
   const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // O barco exibido segue o vínculo do usuário: prioriza onde ele é PROP;
+  // como CMDT de vários barcos, vale o vínculo mais antigo. (Seletor de
+  // embarcação no topo fica para a fase do multi-embarcação pleno.)
+  const { data: meusVinculos, error: erroVinculos } = await supabase
+    .from("vinculos")
+    .select("embarcacao_id, papel, permissoes")
+    .eq("usuario_id", user?.id ?? "")
+    .order("created_at")
+  if (erroVinculos) throw new Error("Não foi possível carregar seu acesso. Recarregue a página.")
+  const vinculo = (meusVinculos ?? []).find((v) => v.papel === "PROP") ?? (meusVinculos ?? [])[0]
+  if (!vinculo) return null
+
   const { data: embarcacao, error } = await supabase
     .from("embarcacoes")
     .select("*")
-    .order("created_at")
-    .limit(1)
+    .eq("id", vinculo.embarcacao_id)
     .maybeSingle()
   if (error) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
   if (!embarcacao) return null
@@ -26,16 +39,8 @@ export const carregarPainel = cache(async (): Promise<{
   ])
   if (equipamentosError || itensError) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: vinculo, error: erroVinculo } = await supabase
-    .from("vinculos")
-    .select("papel, permissoes")
-    .eq("embarcacao_id", embarcacao.id)
-    .eq("usuario_id", user?.id ?? "")
-    .maybeSingle()
-  if (erroVinculo) throw new Error("Não foi possível carregar seu acesso. Recarregue a página.")
-  const papel = (vinculo?.papel ?? "CMDT") as "PROP" | "CMDT"
-  const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo?.permissoes)
+  const papel = vinculo.papel as "PROP" | "CMDT"
+  const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
 
   return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes }
 })
