@@ -55,7 +55,7 @@ export default async function PerfilPage({
           <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp"
             className={`${campo} py-2.5 corpo`} />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Salvar perfil</button>
+        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar perfil</button>
       </form>
     </main>
   )

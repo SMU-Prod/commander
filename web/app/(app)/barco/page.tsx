@@ -63,7 +63,9 @@ export default async function BarcoPage({
           <Icone nome="motor" className="size-3.5" /> Motores
         </p>
         {podeEditar(permissoes, "motores") && (
-          <Link href="/barco/equipamento/novo?tipo=motor" className="corpo text-accent-forte">+ Motor</Link>
+          <Link href="/barco/equipamento/novo?tipo=motor" className="corpo inline-flex items-center gap-1 text-accent-forte">
+            <Icone nome="mais" className="size-4" /> Motor
+          </Link>
         )}
       </div>
       {motores.length === 0 && (

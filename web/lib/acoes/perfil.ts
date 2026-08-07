@@ -29,11 +29,12 @@ export async function salvarPerfil(formData: FormData) {
     avatarPath = r.path
   }
 
-  const { error } = await supabase
+  const { data: salvo, error } = await supabase
     .from("profiles")
     .update({ nome, telefone, ...(avatarPath ? { avatar_path: avatarPath } : {}) })
     .eq("id", user.id)
-  if (error) voltar("Não foi possível salvar o perfil. Tente de novo.")
+    .select("id")
+  if (error || !salvo?.length) voltar("Não foi possível salvar o perfil. Tente de novo.")
 
   revalidatePath("/menu")
   revalidatePath("/hoje")

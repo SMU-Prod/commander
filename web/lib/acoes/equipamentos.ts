@@ -102,8 +102,11 @@ export async function excluirEquipamento(formData: FormData) {
   const equipamento = painel.equipamentos.find((e) => e.id === id)
   if (!equipamento) erroEditar(id, "Equipamento não encontrado.")
 
-  const { error } = await supabase.from("equipamentos").delete().eq("id", id)
-  if (error) erroEditar(id, "Não foi possível excluir — confira seu acesso.")
+  // o select confirma que a linha saiu: sem ele, uma exclusão barrada pela
+  // matriz voltaria sem erro e o app anunciaria "excluído" à toa
+  const { data: apagado, error } = await supabase
+    .from("equipamentos").delete().eq("id", id).select("id")
+  if (error || !apagado?.length) erroEditar(id, "Não foi possível excluir — confira seu acesso.")
 
   revalidatePath("/barco")
   revalidatePath("/barco/eletrica")
