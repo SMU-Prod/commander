@@ -7,6 +7,10 @@ const BASE = process.env.ASAAS_AMBIENTE === "producao"
 
 class AsaasError extends Error {}
 
+/** Recusa de validacao (4xx com descricao legivel) — da pra mostrar ao usuario,
+ *  ex.: "O CPF informado é inválido". Diferente de indisponibilidade. */
+export class AsaasRecusa extends Error {}
+
 async function asaas<T>(caminho: string, init?: RequestInit): Promise<T> {
   const chave = process.env.ASAAS_API_KEY
   if (!chave) throw new AsaasError("ASAAS_API_KEY não configurada")
@@ -16,6 +20,16 @@ async function asaas<T>(caminho: string, init?: RequestInit): Promise<T> {
   })
   if (!r.ok) {
     const corpo = await r.text().catch(() => "")
+    if (r.status >= 400 && r.status < 500) {
+      try {
+        const j = JSON.parse(corpo) as { errors?: Array<{ description?: string }> }
+        const descricao = (j.errors ?? []).map((e) => e.description).filter(Boolean).join(" · ")
+        if (descricao) throw new AsaasRecusa(descricao.slice(0, 200))
+      } catch (e) {
+        if (e instanceof AsaasRecusa) throw e
+        // corpo nao era JSON — cai no erro generico abaixo
+      }
+    }
     throw new AsaasError(`Asaas ${r.status} em ${caminho}: ${corpo.slice(0, 300)}`)
   }
   return r.json() as Promise<T>

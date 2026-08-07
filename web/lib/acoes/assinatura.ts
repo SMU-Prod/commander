@@ -1,7 +1,7 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { cancelarAssinaturaAsaas, criarAssinaturaAsaas, criarClienteAsaas, urlPrimeiraCobranca } from "@/lib/asaas"
+import { AsaasRecusa, cancelarAssinaturaAsaas, criarAssinaturaAsaas, criarClienteAsaas, urlPrimeiraCobranca } from "@/lib/asaas"
 import { PLANOS, type PlanoId } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Assinatura } from "@/lib/db/types"
@@ -53,7 +53,9 @@ export async function assinar(formData: FormData) {
       descricao: PLANOS[plano].descricao,
       referenciaExterna: user.id,
     })
-  } catch {
+  } catch (e) {
+    // recusa de validacao (ex.: CPF invalido) e corrigivel pelo usuario — mostra o motivo
+    if (e instanceof AsaasRecusa) erroAssinar(`O sistema de pagamento recusou os dados: ${e.message}`)
     erroAssinar("Não foi possível falar com o sistema de pagamento. Tente de novo em instantes.")
   }
 
