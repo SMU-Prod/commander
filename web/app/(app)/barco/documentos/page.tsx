@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Documento } from "@/lib/db/types"
@@ -17,6 +18,7 @@ export default async function DocumentosPage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  if (!podeVer(painel.permissoes, "documentos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os documentos."))
   const supabase = await supabaseServer()
   const { data: docs } = await supabase.from("documentos")
     .select("*").eq("embarcacao_id", painel.embarcacao.id).order("created_at")

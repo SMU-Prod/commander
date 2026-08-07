@@ -21,7 +21,9 @@ export async function middleware(request: NextRequest) {
 
   const rotaPublica = request.nextUrl.pathname.startsWith("/login")
   if (!user && !rotaPublica) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    const destino = new URL("/login", request.url)
+    destino.searchParams.set("volta", request.nextUrl.pathname)
+    return NextResponse.redirect(destino)
   }
   return response
 }

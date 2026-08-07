@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { avaliarContato, criarContato, excluirContato } from "@/lib/acoes/contatos"
 import { carregarPainel } from "@/lib/consultas"
+import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Contato } from "@/lib/db/types"
 
@@ -15,6 +16,7 @@ export default async function ContatosPage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  if (!podeVer(painel.permissoes, "contatos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os contatos."))
   const supabase = await supabaseServer()
   const [{ data: contatos }, { data: eventos }] = await Promise.all([
     supabase.from("contatos").select("*").eq("embarcacao_id", painel.embarcacao.id).order("nome"),

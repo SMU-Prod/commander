@@ -99,6 +99,42 @@ export interface Documento {
   created_at: string
 }
 
+export interface Vinculo {
+  id: string
+  usuario_id: string
+  embarcacao_id: string
+  papel: "PROP" | "CMDT"
+  nivel: string
+  permissoes: Record<string, { ver?: boolean; editar?: boolean }> | null
+  created_at: string
+}
+
+export interface Convite {
+  id: string
+  embarcacao_id: string
+  codigo: string
+  permissoes: Record<string, { ver?: boolean; editar?: boolean }>
+  nivel: string
+  criado_por: string | null
+  expira_em: string
+  usado_por: string | null
+  usado_em: string | null
+  created_at: string
+}
+
+export interface PerfilComandante {
+  usuario_id: string
+  nome_publico: string
+  categoria: string | null
+  cidade: string | null
+  bio: string | null
+  telefone: string | null
+  disponibilidade: string | null
+  visivel: boolean
+  verificado: boolean
+  created_at: string
+}
+
 export interface PushAssinatura {
   id: string
   usuario_id: string

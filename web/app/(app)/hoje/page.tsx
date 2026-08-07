@@ -6,7 +6,9 @@ import { Horimetro } from "@/components/horimetro"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
+import { podeVer, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
+import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function HojePage({
   searchParams,
@@ -16,7 +18,7 @@ export default async function HojePage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  const { embarcacao, equipamentos, itens } = painel
+  const { embarcacao, equipamentos, itens, permissoes } = painel
   const hoje = hojeISO()
 
   const avaliados = itens
@@ -40,6 +42,11 @@ export default async function HojePage({
     embarcacao.marina_lat != null && embarcacao.marina_lon != null
       ? await boletimDoMar(embarcacao.marina_lat, embarcacao.marina_lon)
       : null
+
+  const supabase = await supabaseServer()
+  const { data: comandantes } = await supabase
+    .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
+    .eq("visivel", true).limit(2)
 
   return (
     <main>
@@ -129,17 +136,38 @@ export default async function HojePage({
 
       <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Acesso rápido</p>
       <div className="grid grid-cols-4 gap-2 text-center">
-        {[
-          { href: "/barco", rotulo: "Motores" },
-          { href: "/barco/documentos", rotulo: "Docs" },
-          { href: "/diario", rotulo: "Diário" },
-          { href: "/barco/contatos", rotulo: "Contatos" },
-        ].map((a) => (
-          <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
-            {a.rotulo}
-          </Link>
-        ))}
+        {(
+          [
+            { href: "/barco", rotulo: "Motores" },
+            { href: "/barco/documentos", rotulo: "Docs", aba: "documentos" },
+            { href: "/diario", rotulo: "Diário" },
+            { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos" },
+          ] as { href: string; rotulo: string; aba?: Aba }[]
+        )
+          .filter((a) => !a.aba || podeVer(permissoes, a.aba))
+          .map((a) => (
+            <Link key={a.href} href={a.href} className="rounded-[12px] border border-line bg-panel px-1 py-3 text-xs font-medium">
+              {a.rotulo}
+            </Link>
+          ))}
       </div>
+
+      {(comandantes ?? []).length > 0 && (
+        <>
+          <p className="mt-6 mb-2 font-mono-instr text-[10.5px] uppercase tracking-[.16em] text-dim">Comandantes disponíveis</p>
+          <div className="rounded-[14px] border border-line bg-panel px-4">
+            {(comandantes ?? []).map((c) => (
+              <div key={c.usuario_id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{c.nome_publico}</p>
+                  <p className="mt-0.5 text-xs text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
+                </div>
+                <Link href="/marketplace" className="text-xs text-accent-forte">Ver</Link>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </main>
   )
 }
