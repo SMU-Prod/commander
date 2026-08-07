@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Urbanist } from "next/font/google"
+import { Analytics } from "@/components/analytics"
 import "./globals.css"
 
 const urbanist = Urbanist({
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${urbanist.variable} antialiased`}>
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
+        <Analytics />
         {children}
       </body>
     </html>
