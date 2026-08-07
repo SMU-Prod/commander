@@ -44,16 +44,37 @@ export function CardEmbarcacao({
           )}
         </Link>
       )}
+      {/* Véu do topo: garante leitura do selo e do monograma sobre foto clara */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-28"
-        style={{ backgroundImage: "linear-gradient(to top, rgb(11 29 45 / .94), rgb(11 29 45 / 0))" }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-16"
+        style={{ backgroundImage: "linear-gradient(to bottom, rgb(11 29 45 / .55), rgb(11 29 45 / 0))" }}
       />
+      {/* Véu de baixo: alto e denso — o nome é o texto mais importante do app
+          e precisa se manter legível sobre casco branco no sol. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-36"
+        style={{
+          backgroundImage:
+            "linear-gradient(to top, rgb(11 29 45 / .96) 0%, rgb(11 29 45 / .88) 32%, rgb(11 29 45 / .5) 62%, rgb(11 29 45 / 0) 100%)",
+        }}
+      />
+      <span className="absolute left-3 top-3 flex items-center gap-1.5">
+        <svg viewBox="0 0 48 34" className="h-3.5 w-auto" aria-hidden="true">
+          <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="#d4af37" />
+        </svg>
+        <span className="font-mono-instr text-[9.5px] uppercase tracking-[.22em] text-[#e9f1f8]/70">
+          Commander
+        </span>
+      </span>
       <div className="absolute inset-x-0 bottom-0 p-4">
-        <h1 className="text-[22px] font-semibold uppercase tracking-[.06em] text-[#e9f1f8]">
+        <h1
+          className="text-[22px] font-semibold uppercase tracking-[.06em] text-[#e9f1f8]"
+          style={{ textShadow: "0 1px 8px rgb(11 29 45 / .8)" }}
+        >
           {embarcacao.nome}
         </h1>
         <div className="mt-1 flex items-center gap-2">
-          <p className="apoio text-[#7c93ab]">{[embarcacao.marina, legenda].filter(Boolean).join(" · ")}</p>
+          <p className="apoio text-[#c2d1de]">{[embarcacao.marina, legenda].filter(Boolean).join(" · ")}</p>
         </div>
       </div>
       <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-[#0b1d2d]/80 px-2.5 py-1.5 backdrop-blur">

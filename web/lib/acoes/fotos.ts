@@ -69,7 +69,12 @@ export async function excluirFoto(formData: FormData) {
   if (!foto) voltar("Foto não encontrada.")
 
   if (painel.embarcacao.foto_capa_path === foto.arquivo_path) {
-    await supabase.from("embarcacoes").update({ foto_capa_path: null }).eq("id", painel.embarcacao.id)
+    // via RPC: a capa é do álbum, e a policy de embarcacoes só aceita o PROP
+    const { error: erroCapa } = await supabase.rpc("definir_capa", {
+      p_embarcacao_id: painel.embarcacao.id,
+      p_path: null,
+    })
+    if (erroCapa) voltar("Não foi possível limpar a foto de capa. Tente de novo.")
   }
   const { error } = await supabase.from("fotos").delete().eq("id", id)
   if (error) voltar("Não foi possível excluir a foto.")
@@ -92,8 +97,10 @@ export async function definirCapa(formData: FormData) {
     .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
   if (!foto) voltar("Foto não encontrada.")
 
-  const { error } = await supabase
-    .from("embarcacoes").update({ foto_capa_path: foto.arquivo_path }).eq("id", painel.embarcacao.id)
+  const { error } = await supabase.rpc("definir_capa", {
+    p_embarcacao_id: painel.embarcacao.id,
+    p_path: foto.arquivo_path,
+  })
   if (error) voltar("Não foi possível definir a capa — confira seu acesso.")
 
   revalidatePath("/hoje")

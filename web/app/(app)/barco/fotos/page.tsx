@@ -99,7 +99,7 @@ export default async function FotosPage({
                     <form action={definirCapa}>
                       <input type="hidden" name="foto_id" value={f.id} />
                       <button
-                        className={`flex size-9 items-center justify-center ${ehCapa ? "text-accent-forte" : "text-dim"}`}
+                        className={`flex size-11 items-center justify-center ${ehCapa ? "text-accent-forte" : "text-dim"}`}
                         aria-label={ehCapa ? "Foto de capa" : "Usar como capa"}
                       >
                         <Icone nome="estrela" className="size-4" />
@@ -107,7 +107,7 @@ export default async function FotosPage({
                     </form>
                     <form action={excluirFoto}>
                       <input type="hidden" name="foto_id" value={f.id} />
-                      <button className="flex size-9 items-center justify-center text-crit" aria-label="Excluir foto">
+                      <button className="flex size-11 items-center justify-center text-crit" aria-label="Excluir foto">
                         <Icone nome="mais" className="size-4 rotate-45" />
                       </button>
                     </form>
