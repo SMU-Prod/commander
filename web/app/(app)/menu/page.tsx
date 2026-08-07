@@ -34,6 +34,13 @@ export default async function MenuPage({
         </div>
         <Icone nome="chevron" className="size-4 text-dim" />
       </Link>
+      <Link href="/menu/assinatura" className="sombra-1 mt-2 flex items-center justify-between rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <span className="inline-flex items-center gap-2.5">
+          <Icone nome="cifrao" className="size-4 text-dim" />
+          <span className="titulo-card">Assinatura</span>
+        </span>
+        <Icone nome="chevron" className="size-4 text-dim" />
+      </Link>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="imagem" className="size-3.5" /> Aparência
