@@ -83,6 +83,12 @@ export interface Evento {
   trilha: PontoTrilhaDb[] | null
   tem_trilha: boolean
   criado_por: string | null
+  hora_saida: string | null
+  hora_retorno: string | null
+  destino: string | null
+  tripulacao: string[]
+  mar_onda_m: number | null
+  mar_vento_kt: number | null
   created_at: string
 }
 

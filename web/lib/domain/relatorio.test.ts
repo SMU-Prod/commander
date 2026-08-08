@@ -12,6 +12,7 @@ const ev = (extra: Partial<Evento>): Evento => ({
   id: "v1", embarcacao_id: "b1", equipamento_id: null, item_monitorado_id: null, contato_id: null,
   tipo: "manutencao", categoria: null, data: "2026-08-10", horas_no_momento: null, descricao: "t",
   custo_centavos: null, anexo_path: null, trilha: null, tem_trilha: false, criado_por: "u1",
+  hora_saida: null, hora_retorno: null, destino: null, tripulacao: [], mar_onda_m: null, mar_vento_kt: null,
   created_at: "2026-08-10", ...extra,
 })
 
