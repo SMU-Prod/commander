@@ -137,6 +137,8 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const [ancora, setAncora] = useState<Ancora | null>(null)
   const [raioM, setRaioM] = useState(RAIO_PADRAO_M)
   const [garrando, setGarrando] = useState(false)
+  // MOB declarado aqui (antes dos efeitos que o limpam) — a lógica vive na seção MOB
+  const [mob, setMob] = useState<Coord | null>(null)
   const ancoraRef = useRef<Ancora | null>(null)
   const foraSeguidasRef = useRef(0)
   useEffect(() => {
@@ -284,6 +286,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     if (!modoDefinirDestino) return
     function aoClicarNoMapa(e: MapMouseEvent) {
       setDestino({ la: e.lngLat.lat, lo: e.lngLat.lng, nome: "Destino no mapa" })
+      setMob(null) // novo destino descarta o MOB — senao o marcador fica orfao
       setModoDefinirDestino(false)
     }
     mapaPronto.on("click", aoClicarNoMapa)
@@ -427,9 +430,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     } catch {}
   }
 
-  // --- MOB -----------------------------------------------------------------
-  const [mob, setMob] = useState<Coord | null>(null)
-
+  // --- MOB (estado declarado no topo, junto do alarme) ---------------------
   // Sem confirmação de propósito: em homem-ao-mar, qualquer diálogo "tem
   // certeza?" é fricção que atrasa marcar o ponto e traçar o rumo de volta —
   // o único toque precisa registrar IMEDIATAMENTE.
@@ -463,14 +464,15 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     <main>
       <h1 className="titulo-pagina">Navegar</h1>
 
+      {/* fora do mapa, em fluxo: o alarme nunca cobre o painel de trilha nem o SOG */}
+      {garrando && (
+        <div role="alert" className="sombra-2 mt-3 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
+          GARRANDO — verifique o fundeio
+        </div>
+      )}
+
       <div className="relative mt-3 h-[65dvh] min-h-[420px]">
         <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
-
-        {garrando && (
-          <div role="alert" className="sombra-2 absolute inset-x-3 top-3 z-30 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
-            GARRANDO — verifique o fundeio
-          </div>
-        )}
 
         <div className="sombra-2 absolute inset-x-3 top-3 z-20 overflow-hidden rounded-[14px] border border-line bg-panel/95 backdrop-blur">
           <button
@@ -700,6 +702,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
           aoFechar={() => setParceiroAberto(null)}
           aoTracarRumo={(p) => {
             setDestino({ la: p.lat, lo: p.lng, nome: p.nome })
+            setMob(null) // novo destino descarta o MOB — senao o marcador fica orfao
             setParceiroAberto(null)
           }}
         />
