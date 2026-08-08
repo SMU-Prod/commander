@@ -1,6 +1,9 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
 import { concluirOnboarding } from "@/lib/acoes/onboarding"
 import { carregarPainel } from "@/lib/consultas"
+import { supabaseServer } from "@/lib/supabase/server"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
@@ -10,14 +13,31 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ erro?: string }>
 }) {
+  // Esta tela serve pro PRIMEIRO barco e pra qualquer outro depois: antes ela
+  // expulsava quem já tinha embarcação, e não existia caminho nenhum pra
+  // cadastrar a segunda. Só exige estar logado.
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login?volta=/onboarding")
   const painel = await carregarPainel()
-  if (painel) redirect("/hoje")
+  const jaTemBarco = painel != null
 
   const { erro } = await searchParams
   return (
     <main className="mx-auto max-w-[430px] px-5 py-8">
-      <h1 className="text-2xl font-semibold">Vamos cadastrar seu barco</h1>
-      <p className="mt-1 text-sm text-dim">3 passos rápidos. O resto você completa depois, aos poucos.</p>
+      {jaTemBarco && (
+        <Link href="/menu" className="rotulo inline-flex items-center gap-1 text-accent-forte">
+          <Icone nome="voltar" className="size-4" /> Menu
+        </Link>
+      )}
+      <h1 className="text-2xl font-semibold mt-3">
+        {jaTemBarco ? "Cadastrar outra embarcação" : "Vamos cadastrar seu barco"}
+      </h1>
+      <p className="mt-1 text-sm text-dim">
+        {jaTemBarco
+          ? "3 passos rápidos. Ela vira a embarcação ativa — você troca a qualquer momento pelo nome no topo da tela Início."
+          : "3 passos rápidos. O resto você completa depois, aos poucos."}
+      </p>
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={concluirOnboarding} className="mt-6 space-y-8">
@@ -66,7 +86,7 @@ export default async function OnboardingPage({
         </section>
 
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-          Criar meu painel de bordo
+          {jaTemBarco ? "Cadastrar embarcação" : "Criar meu painel de bordo"}
         </button>
       </form>
     </main>

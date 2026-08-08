@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase/server"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { hojeISO } from "@/lib/domain/datas"
-import { carregarPainel } from "@/lib/consultas"
+import { definirEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 
 // Itens padrão por motor (espec §6.1): revisão 500 h, óleo 250 h ou 12 meses
 const ITENS_MOTOR = [
@@ -12,10 +12,13 @@ const ITENS_MOTOR = [
 ]
 
 export async function concluirOnboarding(formData: FormData) {
-  const painelExistente = await carregarPainel()
-  if (painelExistente) redirect("/hoje")
-
+  // Antes esta action recusava quem ja tinha barco (redirect /hoje) — o que
+  // tornava IMPOSSIVEL cadastrar uma segunda embarcacao. A RPC criar_embarcacao
+  // ja cria o vinculo PROP de quem chamou, entao serve igual pro primeiro e
+  // pro quinto barco. So exige estar logado.
   const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login?volta=/onboarding")
   const texto = (k: string) => {
     const v = String(formData.get(k) ?? "").trim()
     return v === "" ? null : v
@@ -84,8 +87,14 @@ export async function concluirOnboarding(formData: FormData) {
     if (docsError) falhas++
   }
 
+  // o barco recem-criado vira o ativo — senao a pessoa cadastra e continua
+  // vendo o barco antigo, sem entender o que aconteceu
+  const escolha = new FormData()
+  escolha.set("embarcacao_id", String(embarcacaoId))
+  await definirEmbarcacaoAtiva(escolha)
+
   if (falhas > 0) {
     redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte dos itens não foi cadastrada. Confira a aba Barco.")}`)
   }
-  redirect("/hoje")
+  redirect(`/hoje?ok=${encodeURIComponent("Embarcação cadastrada")}`)
 }

@@ -43,6 +43,20 @@ export default async function MenuPage({
       </Link>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="embarcacao" className="size-3.5" /> Minhas embarcações
+      </p>
+      <Link href="/onboarding" className="sombra-1 flex items-center justify-between rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <span className="inline-flex items-center gap-2.5">
+          <Icone nome="mais" className="size-4 text-dim" />
+          <div>
+            <p className="titulo-card">Cadastrar outra embarcação</p>
+            <p className="apoio mt-0.5 text-dim">Troque entre elas pelo nome no topo da tela Início</p>
+          </div>
+        </span>
+        <Icone nome="chevron" className="size-4 text-dim" />
+      </Link>
+
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="imagem" className="size-3.5" /> Aparência
       </p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">

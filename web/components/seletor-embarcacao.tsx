@@ -11,9 +11,9 @@ export function SeletorEmbarcacao({
   opcoes: { id: string; nome: string }[]
 }) {
   const [aberto, setAberto] = useState(false)
-  if (opcoes.length < 2) {
-    return <span className="corpo font-medium">{atual.nome}</span>
-  }
+  // Antes o seletor sumia com um barco só — e junto sumia a única pista de que
+  // dá pra ter mais de um. Agora ele sempre abre, nem que seja só pra oferecer
+  // "Cadastrar outra".
   return (
     <span className="relative inline-block">
       <button type="button" onClick={() => setAberto((v) => !v)}
@@ -34,6 +34,12 @@ export function SeletorEmbarcacao({
               </button>
             </form>
           ))}
+          <a
+            href="/onboarding"
+            className="corpo flex h-11 w-full items-center gap-2 rounded-lg px-3 text-accent-forte"
+          >
+            <Icone nome="mais" className="size-4" /> Cadastrar outra
+          </a>
         </span>
       )}
     </span>
