@@ -97,7 +97,10 @@ export function MapaNautico({
 
   return (
     <div className={`relative ${className ?? ""}`}>
-      <div ref={containerRef} className="absolute inset-0 overflow-hidden rounded-[14px]" />
+      {/* h-full em vez de absolute/inset: o CSS do mapbox forca
+          .mapboxgl-map{position:relative}, que vence o .absolute na cascata e
+          colapsava a altura para 0 (mapa branco) */}
+      <div ref={containerRef} className="h-full w-full overflow-hidden rounded-[14px]" />
       <p className="rotulo pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0B1D2D]/80 px-3 py-1.5 text-[#7c93ab]">
         Auxílio à navegação — não substitui as cartas náuticas oficiais
       </p>
