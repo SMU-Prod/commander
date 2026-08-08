@@ -141,6 +141,21 @@ notifica por e-mail, igual aos alertas.
 Lista completa e sempre atual de toda variável usada pelo app (incluindo Asaas,
 PostHog e o gate de cobrança), com comentário de onde obter cada uma: `web/.env.example`.
 
+## Mapa (Mapbox + OpenSeaMap)
+
+O mapa de `/navegar` e o seletor de ponto do painel do parceiro usam Mapbox GL JS.
+
+1. Crie a conta em account.mapbox.com e copie o token público (`pk.*`) de
+   **Access tokens** para `NEXT_PUBLIC_MAPBOX_TOKEN` (local: `.env.local`;
+   produção: envs da Vercel). É um token público por natureza — sem ele o app
+   builda e roda, só o mapa degrada com aviso.
+2. Custo: free tier de 50.000 map loads/mês (1 load = cada abertura do mapa);
+   acima disso ~US$ 5 por mil. Na escala atual não há custo.
+3. A sinalização náutica (boias/faróis) vem do OpenSeaMap como overlay —
+   licença CC-BY-SA: a atribuição "© OpenSeaMap" no mapa é OBRIGATÓRIA, não
+   remova. O disclaimer "auxílio à navegação — não substitui as cartas náuticas
+   oficiais" também é fixo, por segurança e por juridico.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.
