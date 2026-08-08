@@ -121,7 +121,20 @@ export function CardParceiro({
             )}
             {parceiro.categoria === "pousada" && parceiro.traslado_incluso && <p>Traslado incluso</p>}
             {parceiro.categoria === "restaurante" && parceiro.vaga_cortesia && <p>Vaga de carro cortesia</p>}
+            {/* culinária, horário e e-mail eram preenchidos no painel do
+                parceiro e não apareciam em lugar nenhum — quem paga o plano
+                precisa ver o que cadastrou chegando no dono do barco */}
+            {parceiro.categoria === "restaurante" && parceiro.culinaria && (
+              <p>Cozinha: {parceiro.culinaria}</p>
+            )}
+            {parceiro.horario && <p>Horário: {parceiro.horario}</p>}
           </div>
+
+          {parceiro.email && (
+            <a href={`mailto:${parceiro.email}`} className="corpo mt-2 block break-all text-accent-forte">
+              {parceiro.email}
+            </a>
+          )}
 
           <p className="apoio mt-2 text-dim">Atualizado {atualizado}</p>
           {desatualizado && (

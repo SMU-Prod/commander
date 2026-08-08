@@ -72,6 +72,13 @@ export default async function HojePage({
   // dono. O onboarding cria itens com ultimo_ciclo_data = hoje sem o dono ter
   // digitado nada — por isso ultimo_ciclo_data não conta aqui, só os campos
   // que só existem se alguém realmente informou algo.
+  // Tentei incluir `intervalo_meses` aqui para cobrir itens tipo "verniz a
+  // cada 12 meses" — e reverti: o onboarding cria "Troca de óleo e filtros"
+  // com intervalo_meses = 12 (ver lib/acoes/onboarding.ts), então incluir esse
+  // campo faria o barco recém-cadastrado voltar a dizer "tudo em dia" sem dado
+  // nenhum, que é o bug original. Fica o falso-negativo estreito (barco que só
+  // monitora itens por intervalo em meses segue vendo "falta informação"):
+  // errar para o lado de pedir informação é melhor que mentir que está em dia.
   const temDadoReal =
     equipamentos.some((e) => e.ultima_leitura != null) ||
     itens.some((i) => i.data_fixa != null || i.ultimo_ciclo_horas != null)

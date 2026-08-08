@@ -5,7 +5,7 @@ import { Icone } from "@/components/icone"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
-import { calcularSemaforo } from "@/lib/domain/semaforo"
+import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
 import type { Documento } from "@/lib/db/types"
@@ -59,7 +59,14 @@ export default async function DocumentosPage({
             <>
               <p className="titulo-card">{i.nome}</p>
               <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
-                {i.data_fixa ? `vence ${i.data_fixa.split("-").reverse().join("/")}` : "sem data"}
+                {/* mesma regra da ficha: o vencimento pode vir de data fixa OU
+                    de último ciclo + intervalo em meses. Lendo só `data_fixa`,
+                    esta tela dizia "sem data" para item que a ficha mostrava
+                    com data — duas telas discordando sobre o mesmo dado. */}
+                {(() => {
+                  const venc = vencimentoPorData(itemMonitoradoToItemCalc(i))
+                  return venc ? `vence ${venc.split("-").reverse().join("/")}` : "sem data"
+                })()}
                 {r.diasRestantes != null && r.diasRestantes >= 0 ? ` · ${r.diasRestantes} dias` : ""}
                 {r.diasRestantes != null && r.diasRestantes < 0 ? ` · vencido há ${-r.diasRestantes} dias` : ""}
               </p>
