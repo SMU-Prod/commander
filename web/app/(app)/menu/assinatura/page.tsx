@@ -22,6 +22,21 @@ const ROTULO_COBRANCA: Record<string, string> = {
   OVERDUE: "Vencida",
   REFUNDED: "Estornada",
   RECEIVED_IN_CASH: "Recebida (em dinheiro)",
+  // os status abaixo aparecem justamente na hora de maior ansiedade do
+  // assinante (contestação, estorno, análise) — deixar vazar o código cru
+  // em inglês seria o pior momento possível para o app falar difícil
+  AWAITING_RISK_ANALYSIS: "Em análise",
+  APPROVED_BY_RISK_ANALYSIS: "Aprovada na análise",
+  REPROVED_BY_RISK_ANALYSIS: "Recusada na análise",
+  REFUND_REQUESTED: "Estorno solicitado",
+  REFUND_IN_PROGRESS: "Estorno em andamento",
+  CHARGEBACK_REQUESTED: "Contestada pelo banco",
+  CHARGEBACK_DISPUTE: "Contestação em disputa",
+  AWAITING_CHARGEBACK_REVERSAL: "Aguardando reversão da contestação",
+  DUNNING_REQUESTED: "Cobrança em recuperação",
+  DUNNING_RECEIVED: "Recuperada",
+  PAYMENT_DELETED: "Removida",
+  RECEIVED_IN_CASH_UNDONE: "Recebimento desfeito",
 }
 
 /** "2026-08-17" -> "17/08/2026" — data pura do Asaas (sem hora), sem risco de fuso. */
@@ -113,7 +128,9 @@ export default async function AssinaturaPage({
               <div className="min-w-0 flex-1">
                 <p className="titulo-card">{formatarPreco(c.valorCentavos)}</p>
                 <p className="apoio mt-0.5 text-dim">
-                  {dataBr(c.dataVencimento)} · {ROTULO_COBRANCA[c.status] ?? c.status}
+                  {/* fallback: status desconhecido nunca aparece cru — a pessoa
+                      é mandada pra quem sabe responder */}
+                  {dataBr(c.dataVencimento)} · {ROTULO_COBRANCA[c.status] ?? "Fale com a equipe sobre esta fatura"}
                 </p>
               </div>
               {c.invoiceUrl && (
