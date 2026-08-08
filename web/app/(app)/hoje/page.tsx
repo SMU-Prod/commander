@@ -9,7 +9,7 @@ import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { nomeDoEquipamento } from "@/lib/domain/diario"
+import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -67,6 +67,15 @@ export default async function HojePage({
   }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
 
+  // "Tudo em dia" só pode ser dito quando existe dado real por trás: alguma
+  // leitura de horas de verdade, ou algum vencimento com data informada pelo
+  // dono. O onboarding cria itens com ultimo_ciclo_data = hoje sem o dono ter
+  // digitado nada — por isso ultimo_ciclo_data não conta aqui, só os campos
+  // que só existem se alguém realmente informou algo.
+  const temDadoReal =
+    equipamentos.some((e) => e.ultima_leitura != null) ||
+    itens.some((i) => i.data_fixa != null || i.ultimo_ciclo_horas != null)
+
   const statusGeral = avaliados[0]?.r.status ?? "ok"
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -113,32 +122,57 @@ export default async function HojePage({
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="alerta" className="size-3.5" />
-        {alertas.length > 0 ? "Precisa de atenção" : "Tudo em dia"}
+        {alertas.length > 0 ? "Precisa de atenção" : temDadoReal ? "Tudo em dia" : "Falta informação"}
       </p>
       {alertas.length === 0 && (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
-          Nenhum vencimento na margem. Bom vento e mar calmo.
-        </div>
+        temDadoReal ? (
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
+            Nenhum vencimento na margem. Bom vento e mar calmo.
+          </div>
+        ) : (
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 text-center">
+            <Icone nome="relogio" className="mx-auto size-7 text-dim" />
+            <p className="corpo mt-2 font-medium">Ainda sem informação suficiente</p>
+            <p className="apoio mt-1 text-dim">
+              Nenhum motor tem leitura de horas real nem vencimento com data informada — não dá pra
+              dizer se está tudo em dia. Complete em Embarcação para o farol valer de verdade.
+            </p>
+            <Link href="/barco" className="apoio mt-3 inline-block text-accent-forte">Completar em Embarcação</Link>
+          </div>
+        )
       )}
       <div className="space-y-2">
-        {alertas.map(({ item, r, onde }) => (
-          <div key={item.id} className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
-            <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-              r.status === "vencido" ? "bg-crit/12 text-crit" : "bg-warn/12 text-warn"
-            }`}>
-              <Icone nome={item.equipamento_id ? "motor" : "documento"} className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="titulo-card truncate">{onde}</p>
-              <p className="apoio mt-0.5 text-dim">{item.nome}</p>
+        {alertas.map(({ item, r, onde }) => {
+          const editavelItem = podeEditar(permissoes, abaDoItem(item, equipamentos))
+          const conteudo = (
+            <>
+              <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
+                r.status === "vencido" ? "bg-crit/12 text-crit" : "bg-warn/12 text-warn"
+              }`}>
+                <Icone nome={item.equipamento_id ? "motor" : "documento"} className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="titulo-card truncate">{onde}</p>
+                <p className="apoio mt-0.5 text-dim">{item.nome}</p>
+              </div>
+              <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
+                r.status === "vencido" ? "text-crit" : "text-warn"
+              }`}>
+                {textoRestante(r)}
+              </span>
+            </>
+          )
+          return editavelItem ? (
+            <Link key={item.id} href={`/barco/itens/${item.id}/editar`}
+              className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+              {conteudo}
+            </Link>
+          ) : (
+            <div key={item.id} className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+              {conteudo}
             </div>
-            <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
-              r.status === "vencido" ? "text-crit" : "text-warn"
-            }`}>
-              {textoRestante(r)}
-            </span>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
@@ -173,7 +207,7 @@ export default async function HojePage({
                   .filter((a) => a.item.equipamento_id === m.id)
                   .map((a) => a.r.status)
                   .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
-              return <Horimetro key={m.id} rotulo={m.posicao ?? "Motor"} horas={m.horas_atuais ?? 0} status={status} />
+              return <Horimetro key={m.id} rotulo={m.posicao ?? "Motor"} horas={m.horas_atuais} status={status} />
             })}
           </div>
         </>
@@ -185,7 +219,7 @@ export default async function HojePage({
       <div className="grid grid-cols-4 gap-2 text-center">
         {(
           [
-            { href: "/barco", rotulo: "Motores", icone: "motor" },
+            { href: "/barco", rotulo: "Embarcação", icone: "embarcacao" },
             { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
             { href: "/diario", rotulo: "Diário", icone: "calendario" },
             { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },

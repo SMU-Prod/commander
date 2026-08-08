@@ -23,6 +23,20 @@ export default async function GastosPage() {
 
   const porId = new Map(painel.equipamentos.map((e) => [e.id, e]))
   const comCusto = ((eventos ?? []) as Evento[]).filter((e) => (e.custo_centavos ?? 0) > 0)
+  const recentes = comCusto.slice(0, 20)
+
+  // Nota fiscal anexada ao registrar o gasto — mesmo padrão de URL assinada
+  // já usado em Documentos, agora aplicado aqui também.
+  const urlsAnexo = new Map(
+    await Promise.all(
+      recentes
+        .filter((e): e is Evento & { anexo_path: string } => e.anexo_path != null)
+        .map(async (e) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(e.anexo_path, 3600)
+          return [e.id, data?.signedUrl ?? null] as const
+        }),
+    ),
+  )
   const entradas = comCusto.map((e) => ({
     data: e.data,
     custoCentavos: e.custo_centavos as number,
@@ -87,17 +101,25 @@ export default async function GastosPage() {
             Nenhum gasto registrado. Registre custos nos eventos do diário e eles aparecem aqui.
           </p>
         )}
-        {comCusto.slice(0, 20).map((e) => (
-          <div key={e.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-            <div className="min-w-0 flex-1">
-              <p className="titulo-card">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
-              <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
-                {e.data.split("-").reverse().join("/")}
-              </p>
+        {recentes.map((e) => {
+          const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
+          return (
+            <div key={e.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
+              <div className="min-w-0 flex-1">
+                <p className="titulo-card">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
+                <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+                  {e.data.split("-").reverse().join("/")}
+                </p>
+                {urlAnexo && (
+                  <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="apoio mt-0.5 inline-block text-accent-forte">
+                    Abrir anexo
+                  </a>
+                )}
+              </div>
+              <span className="font-mono-instr text-sm tabular-nums">{formatarReais(e.custo_centavos as number)}</span>
             </div>
-            <span className="font-mono-instr text-sm tabular-nums">{formatarReais(e.custo_centavos as number)}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </main>
   )

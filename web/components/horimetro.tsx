@@ -8,18 +8,23 @@ export function Horimetro({
   grande = false,
 }: {
   rotulo: string
-  horas: number
+  horas: number | null
   status: StatusFarol
   grande?: boolean
 }) {
-  const texto = horas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  // horas null (equipamento sem leitura) é bem diferente de 0,0 h (motor
+  // zerado de verdade) — mostrar "0,0 h" pra quem nunca informou nada
+  // destrói a confiança na primeira olhada.
+  const texto = horas != null
+    ? horas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : "—"
   return (
     <div className="rounded-[10px] border border-line bg-meter text-meter-texto px-3 py-2 font-mono-instr tabular-nums">
       <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[.14em] text-meter-dim">
         {rotulo} <Farol status={status} />
       </div>
       <div className={grande ? "text-4xl" : "text-2xl"}>
-        {texto} <small className="text-sm text-meter-dim">h</small>
+        {texto} <small className="text-sm text-meter-dim">{horas != null ? "h" : "sem leitura"}</small>
       </div>
     </div>
   )

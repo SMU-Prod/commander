@@ -17,10 +17,22 @@ export default async function NovoItemPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
 
+  // Volta pra onde a pessoa veio (ficha do equipamento, documentos, ou a
+  // embarcação) em vez de sempre cair em /barco — mesma lógica de
+  // itens/[id]/editar/page.tsx, só que a partir do alvo da query string,
+  // já que aqui ainda não existe item.
+  const equipamentoIdAlvo = alvo?.startsWith("eq:") ? alvo.slice(3) : null
+  const categoriaAlvo = alvo?.startsWith("cat:") ? alvo.slice(4) : null
+  const voltarPara = equipamentoIdAlvo
+    ? `/barco/equipamento/${equipamentoIdAlvo}`
+    : categoriaAlvo === "documento"
+      ? "/barco/documentos"
+      : "/barco"
+
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+      <Link href={voltarPara} className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Voltar
       </Link>
       <h1 className="mt-3 text-xl font-semibold">Novo item monitorado</h1>
       <p className="mt-1 text-sm text-dim">

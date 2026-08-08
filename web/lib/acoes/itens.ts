@@ -80,9 +80,8 @@ export async function criarItemMonitorado(formData: FormData) {
   }).select("id")
   if (error || !criado?.length) erroNovo("Não foi possível criar o item. Confira seu acesso e tente de novo.")
 
-  revalidatePath("/barco")
-  revalidatePath("/hoje")
-  redirect("/barco")
+  revalidarTudo([equipamentoId])
+  redirect(`${destinoDoItem(equipamentoId, categoria)}?ok=${encodeURIComponent("Item criado")}`)
 }
 
 export async function salvarItemMonitorado(formData: FormData) {

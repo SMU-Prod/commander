@@ -34,7 +34,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
     : null
   const [{ data: eventos }, { data: leituras }] = await Promise.all([
     supabase.from("eventos")
-      .select("id, data, tipo, descricao, horas_no_momento, custo_centavos")
+      .select("id, data, tipo, descricao, horas_no_momento, custo_centavos, anexo_path")
       .eq("equipamento_id", id).order("data", { ascending: false }).limit(10),
     supabase.from("eventos")
       .select("data, horas_no_momento")
@@ -44,6 +44,19 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
   const media = mediaHorasPorSemana(
     (leituras ?? []).map((l: { data: string; horas_no_momento: number }) => ({ data: l.data, horas: l.horas_no_momento })),
+  )
+
+  // Anexo (NF, foto do serviço) do histórico deste equipamento — mesmo
+  // padrão de URL assinada já usado em Documentos.
+  const urlsAnexo = new Map(
+    await Promise.all(
+      (eventos ?? [])
+        .filter((e): e is typeof e & { anexo_path: string } => e.anexo_path != null)
+        .map(async (e) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(e.anexo_path, 3600)
+          return [e.id, data?.signedUrl ?? null] as const
+        }),
+    ),
   )
   const irmaos = painel.equipamentos.filter((e) => e.tipo === equipamento.tipo)
   const rotuloTipo = ehMotor ? "Motor" : equipamento.tipo === "gerador" ? "Gerador" : equipamento.tipo === "bateria" ? "Baterias" : "Equipamento"
@@ -87,7 +100,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
       <div className="mt-3">
         <Horimetro
           rotulo={`${nomeCurto(equipamento)} — ${[equipamento.marca, equipamento.modelo].filter(Boolean).join(" ") || "sem marca"}`}
-          horas={equipamento.horas_atuais ?? 0}
+          horas={equipamento.horas_atuais}
           status={statusGeral}
           grande
         />
@@ -192,6 +205,11 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
               {e.horas_no_momento != null ? ` · ${e.horas_no_momento.toLocaleString("pt-BR")} h` : ""}
               {e.custo_centavos != null ? ` · ${formatarReais(e.custo_centavos)}` : ""}
             </p>
+            {e.anexo_path && urlsAnexo.get(e.id) && (
+              <a href={urlsAnexo.get(e.id)!} target="_blank" rel="noopener noreferrer" className="apoio mt-0.5 inline-block text-accent-forte">
+                Abrir anexo
+              </a>
+            )}
           </div>
         ))}
       </div>

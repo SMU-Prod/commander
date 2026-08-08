@@ -77,7 +77,7 @@ export default async function BarcoPage({
           <Link key={m.id} href={`/barco/equipamento/${m.id}`}>
             <Horimetro
               rotulo={m.posicao ?? "Motor"}
-              horas={m.horas_atuais ?? 0}
+              horas={m.horas_atuais}
               status={statusDoEquipamento(m.id)}
             />
           </Link>
