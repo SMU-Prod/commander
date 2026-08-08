@@ -26,8 +26,8 @@ export interface Grade {
  *  protecao contra um caminho patologico (ou grade corrompida) rodar para sempre. */
 const LIMITE_NOS_EXPANDIDOS = 2_000_000
 
-/** Raio padrao de snap usado por acharCaminho: ~20 celulas, equivalente a ~1km na
- *  mascara real de costa (~80m/celula) — suficiente pra tirar um ponto perto da praia
+/** Raio padrao de snap usado por acharCaminho: ~20 celulas, equivalente a ~2km na
+ *  mascara real de costa (~100m/celula) — suficiente pra tirar um ponto perto da praia
  *  de cima de terra sem "teleportar" a origem/destino pra longe do que o usuario pediu. */
 const RAIO_SNAP_PADRAO_CELULAS = 20
 
@@ -106,18 +106,22 @@ export function snapParaAgua(g: Grade, p: Coord, raioCelulas: number): Celula | 
   return melhor
 }
 
-/** Heap binario minimo de indices de celula, priorizado pelo fScore (array compartilhado e vivo:
- *  quando um fScore melhora, entradas antigas do mesmo indice no heap passam a "ver" o valor novo
- *  automaticamente, o que dispensa decrease-key explicito). */
+/** Heap binario minimo de (idx, fScore), com o fScore capturado no momento da insercao
+ *  (nao um array global do tamanho da grade). Isso e o que permite eliminar o array
+ *  fScore de tamanho n: em vez de "decrease-key" num array vivo compartilhado, cada
+ *  melhoria de custo insere uma NOVA entrada com o f atualizado; entradas antigas do
+ *  mesmo indice ficam obsoletas no heap e sao descartadas na remocao (`fechado[idx]`
+ *  ja cobre esse caso — é o dele mesmo padrao de lazy-deletion do Dijkstra/A* classico).
+ *  Capacidade limitada por LIMITE_NOS_EXPANDIDOS: nao cresce com o tamanho da grade. */
 class FilaPrioridade {
-  private heap: Int32Array
+  private heapIdx: Int32Array
+  private heapF: Float32Array
   private tam = 0
 
-  constructor(
-    private readonly fScore: Float64Array,
-    capacidadeInicial: number,
-  ) {
-    this.heap = new Int32Array(Math.max(16, capacidadeInicial))
+  constructor(capacidadeInicial: number) {
+    const cap = Math.max(16, capacidadeInicial)
+    this.heapIdx = new Int32Array(cap)
+    this.heapF = new Float32Array(cap)
   }
 
   get vazia(): boolean {
@@ -125,44 +129,56 @@ class FilaPrioridade {
   }
 
   private garantirCapacidade(): void {
-    if (this.tam < this.heap.length) return
-    const maior = new Int32Array(this.heap.length * 2)
-    maior.set(this.heap)
-    this.heap = maior
+    if (this.tam < this.heapIdx.length) return
+    const maiorIdx = new Int32Array(this.heapIdx.length * 2)
+    maiorIdx.set(this.heapIdx)
+    this.heapIdx = maiorIdx
+    const maiorF = new Float32Array(this.heapF.length * 2)
+    maiorF.set(this.heapF)
+    this.heapF = maiorF
   }
 
-  inserir(idx: number): void {
+  private trocar(a: number, b: number): void {
+    const ti = this.heapIdx[a]
+    this.heapIdx[a] = this.heapIdx[b]
+    this.heapIdx[b] = ti
+    const tf = this.heapF[a]
+    this.heapF[a] = this.heapF[b]
+    this.heapF[b] = tf
+  }
+
+  inserir(idx: number, f: number): void {
     this.garantirCapacidade()
     let i = this.tam++
-    this.heap[i] = idx
+    this.heapIdx[i] = idx
+    this.heapF[i] = f
     while (i > 0) {
       const pai = (i - 1) >> 1
-      if (this.fScore[this.heap[pai]] <= this.fScore[this.heap[i]]) break
-      const tmp = this.heap[pai]
-      this.heap[pai] = this.heap[i]
-      this.heap[i] = tmp
+      if (this.heapF[pai] <= this.heapF[i]) break
+      this.trocar(pai, i)
       i = pai
     }
   }
 
-  remover(): number {
-    const topo = this.heap[0]
+  /** Remove e devolve o (idx, f) de menor f. */
+  remover(): { idx: number; f: number } {
+    const idxTopo = this.heapIdx[0]
+    const fTopo = this.heapF[0]
     this.tam--
-    this.heap[0] = this.heap[this.tam]
+    this.heapIdx[0] = this.heapIdx[this.tam]
+    this.heapF[0] = this.heapF[this.tam]
     let i = 0
     for (;;) {
       const esq = 2 * i + 1
       const dir = 2 * i + 2
       let menor = i
-      if (esq < this.tam && this.fScore[this.heap[esq]] < this.fScore[this.heap[menor]]) menor = esq
-      if (dir < this.tam && this.fScore[this.heap[dir]] < this.fScore[this.heap[menor]]) menor = dir
+      if (esq < this.tam && this.heapF[esq] < this.heapF[menor]) menor = esq
+      if (dir < this.tam && this.heapF[dir] < this.heapF[menor]) menor = dir
       if (menor === i) break
-      const tmp = this.heap[menor]
-      this.heap[menor] = this.heap[i]
-      this.heap[i] = tmp
+      this.trocar(menor, i)
       i = menor
     }
-    return topo
+    return { idx: idxTopo, f: fTopo }
   }
 }
 
@@ -196,21 +212,25 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celul
 
   if (idxOrigem === idxDestino) return [origem]
 
-  const gScore = new Float64Array(n).fill(Infinity)
-  const fScore = new Float64Array(n).fill(Infinity)
+  // gScore em Float32: a precisao de float32 (~7 digitos significativos) sobra pra
+  // custos de celula (octile, no maximo alguns milhares numa grade de milhoes de
+  // celulas) — reduz pela metade o maior consumidor de memoria por celula.
+  // Nao existe mais um fScore do tamanho da grade: o f de cada entrada vive dentro
+  // do heap (FilaPrioridade), que e limitado por LIMITE_NOS_EXPANDIDOS, nao por n.
+  const gScore = new Float32Array(n).fill(Infinity)
   const pai = new Int32Array(n).fill(-1)
   const fechado = new Uint8Array(n)
 
   gScore[idxOrigem] = 0
-  fScore[idxOrigem] = heuristicaOctile(origem.x, origem.y, destino.x, destino.y)
+  const fOrigem = heuristicaOctile(origem.x, origem.y, destino.x, destino.y)
 
-  const fila = new FilaPrioridade(fScore, Math.min(n, LIMITE_NOS_EXPANDIDOS) + 16)
-  fila.inserir(idxOrigem)
+  const fila = new FilaPrioridade(Math.min(n, LIMITE_NOS_EXPANDIDOS) + 16)
+  fila.inserir(idxOrigem, fOrigem)
 
   let nosExpandidos = 0
 
   while (!fila.vazia) {
-    const atual = fila.remover()
+    const { idx: atual } = fila.remover()
     if (fechado[atual]) continue // entrada obsoleta (celula ja fechada por um pop anterior)
     if (atual === idxDestino) return reconstruirCaminho(pai, atual, largura)
 
@@ -244,8 +264,8 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celul
       if (gTentativo < gScore[bIdx]) {
         pai[bIdx] = atual
         gScore[bIdx] = gTentativo
-        fScore[bIdx] = gTentativo + heuristicaOctile(bx, by, destino.x, destino.y)
-        fila.inserir(bIdx)
+        const fTentativo = gTentativo + heuristicaOctile(bx, by, destino.x, destino.y)
+        fila.inserir(bIdx, fTentativo)
       }
     }
   }
