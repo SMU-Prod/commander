@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "mascara": "node ../scripts/gerar-mascara-agua.mjs"
+    "mascara": "node ../scripts/gerar-mascara-agua.mjs",
+    "batimetria": "node ../scripts/gerar-batimetria.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
