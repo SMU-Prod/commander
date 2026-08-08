@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
-import { calcularSemaforo, PESO, textoRestante } from "@/lib/domain/semaforo"
+import { calcularSemaforo, formatarDataCurta, PESO, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { formatarReais } from "@/lib/domain/gastos"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
@@ -129,6 +129,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         )}
         {itens.map(({ item, r }) => {
           const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null
+          const venc = vencimentoPorData(itemMonitoradoToItemCalc(item))
           const nomeEItem = (
             <>
               <p className="titulo-card">{item.nome}</p>
@@ -154,7 +155,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
                 <p className={`font-mono-instr text-sm font-semibold tabular-nums ${
                   r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"
                 }`}>
-                  {textoRestante(r)}
+                  {textoRestante(r)}{venc ? ` · ${formatarDataCurta(venc)}` : ""}
                 </p>
                 {dias != null && dias > 0 && r.status !== "vencido" && (
                   <p className="apoio font-mono-instr tabular-nums text-dim">~{dias} dias</p>

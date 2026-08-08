@@ -75,6 +75,15 @@ export function calcularSemaforo(item: ItemCalc, horasAtuais: number | null, hoj
   return { status, horasRestantes, diasRestantes }
 }
 
+/** Data de calendário curta ("2026-08-20" -> "20/08") pra complementar a
+ *  contagem relativa (dias/horas) — o dono quer saber QUANDO, não só
+ *  "faltam quantos dias". Não recalcula nada: só formata o que
+ *  vencimentoPorData já devolveu. */
+export function formatarDataCurta(iso: string): string {
+  const [, m, d] = iso.split("-")
+  return `${d}/${m}`
+}
+
 export function textoRestante(r: ResultadoCalc): string {
   const h = r.horasRestantes
   const d = r.diasRestantes
