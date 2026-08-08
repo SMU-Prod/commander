@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cicloRef, janelaDoAlerta, textoDoAlerta } from "./alertas"
+import { alertaDeMar, cicloRef, janelaDoAlerta, lembreteMotorParado, textoDoAlerta } from "./alertas"
 
 const r = (p: Partial<{ status: "ok" | "atencao" | "vencido"; horasRestantes: number | null; diasRestantes: number | null }>) => ({
   status: "ok" as const, horasRestantes: null, diasRestantes: null, ...p,
@@ -51,5 +51,47 @@ describe("textoDoAlerta", () => {
   it("vencido por data", () => {
     const t = textoDoAlerta("TIE", null, "vencido", r({ diasRestantes: -8 }))
     expect(t.corpo).toBe("Vencido há 8 dias.")
+  })
+})
+
+describe("alertaDeMar", () => {
+  it("mar pesado avisa, com onda e vento no corpo", () => {
+    const a = alertaDeMar({ ondaM: 2.5, ventoKt: 25, selo: { nivel: "crit", rotulo: "Mar pesado" } }, "2026-08-08")
+    expect(a).not.toBeNull()
+    expect(a!.corpo).toBe("Mar ruim na sua marina hoje — onda 2,5 m e vento 25 kt.")
+    expect(a!.janela).toBe("mar_ruim")
+    expect(a!.cicloRef).toBe("2026-08-08") // ciclo = o dia, dedupe garante 1x/dia
+  })
+  it("ok ou atencao nao avisa — so mar pesado justifica interromper o dono", () => {
+    expect(alertaDeMar({ ondaM: 0.5, ventoKt: 10, selo: { nivel: "ok", rotulo: "Bom pra sair" } }, "2026-08-08")).toBeNull()
+    expect(alertaDeMar({ ondaM: 1.5, ventoKt: 12, selo: { nivel: "atencao", rotulo: "Atenção no mar" } }, "2026-08-08")).toBeNull()
+  })
+  it("com so um dado disponivel, o corpo fala so do que tem", () => {
+    const soOnda = alertaDeMar({ ondaM: 2.1, ventoKt: null, selo: { nivel: "crit", rotulo: "Mar pesado" } }, "2026-08-08")
+    expect(soOnda!.corpo).toBe("Mar ruim na sua marina hoje — onda 2,1 m.")
+    const soVento = alertaDeMar({ ondaM: null, ventoKt: 30, selo: { nivel: "crit", rotulo: "Mar pesado" } }, "2026-08-08")
+    expect(soVento!.corpo).toBe("Mar ruim na sua marina hoje — vento 30 kt.")
+  })
+})
+
+describe("lembreteMotorParado", () => {
+  it("mais de 30 dias sem leitura sugere aquecer o motor", () => {
+    const a = lembreteMotorParado("2026-07-01", "2026-08-08")
+    expect(a).not.toBeNull()
+    expect(a!.janela).toBe("motor_parado")
+    expect(a!.corpo).toContain("38 dias")
+    expect(a!.cicloRef).toBe("2026-07-01") // reancora quando uma leitura nova chegar
+  })
+  it("dentro dos 30 dias nao incomoda", () => {
+    expect(lembreteMotorParado("2026-07-20", "2026-08-08")).toBeNull() // 19 dias
+    expect(lembreteMotorParado("2026-07-09", "2026-08-08")).toBeNull() // 30 dias exatos, na margem
+  })
+  it("sem nenhuma leitura registrada, nao inventa uma data de partida", () => {
+    expect(lembreteMotorParado(null, "2026-08-08")).toBeNull()
+  })
+  it("aceita timestamptz na leitura (so a data importa)", () => {
+    const a = lembreteMotorParado("2026-07-01T14:32:00+00:00", "2026-08-08")
+    expect(a).not.toBeNull()
+    expect(a!.corpo).toContain("38 dias")
   })
 })

@@ -157,12 +157,13 @@ export interface PushAssinatura {
   created_at: string
 }
 
-export type JanelaAlertaDb = "d30" | "d15" | "d5" | "vencido" | "h_margem" | "h_vencido"
+export type JanelaAlertaDb = "d30" | "d15" | "d5" | "vencido" | "h_margem" | "h_vencido" | "mar_ruim" | "motor_parado"
 
 export interface AlertaEnviado {
   id: string
   embarcacao_id: string
-  item_monitorado_id: string
+  item_monitorado_id: string | null
+  equipamento_id: string | null
   janela: JanelaAlertaDb
   ciclo_ref: string
   titulo: string

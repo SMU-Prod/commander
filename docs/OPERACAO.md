@@ -86,8 +86,13 @@ Não ligue as três juntas: confirme que cada uma funciona antes de ligar a pró
 ## Alertas automáticos
 O motor de alertas é a rota `POST /api/alertas/disparar`, protegida por
 `Authorization: Bearer $ALERTAS_SEGREDO`. Ela varre todos os barcos, calcula o semáforo
-com o mesmo domínio das telas, grava em `alertas_enviados` (o que dedupe por item+janela+ciclo)
-e envia push (+ e-mail se `RESEND_API_KEY` existir).
+com o mesmo domínio das telas, grava em `alertas_enviados` e envia push (+ e-mail se
+`RESEND_API_KEY` existir). Além dos alertas de vencimento (por item monitorado), a mesma rota
+dispara dois avisos gerais (Onda 6): **mar ruim** (por embarcação com marina cadastrada, boletim
+Open-Meteo, no máximo 1×/dia) e **motor parado** (por motor sem leitura de horas há mais de 30
+dias). Nenhum dos dois tem `item_monitorado_id` — a dedupe usa o primeiro id não nulo entre
+`item_monitorado_id` / `equipamento_id` / `embarcacao_id` (índice funcional da migration 023),
+já que `item_monitorado_id` deixou de ser obrigatório na tabela.
 
 **Para ligar em produção:**
 1. Cadastre no GitHub os secrets `COMMANDER_URL` (ex.: `https://app.commander.com.br`) e `ALERTAS_SEGREDO`.
