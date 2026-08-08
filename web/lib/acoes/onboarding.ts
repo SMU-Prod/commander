@@ -96,7 +96,7 @@ export async function concluirOnboarding(formData: FormData) {
   await definirEmbarcacaoAtiva(escolha)
 
   if (falhas > 0) {
-    redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte não foi cadastrada. Confira a aba Embarcação.")}`)
+    redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte dos dados não foi. Confira em Embarcação o que ficou faltando.")}`)
   }
   redirect(`/hoje?ok=${encodeURIComponent("Embarcação cadastrada")}`)
 }

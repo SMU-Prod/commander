@@ -48,8 +48,12 @@ Mensagem de erro diz **o que fazer**, não só que deu errado.
    muita capacidade e pouca sinalização. Para cada funcionalidade nova, confirme:
    - **caminho a partir de `/hoje` em no máximo 3 toques** — se não tem, ela não existe
      para o usuário, por mais que o código esteja pronto;
-   - **nenhuma rota sem link** que leve até ela (exceções permitidas: webhook, convite
-     por link externo — e elas ficam listadas aqui quando surgirem);
+   - **nenhuma rota sem link** que leve até ela. Exceções conhecidas hoje, cada uma
+     com motivo: rotas de API e webhook; `/convite/[codigo]` (chega por link externo);
+     `/diario/[id]/horas` (tela de sinergia pós-ação — aparece por `redirect` logo
+     depois de registrar uma saída, não faz sentido revisitar depois); `/rede` (alias
+     de compatibilidade que redireciona para Comandantes, fora do robots.txt).
+     Rota nova fora dessa lista precisa de link ou vira exceção documentada aqui;
    - **todo dado que a interface grava aparece em algum lugar** (o contrário também:
      nada exibido que ninguém consiga preencher);
    - **o glossário acima vale** — um conceito, um nome, em toda a tela.

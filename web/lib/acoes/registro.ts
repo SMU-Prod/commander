@@ -63,7 +63,10 @@ export async function registrarVoltaAoMar(formData: FormData) {
   revalidatePath("/hoje")
   revalidatePath("/barco")
   if (falhas > 0) {
-    redirect(`/hoje?erro=${encodeURIComponent("Salvamos as horas, mas o combustível ou a observação não foram. Confira e tente de novo.")}`)
+    // NÃO afirme o que foi salvo: `falhas` conta os dois laços juntos (horas e
+    // combustível/observação), então dizer "salvamos as horas" pode ser mentira
+    // justamente quando o update das horas é que falhou.
+    redirect(`/hoje?erro=${encodeURIComponent("Parte do registro não foi salva. Confira na Embarcação o que ficou faltando.")}`)
   }
   redirect("/hoje")
 }
