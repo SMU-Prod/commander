@@ -43,9 +43,13 @@ describe("acharCaminho", () => {
     expect(caminho).not.toBeNull()
     // nenhum ponto do caminho pode cair em terra
     expect(caminho!.every((p) => ehAgua(g, paraCelula(g, p)))).toBe(true)
-    // e o caminho tem que ser mais longo que a reta, porque desviou
-    const reta = 30
-    expect(distanciaDaRota(caminho!)).toBeGreaterThan(reta * 0.9)
+    // e tem que ser mais longo que a reta entre os extremos, porque desviou.
+    // (comparar com a reta REAL, não com um número solto: a grade sintética
+    // mapeia graus 1:1, então qualquer limiar fixo passaria mesmo atravessando)
+    const reta = distanciaDaRota([{ la: 10.5, lo: 5.5 }, { la: 10.5, lo: 35.5 }])
+    expect(distanciaDaRota(caminho!)).toBeGreaterThan(reta * 1.05)
+    // e nem tanto: desviar não pode virar circum-navegação
+    expect(distanciaDaRota(caminho!)).toBeLessThan(reta * 2)
   })
   it("devolve null quando o destino esta cercado de terra", () => {
     const g = gradeComIlha()
