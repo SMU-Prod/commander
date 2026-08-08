@@ -6,7 +6,7 @@ import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
-import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarPainel, carregarSelo, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -20,6 +20,7 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
+  const selo = await carregarSelo()
 
   const statusDoEquipamento = (eqId: string): StatusFarol =>
     itens
@@ -174,6 +175,32 @@ export default async function BarcoPage({
           ))}
         </dl>
       </div>
+
+      {selo && (
+        <Link
+          href="/barco/selo"
+          className="sombra-1 mt-6 block rounded-[14px] border border-line bg-panel p-3.5"
+        >
+          <div className="flex items-center justify-between">
+            <p className="titulo-card inline-flex items-center gap-1.5">
+              <Icone nome="selo" className="size-4" /> Selo Ouro
+            </p>
+            <span className="font-mono-instr text-xs tabular-nums text-dim">
+              {selo.completos} de {selo.total}
+            </span>
+          </div>
+          <p className="apoio mt-0.5 text-dim">
+            {selo.percentual}% do checklist de completude — quanto mais completo, mais o
+            histórico vale na hora de vender.
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
+            <div
+              className="h-full rounded-full bg-accent-forte"
+              style={{ width: `${Math.max(2, selo.percentual)}%` }}
+            />
+          </div>
+        </Link>
+      )}
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="imagem" className="size-3.5" /> Acervo do barco
