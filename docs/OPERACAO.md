@@ -156,6 +156,31 @@ O mapa de `/navegar` e o seletor de ponto do painel do parceiro usam Mapbox GL J
    remova. O disclaimer "auxílio à navegação — não substitui as cartas náuticas
    oficiais" também é fixo, por segurança e por juridico.
 
+## Máscara de água
+
+Grid raster (PNG grayscale) que marca, célula a célula, o que é água navegável e o
+que é terra/margem na costa entre Paraty e Búzios. É a base da rota marítima: o
+roteador só pode passar por onde a máscara diz que é água — se ela estiver errada,
+a rota manda o barco por cima de terra ou de uma ilha.
+
+- **Arquivos gerados:** `web/public/mapa/mascara-agua.png` (255 = água, 0 = terra,
+  8 bits grayscale) + `web/public/mapa/mascara-agua.json` (bbox da região, dimensões
+  em células, `metrosPorCelula`, `margemCelulas` e a data de geração).
+- **Como regerar:** `node scripts/gerar-mascara-agua.mjs` a partir da raiz do repo
+  (ou `npm run mascara` dentro de `web/`). O script busca a linha de costa
+  (`natural=coastline`) no Overpass, rasteriza, faz flood fill a partir de um ponto
+  de oceano aberto e dilata a terra em 2 células (~160 m) de margem de segurança.
+  A resposta do Overpass fica em cache local (`scripts/.cache/coastline.json`,
+  ignorado pelo git) — apagar esse arquivo força uma nova consulta.
+- **Origem do dado:** OpenStreetMap contributors, linha de costa (`natural=coastline`),
+  extraída via Overpass API. Licença **ODbL — atribuição obrigatória** em qualquer
+  lugar que exiba essa camada ("© OpenStreetMap contributors"), igual à sinalização
+  do OpenSeaMap acima.
+- **Aviso importante:** a máscara conhece **terra**, não **profundidade**. Ela impede a
+  rota de cruzar terra firme ou ilhas, mas não sabe onde tem baixio, recife ou água
+  rasa demais para o casco — isso não substitui carta náutica nem sonda de
+  profundidade.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.
