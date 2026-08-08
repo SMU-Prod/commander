@@ -447,6 +447,44 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     if ("vibrate" in navigator) navigator.vibrate([300, 100, 300, 100, 300])
   }
 
+  // Sem GPS os recursos de bordo nao podem falhar mudos (feedback do dono):
+  // este pedido re-abre o prompt do navegador quando o estado e "perguntar",
+  // e explica o caminho quando ja foi negado.
+  const [dicaGps, setDicaGps] = useState<string | null>(null)
+  function pedirPosicao() {
+    if (!("geolocation" in navigator)) {
+      setDicaGps("Este aparelho não expõe localização ao navegador.")
+      return
+    }
+    setDicaGps("Pedindo sua posição…")
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setPosAtual({ la: p.coords.latitude, lo: p.coords.longitude })
+        setSogKt(msParaNos(p.coords.speed))
+        setDicaGps(null)
+      },
+      () => setDicaGps("Localização negada — autorize no cadeado da barra de endereço e tente de novo."),
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
+
+  // Marcador de DESTINO no mapa (pino dourado) — os apps grandes sempre
+  // mostram o ponto escolhido, com ou sem GPS; a linha de rumo e os numeros
+  // chegam quando a posicao existir.
+  useEffect(() => {
+    if (!mapaPronto || !destino) return
+    let cancelado = false
+    let marcador: MarcadorMapbox | null = null
+    import("mapbox-gl").then(({ default: mapboxgl }) => {
+      if (cancelado) return
+      marcador = new mapboxgl.Marker({ color: "#D4AF37" }).setLngLat([destino.lo, destino.la]).addTo(mapaPronto)
+    })
+    return () => {
+      cancelado = true
+      marcador?.remove()
+    }
+  }, [mapaPronto, destino])
+
   // Marcador do MOB no mapa — some se `mob` for limpo, some no unmount.
   useEffect(() => {
     if (!mapaPronto || !mob) return
@@ -641,15 +679,28 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
                 className="w-full"
               />
               <p className="apoio mt-1.5 text-dim">Alarme funciona com o app aberto — não dispara com a tela bloqueada.</p>
-              <button
-                type="button"
-                onClick={fundear}
-                disabled={!posAtual}
-                className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto disabled:opacity-50"
-              >
-                <Icone nome="ancora" className="size-4" />
-                Armar alarme
-              </button>
+              {posAtual ? (
+                <button
+                  type="button"
+                  onClick={fundear}
+                  className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto"
+                >
+                  <Icone nome="ancora" className="size-4" />
+                  Armar alarme
+                </button>
+              ) : (
+                <>
+                  <p className="apoio mt-2 text-warn">Sem posição GPS — a âncora é marcada onde o barco está.</p>
+                  {dicaGps && <p className="apoio mt-1 text-dim">{dicaGps}</p>}
+                  <button
+                    type="button"
+                    onClick={pedirPosicao}
+                    className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto"
+                  >
+                    Ativar localização
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => setArmandoAncora(false)}
@@ -703,6 +754,19 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
                 <Icone nome="mais" className="size-4 rotate-45" />
               </button>
             </div>
+            {!posAtual && (
+              <div className="mt-2 border-t border-line pt-2">
+                <p className="apoio text-dim">Destino marcado no mapa. Ative a localização para ver rumo, distância e ETA daqui até lá.</p>
+                {dicaGps && <p className="apoio mt-1 text-dim">{dicaGps}</p>}
+                <button
+                  type="button"
+                  onClick={pedirPosicao}
+                  className="mt-2 flex h-11 w-full items-center justify-center rounded-lg border border-line text-sm font-medium"
+                >
+                  Ativar localização
+                </button>
+              </div>
+            )}
             {nav && (
               <div className="mt-2 grid grid-cols-3 gap-2 border-t border-line pt-2">
                 <div className="text-center">
