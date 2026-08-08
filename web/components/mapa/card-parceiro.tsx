@@ -1,0 +1,162 @@
+"use client"
+import { useEffect, useState } from "react"
+import { Icone, type NomeIcone } from "@/components/icone"
+import { formatarReais } from "@/lib/domain/gastos"
+import { tempoDesde } from "@/lib/domain/navegacao"
+import { supabaseBrowser } from "@/lib/supabase/client"
+import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
+
+const CATEGORIA_ROTULO: Record<CategoriaParceiro, string> = {
+  marina: "Marina",
+  posto: "Posto de combustível",
+  pousada: "Pousada",
+  restaurante: "Restaurante",
+}
+const CATEGORIA_ICONE: Record<CategoriaParceiro, NomeIcone> = {
+  marina: "ancora",
+  posto: "oleo",
+  pousada: "inicio",
+  restaurante: "estrela",
+}
+
+const DIAS_DESATUALIZADO = 30
+
+/** Bottom-sheet do parceiro comercial — todo o conteúdo vem de `parceiro` e é
+ *  renderizado só via JSX (escape automático do React); nunca setHTML/
+ *  dangerouslySetInnerHTML com dado de parceiro aqui. */
+export function CardParceiro({
+  parceiro,
+  aoFechar,
+  aoTracarRumo,
+}: {
+  parceiro: Parceiro
+  aoFechar: () => void
+  aoTracarRumo?: (parceiro: Parceiro) => void
+}) {
+  const [supabase] = useState(() => supabaseBrowser())
+
+  useEffect(() => {
+    // fire-and-forget — métrica de renovação do parceiro, não bloqueia a UI
+    // nem precisa tratar erro (RPC é security definer e some se a linha sumir)
+    void supabase.rpc("registrar_visualizacao", { p_parceiro_id: parceiro.id }).then(() => {})
+  }, [supabase, parceiro.id])
+
+  const fotosUrl = parceiro.fotos.map((path) => supabase.storage.from("parceiros").getPublicUrl(path).data.publicUrl)
+
+  const agoraIso = new Date().toISOString()
+  const atualizado = tempoDesde(parceiro.atualizado_em, agoraIso)
+  const diasDesdeAtualizacao = (new Date(agoraIso).getTime() - new Date(parceiro.atualizado_em).getTime()) / 86_400_000
+  const desatualizado = diasDesdeAtualizacao > DIAS_DESATUALIZADO
+
+  const telefoneLimpo = parceiro.telefone?.replace(/\D/g, "") ?? ""
+
+  return (
+    <>
+      <div className="fixed inset-0 z-20 bg-[#0B1D2D]/40" onClick={aoFechar} />
+      <div className="sombra-2 fixed inset-x-0 bottom-0 z-30 rounded-t-[20px] border-t border-line bg-panel">
+        <div className="mx-auto max-h-[75dvh] max-w-[430px] overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+          <div className="flex justify-center">
+            <span className="h-1 w-10 rounded-full bg-line" />
+          </div>
+
+          <div className="mt-2 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="titulo-card">{parceiro.nome}</p>
+              <p className="apoio mt-0.5 flex items-center gap-1.5 text-dim">
+                <Icone nome={CATEGORIA_ICONE[parceiro.categoria]} className="size-3.5" />
+                {CATEGORIA_ROTULO[parceiro.categoria]}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={aoFechar}
+              aria-label="Fechar"
+              className="flex size-11 shrink-0 items-center justify-center text-dim"
+            >
+              <Icone nome="mais" className="size-5 rotate-45" />
+            </button>
+          </div>
+
+          {(parceiro.plano === "destaque" || parceiro.tem_poita) && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {parceiro.plano === "destaque" && (
+                <span className="apoio rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5 text-accent-forte">
+                  Destaque
+                </span>
+              )}
+              {parceiro.tem_poita && (
+                <span className="apoio rounded-full border border-line px-2 py-0.5 text-dim">
+                  Poita{parceiro.qtd_poitas ? ` (${parceiro.qtd_poitas})` : ""}
+                </span>
+              )}
+            </div>
+          )}
+
+          {fotosUrl.length > 0 && (
+            <div className="mt-3 flex gap-2">
+              {fotosUrl.map((url) => (
+                // eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros
+                <img key={url} src={url} alt={parceiro.nome} className="h-20 flex-1 rounded-[10px] object-cover" loading="lazy" />
+              ))}
+            </div>
+          )}
+
+          {parceiro.sobre && <p className="corpo mt-3 text-dim">{parceiro.sobre}</p>}
+
+          <div className="corpo mt-3 space-y-1">
+            {parceiro.preco_diaria_centavos != null && (
+              <p>
+                Diária: <span className="font-mono-instr tabular-nums">{formatarReais(parceiro.preco_diaria_centavos)}</span>
+              </p>
+            )}
+            {parceiro.categoria === "posto" && parceiro.preco_diesel_centavos != null && (
+              <p>
+                Diesel: <span className="font-mono-instr tabular-nums">{formatarReais(parceiro.preco_diesel_centavos)}</span>/L
+              </p>
+            )}
+            {parceiro.calado_max_m != null && (
+              <p>
+                Calado máximo: <span className="font-mono-instr tabular-nums">{parceiro.calado_max_m.toLocaleString("pt-BR")} m</span>
+              </p>
+            )}
+            {parceiro.categoria === "pousada" && parceiro.traslado_incluso && <p>Traslado incluso</p>}
+            {parceiro.categoria === "restaurante" && parceiro.vaga_cortesia && <p>Vaga de carro cortesia</p>}
+          </div>
+
+          <p className="apoio mt-2 text-dim">Atualizado {atualizado}</p>
+          {desatualizado && (
+            <p className="apoio mt-1 rounded-lg border border-warn/40 bg-warn/10 px-2.5 py-1.5 text-warn">
+              Informações podem estar desatualizadas.
+            </p>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            {parceiro.telefone && (
+              <a
+                href={`tel:${telefoneLimpo}`}
+                className="corpo flex h-11 flex-1 items-center justify-center rounded-lg border border-line"
+              >
+                Ligar
+              </a>
+            )}
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${parceiro.lat},${parceiro.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="corpo flex h-11 flex-1 items-center justify-center rounded-lg border border-line"
+            >
+              Como chegar
+            </a>
+            <button
+              type="button"
+              onClick={() => aoTracarRumo?.(parceiro)}
+              className="flex h-11 flex-1 items-center justify-center rounded-lg bg-accent font-semibold text-acao-texto"
+            >
+              Traçar rumo
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

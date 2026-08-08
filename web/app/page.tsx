@@ -185,6 +185,9 @@ export default async function LandingPage() {
             <span className="apoio text-dim">Commander</span>
           </div>
           <p className="apoio text-dim">Feito no Rio de Janeiro</p>
+          <Link href="/parceiro" className="apoio text-dim hover:text-texto">
+            Para marinas, pousadas e restaurantes
+          </Link>
           <a href="mailto:atendimento.smu@gmail.com" className="apoio text-dim hover:text-texto">
             atendimento.smu@gmail.com
           </a>
