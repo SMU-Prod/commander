@@ -83,6 +83,24 @@ Não ligue as três juntas: confirme que cada uma funciona antes de ligar a pró
   a mesma URL (e `https://commander.soumardivers.com/**`) em Redirect URLs — sem isso o
   fluxo de login e confirmação de e-mail quebra em produção.
 
+### 9. Desabilitar Boleto na conta Asaas (pendência do dono)
+A espec pede cartão de crédito + Pix, sem boleto. `criarAssinaturaAsaas` (`web/lib/asaas.ts`)
+manda `billingType: "UNDEFINED"` — é o único jeito de oferecer **mais de um** meio de pagamento
+numa assinatura: a API não aceita uma lista (ex.: `[CREDIT_CARD, PIX]`), só um valor único
+(`BOLETO`, `CREDIT_CARD`, `PIX`) ou `UNDEFINED` (o assinante escolhe entre o que estiver
+habilitado **na conta**). Não existe parâmetro de API para excluir Boleto e manter os outros
+dois — a exclusão só é possível desabilitando o Boleto na conta:
+1. Entre no painel Asaas → menu do usuário → **Minha conta → Configurações → Configurações
+   do sistema**.
+2. Localize a forma de pagamento **Boleto Bancário** e desabilite (o Pix tem o mesmo tipo de
+   toggle ali do lado — "Disponibilizar recebimento por Pix" — mas esse já deve ficar
+   **habilitado**; só o Boleto sai).
+3. Sem essa configuração, o Boleto continua aparecendo como opção pro assinante mesmo com
+   `billingType: "UNDEFINED"` no código — o código não pode resolver isso sozinho.
+
+Fontes: [Forma de pagamento — Asaas Docs](https://docs.asaas.com/docs/forma-de-pagamento),
+[Quais as formas de pagamento disponíveis para cobranças — Central de Ajuda Asaas](https://central.ajuda.asaas.com/hc/pt-br/articles/31689121385627-Quais-as-formas-de-pagamento-dispon%C3%ADveis-para-cobran%C3%A7as).
+
 ## Alertas automáticos
 O motor de alertas é a rota `POST /api/alertas/disparar`, protegida por
 `Authorization: Bearer $ALERTAS_SEGREDO`. Ela varre todos os barcos, calcula o semáforo
