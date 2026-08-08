@@ -5,6 +5,14 @@ import { Icone } from "@/components/icone"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
+import { supabaseServer } from "@/lib/supabase/server"
+import type { Contato } from "@/lib/db/types"
+
+/** Sem acento, minúsculo — "Elétrica"/"eletricista"/"ELETRICISTA" batem todos em "eletric". */
+const semAcento = (s: string) =>
+  s.toLowerCase()
+    .replace(/[áàâã]/g, "a").replace(/[éèê]/g, "e").replace(/[íì]/g, "i")
+    .replace(/[óòôõ]/g, "o").replace(/[úù]/g, "u").replace(/ç/g, "c")
 
 export default async function EletricaPage() {
   const painel = await carregarPainel()
@@ -15,6 +23,16 @@ export default async function EletricaPage() {
   const editavel = podeEditar(painel.permissoes, "eletrica")
   const hoje = hojeISO()
   const equipamentos = painel.equipamentos.filter((e) => e.tipo !== "motor")
+
+  const podeVerContatos = podeVer(painel.permissoes, "contatos")
+  let contatosEletrica: Contato[] = []
+  if (podeVerContatos) {
+    const supabase = await supabaseServer()
+    const { data } = await supabase.from("contatos")
+      .select("*").eq("embarcacao_id", painel.embarcacao.id).order("nome")
+    contatosEletrica = ((data ?? []) as Contato[])
+      .filter((c) => c.especialidade != null && semAcento(c.especialidade).includes("eletric"))
+  }
 
   const statusDe = (eqId: string): StatusFarol =>
     painel.itens
@@ -78,6 +96,42 @@ export default async function EletricaPage() {
           )
         })}
       </div>
+
+      {podeVerContatos && (
+        <>
+          <div className="mt-6 mb-2 flex items-baseline justify-between">
+            <p className="rotulo flex items-center gap-1.5 text-dim">
+              <Icone nome="pessoas" className="size-3.5" /> Suporte e peças
+            </p>
+            <Link href="/barco/contatos" className="corpo text-accent-forte">Cadastrar contato</Link>
+          </div>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            {contatosEletrica.length === 0 && (
+              <p className="corpo py-4 text-dim">
+                Nenhum contato de elétrica cadastrado ainda. Salve o eletricista de confiança para
+                achar rápido na próxima vez.
+              </p>
+            )}
+            {contatosEletrica.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="titulo-card">{c.nome}</p>
+                  <p className="apoio mt-0.5 text-dim">
+                    {[c.especialidade, c.telefone].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                {c.telefone && (
+                  <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok">
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </main>
   )
 }

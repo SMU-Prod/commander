@@ -52,11 +52,8 @@ preenchidas. Depois de colar tudo, clique em **Deploy**.
 ### 6. Secrets no GitHub (para os workflows automáticos rodarem)
 No repositório: **Settings → Secrets and variables → Actions → New repository secret**.
 Crie:
-- `APP_URL` = `https://commander.soumardivers.com` (lido pelo workflow do relatório
-  mensal, `.github/workflows/relatorio.yml`).
-- `COMMANDER_URL` = `https://commander.soumardivers.com` (mesmo valor — lido pelo
-  workflow de alertas, `.github/workflows/alertas.yml`; os dois workflows usam nomes
-  diferentes para a mesma URL, então cadastre os dois secrets).
+- `COMMANDER_URL` = `https://commander.soumardivers.com` (lido pelos dois workflows,
+  `.github/workflows/alertas.yml` e `.github/workflows/relatorio.yml`).
 - `ALERTAS_SEGREDO` = o mesmo valor colado na Vercel.
 
 ### 7. Ligar as flags — nessa ordem, uma de cada vez
@@ -137,9 +134,8 @@ Sem `RESEND_API_KEY` configurada a rota responde `500 {erro}` — diferente do d
 (onde o e-mail é best-effort), aqui o e-mail É o produto, então a chave é obrigatória.
 
 **Para ligar em produção:**
-1. Atenção: o relatório usa um secret PRÓPRIO, `APP_URL` — ele NÃO existe ainda se você só
-   configurou os alertas (que usam `COMMANDER_URL`). Cadastre `APP_URL` no GitHub com a mesma
-   URL, além do `ALERTAS_SEGREDO` que os dois workflows compartilham.
+1. Usa os mesmos secrets `COMMANDER_URL` e `ALERTAS_SEGREDO` já cadastrados para os
+   alertas (passo 6 do roteiro de deploy) — nenhum secret adicional.
 2. Crie a variável de repositório `RELATORIOS_ATIVOS = 1`.
 3. O workflow `.github/workflows/relatorio.yml` roda no dia 1 de cada mês, 09:00 de Brasília, e
    fecha o mês que acabou de terminar (inclusive na virada de ano: relatório de janeiro cobre
@@ -159,7 +155,7 @@ notifica por e-mail, igual aos alertas.
 | `ALERTAS_SEGREDO` | servidor + CI | proteção das rotas de disparo (alertas e relatório) |
 | `RESEND_API_KEY` | servidor | e-mail de alerta (opcional) e do relatório mensal (obrigatório) |
 | `NEXT_PUBLIC_APP_URL` | app | link do convite de tripulação |
-| `APP_URL` | CI (secret) | URL da rota chamada pelo `relatorio.yml` |
+| `COMMANDER_URL` | CI (secret) | URL da rota chamada por `alertas.yml` e `relatorio.yml` |
 
 Lista completa e sempre atual de toda variável usada pelo app (incluindo Asaas,
 PostHog e o gate de cobrança), com comentário de onde obter cada uma: `web/.env.example`.

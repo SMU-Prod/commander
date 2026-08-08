@@ -4,7 +4,7 @@ import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { podeVer } from "@/lib/domain/permissoes"
+import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
@@ -22,6 +22,7 @@ export default async function DocumentosPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   if (!podeVer(painel.permissoes, "documentos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os documentos."))
+  const editavel = podeEditar(painel.permissoes, "documentos")
   const supabase = await supabaseServer()
   const { data: docs } = await supabase.from("documentos")
     .select("*").eq("embarcacao_id", painel.embarcacao.id).order("created_at")
@@ -54,17 +55,24 @@ export default async function DocumentosPage({
           const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
           const doc = docPorItem.get(i.id)
           const url = doc?.arquivo_path ? await linkAssinado(doc.arquivo_path) : null
+          const nomeEItem = (
+            <>
+              <p className="titulo-card">{i.nome}</p>
+              <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+                {i.data_fixa ? `vence ${i.data_fixa.split("-").reverse().join("/")}` : "sem data"}
+                {r.diasRestantes != null && r.diasRestantes >= 0 ? ` · ${r.diasRestantes} dias` : ""}
+                {r.diasRestantes != null && r.diasRestantes < 0 ? ` · vencido há ${-r.diasRestantes} dias` : ""}
+              </p>
+            </>
+          )
           return (
             <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
               <Farol status={r.status} />
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{i.nome}</p>
-                <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
-                  {i.data_fixa ? `vence ${i.data_fixa.split("-").reverse().join("/")}` : "sem data"}
-                  {r.diasRestantes != null && r.diasRestantes >= 0 ? ` · ${r.diasRestantes} dias` : ""}
-                  {r.diasRestantes != null && r.diasRestantes < 0 ? ` · vencido há ${-r.diasRestantes} dias` : ""}
-                </p>
-              </div>
+              {editavel ? (
+                <Link href={`/barco/itens/${i.id}/editar`} className="min-w-0 flex-1">{nomeEItem}</Link>
+              ) : (
+                <div className="min-w-0 flex-1">{nomeEItem}</div>
+              )}
               {url ? (
                 <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>
               ) : (

@@ -4,7 +4,7 @@ import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
-import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
+import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, carregarSelo, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
@@ -133,10 +133,15 @@ export default async function BarcoPage({
         )}
         {documentos.map((i) => {
           const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
+          const editavelItem = podeEditar(permissoes, abaDoItem(i, equipamentos))
           return (
             <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
               <Farol status={r.status} />
-              <span className="corpo flex-1">{i.nome}</span>
+              {editavelItem ? (
+                <Link href={`/barco/itens/${i.id}/editar`} className="corpo flex-1">{i.nome}</Link>
+              ) : (
+                <span className="corpo flex-1">{i.nome}</span>
+              )}
               <span className="font-mono-instr text-xs tabular-nums text-dim">
                 {r.diasRestantes != null
                   ? r.diasRestantes < 0

@@ -142,7 +142,7 @@ export default async function LandingPage() {
             <p className="titulo-card">{PLANOS.fundador_mensal.rotulo}</p>
             <p className="mt-3">
               <span className="apoio mr-1.5 text-dim line-through">{formatarPreco(ANCORA_MENSAL_CENTAVOS)}</span>
-              <span className="text-3xl font-semibold">{formatarPreco(PLANOS.fundador_mensal.valorCentavos)}</span>
+              <span className="text-3xl font-semibold text-accent-forte">{formatarPreco(PLANOS.fundador_mensal.valorCentavos)}</span>
               <span className="corpo text-dim"> /mês</span>
             </p>
           </div>
@@ -152,7 +152,7 @@ export default async function LandingPage() {
             </span>
             <p className="titulo-card">{PLANOS.fundador_anual.rotulo}</p>
             <p className="mt-3">
-              <span className="text-3xl font-semibold">{formatarPreco(PLANOS.fundador_anual.valorCentavos)}</span>
+              <span className="text-3xl font-semibold text-accent-forte">{formatarPreco(PLANOS.fundador_anual.valorCentavos)}</span>
               <span className="corpo text-dim"> /ano</span>
             </p>
           </div>
