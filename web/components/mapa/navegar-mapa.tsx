@@ -738,7 +738,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             <div className="flex items-center justify-between gap-2">
               <span className="corpo flex min-w-0 items-center gap-2">
                 <Icone nome="mapa" className="size-4 shrink-0 text-accent-forte" />
-                <span className="truncate">Rumo para {destino.nome}</span>
+                <span className="truncate">Rumo direto para {destino.nome}</span>
               </span>
               <button
                 type="button"
@@ -768,7 +768,12 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
               </div>
             )}
             {nav && (
-              <div className="mt-2 grid grid-cols-3 gap-2 border-t border-line pt-2">
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">
+                Linha reta até o ponto — pode cruzar terra. Confira a carta antes de seguir.
+              </p>
+            )}
+            {nav && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] uppercase tracking-[.14em] text-dim">Distância</p>
                   <p className="font-mono-instr text-sm tabular-nums">
