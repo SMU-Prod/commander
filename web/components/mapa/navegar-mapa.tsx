@@ -838,9 +838,12 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
 
       </div>
 
-      {/* Cluster de ações de navegação — canto inferior direito, acima da
-          escala/atribuição; sobe quando o painel de rumo ocupa a faixa. */}
-      <div className={`absolute right-3 z-20 flex flex-col items-end gap-2 ${destino ? "bottom-32" : "bottom-12"}`}>
+      {/* Faixa de baixo em COLUNA: botões em cima, painel do destino embaixo.
+          Antes eram dois blocos absolutos com bottom fixo, e o painel cobria o
+          MOB e o cartão do alarme (o dono viu: "aciono o alarme e não acontece
+          nada"). Em fluxo, nada se sobrepõe, com ou sem destino. */}
+      <div className="pointer-events-none absolute inset-x-3 bottom-12 z-20 flex flex-col items-end gap-2">
+        <div className="pointer-events-auto flex flex-col items-end gap-2">
           {mapaPronto && (
             <button
               type="button"
@@ -937,7 +940,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
         </div>
 
         {destino && (
-          <div className="sombra-2 absolute inset-x-3 bottom-3 z-20 rounded-[12px] border border-line bg-panel/95 px-3 py-2.5 backdrop-blur">
+          <div className="sombra-2 pointer-events-auto w-full rounded-[12px] border border-line bg-panel/95 px-3 py-2.5 backdrop-blur">
             <div className="flex items-center justify-between gap-2">
               <span className="corpo flex min-w-0 items-center gap-2">
                 <Icone nome="mapa" className="size-4 shrink-0 text-accent-forte" />
@@ -1028,6 +1031,8 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             )}
           </div>
         )}
+
+      </div>
 
       {parceiroAberto && (
         <CardParceiro
