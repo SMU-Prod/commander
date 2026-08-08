@@ -115,9 +115,9 @@ export function avaliarSelo(dados: DadosSelo): ResultadoSelo {
     },
     {
       chave: "nenhum_vencido",
-      rotulo: "Nenhum item vencido",
+      rotulo: "Nada vencido",
       ok: nenhumVencidoOk,
-      dica: "Cadastre itens para monitorar e mantenha tudo em dia — nenhum pode estar vencido.",
+      dica: "Cadastre as manutenções e os documentos do barco e mantenha tudo em dia — nada pode estar vencido.",
       href: "/barco",
     },
     {

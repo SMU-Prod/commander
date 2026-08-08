@@ -48,6 +48,19 @@ export default async function DiarioPage({
   )
   const grupos = agruparPorMes(visiveis)
 
+  // Anexo (NF, foto do serviço) só era gravado — nunca reaparecia em lugar
+  // nenhum. Mesmo padrão de URL assinada já usado em Documentos.
+  const urlsAnexo = new Map(
+    await Promise.all(
+      visiveis
+        .filter((e): e is Evento & { anexo_path: string } => e.anexo_path != null)
+        .map(async (e) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(e.anexo_path, 3600)
+          return [e.id, data?.signedUrl ?? null] as const
+        }),
+    ),
+  )
+
   // Nomes da tripulacao a bordo (Livro de Bordo) — so busca perfis dos ids
   // que realmente aparecem nos eventos visiveis.
   const idsTripulacao = [...new Set(visiveis.flatMap((e) => e.tripulacao ?? []))]
@@ -62,7 +75,7 @@ export default async function DiarioPage({
         <h1 className="titulo-pagina">Diário de Bordo</h1>
         <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
           <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Evento
+            <Icone nome="mais" className="size-4" /> Registrar
           </span>
         </Link>
       </div>
@@ -84,7 +97,7 @@ export default async function DiarioPage({
 
       {grupos.length === 0 && (
         <div className="sombra-1 mt-6 rounded-[14px] border border-line bg-panel p-5 text-center corpo text-dim">
-          Nenhum evento por aqui ainda. Toque em &quot;+ Evento&quot; para registrar o primeiro —
+          Nenhum registro por aqui ainda. Toque em &quot;+ Registrar&quot; para criar o primeiro —
           cada serviço registrado vira histórico e dossiê do barco.
         </div>
       )}
@@ -99,9 +112,8 @@ export default async function DiarioPage({
                 e.horas_no_momento != null ? `${e.horas_no_momento.toLocaleString("pt-BR")} h` : null,
                 e.contato_id ? nomeContato.get(e.contato_id) : null,
                 e.custo_centavos != null ? formatarReais(e.custo_centavos) : null,
-                e.anexo_path ? "anexo" : null,
-                e.tem_trilha ? "trilha" : null,
               ].filter(Boolean).join(" · ")
+              const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
               // Ficha da saida (Livro de Bordo): duracao, destino, quem estava a
               // bordo e a condicao do mar registrada no momento — so pra navegacao.
               const duracaoEvento = e.tipo === "navegacao" ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
@@ -144,11 +156,18 @@ export default async function DiarioPage({
                     {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
                     {detalhesSaida && <p className="apoio mt-0.5 text-dim">{detalhesSaida}</p>}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
-                    {e.tem_trilha && (
-                      <Link href={`/diario/trilha/${e.id}`} className="apoio mt-1 inline-block text-accent-forte">
-                        Ver trilha na carta
-                      </Link>
-                    )}
+                    <div className="mt-1 flex gap-3">
+                      {urlAnexo && (
+                        <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="apoio text-accent-forte">
+                          Abrir anexo
+                        </a>
+                      )}
+                      {e.tem_trilha && (
+                        <Link href={`/diario/trilha/${e.id}`} className="apoio text-accent-forte">
+                          Ver trilha na carta
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               )

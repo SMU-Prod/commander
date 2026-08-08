@@ -32,7 +32,9 @@ export async function concluirOnboarding(formData: FormData) {
     p_ano: numero("ano"),
     p_marina: texto("marina"),
   })
-  if (error || !embarcacaoId) redirect(`/onboarding?erro=${encodeURIComponent("Não foi possível criar a embarcação")}`)
+  if (error || !embarcacaoId) {
+    redirect(`/onboarding?erro=${encodeURIComponent("Não deu para cadastrar o barco agora. Confira sua conexão e tente de novo.")}`)
+  }
 
   const doisMotores = texto("qtd_motores") === "2"
   const motores = doisMotores
@@ -94,7 +96,7 @@ export async function concluirOnboarding(formData: FormData) {
   await definirEmbarcacaoAtiva(escolha)
 
   if (falhas > 0) {
-    redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte dos itens não foi cadastrada. Confira a aba Barco.")}`)
+    redirect(`/hoje?erro=${encodeURIComponent("Embarcação criada, mas parte dos dados não foi. Confira em Embarcação o que ficou faltando.")}`)
   }
   redirect(`/hoje?ok=${encodeURIComponent("Embarcação cadastrada")}`)
 }

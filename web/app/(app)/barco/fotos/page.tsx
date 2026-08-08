@@ -48,7 +48,7 @@ export default async function FotosPage({
 
       <div className="mt-4 rounded-[14px] border border-line bg-panel p-4 sombra-1">
         <div className="flex items-baseline justify-between">
-          <p className="rotulo text-dim">Cota de nuvem</p>
+          <p className="rotulo text-dim">Espaço de fotos</p>
           <p className="font-mono-instr text-xs tabular-nums text-dim">
             {formatarBytes(uso.usadoBytes)} de {formatarBytes(uso.limiteBytes)}
           </p>

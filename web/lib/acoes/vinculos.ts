@@ -15,7 +15,7 @@ async function atualizarVinculo(vinculoId: string, permissoes: Permissoes, nivel
     .update({ permissoes, nivel })
     .eq("id", vinculoId)
     .select("id")
-  if (error || data?.length === 0) erroMatriz(vinculoId, "Não foi possível salvar — confira seu acesso.")
+  if (error || data?.length === 0) erroMatriz(vinculoId, "Não deu para salvar as permissões. Recarregue a página e tente de novo.")
   revalidatePath(`/menu/tripulacao/${vinculoId}`)
   revalidatePath("/menu/tripulacao")
 }
@@ -44,7 +44,7 @@ export async function removerCmdt(formData: FormData) {
   const supabase = await supabaseServer()
   const vinculoId = String(formData.get("vinculo_id") ?? "")
   const { error } = await supabase.from("vinculos").delete().eq("id", vinculoId)
-  if (error) erroMatriz(vinculoId, "Não foi possível remover.")
+  if (error) erroMatriz(vinculoId, "Não deu para remover o comandante da tripulação. Tente de novo.")
   revalidatePath("/menu/tripulacao")
   redirect("/menu/tripulacao")
 }

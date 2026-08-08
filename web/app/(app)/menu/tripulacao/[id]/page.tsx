@@ -40,7 +40,7 @@ export default async function MatrizPage({
         <Icone nome="voltar" className="size-4" /> Tripulação
       </Link>
       <h1 className="mt-3 text-xl font-semibold">{nome}</h1>
-      <p className="mt-1 text-sm text-dim">Defina, aba por aba, o que este comandante vê e edita.</p>
+      <p className="mt-1 text-sm text-dim">Defina, área por área, o que este comandante vê e edita.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
       {salvo && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 text-sm">Permissões salvas.</p>}
 
@@ -61,7 +61,7 @@ export default async function MatrizPage({
         <input type="hidden" name="vinculo_id" value={v.id} />
         <div className="rounded-[14px] border border-line bg-panel px-4">
           <div className="flex items-center gap-3 border-b border-line py-2.5">
-            <span className="flex-1 font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Aba</span>
+            <span className="flex-1 font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Área</span>
             <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Ver</span>
             <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Editar</span>
           </div>

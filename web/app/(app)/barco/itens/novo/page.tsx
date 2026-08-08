@@ -17,12 +17,24 @@ export default async function NovoItemPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
 
+  // Volta pra onde a pessoa veio (ficha do equipamento, documentos, ou a
+  // embarcação) em vez de sempre cair em /barco — mesma lógica de
+  // itens/[id]/editar/page.tsx, só que a partir do alvo da query string,
+  // já que aqui ainda não existe item.
+  const equipamentoIdAlvo = alvo?.startsWith("eq:") ? alvo.slice(3) : null
+  const categoriaAlvo = alvo?.startsWith("cat:") ? alvo.slice(4) : null
+  const voltarPara = equipamentoIdAlvo
+    ? `/barco/equipamento/${equipamentoIdAlvo}`
+    : categoriaAlvo === "documento"
+      ? "/barco/documentos"
+      : "/barco"
+
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+      <Link href={voltarPara} className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Voltar
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Novo item monitorado</h1>
+      <h1 className="mt-3 text-xl font-semibold">Nova manutenção</h1>
       <p className="mt-1 text-sm text-dim">
         Tudo que vence por horas de uso e/ou por data — o semáforo cuida do resto.
       </p>
@@ -81,7 +93,7 @@ export default async function NovoItemPage({
             <input id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className={`${campo} font-mono-instr tabular-nums`} />
           </div>
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Criar item</button>
+        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Criar manutenção</button>
       </form>
     </main>
   )

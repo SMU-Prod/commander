@@ -58,7 +58,7 @@ export function AtivarAlertas() {
         return
       }
       setEstado("ativo")
-      setMsg("Alertas ativados neste aparelho.")
+      setMsg("Avisos ativados neste aparelho.")
     } catch {
       setMsg("Não deu para ativar. No iPhone, primeiro instale o app: Compartilhar → Adicionar à Tela de Início.")
     } finally {
@@ -94,7 +94,7 @@ export function AtivarAlertas() {
 
   return (
     <div className="rounded-[14px] border border-line bg-panel p-4">
-      <p className="text-sm font-semibold">Alertas neste aparelho</p>
+      <p className="text-sm font-semibold">Avisos neste aparelho</p>
       {estado === "sem-suporte" && (
         <p className="mt-1.5 text-xs text-dim">
           Este navegador não suporta notificações. No iPhone, instale o app primeiro:
@@ -104,7 +104,7 @@ export function AtivarAlertas() {
       {estado === "inativo" && (
         <button onClick={ativar} disabled={ocupado}
           className="mt-3 w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto disabled:opacity-60">
-          Ativar alertas neste aparelho
+          Ativar avisos neste aparelho
         </button>
       )}
       {estado === "ativo" && (

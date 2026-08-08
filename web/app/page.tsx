@@ -12,7 +12,7 @@ import { supabaseServer } from "@/lib/supabase/server"
 const VALORES: { icone: NomeIcone; titulo: string; desc: string }[] = [
   {
     icone: "alerta",
-    titulo: "Alertas antes do prazo",
+    titulo: "Avisos antes do prazo",
     desc: "Cruzamos horas de motor com prazos de documento e mostramos o que vence primeiro — sem susto na doca.",
   },
   {
@@ -35,7 +35,7 @@ const PASSOS = [
 
 const BENEFICIOS = [
   "Preço travado enquanto a assinatura durar — mesmo que o valor cheio suba depois.",
-  "Selo Fundador #N gravado no seu perfil, para sempre.",
+  "Fundador #N gravado no seu perfil, para sempre.",
   "Concierge de bordo: a equipe monta o dossiê do seu barco com você.",
 ]
 

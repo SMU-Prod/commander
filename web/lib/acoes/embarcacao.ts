@@ -53,7 +53,7 @@ export async function salvarDadosGerais(formData: FormData) {
     .select("id")
   // sem o select, uma linha barrada pela RLS voltaria com error null e a tela
   // diria "salvo" sem ter salvado nada
-  if (error || !salva?.length) erroEditar("Não foi possível salvar. Confira seu acesso e tente de novo.")
+  if (error || !salva?.length) erroEditar("Não deu para salvar os dados do barco agora. Tente de novo em instantes.")
 
   revalidatePath("/barco")
   revalidatePath("/hoje")

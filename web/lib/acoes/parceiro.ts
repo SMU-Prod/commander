@@ -104,7 +104,7 @@ export async function salvarParceiro(formData: FormData) {
     if (error) erroParceiro(traduzErro(error.message))
     // sem o select, uma linha barrada pela RLS voltaria com error null e a
     // tela diria "salvo" sem ter salvado nada
-    if (!salvo?.length) erroParceiro("Não foi possível salvar. Confira seu acesso e tente de novo.")
+    if (!salvo?.length) erroParceiro("Não deu para salvar seu perfil de parceiro. Tente de novo em instantes.")
   } else {
     // plano/visualizacoes/precos_atualizados_em ficam de fora: privilégio de
     // coluna barra escrita e a policy de insert exige os defaults

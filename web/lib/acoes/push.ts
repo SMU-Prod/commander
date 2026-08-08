@@ -43,7 +43,7 @@ export async function enviarPushTeste(): Promise<Resultado> {
   if (!user) return { ok: false, erro: "Sessão expirada — entre de novo." }
   const { data: assinaturas } = await supabase
     .from("push_assinaturas").select("endpoint, p256dh, auth").eq("usuario_id", user.id)
-  if (!assinaturas || assinaturas.length === 0) return { ok: false, erro: "Ative os alertas neste aparelho primeiro." }
+  if (!assinaturas || assinaturas.length === 0) return { ok: false, erro: "Ative os avisos neste aparelho primeiro." }
 
   webpush.setVapidDetails("mailto:atendimento.smu@gmail.com", publica, privada)
   let enviados = 0
@@ -51,7 +51,7 @@ export async function enviarPushTeste(): Promise<Resultado> {
     try {
       await webpush.sendNotification(
         { endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
-        JSON.stringify({ titulo: "Commander", corpo: "Alertas ativados. Bom vento e mar calmo!", url: "/notificacoes" }),
+        JSON.stringify({ titulo: "Commander", corpo: "Avisos ativados. Bom vento e mar calmo!", url: "/notificacoes" }),
       )
       enviados++
     } catch (err) {
@@ -64,5 +64,5 @@ export async function enviarPushTeste(): Promise<Resultado> {
   }
   return enviados > 0
     ? { ok: true }
-    : { ok: false, erro: "Nenhum aparelho recebeu — desative e ative os alertas de novo." }
+    : { ok: false, erro: "Nenhum aparelho recebeu — desative e ative os avisos de novo." }
 }

@@ -5,7 +5,7 @@ import { Icone } from "@/components/icone"
 import { excluirItemMonitorado, salvarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
-import { podeEditar } from "@/lib/domain/permissoes"
+import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarItemPage({
@@ -24,8 +24,9 @@ export default async function EditarItemPage({
 
   const aba = abaDoItem(item, painel.equipamentos)
   if (!podeEditar(painel.permissoes, aba)) {
-    redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite editar este item.")}`)
+    redirect(`/barco?erro=${encodeURIComponent(`Seu acesso não permite editar ${ROTULO_ABA[aba]}.`)}`)
   }
+  const ehDocumento = item.categoria === "documento"
 
   const alvoAtual = item.equipamento_id
     ? `eq:${item.equipamento_id}`
@@ -44,7 +45,7 @@ export default async function EditarItemPage({
       <Link href={voltarPara} className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Voltar
       </Link>
-      <h1 className="titulo-pagina mt-3">Editar item monitorado</h1>
+      <h1 className="titulo-pagina mt-3">{ehDocumento ? "Editar vencimento" : "Editar manutenção"}</h1>
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarItemMonitorado} className="mt-5 space-y-4">
@@ -108,14 +109,16 @@ export default async function EditarItemPage({
               defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className={`${campo} font-mono-instr tabular-nums`} />
           </div>
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar item</button>
+        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+          {ehDocumento ? "Salvar vencimento" : "Salvar manutenção"}
+        </button>
       </form>
 
       <form action={excluirItemMonitorado} className="mt-8 flex justify-center">
         <input type="hidden" name="item_id" value={id} />
         <Confirmar
-          mensagem="Excluir item e seu histórico de vencimento?"
-          rotulo="Excluir item"
+          mensagem={ehDocumento ? "Excluir esse vencimento e seu histórico?" : "Excluir essa manutenção e seu histórico?"}
+          rotulo={ehDocumento ? "Excluir vencimento" : "Excluir manutenção"}
           className="flex h-11 items-center corpo text-crit"
         />
       </form>

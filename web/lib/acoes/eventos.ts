@@ -47,7 +47,7 @@ export async function criarEvento(formData: FormData) {
 
   const itemId = texto("item_id")
   const item = itemId ? (painel.itens.find((i) => i.id === itemId) ?? null) : null
-  if (itemId && !item) erroNovo("Item monitorado inválido.")
+  if (itemId && !item) erroNovo("Essa manutenção ou vencimento não existe mais. Atualize a página.")
 
   const contatoId = texto("contato_id")
   if (contatoId) {
@@ -124,7 +124,7 @@ export async function criarEvento(formData: FormData) {
       .from("itens_monitorados").update(atualizacao).eq("id", item.id)
     if (erroItem) {
       revalidatePath("/diario")
-      redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo do item não foi zerado. Confira o item.")}`)
+      redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo da manutenção não foi zerado. Confira e ajuste se precisar.")}`)
     }
   }
 

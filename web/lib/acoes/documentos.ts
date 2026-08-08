@@ -29,7 +29,7 @@ export async function criarDocumento(formData: FormData) {
       .from("itens_monitorados")
       .insert({ embarcacao_id: painel.embarcacao.id, nome, categoria: "documento", data_fixa: validade })
       .select("id").single()
-    if (error || !item) volta("Não foi possível criar o vencimento do documento.")
+    if (error || !item) volta("Não deu para salvar a data de vencimento. Tente de novo.")
     itemId = item!.id
   }
 
@@ -63,7 +63,7 @@ export async function anexarArquivo(formData: FormData) {
   const { supabase, painel } = await contexto()
   const itemId = String(formData.get("item_id") ?? "")
   const item = painel.itens.find((i) => i.id === itemId)
-  if (!item) volta("Item não encontrado.")
+  if (!item) volta("Não encontramos esse documento. Atualize a página e tente de novo.")
 
   const arquivo = formData.get("arquivo")
   if (!(arquivo instanceof File) || arquivo.size === 0) volta("Escolha um arquivo.")

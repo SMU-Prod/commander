@@ -38,7 +38,7 @@ export async function subirFoto(formData: FormData) {
     .from("fotos").select("bytes").eq("embarcacao_id", painel.embarcacao.id)
   const usado = (usadas ?? []).reduce((s, f: { bytes: number }) => s + f.bytes, 0)
   if (usoDaCota(usado + (arquivo as File).size).cheio) {
-    voltar(album, "Cota de nuvem cheia. Apague fotos antigas para liberar espaço.")
+    voltar(album, "Espaço de fotos cheio. Apague fotos antigas para liberar espaço.")
   }
 
   const r = await subirArquivo(supabase, painel.embarcacao.id, "fotos", arquivo as File)
@@ -110,7 +110,10 @@ export async function definirCapa(formData: FormData) {
     p_embarcacao_id: painel.embarcacao.id,
     p_path: foto.arquivo_path,
   })
-  if (error) voltar(album, "Não foi possível definir a capa — confira seu acesso.")
+  // A RPC `definir_capa` (migrations 014/015) aceita quem tem permissão de
+  // editar Fotos — NÃO só o proprietário. Dizer "só o proprietário" seria
+  // diagnóstico falso para um comandante com esse acesso.
+  if (error) voltar(album, "Não deu para definir a capa. Se você é comandante, confirme com o proprietário se seu acesso a Fotos permite editar.")
 
   revalidatePath("/hoje")
   revalidatePath("/barco")

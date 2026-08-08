@@ -4,7 +4,13 @@ import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+
+/** "motores" ou "eletrica" — a mesma regra de `barco/equipamento/[id]/page.tsx`. */
+function abaDoTipo(tipo: string): "motores" | "eletrica" {
+  return tipo === "motor" ? "motores" : "eletrica"
+}
 
 const TIPOS = ["motor", "gerador", "bateria", "outro"]
 const POSICOES = ["BB", "BE", "central"]
@@ -84,7 +90,9 @@ export async function criarEquipamento(formData: FormData) {
     .single()
   if (error || !data) {
     if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
-    erroNovo("Não foi possível criar — confira seu acesso a esta aba.")
+    erroNovo(
+      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(dados.tipo)]} — senão, tente de novo.`,
+    )
   }
 
   revalidatePath("/barco")
@@ -113,7 +121,10 @@ export async function salvarEquipamento(formData: FormData) {
     .eq("id", id).select("id").maybeSingle()
   if (error || !data) {
     if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
-    erroEditar(id, "Não foi possível salvar — confira seu acesso a esta aba.")
+    erroEditar(
+      id,
+      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(dados.tipo)]} — senão, tente de novo.`,
+    )
   }
 
   // troca de foto: só apaga a antiga do storage depois de confirmar que o update deu certo
@@ -135,11 +146,16 @@ export async function excluirEquipamento(formData: FormData) {
   const equipamento = painel.equipamentos.find((e) => e.id === id)
   if (!equipamento) erroEditar(id, "Equipamento não encontrado.")
 
-  // o select confirma que a linha saiu: sem ele, uma exclusão barrada pela
-  // matriz voltaria sem erro e o app anunciaria "excluído" à toa
+  // o select confirma que a linha saiu: sem ele, uma exclusão barrada pelo
+  // acesso voltaria sem erro e o app anunciaria "excluído" à toa
   const { data: apagado, error } = await supabase
     .from("equipamentos").delete().eq("id", id).select("id")
-  if (error || !apagado?.length) erroEditar(id, "Não foi possível excluir — confira seu acesso.")
+  if (error || !apagado?.length) {
+    erroEditar(
+      id,
+      `Não deu para excluir. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(equipamento.tipo)]} — senão, tente de novo.`,
+    )
+  }
 
   if (equipamento.foto_path) {
     // best-effort: arquivo órfão é aceitável; linha fantasma não.
