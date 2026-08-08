@@ -9,11 +9,31 @@ import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
 import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/navegacao"
 import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
+import type { PedidoRota, RespostaRota } from "@/components/mapa/rota.worker"
 
 const RESUMO_VAZIO: ResumoTrilha = { distanciaNm: 0, duracaoH: 0, tempoMovimentoH: 0, velMediaKt: 0, velMaxKt: 0 }
 
 type Coord = { la: number; lo: number }
 type Ancora = { la: number; lo: number; raioM: number }
+
+/** Estado da rota pela agua calculada no Worker (web/components/mapa/rota.worker.ts).
+ *  "calculando" e transitorio (existe so entre o postMessage e a resposta); os
+ *  outros tres sao os estados finais honestos pedidos na task: uma rota de
+ *  verdade, ou uma das duas razoes pelas quais ela nao existe. "ausente" cobre
+ *  tanto "sem destino/posicao ainda" quanto "mascara nao carregou" — em ambos
+ *  os casos a tela cai pro rumo direto sem alarde nenhum; "ausente" so existe
+ *  como valor DERIVADO (ver `estadoRotaAtual`), nunca guardado em estado. */
+type EstadoRotaResultado =
+  | { tipo: "calculando"; paraDestino: Coord }
+  | { tipo: "rota"; paraDestino: Coord; pernas: Coord[]; distanciaNm: number }
+  | { tipo: "fora-da-area"; paraDestino: Coord }
+  | { tipo: "sem-caminho"; paraDestino: Coord }
+type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
+
+// Recalcular a cada tick do GPS faria a linha da rota tremer (o A* nao devolve
+// exatamente o mesmo caminho pra posicoes vizinhas) e desperdicaria CPU no
+// Worker por nada — so vale recalcular quando o barco realmente andou.
+const LIMIAR_RECALCULO_M = 200
 
 const CHAVE_ANCORA = "ancora"
 const RAIO_PADRAO_M = 40
@@ -259,6 +279,101 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const [destino, setDestino] = useState<{ la: number; lo: number; nome: string } | null>(null)
   const [modoDefinirDestino, setModoDefinirDestino] = useState(false)
 
+  // --- rota pela agua (Task 4, Onda 5) --------------------------------------
+  // Calculo (A* + suavizacao) roda num Web Worker: medido no navegador real, a
+  // rota mais longa da area coberta (Gloria -> Buzios) leva ~340ms no thread
+  // principal — passa dos ~300ms combinados no plano, entao trava toques/scroll
+  // do mapa se rodar ali. O Worker tem seu proprio carregarGrade() (mascara
+  // decodificada uma vez, memoizada dentro dele) e faz o teste `dentroDaGrade`
+  // na origem E no destino antes de tentar o A*.
+  //
+  // `estadoRota` guarda so os resultados do Worker, cada um marcado com o
+  // objeto `destino` (por referencia) a que pertence — nunca um "ausente"
+  // setado a forca dentro do efeito (isso e derivado logo abaixo, em
+  // `estadoRotaAtual`). Duas razoes pra essa separacao: 1) setState so pra
+  // "resetar" estado derivavel dentro de um efeito e exatamente o antipadrao
+  // que o eslint-plugin-react-hooks marca (set-state-in-effect); 2) sem a
+  // marca de destino, ao trocar de destino a tela mostraria por um frame a
+  // rota do destino ANTERIOR (o efeito que dispara o novo calculo so roda
+  // depois do primeiro paint) — com a marca, esse frame cai automaticamente
+  // pra "ausente" (numeros da reta) em vez de mentir sobre o destino novo.
+  const [estadoRota, setEstadoRota] = useState<EstadoRotaResultado | null>(null)
+  const workerRef = useRef<Worker | null>(null)
+  const proximoPedidoIdRef = useRef(0)
+  // pedido em voo: id do ultimo postMessage + o destino ao qual ele pertence —
+  // o listener de mensagem fica preso ao closure do efeito de montagem
+  // (deps `[]`), entao precisa de um ref pra "ver" o destino atual sem
+  // recriar o worker a cada troca de destino.
+  const pedidoEmVooRef = useRef<{ id: number; destino: Coord } | null>(null)
+  // ultima posicao/destino que efetivamente disparou um calculo — e quem decide
+  // se um novo tick de GPS passou do limiar de 200 m (haversineNm) pra valer a
+  // pena recalcular, ou se e so jitter normal do GPS.
+  const ultimoCalculoRef = useRef<{ pos: Coord; destino: Coord } | null>(null)
+
+  useEffect(() => {
+    const worker = new Worker(new URL("./rota.worker.ts", import.meta.url), { type: "module" })
+    workerRef.current = worker
+    worker.addEventListener("message", (e: MessageEvent<RespostaRota>) => {
+      const pedido = pedidoEmVooRef.current
+      if (!pedido || e.data.id !== pedido.id) return // resposta de um pedido ja superado
+      const paraDestino = pedido.destino
+      switch (e.data.tipo) {
+        case "rota":
+          setEstadoRota({ tipo: "rota", paraDestino, pernas: e.data.pernas, distanciaNm: e.data.distanciaNm })
+          break
+        case "fora-da-area":
+          setEstadoRota({ tipo: "fora-da-area", paraDestino })
+          break
+        case "sem-caminho":
+          setEstadoRota({ tipo: "sem-caminho", paraDestino })
+          break
+        case "sem-mascara":
+          // mascara nao carregou (rede, etc.) — nao e culpa do usuario, cai
+          // pro rumo direto em silencio, sem nenhum texto de erro na tela.
+          setEstadoRota(null)
+          break
+      }
+    })
+    return () => {
+      worker.terminate()
+      workerRef.current = null
+    }
+  }, [])
+
+  // Dispara o calculo quando ha destino+posicao e (destino mudou OU a posicao
+  // andou mais que o limiar) — nunca a cada tick puro do GPS. Nao mexe em
+  // `estadoRota` quando falta destino/posicao: a derivacao logo abaixo
+  // (`estadoRotaAtual`) ja trata esse caso como "ausente".
+  useEffect(() => {
+    if (!destino || !posAtual) {
+      ultimoCalculoRef.current = null
+      return
+    }
+    const worker = workerRef.current
+    if (!worker) return // efeito de criacao do worker ainda nao rodou
+
+    const ultimo = ultimoCalculoRef.current
+    const destinoMudou = !ultimo || ultimo.destino !== destino
+    const posMudouBastante = !ultimo || haversineNm(ultimo.pos, posAtual) * 1852 > LIMIAR_RECALCULO_M
+    if (!destinoMudou && !posMudouBastante) return
+
+    const id = ++proximoPedidoIdRef.current
+    pedidoEmVooRef.current = { id, destino }
+    ultimoCalculoRef.current = { pos: posAtual, destino }
+    setEstadoRota({ tipo: "calculando", paraDestino: destino })
+    worker.postMessage({ id, de: posAtual, para: destino } satisfies PedidoRota)
+  }, [destino, posAtual])
+
+  // Estado de rota valido pro destino/posicao ATUAIS — colapsa pra "ausente"
+  // se falta destino/posicao, ou se o resultado guardado pertence a um
+  // destino que ja foi trocado. E aqui, nao no efeito acima, que "ausente"
+  // nasce — puramente derivado, sem setState extra.
+  const estadoRotaAtual = useMemo((): EstadoRota => {
+    if (!destino || !posAtual) return { tipo: "ausente" }
+    if (!estadoRota || estadoRota.paraDestino !== destino) return { tipo: "ausente" }
+    return estadoRota
+  }, [destino, posAtual, estadoRota])
+
   useEffect(() => {
     if (!mapaPronto) return
     let cancelado = false
@@ -305,11 +420,42 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     if (!mapaPronto) return
     if (!mapaPronto.getSource("rumo")) {
       mapaPronto.addSource("rumo", { type: "geojson", data: colecaoVazia() })
+      // Rumo direto vira tracejado fino e discreto quando ha rota pela agua
+      // desenhada por cima (mais abaixo): continua util (e o rumo do momento),
+      // mas para de ser o numero/linha principal da tela.
       mapaPronto.addLayer({
         id: "rumo-linha",
         type: "line",
         source: "rumo",
-        paint: { "line-color": COR_DOURADO, "line-width": 3, "line-dasharray": [2, 2] },
+        layout: { "line-cap": "round" },
+        paint: { "line-color": COR_DOURADO, "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 },
+      })
+    }
+    if (!mapaPronto.getSource("rota")) {
+      mapaPronto.addSource("rota", { type: "geojson", data: colecaoVazia() })
+      // Rota pela agua: linha dourada grossa, joins/caps arredondados (pedido
+      // explicito da task — sem quinas na virada de perna).
+      mapaPronto.addLayer({
+        id: "rota-linha",
+        type: "line",
+        source: "rota",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": COR_DOURADO, "line-width": 3 },
+      })
+    }
+    if (!mapaPronto.getSource("rota-pontos")) {
+      mapaPronto.addSource("rota-pontos", { type: "geojson", data: colecaoVazia() })
+      // Pontos de virada (todo ponto da rota suavizada exceto origem e destino).
+      mapaPronto.addLayer({
+        id: "rota-pontos-circulos",
+        type: "circle",
+        source: "rota-pontos",
+        paint: {
+          "circle-radius": 4,
+          "circle-color": COR_DOURADO,
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#0B1D2D",
+        },
       })
     }
     if (!mapaPronto.getSource("ancora-circulo")) {
@@ -350,7 +496,44 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     )
   }, [mapaPronto, posAtual, destino])
 
-  // Distância/rumo/ETA até o destino — cálculo puro, não depende do mapa.
+  // Rota pela agua (linha + pontos de virada), redesenhada a cada resposta do
+  // Worker; some (volta pra colecao vazia) em qualquer estado que nao seja uma
+  // rota resolvida — inclusive "calculando", pra nao deixar a rota antiga (de
+  // um destino anterior) grudada na tela enquanto a nova ainda calcula.
+  useEffect(() => {
+    if (!mapaPronto) return
+    const sourceLinha = mapaPronto.getSource("rota") as GeoJSONSource | undefined
+    const sourcePontos = mapaPronto.getSource("rota-pontos") as GeoJSONSource | undefined
+    if (!sourceLinha || !sourcePontos) return
+
+    if (estadoRotaAtual.tipo !== "rota") {
+      sourceLinha.setData(colecaoVazia())
+      sourcePontos.setData(colecaoVazia())
+      return
+    }
+
+    const { pernas } = estadoRotaAtual
+    sourceLinha.setData({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: {},
+          geometry: { type: "LineString", coordinates: pernas.map((p) => [p.lo, p.la]) },
+        },
+      ],
+    })
+    // pontos de virada = todo waypoint entre a origem (snapada) e o destino (snapado)
+    const viradas = pernas.slice(1, -1)
+    sourcePontos.setData({
+      type: "FeatureCollection",
+      features: viradas.map((p) => ({ type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: [p.lo, p.la] } })),
+    })
+  }, [mapaPronto, estadoRotaAtual])
+
+  // Distância/rumo/ETA até o destino em linha reta — cálculo puro, não depende
+  // do mapa. Continua existindo mesmo quando ha rota: e a base do painel
+  // enquanto "calculando" e o fallback nos estados sem rota.
   const nav = useMemo(() => {
     if (!destino || !posAtual) return null
     const distanciaNm = haversineNm(posAtual, destino)
@@ -358,6 +541,26 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     const eta = sogKt != null ? etaMinutos(distanciaNm, sogKt) : null
     return { distanciaNm, rumo, eta }
   }, [destino, posAtual, sogKt])
+
+  // Numeros efetivamente exibidos no painel: quando ha rota pela agua, ela
+  // substitui a reta como numero principal — distancia da ROTA, rumo pra
+  // PROXIMA perna (nao pro destino final) e ETA pela distancia da rota. Nos
+  // demais estados (calculando/fora-da-area/sem-caminho/ausente), mostra os
+  // numeros da reta mesmo — e o que a linha tracejada na tela representa.
+  const navExibido = useMemo(() => {
+    if (!nav) return null
+    if (estadoRotaAtual.tipo === "rota" && posAtual) {
+      const { pernas, distanciaNm } = estadoRotaAtual
+      const proximoPonto = pernas[1] ?? pernas[pernas.length - 1]
+      return {
+        distanciaNm,
+        rumo: rumoGraus(posAtual, proximoPonto),
+        eta: sogKt != null ? etaMinutos(distanciaNm, sogKt) : null,
+        pernasQtd: pernas.length - 1,
+      }
+    }
+    return { distanciaNm: nav.distanciaNm, rumo: nav.rumo, eta: nav.eta, pernasQtd: null as number | null }
+  }, [nav, estadoRotaAtual, posAtual, sogKt])
 
   // --- alarme de âncora (estado principal declarado antes do watcher) -----
   const garrandoAnteriorRef = useRef(false)
@@ -635,9 +838,12 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
 
       </div>
 
-      {/* Cluster de ações de navegação — canto inferior direito, acima da
-          escala/atribuição; sobe quando o painel de rumo ocupa a faixa. */}
-      <div className={`absolute right-3 z-20 flex flex-col items-end gap-2 ${destino ? "bottom-32" : "bottom-12"}`}>
+      {/* Faixa de baixo em COLUNA: botões em cima, painel do destino embaixo.
+          Antes eram dois blocos absolutos com bottom fixo, e o painel cobria o
+          MOB e o cartão do alarme (o dono viu: "aciono o alarme e não acontece
+          nada"). Em fluxo, nada se sobrepõe, com ou sem destino. */}
+      <div className="pointer-events-none absolute inset-x-3 bottom-12 z-20 flex flex-col items-end gap-2">
+        <div className="pointer-events-auto flex flex-col items-end gap-2">
           {mapaPronto && (
             <button
               type="button"
@@ -734,17 +940,21 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
         </div>
 
         {destino && (
-          <div className="sombra-2 absolute inset-x-3 bottom-3 z-20 rounded-[12px] border border-line bg-panel/95 px-3 py-2.5 backdrop-blur">
+          <div className="sombra-2 pointer-events-auto w-full rounded-[12px] border border-line bg-panel/95 px-3 py-2.5 backdrop-blur">
             <div className="flex items-center justify-between gap-2">
               <span className="corpo flex min-w-0 items-center gap-2">
                 <Icone nome="mapa" className="size-4 shrink-0 text-accent-forte" />
-                <span className="truncate">Rumo direto para {destino.nome}</span>
+                <span className="truncate">
+                  {estadoRotaAtual.tipo === "rota" ? `Rota pela água para ${destino.nome}` : `Rumo direto para ${destino.nome}`}
+                </span>
               </span>
               <button
                 type="button"
                 onClick={() => {
-                  // limpar o rumo tambem recolhe o marcador de MOB — senao ele
-                  // ficaria orfao no mapa sem nenhum caminho de UI pra remover
+                  // limpar o destino tambem recolhe o marcador de MOB (senao ele
+                  // ficaria orfao no mapa) e a rota — com destino=null,
+                  // `estadoRotaAtual` colapsa pra "ausente" (derivado, sem
+                  // setState extra) e esvazia as sources "rota"/"rota-pontos"
                   setDestino(null)
                   setMob(null)
                 }}
@@ -767,31 +977,62 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
                 </button>
               </div>
             )}
-            {nav && (
+
+            {/* Estados honestos da rota — nenhum deles falha mudo: ou mostra a
+                rota, ou explica por que so ha o rumo direto. So aparecem com
+                posicao conhecida (sem GPS ja tem o aviso acima). */}
+            {posAtual && estadoRotaAtual.tipo === "calculando" && (
+              <p className="apoio mt-2 flex items-center gap-1.5 border-t border-line pt-2 text-dim">
+                <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent-forte" aria-hidden="true" />
+                Calculando rota pela água…
+              </p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "fora-da-area" && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-dim">
+                Fora da área com rota (Ilhabela/São Sebastião a Búzios). Mostrando rumo direto.
+              </p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "sem-caminho" && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">Não achei caminho pela água até esse ponto.</p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "rota" && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-dim">
+                Rota pela água — contorna a costa, não considera profundidade.
+              </p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "ausente" && nav && (
               <p className="apoio mt-2 border-t border-line pt-2 text-warn">
                 Linha reta até o ponto — pode cruzar terra. Confira a carta antes de seguir.
               </p>
             )}
-            {nav && (
+
+            {navExibido && (
               <div className="mt-2 grid grid-cols-3 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] uppercase tracking-[.14em] text-dim">Distância</p>
                   <p className="font-mono-instr text-sm tabular-nums">
-                    {nav.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
+                    {navExibido.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] uppercase tracking-[.14em] text-dim">Rumo</p>
-                  <p className="font-mono-instr text-sm tabular-nums">{Math.round(nav.rumo)}°</p>
+                  <p className="font-mono-instr text-sm tabular-nums">{Math.round(navExibido.rumo)}°</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] uppercase tracking-[.14em] text-dim">ETA</p>
-                  <p className="font-mono-instr text-sm tabular-nums">{nav.eta != null ? `${nav.eta} min` : "—"}</p>
+                  <p className="font-mono-instr text-sm tabular-nums">{navExibido.eta != null ? `${navExibido.eta} min` : "—"}</p>
                 </div>
               </div>
             )}
+            {navExibido?.pernasQtd != null && navExibido.pernasQtd > 0 && (
+              <p className="apoio mt-1 text-center text-dim">
+                {navExibido.pernasQtd} {navExibido.pernasQtd === 1 ? "perna" : "pernas"}
+              </p>
+            )}
           </div>
         )}
+
+      </div>
 
       {parceiroAberto && (
         <CardParceiro

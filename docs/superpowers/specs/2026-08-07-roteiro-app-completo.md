@@ -27,11 +27,11 @@ gate de cobrança dormente, analytics PostHog, relatório mensal por e-mail. 100
 | 3 | Deploy Vercel + CNAME `commander` (DNS only) no Cloudflare | tudo que é público |
 | 4 | `SUPABASE_SERVICE_ROLE_KEY` e `RESEND_API_KEY` no `.env.local` | alertas/relatório locais |
 | 5 | Asset final do logo | landing/identidade |
-| 6 | **Parecer jurídico**: comissão/vínculo trabalhista, verificação RH, disclaimer de navegação, responsabilidade de poitas | Ondas 7, 8 e 9 |
+| 6 | **Parecer jurídico**: comissão/vínculo trabalhista, verificação RH, disclaimer de navegação, responsabilidade de poitas | Ondas 8, 9 e 10 |
 | 7 | Decisão de preço: R$ 119,00 (espec v3) vs R$ 119,90 (implementado) | um ajuste de constante |
 | 8 | "Inclui 1 acesso CMDT": marketing ou limite de plano? (recomendação: marketing, sem limite) | nada por ora |
-| 9 | Desabilitar boleto na conta Asaas (o código também vai restringir) | Onda 5 |
-| 10 | Corretora de seguro parceira + número WhatsApp Business | itens de retenção da Onda 5 |
+| 9 | Desabilitar boleto na conta Asaas (o código também vai restringir) | Onda 6 |
+| 10 | Corretora de seguro parceira + número WhatsApp Business | itens de retenção da Onda 6 |
 | 11 | Confirm email ON no Supabase antes do público | lançamento |
 
 ---
@@ -45,7 +45,7 @@ independente da base de PROPs).
 - Migration: tabela `parceiros` — categoria (marina/posto/pousada/restaurante), nome, sobre,
   lat/lng, telefone, e-mail, horário, preços (diária de vaga/poita, diesel), calado máx,
   traslado incluso, vaga cortesia p/ quem consome, culinária, `tem_poita`/`qtd_poitas`
-  (gancho da Onda 9), plano (`cortesia`/`basico` R$100/`destaque` R$200), 3 fotos (storage),
+  (gancho da Onda 10), plano (`cortesia`/`basico` R$100/`destaque` R$200), 3 fotos (storage),
   `atualizado_em`, contador de visualizações. RLS: parceiro edita só o seu; PROP vê visíveis.
   Trava de 1 atualização de preço/dia (regra da espec).
 - 4º tipo de conta com painel próprio autoatendimento ("zero estresse"): cadastro → categoria
@@ -64,7 +64,18 @@ independente da base de PROPs).
 - **Alarme de âncora** (raio de segurança, alerta se garrar) e botão MOB.
 - Disclaimer fixo: "auxílio à navegação — não substitui as cartas náuticas oficiais".
 
-## Onda 5 — O BARCO VIVO (deltas da espec v3 na ficha + retenção)
+## Onda 5 — ROTA MARÍTIMA ✅ (entregue 08/08/2026)
+
+A linha de destino parou de cruzar terra. Máscara água/terra da costa **Ilhabela →
+Búzios** gerada da linha de costa do OpenStreetMap (ODbL), 4088×1547 células a 100 m,
+21 KB versionados; A* octile com margem de 200 m da costa, string-pulling em pernas,
+rodando em Web Worker; painel com distância da rota, rumo da próxima perna, ETA e
+número de pernas; estados honestos (fora da área / sem caminho / calculando). Prova:
+Abraão → Angra sai por dentro do canal da Ilha Grande. Custo operacional zero.
+**Sabe contornar TERRA, não conhece PROFUNDIDADE** — o disclaimer de carta oficial
+continua valendo.
+
+## Onda 6 — O BARCO VIVO (deltas da espec v3 na ficha + retenção)
 
 - **Livro de Bordo completo (§10)**: hora saída/retorno com duração, tripulação a bordo
   (dos vínculos), destino, condições do mar gravadas automaticamente (Open-Meteo no momento
@@ -82,14 +93,14 @@ independente da base de PROPs).
 - Menores herdados: preço dourado no card fundador, unificar secrets APP_URL/COMMANDER_URL,
   editar item monitorado, lightbox de fotos, "Em breve" do menu limpo.
 
-## Onda 6 — CARTAS NÁUTICAS E OFFLINE (degrau 2 da navegação)
+## Onda 7 — CARTAS NÁUTICAS E OFFLINE (degrau 2 da navegação)
 
 - Pipeline: cartas raster gratuitas da Marinha (BSB/NOAA v3) → tiles → camada opcional
   "ver carta náutica" no mapa.
 - Cache offline de tiles no service worker (no mar não tem sinal).
 - Batimetria/sombreamento de profundidade conforme o que a carta raster der.
 
-## Onda 7 — MARKETPLACE TRANSACIONAL (bloqueada pelo jurídico #6)
+## Onda 8 — MARKETPLACE TRANSACIONAL (bloqueada pelo jurídico #6)
 
 Espec v3 §6/§7: contratação de diária no app — 1º fechamento R$ 350 fixo global, comissão 10%
 piso R$ 25, split Asaas com repasse no mesmo dia (nunca reter saldo), pacotes de diárias com
@@ -98,17 +109,17 @@ fechamento (risco de "queimar" aceito na espec), avaliações reais (só quem co
 métricas do CMDT (vagas fixas ativas, diárias/mês, histórico), vagas fixas, chat PROP↔CMDT,
 cobrança do CMDT R$ 19,99 adiada 12+ meses (CMO). Verificação RH operacional com crivo.
 
-## Onda 8 — PRESTADORES (espec v3 §8; bloqueada pelo jurídico e por massa de PROPs)
+## Onda 9 — PRESTADORES (espec v3 §8; bloqueada pelo jurídico e por massa de PROPs)
 
 Trabalhos em aberto postados pelo PROP (título, valor, local, tempo), aceite esmaece para os
-demais, avaliações, chat (reusa o da Onda 7), cadastro grátis na fase 1 (R$ 19,99 só com
+demais, avaliações, chat (reusa o da Onda 8), cadastro grátis na fase 1 (R$ 19,99 só com
 massa crítica de leads).
 
-## Onda 9 — POITAS (a carta na manga — Pedro mandou guardar; bloqueada por jurídico + operação)
+## Onda 10 — POITAS (a carta na manga — Pedro mandou guardar; bloqueada por jurídico + operação)
 
 - Cadastro de poitas com lat/lng exata, detalhes, valor, fotos, **laudo técnico assinado**.
 - Reserva e pagamento no app com split (ex.: 150 = 100 dono + 50 Commander) — mesma infra
-  de split da Onda 7.
+  de split da Onda 8.
 - Disclaimers obrigatórios: "necessária verificação da vaga pessoalmente" + "responsabilidade
   do dono caso a poita estoure" (enquanto não houver laudo).
 - Visão Pedro: poitas Commander com bandeira própria em pontos estratégicos (Saco do Céu,
@@ -133,4 +144,4 @@ carona em estande) · Instagram de bastidor de marina.
 4 antes de tudo: destrava o funil de vendas de parceiros (receita paralela imediata do leque
 "barcos, marinas, postos, restaurantes, pousadas") e muda a frequência de uso do app de mensal
 para semanal. 5 fecha a espec da ficha e a retenção. 6 aprofunda o diferencial de navegação.
-7-9 dependem do advogado e de operação — o código espera a caneta.
+8-10 dependem do advogado e de operação — o código espera a caneta.

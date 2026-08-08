@@ -1,0 +1,12 @@
+{
+  "lngMin": -45.75,
+  "latMin": -24.05,
+  "lngMax": -41.75,
+  "latMax": -22.65,
+  "largura": 4088,
+  "altura": 1547,
+  "metrosPorCelula": 100,
+  "margemCelulas": 2,
+  "geradoEm": "2026-08-08T05:12:24.445Z",
+  "fonte": "OpenStreetMap contributors (natural=coastline), via Overpass API — ODbL, atribuição obrigatória"
+}

@@ -156,6 +156,56 @@ O mapa de `/navegar` e o seletor de ponto do painel do parceiro usam Mapbox GL J
    remova. O disclaimer "auxílio à navegação — não substitui as cartas náuticas
    oficiais" também é fixo, por segurança e por juridico.
 
+## Máscara de água
+
+Grid raster (PNG grayscale) que marca, célula a célula, o que é água navegável e o
+que é terra/margem no circuito real dos barcos atendidos pelo Commander: **Ilhabela/São
+Sebastião → Ubatuba → Paraty → Angra/Ilha Grande → Rio → Cabo Frio/Búzios**
+(`lngMin -45.75, latMin -24.05, lngMax -41.75, latMax -22.65`). É a base da rota
+marítima: o roteador só pode passar por onde a máscara diz que é água — se ela estiver
+errada, a rota manda o barco por cima de terra ou de uma ilha.
+
+- **Resolução:** 100 m/célula (`METROS_POR_CELULA` no topo do script). A região cobre
+  ~6,3 milhões de células — em 80 m/célula ficaria perto de 10 milhões, e o A* (ver
+  abaixo) estouraria o orçamento de memória num celular. 100 m fecha com folga.
+- **Margem de segurança da costa:** a dilatação de terra é sempre 2 células
+  (`MARGEM_CELULAS_TERRA`), então a resolução determina a distância física da margem:
+  **200 m** nessa região (era 160 m quando a resolução era 80 m). O raio padrão de
+  snap de `acharCaminho` (`RAIO_SNAP_PADRAO_CELULAS = 20`) também escala junto: ~2 km
+  agora, contra ~1,6 km antes.
+- **Orçamento de memória do A\*:** `web/lib/domain/rota.ts` aloca, por célula da grade,
+  `gScore` (Float32Array, 4 bytes) + `pai` (Int32Array, 4 bytes) + `fechado`
+  (Uint8Array, 1 byte) = **9 bytes/célula**, mais um heap de prioridade cujo tamanho é
+  limitado por `LIMITE_NOS_EXPANDIDOS` (2.000.000 nós), não pelo tamanho da grade — o
+  `fScore` de cada nó vive dentro do próprio heap, não num array do tamanho da grade
+  inteira (antes da onda 5 eram 21 bytes/célula: `gScore`+`fScore` em Float64Array +
+  `pai`, sem contar o heap). Na região nova (~6,32M células), isso dá ~69,5 MB de
+  alocação total — dentro do orçamento de 80 MB. Em 80 m/célula (~9,88M células) o
+  mesmo cálculo passaria de 100 MB, por isso a resolução ficou em 100 m.
+- **Arquivos gerados:** `web/public/mapa/mascara-agua.png` (255 = água, 0 = terra,
+  8 bits grayscale) + `web/public/mapa/mascara-agua.json` (bbox da região, dimensões
+  em células, `metrosPorCelula`, `margemCelulas` e a data de geração).
+- **Como regerar:** `node scripts/gerar-mascara-agua.mjs` a partir da raiz do repo
+  (ou `npm run mascara` dentro de `web/`). O script busca a linha de costa
+  (`natural=coastline`) no Overpass, rasteriza, faz flood fill a partir de um ponto
+  de oceano aberto, dilata a terra em 2 células de margem de segurança e por fim poda
+  bolsões de água que a dilatação isolou do oceano aberto (BFS 8-conectado sem cortar
+  quina, a mesma regra de movimento do A* — sem essa poda, reentrâncias estreitas de
+  marina/porto podem virar pixels de água "presos" que travam o snap da rota com "sem
+  rota" mesmo perto da costa). A resposta do Overpass fica em cache local
+  (`scripts/.cache/coastline.json`, ignorado pelo git) — apagar esse arquivo força uma
+  nova consulta. **Atenção ao trocar a região:** o script não valida se o cache
+  corresponde à região atual, então ao mudar `REGIAO` apague o cache manualmente antes
+  de regerar.
+- **Origem do dado:** OpenStreetMap contributors, linha de costa (`natural=coastline`),
+  extraída via Overpass API. Licença **ODbL — atribuição obrigatória** em qualquer
+  lugar que exiba essa camada ("© OpenStreetMap contributors"), igual à sinalização
+  do OpenSeaMap acima.
+- **Aviso importante:** a máscara conhece **terra**, não **profundidade**. Ela impede a
+  rota de cruzar terra firme ou ilhas, mas não sabe onde tem baixio, recife ou água
+  rasa demais para o casco — isso não substitui carta náutica nem sonda de
+  profundidade.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.
