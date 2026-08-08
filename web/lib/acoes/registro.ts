@@ -23,7 +23,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
     const bruto = String(formData.get(`equipamento_${eq.id}`) ?? "").trim()
     if (bruto === "") continue
     const nova = parseDecimalPtBr(bruto)
-    if (nova === null) redirect(`/hoje?erro=${encodeURIComponent("Informe um número de horas válido.")}`)
+    if (nova === null) redirect(`/hoje?erro=${encodeURIComponent("Digite as horas do motor (só números, ex.: 1250,5).")}`)
     const v = validarLeitura(nova, eq.horas_atuais)
     if (!v.ok) redirect(`/hoje?erro=${encodeURIComponent(v.erro)}`)
     leituras.push({ equipamentoId: eq.id, nova })
@@ -63,7 +63,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
   revalidatePath("/hoje")
   revalidatePath("/barco")
   if (falhas > 0) {
-    redirect(`/hoje?erro=${encodeURIComponent("Parte do registro não pôde ser salva. Confira e tente de novo.")}`)
+    redirect(`/hoje?erro=${encodeURIComponent("Salvamos as horas, mas o combustível ou a observação não foram. Confira e tente de novo.")}`)
   }
   redirect("/hoje")
 }

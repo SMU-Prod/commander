@@ -67,10 +67,10 @@ export default async function MenuPage({
       </div>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="alerta" className="size-3.5" /> Alertas
+        <Icone nome="alerta" className="size-3.5" /> Avisos
       </p>
       <Link href="/notificacoes" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="titulo-card">Configurar alertas</p>
+        <p className="titulo-card">Configurar avisos</p>
         <p className="apoio mt-0.5 text-dim">Ative os avisos por aparelho e veja o histórico</p>
       </Link>
 

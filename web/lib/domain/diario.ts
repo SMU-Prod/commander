@@ -10,9 +10,9 @@ export const ROTULO_CASCO: Record<string, string> = {
 }
 
 /**
- * Qual aba da matriz de permissões governa um item monitorado — espelha
- * exatamente a função `aba_alvo` do banco (migration 010), quem de fato
- * decide na RLS. Sem isso, o guard da tela e o guard do banco divergem.
+ * Qual área (da tela de acessos) governa uma manutenção ou documento —
+ * espelha exatamente a função `aba_alvo` do banco (migration 010), quem de
+ * fato decide na RLS. Sem isso, o guard da tela e o guard do banco divergem.
  */
 export function abaDoItem(
   item: { equipamento_id: string | null; categoria: string | null },

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { abaDoItem, validarNovoItem } from "@/lib/domain/diario"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
-import { podeEditar } from "@/lib/domain/permissoes"
+import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
 function erroNovo(msg: string): never {
@@ -12,6 +12,12 @@ function erroNovo(msg: string): never {
 }
 function erroEditar(id: string, msg: string): never {
   redirect(`/barco/itens/${id}/editar?erro=${encodeURIComponent(msg)}`)
+}
+
+/** "esse documento" ou "essa manutenção" — as duas caras do mesmo
+ *  item_monitorado, ver glossário da onda 7 (nunca "item" na tela). */
+function nomeDoTipo(categoria: string | null): string {
+  return categoria === "documento" ? "esse documento" : "essa manutenção"
 }
 
 /** Para onde voltar depois de salvar/excluir — onde o item aparece hoje. */
@@ -38,7 +44,7 @@ export async function criarItemMonitorado(formData: FormData) {
 
   const texto = (k: string) => String(formData.get(k) ?? "").trim() || null
   const nome = texto("nome")
-  if (!nome) erroNovo("Dê um nome ao item.")
+  if (!nome) erroNovo("Dê um nome a essa manutenção.")
   const especificacao = texto("especificacao")
   const quantidade = texto("quantidade")
 
@@ -60,10 +66,12 @@ export async function criarItemMonitorado(formData: FormData) {
   const v = validarNovoItem({ intervaloHoras, intervaloMeses, dataFixa })
   if (!v.ok) erroNovo(v.erro)
 
-  // guard pela aba de destino, igual ao editar/excluir: sem isso o unico
+  // guard pela area de destino, igual ao editar/excluir: sem isso o unico
   // controle era a RLS, que barra em silencio — e a tela diria "criado"
   const abaDestino = abaDoItem({ equipamento_id: equipamentoId, categoria }, painel.equipamentos)
-  if (!podeEditar(painel.permissoes, abaDestino)) erroNovo("Seu acesso não permite criar item nessa aba.")
+  if (!podeEditar(painel.permissoes, abaDestino)) {
+    erroNovo(`Seu acesso não permite criar manutenção em ${ROTULO_ABA[abaDestino]}.`)
+  }
 
   const { data: criado, error } = await supabase.from("itens_monitorados").insert({
     embarcacao_id: painel.embarcacao.id,
@@ -78,10 +86,10 @@ export async function criarItemMonitorado(formData: FormData) {
     ultimo_ciclo_data: texto("ultimo_ciclo_data") ?? hojeISO(),
     ultimo_ciclo_horas: numero("ultimo_ciclo_horas", "Informe horas válidas no último serviço."),
   }).select("id")
-  if (error || !criado?.length) erroNovo("Não foi possível criar o item. Confira seu acesso e tente de novo.")
+  if (error || !criado?.length) erroNovo("Não deu para salvar essa manutenção agora. Tente de novo em instantes.")
 
   revalidarTudo([equipamentoId])
-  redirect(`${destinoDoItem(equipamentoId, categoria)}?ok=${encodeURIComponent("Item criado")}`)
+  redirect(`${destinoDoItem(equipamentoId, categoria)}?ok=${encodeURIComponent("Manutenção criada")}`)
 }
 
 export async function salvarItemMonitorado(formData: FormData) {
@@ -90,13 +98,15 @@ export async function salvarItemMonitorado(formData: FormData) {
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("item_id") ?? "")
   const atual = painel.itens.find((i) => i.id === id)
-  if (!atual) erroEditar(id, "Item não encontrado.")
+  if (!atual) erroEditar(id, "Não encontramos essa manutenção ou vencimento. Atualize a página e tente de novo.")
   const abaAtual = abaDoItem(atual, painel.equipamentos)
-  if (!podeEditar(painel.permissoes, abaAtual)) erroEditar(id, "Seu acesso não permite editar este item.")
+  if (!podeEditar(painel.permissoes, abaAtual)) {
+    erroEditar(id, `Seu acesso não permite editar ${ROTULO_ABA[abaAtual]}.`)
+  }
 
   const texto = (k: string) => String(formData.get(k) ?? "").trim() || null
   const nome = texto("nome")
-  if (!nome) erroEditar(id, "Dê um nome ao item.")
+  if (!nome) erroEditar(id, `Dê um nome a ${nomeDoTipo(atual.categoria)}.`)
   const especificacao = texto("especificacao")
   const quantidade = texto("quantidade")
 
@@ -104,10 +114,12 @@ export async function salvarItemMonitorado(formData: FormData) {
   const equipamentoId = alvo.startsWith("eq:") ? alvo.slice(3) : null
   const categoria = alvo.startsWith("cat:") ? alvo.slice(4) : null
 
-  // o alvo pode mudar no editar — checa a aba de destino também, senão dá pra
-  // mover um item pra uma aba que o usuário não tem acesso de editar
+  // o alvo pode mudar no editar — checa a area de destino também, senão dá pra
+  // mover um item pra uma area que o usuário não tem acesso de editar
   const abaNova = abaDoItem({ equipamento_id: equipamentoId, categoria }, painel.equipamentos)
-  if (!podeEditar(painel.permissoes, abaNova)) erroEditar(id, "Seu acesso não permite mover o item para essa aba.")
+  if (!podeEditar(painel.permissoes, abaNova)) {
+    erroEditar(id, `Seu acesso não permite mover isso para ${ROTULO_ABA[abaNova]}.`)
+  }
 
   const numero = (k: string, msg: string) => {
     const v = texto(k)
@@ -135,10 +147,11 @@ export async function salvarItemMonitorado(formData: FormData) {
     ultimo_ciclo_data: texto("ultimo_ciclo_data") ?? hojeISO(),
     ultimo_ciclo_horas: numero("ultimo_ciclo_horas", "Informe horas válidas no último serviço."),
   }).eq("id", id).select("id").maybeSingle()
-  if (error || !data) erroEditar(id, "Não foi possível salvar — confira seu acesso.")
+  if (error || !data) erroEditar(id, "Não deu para salvar agora. Tente de novo em instantes.")
 
   revalidarTudo([atual.equipamento_id, equipamentoId])
-  redirect(`${destinoDoItem(equipamentoId, categoria)}?ok=${encodeURIComponent("Item salvo")}`)
+  const ok = categoria === "documento" ? "Documento salvo" : "Manutenção salva"
+  redirect(`${destinoDoItem(equipamentoId, categoria)}?ok=${encodeURIComponent(ok)}`)
 }
 
 export async function excluirItemMonitorado(formData: FormData) {
@@ -147,16 +160,17 @@ export async function excluirItemMonitorado(formData: FormData) {
   if (!painel) redirect("/onboarding")
   const id = String(formData.get("item_id") ?? "")
   const atual = painel.itens.find((i) => i.id === id)
-  if (!atual) erroEditar(id, "Item não encontrado.")
+  if (!atual) erroEditar(id, "Não encontramos essa manutenção ou vencimento. Atualize a página e tente de novo.")
   const aba = abaDoItem(atual, painel.equipamentos)
-  if (!podeEditar(painel.permissoes, aba)) erroEditar(id, "Seu acesso não permite excluir este item.")
+  if (!podeEditar(painel.permissoes, aba)) erroEditar(id, `Seu acesso não permite excluir em ${ROTULO_ABA[aba]}.`)
 
   // o select confirma que a linha saiu: sem ele, uma exclusão barrada pela
-  // matriz voltaria sem erro e o app anunciaria "excluído" à toa
+  // area de acesso voltaria sem erro e o app anunciaria "excluído" à toa
   const { data: apagado, error } = await supabase
     .from("itens_monitorados").delete().eq("id", id).select("id")
-  if (error || !apagado?.length) erroEditar(id, "Não foi possível excluir — confira seu acesso.")
+  if (error || !apagado?.length) erroEditar(id, "Não deu para excluir agora. Tente de novo em instantes.")
 
   revalidarTudo([atual.equipamento_id])
-  redirect(`${destinoDoItem(atual.equipamento_id, atual.categoria)}?ok=${encodeURIComponent("Item excluído")}`)
+  const ok = atual.categoria === "documento" ? "Documento excluído" : "Manutenção excluída"
+  redirect(`${destinoDoItem(atual.equipamento_id, atual.categoria)}?ok=${encodeURIComponent(ok)}`)
 }

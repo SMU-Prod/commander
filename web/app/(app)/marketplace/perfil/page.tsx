@@ -24,10 +24,10 @@ export default async function PerfilComandantePage({
   return (
     <main>
       <Link href="/marketplace" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Marketplace
+        <Icone nome="voltar" className="size-4" /> Comandantes
       </Link>
       <h1 className="mt-3 text-xl font-semibold">Meu perfil de comandante</h1>
-      <p className="mt-1 text-sm text-dim">Sua vitrine para os proprietários da plataforma.</p>
+      <p className="mt-1 text-sm text-dim">O que os proprietários da plataforma veem sobre você.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={salvarPerfilComandante} className="mt-5 space-y-4">
@@ -63,7 +63,7 @@ export default async function PerfilComandantePage({
         </div>
         <label className="flex items-center gap-2.5 text-sm">
           <input type="checkbox" name="visivel" defaultChecked={p?.visivel ?? true} className="size-5 accent-[#d4af37]" />
-          Aparecer na vitrine do marketplace
+          Aparecer na lista de comandantes disponíveis
         </label>
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar perfil</button>
       </form>

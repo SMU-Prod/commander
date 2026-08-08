@@ -116,7 +116,7 @@ export default async function BarcoPage({
               <span className="corpo flex-1">{ROTULO_CASCO[c]}</span>
               {doGrupo.length === 0 ? (
                 <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`} className="text-xs text-accent-forte">
-                  Monitorar
+                  Adicionar
                 </Link>
               ) : (
                 <span className="font-mono-instr text-xs tabular-nums text-dim">{doGrupo.length} itens</span>

@@ -75,7 +75,7 @@ export default async function DiarioPage({
         <h1 className="titulo-pagina">Diário de Bordo</h1>
         <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
           <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Evento
+            <Icone nome="mais" className="size-4" /> Registrar
           </span>
         </Link>
       </div>
@@ -97,7 +97,7 @@ export default async function DiarioPage({
 
       {grupos.length === 0 && (
         <div className="sombra-1 mt-6 rounded-[14px] border border-line bg-panel p-5 text-center corpo text-dim">
-          Nenhum evento por aqui ainda. Toque em &quot;+ Evento&quot; para registrar o primeiro —
+          Nenhum registro por aqui ainda. Toque em &quot;+ Registrar&quot; para criar o primeiro —
           cada serviço registrado vira histórico e dossiê do barco.
         </div>
       )}

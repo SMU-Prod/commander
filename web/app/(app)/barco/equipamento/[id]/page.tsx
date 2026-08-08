@@ -115,17 +115,17 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
       <div className="mt-6 mb-2 flex items-baseline justify-between">
         <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="ferramenta" className="size-3.5" /> Itens monitorados
+          <Icone nome="ferramenta" className="size-3.5" /> Manutenções
         </p>
         {editavel && (
           <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`eq:${id}`)}`} className="corpo text-accent-forte">
-            Novo item
+            Nova manutenção
           </Link>
         )}
       </div>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {itens.length === 0 && (
-          <p className="corpo py-4 text-dim">Nenhum item monitorado aqui ainda.</p>
+          <p className="corpo py-4 text-dim">Nenhuma manutenção cadastrada aqui ainda.</p>
         )}
         {itens.map(({ item, r }) => {
           const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null

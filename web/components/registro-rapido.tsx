@@ -69,7 +69,7 @@ export function RegistroRapido({
                 <input id="obs" name="obs" placeholder="Ex.: saída às Cagarras" className={campo} />
               </div>
               <button disabled={enviando} className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto disabled:opacity-60">
-                Salvar no diário
+                Registrar no diário
               </button>
               <button type="button" onClick={() => setAberto(false)} className="w-full py-2 text-sm text-dim">
                 Cancelar

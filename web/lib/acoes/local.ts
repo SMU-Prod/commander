@@ -18,7 +18,7 @@ export async function salvarLocalMarina(formData: FormData) {
   const lon = parseDecimalPtBr(String(formData.get("lon") ?? ""))
   if (lat === null || lon === null) erroLocal("Informe latitude e longitude válidas.")
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    erroLocal("Coordenadas fora do intervalo (lat -90..90, lon -180..180).")
+    erroLocal("Essas coordenadas não existem no mapa. Confira se copiou certo do GPS ou do Google Maps.")
   }
 
   const { error } = await supabase

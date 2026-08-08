@@ -12,7 +12,7 @@ export default async function MarketplacePage() {
   return (
     <main>
       <div className="flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Marketplace</h1>
+        <h1 className="titulo-pagina">Comandantes</h1>
         <Link href="/marketplace/perfil" className="inline-flex items-center gap-1 corpo text-accent-forte"><Icone nome="pessoas" className="size-4" /> Sou comandante</Link>
       </div>
       <p className="apoio mt-1 text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
@@ -20,7 +20,7 @@ export default async function MarketplacePage() {
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {((perfis ?? []) as PerfilComandante[]).length === 0 && (
           <p className="corpo py-5 text-dim">
-            Nenhum comandante na vitrine ainda. É comandante? Toque em &quot;Sou comandante&quot; e crie seu perfil.
+            Nenhum comandante cadastrado ainda. É comandante? Toque em &quot;Sou comandante&quot; e crie seu perfil.
           </p>
         )}
         {((perfis ?? []) as PerfilComandante[]).map((p) => (

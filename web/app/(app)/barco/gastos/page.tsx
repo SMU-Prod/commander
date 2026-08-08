@@ -57,7 +57,7 @@ export default async function GastosPage() {
         <h1 className="titulo-pagina">Gastos</h1>
         <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
           <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Lançamento
+            <Icone nome="mais" className="size-4" /> Registrar
           </span>
         </Link>
       </div>

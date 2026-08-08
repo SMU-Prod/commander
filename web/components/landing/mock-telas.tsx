@@ -5,7 +5,7 @@ import { Icone, type NomeIcone } from "@/components/icone"
 const ABAS: { rotulo: string; icone: NomeIcone; ativa?: boolean }[] = [
   { rotulo: "Início", icone: "inicio", ativa: true },
   { rotulo: "Embarcação", icone: "embarcacao" },
-  { rotulo: "Marketplace", icone: "marketplace" },
+  { rotulo: "Comandantes", icone: "marketplace" },
   { rotulo: "Avisos", icone: "alerta" },
   { rotulo: "Menu", icone: "menu" },
 ]

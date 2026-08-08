@@ -32,14 +32,14 @@ export default async function NotificacoesPage() {
 
   return (
     <main>
-      <h1 className="titulo-pagina">Notificações</h1>
+      <h1 className="titulo-pagina">Avisos</h1>
 
       <div className="mt-4">
         <AtivarAlertas />
       </div>
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="alerta" className="size-3.5" /> Alertas ativos
+        <Icone nome="alerta" className="size-3.5" /> O que está vencendo
       </p>
       {ativos.length === 0 ? (
         <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
@@ -58,12 +58,12 @@ export default async function NotificacoesPage() {
       )}
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="calendario" className="size-3.5" /> Avisos enviados
+        <Icone nome="calendario" className="size-3.5" /> Histórico de avisos
       </p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {(enviados ?? []).length === 0 && (
           <p className="corpo py-4 text-dim">
-            Nenhum aviso enviado ainda. Quando um item entrar na margem, você recebe aqui e no aparelho.
+            Nenhum aviso enviado ainda. Quando algo entrar na margem, você recebe aqui e no aparelho.
           </p>
         )}
         {((enviados ?? []) as Pick<AlertaEnviado, "id" | "titulo" | "janela" | "enviado_em">[]).map((a) => (

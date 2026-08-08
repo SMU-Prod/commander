@@ -102,7 +102,7 @@ export default async function TripulacaoPage({
             <option value="completo">Completo — vê e edita tudo</option>
           </select>
         </div>
-        <p className="text-xs text-dim">Você ajusta o acesso em detalhe depois, na matriz de permissões.</p>
+        <p className="text-xs text-dim">Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar.</p>
         <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar convite</button>
       </form>
     </main>

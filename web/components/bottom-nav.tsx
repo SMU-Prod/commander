@@ -16,7 +16,7 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
   },
   {
     href: "/marketplace",
-    rotulo: "Marketplace",
+    rotulo: "Comandantes",
     icone: "marketplace",
   },
   {
