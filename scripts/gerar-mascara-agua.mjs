@@ -11,8 +11,18 @@
  *      de oceano aberto — o que o fill alcançar é água navegável.
  *   5. Dilata a terra em 2 células (8-conectado, 2 passadas com buffers
  *      separados) — margem de segurança da costa.
- *   6. Recorta a margem, deixando só a região pedida.
- *   7. Escreve o PNG (grayscale 8 bits: 255 = água, 0 = terra) + o JSON de
+ *   6. Poda bolsões de água desconectados do oceano aberto: um segundo BFS,
+ *      agora com a MESMA regra de movimento do A* (8-conectado, sem cortar
+ *      quina — ver acharCaminhoEmCelulas em web/lib/domain/rota.ts), a partir
+ *      da mesma semente. A dilatação do passo 5 pode isolar pixels de água
+ *      residuais (reentrâncias de marina, ruído de rasterização) que o fill
+ *      4-conectado do passo 4 via como conectados mas que o A* nunca alcança
+ *      — sem essa poda, snapParaAgua pode grudar a origem/destino numa poça
+ *      de 1 célula sem saída, e a rota falha com "sem rota" mesmo perto da
+ *      costa. Qualquer célula de água fora do alcance dessa varredura vira
+ *      terra.
+ *   7. Recorta a margem, deixando só a região pedida.
+ *   8. Escreve o PNG (grayscale 8 bits: 255 = água, 0 = terra) + o JSON de
  *      metadados.
  *
  * Uso: node scripts/gerar-mascara-agua.mjs   (a partir da raiz do repo)
@@ -36,15 +46,21 @@ const { PNG } = requireFromWeb("pngjs");
 // Configuração
 // ---------------------------------------------------------------------------
 
-// Região pedida: Paraty → Angra → Ilha Grande → Rio → Búzios/Cabo Frio.
+// Região pedida: Ilhabela/São Sebastião → Ubatuba → Paraty → Angra/Ilha Grande →
+// Rio → Cabo Frio/Búzios — o circuito real dos barcos atendidos pelo Commander.
 const REGIAO = {
-  lngMin: -44.95,
-  latMin: -23.45,
+  lngMin: -45.75,
+  latMin: -24.05,
   lngMax: -41.75,
   latMax: -22.65,
 };
 
-const METROS_POR_CELULA = 80;
+// 100 m/célula: com a região expandida (~6,3M células), 80 m/célula estoura o
+// orçamento de 80 MB de alocação do A* (~100 MB mesmo após a otimização de
+// memória de rota.ts); 100 m fecha com folga (~70 MB). Ver a conta completa em
+// docs/OPERACAO.md. Efeito colateral: a margem de segurança da costa
+// (MARGEM_CELULAS_TERRA células) também cresce de 160 m para 200 m.
+const METROS_POR_CELULA = 100;
 const MARGEM_GRAUS = 0.35; // margem em volta da região, fecha vazamentos do fill nas bordas
 const MARGEM_CELULAS_TERRA = 2; // dilatação de segurança da costa
 const SEMENTE = { lat: -23.4, lng: -43.5 }; // oceano aberto ao sul do Rio
@@ -313,7 +329,60 @@ async function main() {
     isAgua = destino;
   }
 
-  // --- 6. Recorta a margem, deixando só a região pedida ---
+  // --- 6. Poda bolsões de água desconectados do oceano aberto pela regra de movimento do A* ---
+  // BFS 8-conectado SEM cortar quina (passo diagonal só é válido se as duas células
+  // ortogonais adjacentes também forem água) — a mesma regra de acharCaminhoEmCelulas
+  // em web/lib/domain/rota.ts. A dilatação do passo 5 é feita numa varredura raster
+  // (linha a linha) e não garante que o resultado continue navegável por essa regra
+  // mais estrita: reentrâncias estreitas de marina/porto podem virar pixels de água
+  // isolados (só ligados ao resto por uma diagonal cujas duas ortogonais viraram
+  // terra). Sem essa poda, esses pixels ainda contam como "água" no PNG e
+  // snapParaAgua pode grudar neles — a rota falha silenciosamente com "sem rota"
+  // mesmo entre dois pontos claramente navegáveis.
+  const DC8 = [1, -1, 0, 0, 1, 1, -1, -1];
+  const DR8 = [0, 0, 1, -1, 1, -1, 1, -1];
+  const alcancavel = new Uint8Array(totalCelulasM);
+  {
+    const fila2 = new Int32Array(totalCelulasM);
+    let cabeca2 = 0;
+    let cauda2 = 0;
+    fila2[cauda2++] = seedIdx;
+    alcancavel[seedIdx] = 1;
+    while (cabeca2 < cauda2) {
+      const idx = fila2[cabeca2++];
+      const r = (idx / larguraM) | 0;
+      const c = idx % larguraM;
+      for (let k = 0; k < 8; k++) {
+        const dc = DC8[k];
+        const dr = DR8[k];
+        const nc = c + dc;
+        const nr = r + dr;
+        if (nc < 0 || nc >= larguraM || nr < 0 || nr >= alturaM) continue;
+        const nidx = nr * larguraM + nc;
+        if (alcancavel[nidx] || isAgua[nidx] !== 1) continue;
+        if (dc !== 0 && dr !== 0) {
+          // sem cortar quina: as duas ortogonais adjacentes também precisam ser água
+          if (isAgua[r * larguraM + nc] !== 1 || isAgua[nr * larguraM + c] !== 1) continue;
+        }
+        alcancavel[nidx] = 1;
+        fila2[cauda2++] = nidx;
+      }
+    }
+  }
+  let celulasPodadas = 0;
+  for (let i = 0; i < totalCelulasM; i++) {
+    if (isAgua[i] === 1 && alcancavel[i] === 0) {
+      isAgua[i] = 0;
+      celulasPodadas++;
+    }
+  }
+  if (celulasPodadas > 0) {
+    console.log(
+      `Poda de conectividade (regra do A*): ${celulasPodadas.toLocaleString("pt-BR")} células de água desconectadas do oceano aberto viraram terra.`
+    );
+  }
+
+  // --- 7. Recorta a margem, deixando só a região pedida ---
   const colMin = clampCol(colFromLng(REGIAO.lngMin));
   const colMax = clampCol(colFromLng(REGIAO.lngMax));
   const rowMin = clampRow(rowFromLat(REGIAO.latMax)); // topo = norte

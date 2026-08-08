@@ -989,7 +989,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             )}
             {posAtual && estadoRotaAtual.tipo === "fora-da-area" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-dim">
-                Fora da área com rota (Paraty a Búzios). Mostrando rumo direto.
+                Fora da área com rota (Ilhabela/São Sebastião a Búzios). Mostrando rumo direto.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "sem-caminho" && (
