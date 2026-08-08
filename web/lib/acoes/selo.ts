@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { MARCADOR_SOLICITACAO_SELO } from "@/lib/domain/selo"
 import { supabaseServer } from "@/lib/supabase/server"
 
 // mesmo contato do rodapé da landing (app/page.tsx) e do mailto do push —
@@ -27,13 +28,28 @@ export async function solicitarAvaliacao() {
   if (!painel) redirect("/onboarding")
   if (painel.papel !== "PROP") volta("Só o proprietário solicita a avaliação presencial.", "erro")
 
+  // trava contra clique repetido: um pedido em aberto nos ultimos 30 dias ja
+  // basta. Sem isso, cada toque grava outra linha e dispara outro e-mail pra
+  // equipe — e o dono nao tem como saber que ja pediu.
+  const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const { data: pedidoAberto } = await supabase
+    .from("eventos")
+    .select("id")
+    .eq("embarcacao_id", painel.embarcacao.id)
+    .eq("descricao", MARCADOR_SOLICITACAO_SELO)
+    .gte("data", trintaDiasAtras)
+    .limit(1)
+  if (pedidoAberto?.length) {
+    volta("Seu pedido já está registrado — a equipe entra em contato. Precisa falar antes? " + EMAIL_EQUIPE)
+  }
+
   const { data: inserido, error } = await supabase
     .from("eventos")
     .insert({
       embarcacao_id: painel.embarcacao.id,
       tipo: "outro",
       data: hojeISO(),
-      descricao: "Selo Ouro — avaliação presencial solicitada",
+      descricao: MARCADOR_SOLICITACAO_SELO,
       criado_por: user.id,
     })
     .select("id")

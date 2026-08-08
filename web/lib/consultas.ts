@@ -1,7 +1,7 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
-import { avaliarSelo, type ResultadoSelo } from "@/lib/domain/selo"
+import { avaliarSelo, MARCADOR_SOLICITACAO_SELO, type ResultadoSelo } from "@/lib/domain/selo"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
@@ -70,8 +70,12 @@ export const carregarSelo = cache(async (): Promise<ResultadoSelo | null> => {
   const [{ count: totalFotos }, { count: totalEventosDiario }, { count: totalContatos }] = await Promise.all([
     supabase.from("fotos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
+    // exclui o marcador do pedido de avaliacao: ele e um evento de verdade na
+    // tabela, mas contar como "historico do barco" faria o proprio pedido
+    // inflar o criterio de que ele depende
     supabase.from("eventos").select("id", { count: "exact", head: true })
-      .eq("embarcacao_id", embarcacao.id),
+      .eq("embarcacao_id", embarcacao.id)
+      .neq("descricao", MARCADOR_SOLICITACAO_SELO),
     supabase.from("contatos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
   ])

@@ -1,3 +1,11 @@
+/** Marcador do pedido de avaliacao presencial, gravado como evento no diario
+ *  (nao existe tabela dedicada). Vive aqui, no dominio, porque DOIS lados
+ *  precisam dele: a action que grava e a contagem do proprio checklist, que
+ *  tem de EXCLUIR esses eventos — senao pedir avaliacao aumentaria o
+ *  percentual do criterio "eventos no diario", que e justamente o que o
+ *  pedido deveria ser consequencia, nao causa. */
+export const MARCADOR_SOLICITACAO_SELO = "Selo Ouro — avaliação presencial solicitada"
+
 import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
