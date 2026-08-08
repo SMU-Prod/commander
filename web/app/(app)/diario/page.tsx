@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { carregarPainel } from "@/lib/consultas"
+import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -25,7 +26,9 @@ export default async function DiarioPage({
   if (!painel) redirect("/onboarding")
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
-    supabase.from("eventos").select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, tem_trilha").eq("embarcacao_id", painel.embarcacao.id)
+    supabase.from("eventos")
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, tem_trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt")
+      .eq("embarcacao_id", painel.embarcacao.id)
       .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
     supabase.from("contatos").select("id, nome"),
   ])
@@ -44,6 +47,14 @@ export default async function DiarioPage({
     ),
   )
   const grupos = agruparPorMes(visiveis)
+
+  // Nomes da tripulacao a bordo (Livro de Bordo) — so busca perfis dos ids
+  // que realmente aparecem nos eventos visiveis.
+  const idsTripulacao = [...new Set(visiveis.flatMap((e) => e.tripulacao ?? []))]
+  const { data: perfisTripulacao } = idsTripulacao.length
+    ? await supabase.from("profiles").select("id, nome").in("id", idsTripulacao)
+    : { data: [] as { id: string; nome: string }[] }
+  const nomePerfil = new Map((perfisTripulacao ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
 
   return (
     <main>
@@ -91,6 +102,23 @@ export default async function DiarioPage({
                 e.anexo_path ? "anexo" : null,
                 e.tem_trilha ? "trilha" : null,
               ].filter(Boolean).join(" · ")
+              // Ficha da saida (Livro de Bordo): duracao, destino, quem estava a
+              // bordo e a condicao do mar registrada no momento — so pra navegacao.
+              const duracaoEvento = e.tipo === "navegacao" ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
+              const tripNomes = (e.tripulacao ?? [])
+                .map((id) => nomePerfil.get(id))
+                .filter((n): n is string => Boolean(n))
+              const temMar = e.mar_onda_m != null || e.mar_vento_kt != null
+              const detalhesSaida = e.tipo === "navegacao"
+                ? [
+                    duracaoEvento != null ? textoDuracao(duracaoEvento) : null,
+                    e.destino,
+                    tripNomes.length > 0 ? tripNomes.join(", ") : null,
+                    temMar
+                      ? `mar ${e.mar_onda_m != null ? `${e.mar_onda_m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"} / ${e.mar_vento_kt != null ? `${Math.round(e.mar_vento_kt)} kt` : "—"}`
+                      : null,
+                  ].filter(Boolean).join(" · ")
+                : ""
               return (
                 <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
                   <div className="w-11 shrink-0 text-center font-mono-instr tabular-nums text-[11px] leading-tight text-dim">
@@ -114,6 +142,7 @@ export default async function DiarioPage({
                         : ""}
                     </p>
                     {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
+                    {detalhesSaida && <p className="apoio mt-0.5 text-dim">{detalhesSaida}</p>}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
                     {e.tem_trilha && (
                       <Link href={`/diario/trilha/${e.id}`} className="apoio mt-1 inline-block text-accent-forte">
