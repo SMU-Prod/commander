@@ -523,6 +523,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             <div className="border-t border-line px-4 pb-4 pt-3">
               <p className="apoio text-dim">
                 Mantenha o app aberto durante o passeio — a trilha vira um evento no Diário de Bordo.
+                Auxílio à navegação: não substitui as cartas náuticas oficiais.
               </p>
               {msg && <p className="mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
               {estado === "parado" && (

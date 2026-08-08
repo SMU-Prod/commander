@@ -1,4 +1,5 @@
 "use client"
+import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
 
@@ -12,6 +13,10 @@ export function RegistroRapido({
 }) {
   const [aberto, setAberto] = useState(false)
   const [enviando, setEnviando] = useState(false)
+  const pathname = usePathname()
+  // no mapa o FAB cobria os controles de navegacao — la o registro de horas
+  // ja tem casa propria (a sugestao pos-trilha do Livro de Bordo)
+  if (pathname === "/navegar") return null
 
   async function enviar(formData: FormData) {
     if (enviando) return

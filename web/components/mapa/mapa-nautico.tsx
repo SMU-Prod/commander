@@ -116,9 +116,8 @@ export function MapaNautico({
           .mapboxgl-map{position:relative}, que vence o .absolute na cascata e
           colapsava a altura para 0 (mapa branco) */}
       <div ref={containerRef} className="h-full w-full" />
-      <p className="pointer-events-none absolute bottom-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-full bg-[#0B1D2D]/70 px-2.5 py-1 font-mono-instr text-[10px] uppercase tracking-[.08em] text-[#9fb3c8]">
-        Auxílio à navegação · não substitui as cartas oficiais
-      </p>
+      {/* o aviso legal "auxílio à navegação" vive no painel de trilha do
+          /navegar — flutuando aqui ele cobria escala e atribuição */}
     </div>
   )
 }
