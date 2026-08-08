@@ -5,7 +5,7 @@
  *
  * Algoritmo:
  *   1. Busca a linha de costa no Overpass (com margem de 0.35° e cache local).
- *   2. Cria um grid métrico (80 m/célula) cobrindo a região COM a margem.
+ *   2. Cria um grid métrico (ver METROS_POR_CELULA) cobrindo a região COM a margem.
  *   3. Rasteriza cada segmento da costa como parede (Bresenham).
  *   4. Flood fill (BFS 4-conectado, fila em Int32Array) a partir de um ponto
  *      de oceano aberto — o que o fill alcançar é água navegável.

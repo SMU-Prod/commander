@@ -70,6 +70,7 @@ async function decodificarGrade(metadados: MascaraMetadados, imagemBlob: Blob): 
       lngMax: metadados.lngMax,
       latMax: metadados.latMax,
       agua: paraCanalAgua(imageData),
+      metrosPorCelula: metadados.metrosPorCelula,
     }
   } finally {
     bitmap.close()

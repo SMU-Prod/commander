@@ -24,6 +24,7 @@ interface MascaraMetadados {
   latMax: number
   largura: number
   altura: number
+  metrosPorCelula: number
 }
 
 let grade: Grade
@@ -54,6 +55,7 @@ beforeAll(() => {
     lngMax: metadados.lngMax,
     latMax: metadados.latMax,
     agua,
+    metrosPorCelula: metadados.metrosPorCelula,
   }
 
   // sanidade: o PNG decodificado tem que bater com o que o JSON diz que ele e.

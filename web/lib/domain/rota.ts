@@ -19,6 +19,9 @@ export interface Grade {
   latMax: number
   /** 1 = agua navegavel, 0 = terra. Indexado por y*largura+x (linha 0 = latMax, como um PNG). */
   agua: Uint8Array
+  /** Resolucao real da mascara. Presente nas grades de verdade (vem do JSON);
+   *  ausente nas grades sinteticas dos testes, que mapeiam grau 1:1 com celula. */
+  metrosPorCelula?: number
 }
 
 /** Nos expandidos antes de desistir. Salvaguarda de runtime p/ nunca travar o navegador
@@ -26,10 +29,21 @@ export interface Grade {
  *  protecao contra um caminho patologico (ou grade corrompida) rodar para sempre. */
 const LIMITE_NOS_EXPANDIDOS = 2_000_000
 
-/** Raio padrao de snap usado por acharCaminho: ~20 celulas, equivalente a ~2km na
- *  mascara real de costa (~100m/celula) — suficiente pra tirar um ponto perto da praia
- *  de cima de terra sem "teleportar" a origem/destino pra longe do que o usuario pediu. */
-const RAIO_SNAP_PADRAO_CELULAS = 20
+/** Alcance do snap em METROS, nao em celulas: o plano fixou ~1 km, e um raio em
+ *  celulas silenciosamente virava 2 km quando a mascara passou de 80 pra 100 m.
+ *  Em metros a regra vale para qualquer resolucao. Alem de 1 km o snap deixaria
+ *  de "tirar o ponto de cima da praia" e passaria a teleportar a origem/destino
+ *  pra outra enseada — mudando a rota sem o usuario pedir. */
+const RAIO_SNAP_METROS = 1000
+
+/** Fallback para grades sinteticas (testes), que nao tem resolucao metrica. */
+const RAIO_SNAP_CELULAS_SEM_ESCALA = 20
+
+/** Alcance do snap em celulas, a partir da resolucao real da grade. */
+function raioSnapCelulas(g: Grade): number {
+  if (!g.metrosPorCelula) return RAIO_SNAP_CELULAS_SEM_ESCALA
+  return Math.max(1, Math.round(RAIO_SNAP_METROS / g.metrosPorCelula))
+}
 
 // custo octile: D para passo ortogonal, D2 para diagonal
 const D = 1
@@ -276,8 +290,9 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celul
 /** Faz snap da origem e do destino pra agua e roda o A*. `null` se algum snap falhar
  *  ou se nao houver caminho navegavel entre eles. */
 export function acharCaminho(g: Grade, de: Coord, para: Coord): Coord[] | null {
-  const origemCelula = snapParaAgua(g, de, RAIO_SNAP_PADRAO_CELULAS)
-  const destinoCelula = snapParaAgua(g, para, RAIO_SNAP_PADRAO_CELULAS)
+  const raio = raioSnapCelulas(g)
+  const origemCelula = snapParaAgua(g, de, raio)
+  const destinoCelula = snapParaAgua(g, para, raio)
   if (!origemCelula || !destinoCelula) return null
 
   const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula)
