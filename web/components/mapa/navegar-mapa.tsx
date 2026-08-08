@@ -131,6 +131,18 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const [sogKt, setSogKt] = useState<number | null>(null)
   const [posAtual, setPosAtual] = useState<Coord | null>(null)
 
+  // --- alarme de âncora: declarado ANTES do watcher, que é quem o avalia ---
+  // "garrando" nasce no watcher com filtro anti-jitter — matemática pura via
+  // `foraDoRaio`, funciona com ou sem mapa.
+  const [ancora, setAncora] = useState<Ancora | null>(null)
+  const [raioM, setRaioM] = useState(RAIO_PADRAO_M)
+  const [garrando, setGarrando] = useState(false)
+  const ancoraRef = useRef<Ancora | null>(null)
+  const foraSeguidasRef = useRef(0)
+  useEffect(() => {
+    ancoraRef.current = ancora
+  }, [ancora])
+
   // Watcher único da tela inteira. Roda do mount ao unmount, independente de
   // estar gravando trilha — a gravação só decide se acumula pontos.
   useEffect(() => {
@@ -144,6 +156,25 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
         const atual: Coord = { la: p.coords.latitude, lo: p.coords.longitude }
         setPosAtual(atual)
         setSogKt(msParaNos(p.coords.speed))
+
+        // Alarme de âncora com filtro anti-jitter (achado da revisão): uma
+        // única leitura ruim de GPS não pode acordar ninguém a bordo.
+        // - leitura com precisão pior que 60 m não conta nem pra dentro nem pra fora;
+        // - a incerteza do GPS (até 30 m) soma ao raio antes de comparar;
+        // - só 3 leituras SEGUIDAS fora acendem o alarme; uma dentro zera.
+        const a = ancoraRef.current
+        if (!a) {
+          foraSeguidasRef.current = 0
+          setGarrando(false)
+        } else {
+          const precisao = p.coords.accuracy
+          if (!(precisao > 60)) {
+            const margem = Math.min(Number.isFinite(precisao) ? precisao : 15, 30)
+            if (foraDoRaio(a, atual, a.raioM + margem)) foraSeguidasRef.current += 1
+            else foraSeguidasRef.current = 0
+            setGarrando(foraSeguidasRef.current >= 3)
+          }
+        }
 
         if (!gravandoRef.current) return
         const ponto = { t: Math.round(p.timestamp / 1000), la: atual.la, lo: atual.lo }
@@ -321,12 +352,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     return { distanciaNm, rumo, eta }
   }, [destino, posAtual, sogKt])
 
-  // --- alarme de âncora --------------------------------------------------
-  const [ancora, setAncora] = useState<Ancora | null>(null)
-  const [raioM, setRaioM] = useState(RAIO_PADRAO_M)
-  // "garrando" é derivado de ancora+posAtual (nunca precisa de setState
-  // próprio) — matemática pura via `foraDoRaio`, funciona com ou sem mapa.
-  const garrando = useMemo(() => (ancora && posAtual ? foraDoRaio(ancora, posAtual, ancora.raioM) : false), [ancora, posAtual])
+  // --- alarme de âncora (estado principal declarado antes do watcher) -----
   const garrandoAnteriorRef = useRef(false)
 
   // Rearma no mount se já havia âncora salva (sobrevive a reload/fechar app).
@@ -361,7 +387,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   }, [mapaPronto, ancora])
 
   // Efeitos colaterais do alarme (vibração + notificação do sistema) — só
-  // isso, `garrando` em si já foi calculado acima sem precisar de estado.
+  // isso; `garrando` em si é decidido no watcher, com o filtro anti-jitter.
   useEffect(() => {
     if (!garrando) {
       garrandoAnteriorRef.current = false
@@ -392,7 +418,9 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   }
 
   function desarmarAncora() {
-    // "garrando" é derivado de `ancora` (useMemo) — zerar ancora já basta.
+    // o contador de leituras zera no watcher quando a âncora some; aqui só
+    // apaga o banner na hora e derruba a âncora
+    setGarrando(false)
     setAncora(null)
     try {
       localStorage.removeItem(CHAVE_ANCORA)
@@ -439,7 +467,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
         <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
 
         {garrando && (
-          <div className="sombra-2 absolute inset-x-3 top-3 z-30 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
+          <div role="alert" className="sombra-2 absolute inset-x-3 top-3 z-30 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
             GARRANDO — verifique o fundeio
           </div>
         )}
@@ -632,7 +660,12 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
               </span>
               <button
                 type="button"
-                onClick={() => setDestino(null)}
+                onClick={() => {
+                  // limpar o rumo tambem recolhe o marcador de MOB — senao ele
+                  // ficaria orfao no mapa sem nenhum caminho de UI pra remover
+                  setDestino(null)
+                  setMob(null)
+                }}
                 aria-label="Limpar destino"
                 className="flex size-8 shrink-0 items-center justify-center text-dim"
               >
