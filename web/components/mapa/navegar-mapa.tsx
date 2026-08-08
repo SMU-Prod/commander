@@ -120,7 +120,8 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const [msg, setMsg] = useState<string | null>(null)
   const [obs, setObs] = useState("")
   const [painel, setPainel] = useState({ velKt: 0, resumo: RESUMO_VAZIO, qtd: 0 })
-  const [painelAberto, setPainelAberto] = useState(true)
+  // nasce recolhido: o mapa é o protagonista da tela, não os cartões
+  const [painelAberto, setPainelAberto] = useState(false)
   const [semGeolocalizacao, setSemGeolocalizacao] = useState(false)
   const pontosRef = useRef<PontoTrilha[]>([])
   const watchRef = useRef<number | null>(null)
@@ -139,6 +140,9 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const [garrando, setGarrando] = useState(false)
   // MOB declarado aqui (antes dos efeitos que o limpam) — a lógica vive na seção MOB
   const [mob, setMob] = useState<Coord | null>(null)
+  // cartão do raio só aparece quando a pessoa toca em "Fundeei" — antes disso
+  // é um pill compacto, senão os cartões disputam o mapa entre si
+  const [armandoAncora, setArmandoAncora] = useState(false)
   const ancoraRef = useRef<Ancora | null>(null)
   const foraSeguidasRef = useRef(0)
   useEffect(() => {
@@ -410,6 +414,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
 
   function fundear() {
     if (!posAtual) return
+    setArmandoAncora(false)
     const nova: Ancora = { la: posAtual.la, lo: posAtual.lo, raioM }
     setAncora(nova)
     try {
@@ -603,7 +608,17 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             </button>
           )}
 
-          {!ancora ? (
+          {!ancora && !armandoAncora && (
+            <button
+              type="button"
+              onClick={() => setArmandoAncora(true)}
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-3 text-sm font-medium text-dim backdrop-blur"
+            >
+              <Icone nome="ancora" className="size-4" />
+              Fundeei
+            </button>
+          )}
+          {!ancora && armandoAncora && (
             <div className="sombra-2 w-56 rounded-[12px] border border-line bg-panel/95 p-3 backdrop-blur">
               <label htmlFor="raio-ancora" className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[.14em] text-dim">
                 Raio do alarme
@@ -627,10 +642,18 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
                 className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto disabled:opacity-50"
               >
                 <Icone nome="ancora" className="size-4" />
-                Fundeei
+                Armar alarme
+              </button>
+              <button
+                type="button"
+                onClick={() => setArmandoAncora(false)}
+                className="mt-1 flex h-11 w-full items-center justify-center text-sm text-dim"
+              >
+                Cancelar
               </button>
             </div>
-          ) : (
+          )}
+          {ancora && (
             <button
               type="button"
               onClick={desarmarAncora}

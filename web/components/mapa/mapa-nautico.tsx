@@ -64,6 +64,9 @@ export function MapaNautico({
           attribution: "© OpenSeaMap",
         })
         mapa.addLayer({ id: "openseamap", type: "raster", source: "openseamap" })
+        // se o container foi medido antes do CSS/layout assentar, o canvas
+        // fica com tamanho errado (mapa "branco") — remedir resolve
+        mapa.resize()
         aoIniciarRef.current?.(mapa)
       })
       mapaRef.current = mapa
