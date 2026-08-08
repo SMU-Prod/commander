@@ -466,20 +466,23 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
   const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
 
   return (
-    <main>
-      <h1 className="titulo-pagina">Navegar</h1>
+    // Tela cheia: escapa do px-4/pt-5/pb-24 do layout com margens negativas;
+    // a altura desconta a bottom nav fixa (~4rem). O mapa é a tela; todo o
+    // resto flutua por cima.
+    <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
+      <h1 className="sr-only">Navegar</h1>
+      <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
 
-      {/* fora do mapa, em fluxo: o alarme nunca cobre o painel de trilha nem o SOG */}
-      {garrando && (
-        <div role="alert" className="sombra-2 mt-3 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
-          GARRANDO — verifique o fundeio
-        </div>
-      )}
+      {/* coluna do topo: alarme + trilha EMPILHADOS (nunca se sobrepõem);
+          right-14 deixa livres os controles do mapa (zoom/bússola/locate) */}
+      <div className="absolute left-3 right-14 top-3 z-20 flex flex-col gap-2">
+        {garrando && (
+          <div role="alert" className="sombra-2 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
+            GARRANDO — verifique o fundeio
+          </div>
+        )}
 
-      <div className="relative mt-3 h-[65dvh] min-h-[420px]">
-        <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
-
-        <div className="sombra-2 absolute inset-x-3 top-3 z-20 overflow-hidden rounded-[14px] border border-line bg-panel/95 backdrop-blur">
+        <div className="sombra-2 overflow-hidden rounded-[14px] border border-line bg-panel/95 backdrop-blur">
           <button
             type="button"
             onClick={() => setPainelAberto((v) => !v)}
@@ -591,9 +594,11 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
           )}
         </div>
 
-        {/* Cluster de ações de navegação — canto inferior direito, sobe
-            quando o painel de rumo (destino) ocupa a faixa inferior. */}
-        <div className={`absolute right-3 z-20 flex flex-col items-end gap-2 ${destino ? "bottom-24" : "bottom-3"}`}>
+      </div>
+
+      {/* Cluster de ações de navegação — canto inferior direito, acima da
+          escala/atribuição; sobe quando o painel de rumo ocupa a faixa. */}
+      <div className={`absolute right-3 z-20 flex flex-col items-end gap-2 ${destino ? "bottom-32" : "bottom-12"}`}>
           {mapaPronto && (
             <button
               type="button"
@@ -717,7 +722,6 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             )}
           </div>
         )}
-      </div>
 
       {parceiroAberto && (
         <CardParceiro

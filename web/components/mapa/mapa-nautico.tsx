@@ -42,8 +42,22 @@ export function MapaNautico({
         center: CENTRO_PADRAO,
         zoom: 10,
         attributionControl: false,
+        // Instrumento de bordo, nao mapa de carro: cores desbotadas (a
+        // sinalizacao nautica do OpenSeaMap e quem pinta por cima), sem
+        // placas de rodovia, sem transporte publico, sem POI de cidade.
+        config: {
+          basemap: {
+            theme: "faded",
+            lightPreset: "day",
+            showRoadLabels: false,
+            showTransitLabels: false,
+            showPointOfInterestLabels: false,
+            show3dObjects: false,
+          },
+        },
       })
       mapa.addControl(new mapboxgl.AttributionControl({ compact: true }))
+      mapa.addControl(new mapboxgl.ScaleControl({ unit: "nautical" }), "bottom-left")
       mapa.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right")
       mapa.addControl(
         new mapboxgl.GeolocateControl({
@@ -96,13 +110,14 @@ export function MapaNautico({
   }
 
   return (
+    // Tela cheia: o mapa É a tela; quem emoldura é quem usa (via className).
     <div className={`relative ${className ?? ""}`}>
       {/* h-full em vez de absolute/inset: o CSS do mapbox forca
           .mapboxgl-map{position:relative}, que vence o .absolute na cascata e
           colapsava a altura para 0 (mapa branco) */}
-      <div ref={containerRef} className="h-full w-full overflow-hidden rounded-[14px]" />
-      <p className="rotulo pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0B1D2D]/80 px-3 py-1.5 text-[#7c93ab]">
-        Auxílio à navegação — não substitui as cartas náuticas oficiais
+      <div ref={containerRef} className="h-full w-full" />
+      <p className="pointer-events-none absolute bottom-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 overflow-hidden text-ellipsis whitespace-nowrap rounded-full bg-[#0B1D2D]/70 px-2.5 py-1 font-mono-instr text-[10px] uppercase tracking-[.08em] text-[#9fb3c8]">
+        Auxílio à navegação · não substitui as cartas oficiais
       </p>
     </div>
   )
