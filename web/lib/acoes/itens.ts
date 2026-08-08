@@ -60,7 +60,12 @@ export async function criarItemMonitorado(formData: FormData) {
   const v = validarNovoItem({ intervaloHoras, intervaloMeses, dataFixa })
   if (!v.ok) erroNovo(v.erro)
 
-  const { error } = await supabase.from("itens_monitorados").insert({
+  // guard pela aba de destino, igual ao editar/excluir: sem isso o unico
+  // controle era a RLS, que barra em silencio — e a tela diria "criado"
+  const abaDestino = abaDoItem({ equipamento_id: equipamentoId, categoria }, painel.equipamentos)
+  if (!podeEditar(painel.permissoes, abaDestino)) erroNovo("Seu acesso não permite criar item nessa aba.")
+
+  const { data: criado, error } = await supabase.from("itens_monitorados").insert({
     embarcacao_id: painel.embarcacao.id,
     equipamento_id: equipamentoId,
     categoria,
@@ -72,8 +77,8 @@ export async function criarItemMonitorado(formData: FormData) {
     data_fixa: dataFixa,
     ultimo_ciclo_data: texto("ultimo_ciclo_data") ?? hojeISO(),
     ultimo_ciclo_horas: numero("ultimo_ciclo_horas", "Informe horas válidas no último serviço."),
-  })
-  if (error) erroNovo("Não foi possível criar o item. Tente de novo.")
+  }).select("id")
+  if (error || !criado?.length) erroNovo("Não foi possível criar o item. Confira seu acesso e tente de novo.")
 
   revalidatePath("/barco")
   revalidatePath("/hoje")
