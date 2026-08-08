@@ -1,7 +1,7 @@
 "use client"
 import { useMemo, useState } from "react"
 import { Icone } from "@/components/icone"
-import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
+import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
@@ -83,6 +83,12 @@ export function CamposNavegacaoEvento({
           {duracao != null && (
             <p className="flex items-center gap-1.5 font-mono-instr text-sm tabular-nums text-dim">
               <Icone nome="relogio" className="size-4" /> Duração: {textoDuracao(duracao)}
+              {/* sem dizer isso em voz alta, "22:00 → 01:30 = 3 h 30" parece
+                  conta errada — e uma travessia de MAIS de um dia sai
+                  subestimada sem ninguém perceber */}
+              {retornoNoDiaSeguinte(horaSaida || null, horaRetorno || null) && (
+                <span className="corpo text-warn">· retorno no dia seguinte</span>
+              )}
             </p>
           )}
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { duracaoHoras, horasSugeridas, textoDuracao } from "./bordo"
+import { duracaoHoras, horasSugeridas, retornoNoDiaSeguinte, textoDuracao } from "./bordo"
 
 describe("duracaoHoras", () => {
   it("calcula a duracao entre saida e retorno", () => {
@@ -32,5 +32,22 @@ describe("textoDuracao", () => {
     expect(textoDuracao(4.5)).toBe("4 h 30 min")
     expect(textoDuracao(2)).toBe("2 h")
     expect(textoDuracao(0.5)).toBe("30 min")
+  })
+})
+
+describe("entradas malformadas", () => {
+  it("nao deixa NaN vazar para a tela", () => {
+    expect(duracaoHoras("08", "12:00")).toBeNull()
+    expect(duracaoHoras("", "12:00")).toBeNull()
+    expect(duracaoHoras("25:00", "12:00")).toBeNull()
+    expect(duracaoHoras("08:99", "12:00")).toBeNull()
+  })
+})
+
+describe("retornoNoDiaSeguinte", () => {
+  it("marca a travessia da meia-noite", () => {
+    expect(retornoNoDiaSeguinte("22:00", "01:30")).toBe(true)
+    expect(retornoNoDiaSeguinte("08:00", "12:00")).toBe(false)
+    expect(retornoNoDiaSeguinte(null, "12:00")).toBe(false)
   })
 })
