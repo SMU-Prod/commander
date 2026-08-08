@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { PNG } from "pngjs"
 import { beforeAll, describe, expect, it } from "vitest"
-import { acharCaminho, distanciaDaRota, ehAgua, paraCelula, type Coord, type Grade } from "./rota"
+import { acharCaminho, distanciaDaRota, ehAgua, paraCelula, suavizar, type Coord, type Grade } from "./rota"
 
 /**
  * O GATE da onda 5: prova, com a mascara real da costa do Rio gerada por
@@ -68,6 +68,70 @@ const MARINA_DA_GLORIA: Coord = { la: -22.9186, lo: -43.1686 } // Marina da Glor
 const BUZIOS: Coord = { la: -22.7469, lo: -41.8817 } // Buzios
 const PONTO_EM_TERRA = { la: -23.05, lo: -44.3 } // interior de Angra dos Reis, claramente terra
 
+/**
+ * Anda de A a B em passos de celula (Bresenham), com a MESMA regra de "nao corta
+ * quina" do A* (passo diagonal so vale se as duas celulas ortogonais adjacentes
+ * tambem forem agua), e confere que TODA celula do tracado esta em agua — nao so
+ * os vertices da perna. Reimplementada aqui de proposito, independente da
+ * `linhaDeVisaoLivre` interna de rota.ts: o achado 2 da revisao e que `suavizar`
+ * nunca foi testado contra a costa real, entao o teste nao pode validar o
+ * resultado usando o mesmo criterio que o produziu.
+ */
+function pernaInteiramenteNaAgua(g: Grade, a: Coord, b: Coord): boolean {
+  let x0 = paraCelula(g, a).x
+  let y0 = paraCelula(g, a).y
+  const { x: x1, y: y1 } = paraCelula(g, b)
+  const dx = Math.abs(x1 - x0)
+  const dy = -Math.abs(y1 - y0)
+  const sx = x0 < x1 ? 1 : -1
+  const sy = y0 < y1 ? 1 : -1
+  let err = dx + dy
+
+  if (!ehAgua(g, { x: x0, y: y0 })) return false
+
+  while (x0 !== x1 || y0 !== y1) {
+    const e2 = 2 * err
+    const movX = e2 >= dy
+    const movY = e2 <= dx
+    if (movX && movY) {
+      // passo diagonal: as duas ortogonais adjacentes tambem tem que ser agua,
+      // senao a linha desenhada na tela corta a quina de um pedaco de terra
+      if (!ehAgua(g, { x: x0 + sx, y: y0 }) || !ehAgua(g, { x: x0, y: y0 + sy })) return false
+    }
+    if (movX) {
+      err += dy
+      x0 += sx
+    }
+    if (movY) {
+      err += dx
+      y0 += sy
+    }
+    if (!ehAgua(g, { x: x0, y: y0 })) return false
+  }
+  return true
+}
+
+/**
+ * Roda `suavizar` sobre o caminho bruto de um caso real e afirma o que o achado 2
+ * da revisao pedia: cada vertice da perna esta em agua, o traçado INTEIRO entre
+ * pernas consecutivas fica em agua (nao so os vertices), o primeiro e o ultimo
+ * ponto do caminho bruto sao preservados, e ha menos pernas que pontos no
+ * caminho bruto (senao suavizar nao suavizou nada).
+ */
+function assertSuavizacaoNaAgua(g: Grade, caminho: Coord[]) {
+  const pernas = suavizar(g, caminho)
+
+  for (const p of pernas) {
+    expect(ehAgua(g, paraCelula(g, p))).toBe(true)
+  }
+  for (let i = 1; i < pernas.length; i++) {
+    expect(pernaInteiramenteNaAgua(g, pernas[i - 1], pernas[i])).toBe(true)
+  }
+  expect(pernas[0]).toEqual(caminho[0])
+  expect(pernas[pernas.length - 1]).toEqual(caminho[caminho.length - 1])
+  expect(pernas.length).toBeLessThan(caminho.length)
+}
+
 function medirRota(rotulo: string, de: Coord, para: Coord) {
   const inicio = performance.now()
   const caminho = acharCaminho(grade, de, para)
@@ -93,6 +157,11 @@ describe("rota na costa real (gate da onda 5)", () => {
       // atravessar o canal (~15 MN em linha reta) — este teto e o assert que
       // prova que o canal esta aberto.
       expect(distancia!).toBeLessThan(25)
+      // achado 1 da revisao: com uma mascara toda-agua (sem terra nenhuma) os
+      // asserts acima passariam do mesmo jeito — este e o que prova que a rota
+      // de fato desviou de terra em vez de so ter dado sorte de nao cruzar nada.
+      expect(distancia!).toBeGreaterThan(distanciaDaRota([ABRAAO, ANGRA]) * 1.05)
+      assertSuavizacaoNaAgua(grade, caminho!)
     },
   )
 
@@ -105,6 +174,9 @@ describe("rota na costa real (gate da onda 5)", () => {
       expect(caminho!.every((p) => ehAgua(grade, paraCelula(grade, p)))).toBe(true)
       expect(distancia!).toBeGreaterThan(55)
       expect(distancia!).toBeLessThan(120)
+      // achado 1: prova que a rota desviou, nao so ficou por sorte fora de terra
+      expect(distancia!).toBeGreaterThan(distanciaDaRota([MARINA_DA_GLORIA, ABRAAO]) * 1.05)
+      assertSuavizacaoNaAgua(grade, caminho!)
     },
   )
 
@@ -112,9 +184,12 @@ describe("rota na costa real (gate da onda 5)", () => {
     "Marina da Gloria -> Buzios: existe rota e fica toda na agua",
     { timeout: 30000 },
     () => {
-      const { caminho } = medirRota("Marina -> Buzios", MARINA_DA_GLORIA, BUZIOS)
+      const { caminho, distancia } = medirRota("Marina -> Buzios", MARINA_DA_GLORIA, BUZIOS)
       expect(caminho).not.toBeNull()
       expect(caminho!.every((p) => ehAgua(grade, paraCelula(grade, p)))).toBe(true)
+      // achado 1: prova que a rota desviou, nao so ficou por sorte fora de terra
+      expect(distancia!).toBeGreaterThan(distanciaDaRota([MARINA_DA_GLORIA, BUZIOS]) * 1.05)
+      assertSuavizacaoNaAgua(grade, caminho!)
     },
   )
 

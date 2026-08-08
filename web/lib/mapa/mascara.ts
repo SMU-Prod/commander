@@ -15,9 +15,12 @@ interface MascaraMetadados {
 const URL_JSON = "/mapa/mascara-agua.json"
 const URL_PNG = "/mapa/mascara-agua.png"
 
-/** Memoiza a promessa de carga: decodificar ~4.5M pixels e um custo que nao vale
- *  pagar duas vezes. `null` (sucesso mas sem grade) tambem fica memoizado —
- *  se a mascara nao existe no servidor, nao adianta tentar de novo a cada chamada. */
+/** Memoiza a promessa de carga: decodificar milhoes de pixels e um custo que nao vale
+ *  pagar duas vezes. `null` (sucesso mas sem grade — PNG/JSON ausentes no servidor)
+ *  tambem fica memoizado: se a mascara nao existe, nao adianta tentar de novo a cada
+ *  chamada. Já uma FALHA (rede caiu, decode explodiu) NUNCA é memoizada — ver
+ *  carregarGrade abaixo — senão um erro transitório no boot deixa a sessão inteira
+ *  sem rota marítima até o usuário recarregar a página. */
 let promessaGrade: Promise<Grade | null> | null = null
 
 /** Desenha o bitmap num canvas (OffscreenCanvas quando disponivel, <canvas> comum
@@ -74,9 +77,12 @@ async function decodificarGrade(metadados: MascaraMetadados, imagemBlob: Blob): 
 }
 
 /** Busca a mascara agua/terra da costa e monta a `Grade` usada por acharCaminho.
- *  Memoizada num modulo-level: chamadas subsequentes reusam a mesma promessa.
- *  Qualquer falha (rede, decode, PNG ausente) devolve `null` — quem chama cai
- *  pro rumo direto em vez de mostrar erro pro usuario. */
+ *  Memoizada num modulo-level: chamadas subsequentes reusam a mesma promessa — mas
+ *  so quando ela terminou em SUCESSO (PNG/JSON ausentes contam como sucesso: `null`
+ *  e uma resposta valida, "esta mascara nao existe"). Numa falha real (rede fora do
+ *  ar no boot, decode do PNG explodindo, timeout) a promessa memoizada e limpa antes
+ *  de propagar `null`, pra proxima chamada tentar de novo em vez de a sessao inteira
+ *  ficar sem rota maritima por causa de um erro transitorio. */
 export function carregarGrade(): Promise<Grade | null> {
   if (!promessaGrade) {
     promessaGrade = (async () => {
@@ -88,6 +94,7 @@ export function carregarGrade(): Promise<Grade | null> {
         const imagemBlob = await respostaPng.blob()
         return await decodificarGrade(metadados, imagemBlob)
       } catch {
+        promessaGrade = null // falha nao memoiza: proxima chamada tenta de novo
         return null
       }
     })()
