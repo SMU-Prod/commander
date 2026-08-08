@@ -206,6 +206,29 @@ errada, a rota manda o barco por cima de terra ou de uma ilha.
   rasa demais para o casco — isso não substitui carta náutica nem sonda de
   profundidade.
 
+## Camada de profundidade (batimetria)
+
+`web/public/mapa/batimetria.png` + `.json` — sombreamento de profundidade por faixas
+(0-5 m, 5-10 m, 10-20 m, 20-50 m, >50 m) na mesma bbox da máscara de água, desenhado
+no mapa como source `image` (sobreposição de bbox fixa, sem tiles).
+
+- **Regerar:** `node scripts/gerar-batimetria.mjs` a partir da raiz.
+- **Origem do dado:** **ETOPO 2022 15 Arc-Second Global Relief Model (NOAA/NCEI)**,
+  obtido via ERDDAP griddap. **Domínio público dos EUA** — sem restrição de uso
+  comercial; citamos a fonte por transparência (aparece na atribuição do mapa).
+- **Resolução ~450 m.** É orientação geral, não sondagem. A camada nasce DESLIGADA no
+  app e, quando ligada, o painel avisa: "Profundidade aproximada — NÃO substitui a
+  carta náutica oficial".
+
+### Por que NÃO usamos as cartas da Marinha
+
+As cartas raster do CHM/DHN são de download gratuito, mas o termo de uso proíbe
+**reproduzir, compilar ou derivar para fins comerciais** — e o Commander é um produto
+pago. Usá-las exigiria **acordo comercial com a EMGEPRON** (representante oficial da
+DHN para venda de cartas). Enquanto esse acordo não existir, nenhum dado da
+Marinha/DHN/CHM entra no produto. Se um dia entrar, a camada já está pronta para
+receber: é trocar a fonte do tile/imagem e a atribuição.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

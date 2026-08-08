@@ -8,6 +8,7 @@ import { Icone } from "@/components/icone"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
 import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/navegacao"
+import type { EstadoCamadas } from "@/lib/mapa/camadas"
 import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
 import type { PedidoRota, RespostaRota } from "@/components/mapa/rota.worker"
 
@@ -271,6 +272,11 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
 
   // --- mapa + parceiros ------------------------------------------------------
   const [mapaPronto, setMapaPronto] = useState<MapaMapbox | null>(null)
+  // Painel "Camadas do mapa" (dentro do MapaNautico) controla balizamento e
+  // profundidade sozinho — "parceiros" ele não desenha, então o estado sobe
+  // até aqui via `aoMudarCamadas`. Nasce ligado (mesmo padrão de sempre) e só
+  // muda quando o painel dispara a primeira leitura do localStorage no mount.
+  const [mostrarParceiros, setMostrarParceiros] = useState(true)
   const marcadoresRef = useRef<MarcadorMapbox[]>([])
   const [parceiroAberto, setParceiroAberto] = useState<Parceiro | null>(null)
   // Destino traçado pelo card do parceiro OU pelo modo "definir destino"
@@ -374,8 +380,11 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     return estadoRota
   }, [destino, posAtual, estadoRota])
 
+  // Toggle "Parceiros" desligado limpa o mapa: sai cedo sem criar marcador
+  // nenhum. A troca pra desligado já limpa sozinha, via cleanup do efeito
+  // anterior (que roda antes deste corpo, e é quem zera marcadoresRef).
   useEffect(() => {
-    if (!mapaPronto) return
+    if (!mapaPronto || !mostrarParceiros) return
     let cancelado = false
     import("mapbox-gl").then(({ default: mapboxgl }) => {
       if (cancelado) return
@@ -396,7 +405,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
       marcadoresRef.current.forEach((m) => m.remove())
       marcadoresRef.current = []
     }
-  }, [mapaPronto, parceiros])
+  }, [mapaPronto, parceiros, mostrarParceiros])
 
   // Modo "definir destino": próximo toque no mapa vira o destino.
   useEffect(() => {
@@ -712,7 +721,11 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     // resto flutua por cima.
     <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
       <h1 className="sr-only">Navegar</h1>
-      <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
+      <MapaNautico
+        aoIniciar={setMapaPronto}
+        aoMudarCamadas={(c: EstadoCamadas) => setMostrarParceiros(c.parceiros)}
+        className="h-full w-full"
+      />
 
       {/* coluna do topo: alarme + trilha EMPILHADOS (nunca se sobrepõem);
           right-14 deixa livres os controles do mapa (zoom/bússola/locate) */}
