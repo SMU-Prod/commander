@@ -21,7 +21,10 @@ export function EscolherPonto({ lat, lng }: { lat: number | null; lng: number | 
     if (!TOKEN || !containerRef.current) return
     let cancelado = false
 
-    import("mapbox-gl").then(({ default: mapboxgl }) => {
+    // .catch: falha de rede no chunk deixa os inputs ocultos validos (defaults)
+    import("mapbox-gl").catch(() => null).then((mod) => {
+      if (!mod) return
+      const mapboxgl = mod.default
       if (cancelado || !containerRef.current) return
       mapboxgl.accessToken = TOKEN
       const mapa = new mapboxgl.Map({

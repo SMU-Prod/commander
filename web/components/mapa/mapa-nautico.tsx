@@ -30,7 +30,10 @@ export function MapaNautico({
     if (!TOKEN || !containerRef.current) return
     let cancelado = false
 
-    import("mapbox-gl").then(({ default: mapboxgl }) => {
+    // .catch: falha de rede no chunk nao pode deixar um buraco mudo na tela
+    import("mapbox-gl").catch(() => null).then((mod) => {
+      if (!mod) return
+      const mapboxgl = mod.default
       if (cancelado || !containerRef.current) return
       mapboxgl.accessToken = TOKEN
       const mapa = new mapboxgl.Map({
@@ -78,6 +81,7 @@ export function MapaNautico({
       <div
         className={`flex flex-col items-center justify-center gap-3 rounded-[14px] border border-line bg-[#0B1D2D] p-8 text-center ${className ?? ""}`}
       >
+        {/* o plano pedia "bussola", que nao existe no conjunto de 28 — "mapa" e o mais proximo */}
         <Icone nome="mapa" className="size-8 text-[#D4AF37]" />
         <p className="corpo text-[#e9f1f8]">
           {process.env.NODE_ENV === "development"

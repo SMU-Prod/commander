@@ -11,7 +11,7 @@ const CATEGORIAS: { valor: CategoriaParceiro; rotulo: string; icone: NomeIcone }
   { valor: "marina", rotulo: "Marina", icone: "ancora" },
   { valor: "posto", rotulo: "Posto", icone: "oleo" },
   { valor: "pousada", rotulo: "Pousada", icone: "inicio" },
-  { valor: "restaurante", rotulo: "Restaurante", icone: "pessoas" },
+  { valor: "restaurante", rotulo: "Restaurante", icone: "estrela" },
 ]
 
 /** Centavos (ou null) para o campo de preço em pt-BR, ex.: 15000 → "150,00". */
@@ -204,7 +204,7 @@ export default async function ParceiroPage({
                   <img src={f.url} alt={p.nome} className="aspect-square w-full object-cover" loading="lazy" />
                   <form action={excluirFotoParceiro} className="p-1.5">
                     <input type="hidden" name="path" value={f.path} />
-                    <Confirmar mensagem="Excluir foto?" rotulo="Excluir" className="apoio block w-full text-center text-crit" />
+                    <Confirmar mensagem="Excluir foto?" rotulo="Excluir" className="apoio flex h-11 w-full items-center justify-center text-crit" />
                   </form>
                 </div>
               ))}
