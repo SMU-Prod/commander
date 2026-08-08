@@ -72,15 +72,6 @@ export default async function MenuPage({
         </>
       )}
 
-      <p className="rotulo text-dim mt-6 mb-2">Em breve</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-        {["Assinatura e faturas"].map((item) => (
-          <p key={item} className="corpo border-b border-line py-3 text-dim last:border-0">
-            {item}
-          </p>
-        ))}
-      </div>
-
       <form action={sair} className="mt-8">
         <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">
           Sair da conta

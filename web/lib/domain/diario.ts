@@ -1,3 +1,5 @@
+import type { Aba } from "@/lib/domain/permissoes"
+
 export type FiltroDiario = "tudo" | "motores" | "eletrica" | "casco" | "docs" | "gastos"
 
 export const CATEGORIAS_CASCO = ["deck", "fibra", "inox", "vidros", "estofados", "casco_outros"] as const
@@ -5,6 +7,24 @@ export const CATEGORIAS_CASCO = ["deck", "fibra", "inox", "vidros", "estofados",
 export const ROTULO_CASCO: Record<string, string> = {
   deck: "Deck", fibra: "Fibra", inox: "Inox",
   vidros: "Vidros", estofados: "Estofados", casco_outros: "Outros",
+}
+
+/**
+ * Qual aba da matriz de permissões governa um item monitorado — espelha
+ * exatamente a função `aba_alvo` do banco (migration 010), quem de fato
+ * decide na RLS. Sem isso, o guard da tela e o guard do banco divergem.
+ */
+export function abaDoItem(
+  item: { equipamento_id: string | null; categoria: string | null },
+  equipamentos: { id: string; tipo: string }[],
+): Aba {
+  if (item.equipamento_id) {
+    const eq = equipamentos.find((e) => e.id === item.equipamento_id)
+    return eq?.tipo === "motor" ? "motores" : "eletrica"
+  }
+  if (item.categoria === "documento") return "documentos"
+  if (item.categoria != null && (CATEGORIAS_CASCO as readonly string[]).includes(item.categoria)) return "casco"
+  return "embarcacao"
 }
 
 export const TIPO_ROTULO: Record<string, string> = {

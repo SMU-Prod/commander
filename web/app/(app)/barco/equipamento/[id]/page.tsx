@@ -116,20 +116,27 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         )}
         {itens.map(({ item, r }) => {
           const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null
+          const nomeEItem = (
+            <>
+              <p className="titulo-card">{item.nome}</p>
+              <p className="apoio mt-0.5 text-dim">
+                {[
+                  item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
+                  item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
+                  item.especificacao,
+                  item.quantidade,
+                ].filter(Boolean).join(" · ") || "sem regra definida"}
+              </p>
+            </>
+          )
           return (
             <div key={item.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
               <Farol status={r.status} />
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{item.nome}</p>
-                <p className="apoio mt-0.5 text-dim">
-                  {[
-                    item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
-                    item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
-                    item.especificacao,
-                    item.quantidade,
-                  ].filter(Boolean).join(" · ") || "sem regra definida"}
-                </p>
-              </div>
+              {editavel ? (
+                <Link href={`/barco/itens/${item.id}/editar`} className="min-w-0 flex-1">{nomeEItem}</Link>
+              ) : (
+                <div className="min-w-0 flex-1">{nomeEItem}</div>
+              )}
               <div className="shrink-0 text-right">
                 <p className={`font-mono-instr text-sm font-semibold tabular-nums ${
                   r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"

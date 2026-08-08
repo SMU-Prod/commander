@@ -52,11 +52,8 @@ preenchidas. Depois de colar tudo, clique em **Deploy**.
 ### 6. Secrets no GitHub (para os workflows automáticos rodarem)
 No repositório: **Settings → Secrets and variables → Actions → New repository secret**.
 Crie:
-- `APP_URL` = `https://commander.soumardivers.com` (lido pelo workflow do relatório
-  mensal, `.github/workflows/relatorio.yml`).
-- `COMMANDER_URL` = `https://commander.soumardivers.com` (mesmo valor — lido pelo
-  workflow de alertas, `.github/workflows/alertas.yml`; os dois workflows usam nomes
-  diferentes para a mesma URL, então cadastre os dois secrets).
+- `COMMANDER_URL` = `https://commander.soumardivers.com` (lido pelos dois workflows,
+  `.github/workflows/alertas.yml` e `.github/workflows/relatorio.yml`).
 - `ALERTAS_SEGREDO` = o mesmo valor colado na Vercel.
 
 ### 7. Ligar as flags — nessa ordem, uma de cada vez
@@ -83,11 +80,34 @@ Não ligue as três juntas: confirme que cada uma funciona antes de ligar a pró
   a mesma URL (e `https://commander.soumardivers.com/**`) em Redirect URLs — sem isso o
   fluxo de login e confirmação de e-mail quebra em produção.
 
+### 9. Desabilitar Boleto na conta Asaas (pendência do dono)
+A espec pede cartão de crédito + Pix, sem boleto. `criarAssinaturaAsaas` (`web/lib/asaas.ts`)
+manda `billingType: "UNDEFINED"` — é o único jeito de oferecer **mais de um** meio de pagamento
+numa assinatura: a API não aceita uma lista (ex.: `[CREDIT_CARD, PIX]`), só um valor único
+(`BOLETO`, `CREDIT_CARD`, `PIX`) ou `UNDEFINED` (o assinante escolhe entre o que estiver
+habilitado **na conta**). Não existe parâmetro de API para excluir Boleto e manter os outros
+dois — a exclusão só é possível desabilitando o Boleto na conta:
+1. Entre no painel Asaas → menu do usuário → **Minha conta → Configurações → Configurações
+   do sistema**.
+2. Localize a forma de pagamento **Boleto Bancário** e desabilite (o Pix tem o mesmo tipo de
+   toggle ali do lado — "Disponibilizar recebimento por Pix" — mas esse já deve ficar
+   **habilitado**; só o Boleto sai).
+3. Sem essa configuração, o Boleto continua aparecendo como opção pro assinante mesmo com
+   `billingType: "UNDEFINED"` no código — o código não pode resolver isso sozinho.
+
+Fontes: [Forma de pagamento — Asaas Docs](https://docs.asaas.com/docs/forma-de-pagamento),
+[Quais as formas de pagamento disponíveis para cobranças — Central de Ajuda Asaas](https://central.ajuda.asaas.com/hc/pt-br/articles/31689121385627-Quais-as-formas-de-pagamento-dispon%C3%ADveis-para-cobran%C3%A7as).
+
 ## Alertas automáticos
 O motor de alertas é a rota `POST /api/alertas/disparar`, protegida por
 `Authorization: Bearer $ALERTAS_SEGREDO`. Ela varre todos os barcos, calcula o semáforo
-com o mesmo domínio das telas, grava em `alertas_enviados` (o que dedupe por item+janela+ciclo)
-e envia push (+ e-mail se `RESEND_API_KEY` existir).
+com o mesmo domínio das telas, grava em `alertas_enviados` e envia push (+ e-mail se
+`RESEND_API_KEY` existir). Além dos alertas de vencimento (por item monitorado), a mesma rota
+dispara dois avisos gerais (Onda 6): **mar ruim** (por embarcação com marina cadastrada, boletim
+Open-Meteo, no máximo 1×/dia) e **motor parado** (por motor sem leitura de horas há mais de 30
+dias). Nenhum dos dois tem `item_monitorado_id` — a dedupe usa o primeiro id não nulo entre
+`item_monitorado_id` / `equipamento_id` / `embarcacao_id` (índice funcional da migration 023),
+já que `item_monitorado_id` deixou de ser obrigatório na tabela.
 
 **Para ligar em produção:**
 1. Cadastre no GitHub os secrets `COMMANDER_URL` (ex.: `https://app.commander.com.br`) e `ALERTAS_SEGREDO`.
@@ -114,9 +134,8 @@ Sem `RESEND_API_KEY` configurada a rota responde `500 {erro}` — diferente do d
 (onde o e-mail é best-effort), aqui o e-mail É o produto, então a chave é obrigatória.
 
 **Para ligar em produção:**
-1. Atenção: o relatório usa um secret PRÓPRIO, `APP_URL` — ele NÃO existe ainda se você só
-   configurou os alertas (que usam `COMMANDER_URL`). Cadastre `APP_URL` no GitHub com a mesma
-   URL, além do `ALERTAS_SEGREDO` que os dois workflows compartilham.
+1. Usa os mesmos secrets `COMMANDER_URL` e `ALERTAS_SEGREDO` já cadastrados para os
+   alertas (passo 6 do roteiro de deploy) — nenhum secret adicional.
 2. Crie a variável de repositório `RELATORIOS_ATIVOS = 1`.
 3. O workflow `.github/workflows/relatorio.yml` roda no dia 1 de cada mês, 09:00 de Brasília, e
    fecha o mês que acabou de terminar (inclusive na virada de ano: relatório de janeiro cobre
@@ -136,7 +155,7 @@ notifica por e-mail, igual aos alertas.
 | `ALERTAS_SEGREDO` | servidor + CI | proteção das rotas de disparo (alertas e relatório) |
 | `RESEND_API_KEY` | servidor | e-mail de alerta (opcional) e do relatório mensal (obrigatório) |
 | `NEXT_PUBLIC_APP_URL` | app | link do convite de tripulação |
-| `APP_URL` | CI (secret) | URL da rota chamada pelo `relatorio.yml` |
+| `COMMANDER_URL` | CI (secret) | URL da rota chamada por `alertas.yml` e `relatorio.yml` |
 
 Lista completa e sempre atual de toda variável usada pelo app (incluindo Asaas,
 PostHog e o gate de cobrança), com comentário de onde obter cada uma: `web/.env.example`.

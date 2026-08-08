@@ -6,13 +6,13 @@ on:
 jobs:
   disparar:
     runs-on: ubuntu-latest
-    # Ative depois do deploy: cadastre os secrets APP_URL e ALERTAS_SEGREDO
+    # Ative depois do deploy: cadastre os secrets COMMANDER_URL e ALERTAS_SEGREDO
     if: ${{ vars.RELATORIOS_ATIVOS == '1' }}
     steps:
       - name: Chamar a rota do relatório mensal
         run: |
           resposta=$(curl -sS -o corpo.json -w "%{http_code}" -X POST \
             -H "Authorization: Bearer ${{ secrets.ALERTAS_SEGREDO }}" \
-            "${{ secrets.APP_URL }}/api/relatorio/mensal")
+            "${{ secrets.COMMANDER_URL }}/api/relatorio/mensal")
           echo "HTTP $resposta"; cat corpo.json
           test "$resposta" = "200"

@@ -263,7 +263,7 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     setEstado("salvando")
     const r = await salvarTrilha(pontosRef.current, obs)
     if (r.ok) {
-      router.push("/diario")
+      router.push(r.redirecionarPara)
       return
     }
     setMsg(r.erro)

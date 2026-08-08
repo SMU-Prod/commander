@@ -1,8 +1,10 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
+import { avaliarSelo, MARCADOR_SOLICITACAO_SELO, type ResultadoSelo } from "@/lib/domain/selo"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
+import { hojeISO } from "@/lib/domain/datas"
 
 export const carregarPainel = cache(async (): Promise<{
   embarcacao: Embarcacao
@@ -52,6 +54,41 @@ export const carregarPainel = cache(async (): Promise<{
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
 
   return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes, embarcacoes: todas ?? [] }
+})
+
+/** Selo Ouro: busca o que `carregarPainel` não traz (fotos, eventos do
+ *  diário, contatos — documentos com validade já vêm no `painel.itens`) e
+ *  entrega pronto ao domínio puro — `avaliarSelo` nunca consulta o banco.
+ *  Usado pelo card em `/barco` e pela tela `/barco/selo`; o `cache()` evita
+ *  repetir a consulta na mesma renderização. */
+export const carregarSelo = cache(async (): Promise<ResultadoSelo | null> => {
+  const painel = await carregarPainel()
+  if (!painel) return null
+  const supabase = await supabaseServer()
+  const { embarcacao } = painel
+
+  const [{ count: totalFotos }, { count: totalEventosDiario }, { count: totalContatos }] = await Promise.all([
+    supabase.from("fotos").select("id", { count: "exact", head: true })
+      .eq("embarcacao_id", embarcacao.id),
+    // exclui o marcador do pedido de avaliacao: ele e um evento de verdade na
+    // tabela, mas contar como "historico do barco" faria o proprio pedido
+    // inflar o criterio de que ele depende
+    supabase.from("eventos").select("id", { count: "exact", head: true })
+      .eq("embarcacao_id", embarcacao.id)
+      .neq("descricao", MARCADOR_SOLICITACAO_SELO),
+    supabase.from("contatos").select("id", { count: "exact", head: true })
+      .eq("embarcacao_id", embarcacao.id),
+  ])
+
+  return avaliarSelo({
+    embarcacao,
+    equipamentos: painel.equipamentos,
+    itens: painel.itens,
+    hoje: hojeISO(),
+    totalFotos: totalFotos ?? 0,
+    totalEventosDiario: totalEventosDiario ?? 0,
+    totalContatos: totalContatos ?? 0,
+  })
 })
 
 export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"

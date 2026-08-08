@@ -50,7 +50,11 @@ export async function criarAssinaturaAsaas(dados: {
   descricao: string
   referenciaExterna: string
 }) {
-  // billingType UNDEFINED: o assinante escolhe cartao ou Pix na pagina do Asaas
+  // billingType UNDEFINED: o assinante escolhe entre os meios habilitados NA CONTA Asaas.
+  // A API nao aceita uma lista (ex.: so cartao+Pix) — e um unico billingType ou UNDEFINED
+  // (todos os habilitados). Excluir Boleto sem perder Pix so da pra fazer desabilitando
+  // Boleto na conta (Minha conta > Configuracoes > Configuracoes do sistema) — pendencia
+  // do dono, documentada em docs/OPERACAO.md > "Desabilitar Boleto na conta Asaas".
   const vencimento = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const a = await asaas<{ id: string }>("/subscriptions", {
     method: "POST",
@@ -86,4 +90,45 @@ export async function urlPrimeiraCobranca(subscriptionId: string, urlRetorno?: s
 
 export async function cancelarAssinaturaAsaas(subscriptionId: string) {
   await asaas(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: "DELETE" })
+}
+
+export interface CobrancaAsaas {
+  id: string
+  dataVencimento: string
+  valorCentavos: number
+  status: string
+  invoiceUrl: string | null
+}
+
+/** Historico de faturas da assinatura, pra tela mostrar valor/data/status/comprovante.
+ *  Chamada direto de um Server Component (nao de uma server action) — por isso captura tudo
+ *  aqui dentro: sem chave configurada ou qualquer erro da API, devolve lista vazia e a tela
+ *  segue funcionando (a secao de faturas so nao aparece). */
+export async function listarCobrancas(subscriptionId: string): Promise<CobrancaAsaas[]> {
+  try {
+    const r = await asaas<{
+      data: Array<{ id: string; dueDate: string; value: number; status: string; invoiceUrl?: string }>
+    }>(`/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=20`)
+    return r.data.map((p) => ({
+      id: p.id,
+      dataVencimento: p.dueDate,
+      valorCentavos: Math.round(p.value * 100),
+      status: p.status,
+      invoiceUrl: p.invoiceUrl ?? null,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/** Data da proxima cobranca — vem direto do `nextDueDate` da assinatura no Asaas (quem manda
+ *  no calendario e o proprio Asaas, nao recalculamos aqui). null sem chave, com erro, ou se o
+ *  campo nao vier — mesma regra defensiva de `listarCobrancas`. */
+export async function proximaCobrancaAsaas(subscriptionId: string): Promise<string | null> {
+  try {
+    const a = await asaas<{ nextDueDate?: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+    return a.nextDueDate ?? null
+  } catch {
+    return null
+  }
 }

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { CamposNavegacaoEvento } from "@/components/campos-navegacao-evento"
 import { Icone } from "@/components/icone"
 import { criarEvento } from "@/lib/acoes/eventos"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
@@ -8,11 +9,6 @@ import { supabaseServer } from "@/lib/supabase/server"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
-
-const TIPOS = [
-  ["manutencao", "Manutenção"], ["abastecimento", "Abastecimento"], ["navegacao", "Navegação"],
-  ["avaria", "Avaria"], ["docagem", "Docagem"], ["outro", "Outro"],
-] as const
 
 export default async function NovoEventoPage({
   searchParams,
@@ -23,8 +19,15 @@ export default async function NovoEventoPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const supabase = await supabaseServer()
-  const { data: contatos } = await supabase
-    .from("contatos").select("id, nome, especialidade").order("nome")
+  const [{ data: contatos }, { data: vinculos }] = await Promise.all([
+    supabase.from("contatos").select("id, nome, especialidade").order("nome"),
+    supabase.from("vinculos").select("usuario_id").eq("embarcacao_id", painel.embarcacao.id),
+  ])
+  const idsTripulacao = [...new Set((vinculos ?? []).map((v: { usuario_id: string }) => v.usuario_id))]
+  const { data: perfis } = idsTripulacao.length
+    ? await supabase.from("profiles").select("id, nome").in("id", idsTripulacao)
+    : { data: [] as { id: string; nome: string }[] }
+  const tripulacaoOpcoes = (perfis ?? []).map((p: { id: string; nome: string }) => ({ id: p.id, nome: p.nome }))
 
   const nomeAlvo = (id: string | null) => {
     const eq = painel.equipamentos.find((e) => e.id === id)
@@ -40,18 +43,7 @@ export default async function NovoEventoPage({
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarEvento} className="mt-5 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rotulo} htmlFor="tipo">Tipo</label>
-            <select id="tipo" name="tipo" defaultValue="manutencao" className={campo}>
-              {TIPOS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={rotulo} htmlFor="data">Data</label>
-            <input id="data" name="data" type="date" defaultValue={hojeISO()} className={campo} />
-          </div>
-        </div>
+        <CamposNavegacaoEvento tipoInicial="manutencao" dataInicial={hojeISO()} tripulacao={tripulacaoOpcoes} />
 
         <div>
           <label className={rotulo} htmlFor="alvo">Sistema</label>

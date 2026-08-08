@@ -3,8 +3,10 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
 import { zerarCiclo } from "@/lib/domain/diario"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
 function erroNovo(msg: string): never {
@@ -61,7 +63,36 @@ export async function criarEvento(formData: FormData) {
     if ("erro" in r) erroNovo(r.erro)
     else anexoPath = r.path
   }
-  const { error } = await supabase.from("eventos").insert({
+
+  // Campos da saida (Livro de Bordo) só valem pra navegacao — nos demais
+  // tipos ficam null/vazio, exatamente como a tabela ja nasce.
+  const horaSaida = tipo === "navegacao" ? texto("hora_saida") : null
+  const horaRetorno = tipo === "navegacao" ? texto("hora_retorno") : null
+  const destino = tipo === "navegacao" ? texto("destino") : null
+
+  let tripulacao: string[] = []
+  if (tipo === "navegacao") {
+    const bruta = formData.getAll("tripulacao").map(String)
+    if (bruta.length > 0) {
+      const { data: vinculos } = await supabase
+        .from("vinculos").select("usuario_id").eq("embarcacao_id", painel.embarcacao.id)
+      const validos = new Set((vinculos ?? []).map((v) => v.usuario_id))
+      tripulacao = bruta.filter((id) => validos.has(id))
+    }
+  }
+
+  // Condicao do mar CONGELADA no momento do registro — o passado nao muda.
+  // Falha da API (ou marina sem posicao definida) nao pode impedir o
+  // salvamento: grava null e segue.
+  let marOndaM: number | null = null
+  let marVentoKt: number | null = null
+  if (tipo === "navegacao" && painel.embarcacao.marina_lat != null && painel.embarcacao.marina_lon != null) {
+    const boletim = await boletimDoMar(painel.embarcacao.marina_lat, painel.embarcacao.marina_lon)
+    marOndaM = boletim?.ondaM ?? null
+    marVentoKt = boletim?.ventoKt ?? null
+  }
+
+  const { data: inserido, error } = await supabase.from("eventos").insert({
     embarcacao_id: painel.embarcacao.id,
     equipamento_id: equipamentoId,
     item_monitorado_id: item?.id ?? null,
@@ -74,8 +105,14 @@ export async function criarEvento(formData: FormData) {
     custo_centavos: custoCentavos,
     anexo_path: anexoPath,
     criado_por: user.id,
-  })
-  if (error) {
+    hora_saida: horaSaida,
+    hora_retorno: horaRetorno,
+    destino,
+    tripulacao,
+    mar_onda_m: marOndaM,
+    mar_vento_kt: marVentoKt,
+  }).select("id").single()
+  if (error || !inserido) {
     if (anexoPath) await supabase.storage.from("acervo").remove([anexoPath])
     erroNovo("Não foi possível salvar o evento. Tente de novo.")
   }
@@ -94,5 +131,11 @@ export async function criarEvento(formData: FormData) {
   revalidatePath("/diario")
   revalidatePath("/barco")
   revalidatePath("/hoje")
+
+  // A sinergia: saida de navegacao com duracao relevante manda pra tela de
+  // sugestao de horas do motor, antes de voltar pro diario.
+  if (tipo === "navegacao" && horasSugeridas(duracaoHoras(horaSaida, horaRetorno)) !== null) {
+    redirect(`/diario/${inserido!.id}/horas`)
+  }
   redirect("/diario")
 }
