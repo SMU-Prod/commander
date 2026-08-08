@@ -226,7 +226,7 @@ export default async function HojePage({
       <div className="grid grid-cols-4 gap-2 text-center">
         {(
           [
-            { href: "/barco", rotulo: "Embarcação", icone: "embarcacao" },
+            { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
             { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
             { href: "/diario", rotulo: "Diário", icone: "calendario" },
             { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },

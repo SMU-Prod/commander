@@ -51,7 +51,7 @@ export default async function GastosPage() {
   return (
     <main>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+        <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <div className="mt-3 flex items-baseline justify-between">
         <h1 className="titulo-pagina">Gastos</h1>

@@ -21,7 +21,7 @@ export default async function EditarEmbarcacaoPage({
   return (
     <main>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+        <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <h1 className="titulo-pagina mt-3">Dados da embarcação</h1>
       <p className="apoio mt-1 text-dim">O que estiver aqui aparece no dossiê e no Selo Ouro.</p>

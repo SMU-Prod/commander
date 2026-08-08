@@ -41,7 +41,7 @@ export default async function DocumentosPage({
   return (
     <main>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+        <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <h1 className="titulo-pagina mt-3">Documentos</h1>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}

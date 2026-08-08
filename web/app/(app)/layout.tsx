@@ -31,8 +31,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const motores = (painel?.equipamentos ?? [])
     .filter((e) => e.tipo === "motor")
     .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
+  // pb-36 e não pb-24: o botão "+ Registrar" flutua a 5rem do rodapé e tem
+  // ~3rem de altura, então o conteúdo precisa de ~8rem de folga — com pb-24
+  // (6rem) ele cobria o último item da tela.
   return (
-    <div className="mx-auto min-h-dvh max-w-[430px] px-4 pb-24 pt-5">
+    <div className="mx-auto min-h-dvh max-w-[430px] px-4 pb-36 pt-5">
       <RegistrarSw />
       <Suspense fallback={null}>
         <Toast />

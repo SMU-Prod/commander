@@ -40,7 +40,7 @@ export default async function FotosPage({
   return (
     <main>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Embarcação
+        <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <h1 className="titulo-pagina mt-3">Fotos</h1>
       <p className="apoio mt-1 text-dim">O álbum do barco — e o dossiê que vale na hora de vender.</p>
