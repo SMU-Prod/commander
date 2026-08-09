@@ -8,11 +8,14 @@ import {
   distanciaDaRota,
   ehAgua,
   escolherGrade,
+  MARGEM_SEGURANCA_PADRAO_M,
   paraCelula,
   recortarGrade,
   suavizar,
+  type ConfigCalado,
   type Coord,
   type Grade,
+  type GradeProfundidade,
 } from "./rota"
 
 /**
@@ -31,6 +34,11 @@ const CAMINHO_JSON = fileURLToPath(new URL("../../public/mapa/mascara-agua.json"
 // scripts/gerar-mascara-nacional.mjs. Mesmo formato de PNG/JSON da fina.
 const CAMINHO_PNG_NACIONAL = fileURLToPath(new URL("../../public/mapa/mascara-nacional.png", import.meta.url))
 const CAMINHO_JSON_NACIONAL = fileURLToPath(new URL("../../public/mapa/mascara-nacional.json", import.meta.url))
+// Onda 12: grade de PROFUNDIDADE fina (codificacao byte->metros documentada
+// em scripts/gerar-grade-profundidade.mjs) — gera a mesma regiao da mascara
+// fina, mas a partir do cache de elevacao ETOPO (~450 m/celula), nao de OSM.
+const CAMINHO_PNG_PROFUNDIDADE_FINA = fileURLToPath(new URL("../../public/mapa/profundidade-fina.png", import.meta.url))
+const CAMINHO_JSON_PROFUNDIDADE_FINA = fileURLToPath(new URL("../../public/mapa/profundidade-fina.json", import.meta.url))
 
 interface MascaraMetadados {
   lngMin: number
@@ -77,12 +85,53 @@ function carregarGradeDeArquivo(caminhoPng: string, caminhoJson: string): Grade 
   return g
 }
 
+interface MascaraProfundidadeMetadados {
+  lngMin: number
+  latMin: number
+  lngMax: number
+  latMax: number
+  largura: number
+  altura: number
+  passoM: number
+}
+
+/** Le a grade de profundidade real do disco — MESMA codificacao byte->metros
+ *  documentada em scripts/gerar-grade-profundidade.mjs (byte 0 = terra/sem-
+ *  dado -> +Infinity; byte 1..255 = piso do bucket, (byte-1)*passoM), MESMA
+ *  logica que web/lib/mapa/mascara.ts roda no navegador (aqui reimplementada
+ *  pra rodar em Node/vitest, sem canvas/ImageBitmap). */
+function carregarGradeProfundidadeDeArquivo(caminhoPng: string, caminhoJson: string): GradeProfundidade {
+  const metadados = JSON.parse(readFileSync(caminhoJson, "utf8")) as MascaraProfundidadeMetadados
+  const png = PNG.sync.read(readFileSync(caminhoPng))
+
+  const profundidadeM = new Float32Array(png.width * png.height)
+  for (let i = 0; i < png.width * png.height; i++) {
+    const byte = png.data[i * 4]
+    profundidadeM[i] = byte === 0 ? Number.POSITIVE_INFINITY : (byte - 1) * metadados.passoM
+  }
+
+  const gp: GradeProfundidade = {
+    largura: png.width,
+    altura: png.height,
+    lngMin: metadados.lngMin,
+    latMin: metadados.latMin,
+    lngMax: metadados.lngMax,
+    latMax: metadados.latMax,
+    profundidadeM,
+  }
+  expect(gp.largura).toBe(metadados.largura)
+  expect(gp.altura).toBe(metadados.altura)
+  return gp
+}
+
 let grade: Grade
 let gradeNacional: Grade
+let gradeProfundidadeFina: GradeProfundidade
 
 beforeAll(() => {
   grade = carregarGradeDeArquivo(CAMINHO_PNG, CAMINHO_JSON)
   gradeNacional = carregarGradeDeArquivo(CAMINHO_PNG_NACIONAL, CAMINHO_JSON_NACIONAL)
+  gradeProfundidadeFina = carregarGradeProfundidadeDeArquivo(CAMINHO_PNG_PROFUNDIDADE_FINA, CAMINHO_JSON_PROFUNDIDADE_FINA)
 })
 
 // Coordenadas reais da costa do Rio (mesmo sistema la/lo de Coord).
@@ -327,4 +376,89 @@ describe("rota na costa real (gate da onda 5)", () => {
       expect(ehAgua(grade, paraCelula(grade, ultimoPonto))).toBe(true)
     },
   )
+})
+
+// ---------------------------------------------------------------------------
+// Onda 12 — gate: rota por calado na costa REAL. Trecho achado explorando os
+// dados de verdade (nao chutado): a Baia de Sepetiba (entre Mangaratiba e
+// Itacuruca, atras da Restinga da Marambaia) e rasa em boa parte da sua
+// extensao — a grade de profundidade real (profundidade-fina.png, derivada
+// de ETOPO) confirma isso. Com calado de 2,5 m + a margem padrao do produto
+// (MARGEM_SEGURANCA_PADRAO_M = 1,0 m -> limiar de bloqueio 3,5 m), varias
+// rotas que existem livremente deixam de existir dentro da baia — prova
+// direta, com dado real (nao sintetico), que a profundidade esta sendo
+// USADA de verdade no roteamento, nao so decorativa.
+// ---------------------------------------------------------------------------
+
+const CALADO_TESTE_M = 2.5
+
+describe("rota por calado na costa real (gate da onda 12)", () => {
+  // pontos dentro da Baia de Sepetiba, atras da Restinga da Marambaia —
+  // achados varrendo a grade real (nao um palpite): ver
+  // .superpowers/sdd/o12-calado-report.md para o metodo de busca.
+  const SEPETIBA_A: Coord = { la: -22.95, lo: -44.05 }
+  const SEPETIBA_B: Coord = { la: -23.0, lo: -43.95 }
+
+  function config(caladoM: number): ConfigCalado {
+    return { caladoM, margemSegurancaM: MARGEM_SEGURANCA_PADRAO_M, profundidade: gradeProfundidadeFina }
+  }
+
+  it(
+    "Baia de Sepetiba: rota existe SEM restricao de calado, mas NAO existe com calado de 2,5 m — prova que a profundidade e usada de verdade",
+    { timeout: 30000 },
+    () => {
+      const semCalado = acharCaminho(grade, SEPETIBA_A, SEPETIBA_B)
+      expect(semCalado).not.toBeNull() // sem calado, a baia tem rota normal
+      expect(distanciaDaRota(semCalado!)).toBeGreaterThan(1)
+
+      const comCalado = acharCaminho(grade, SEPETIBA_A, SEPETIBA_B, config(CALADO_TESTE_M))
+      // com o calado de uma lancha media (2,5 m) + margem padrao (limiar 3,5 m),
+      // NAO ha caminho dentro da baia — ela e rasa demais nessa resolucao. Isso
+      // NAO significa "a baia inteira e rasa na realidade" (o disclaimer da
+      // task se aplica: ETOPO ~450 m nao ve cada canal dragado) — significa que
+      // a grade de profundidade REAL, do jeito que o produto le ela hoje, barra
+      // essa travessia — exatamente o comportamento que o Auto Guidance+ do
+      // Navionics tem quando nao ha corredor fundo conhecido.
+      expect(comCalado).toBeNull()
+    },
+  )
+
+  it(
+    "calado pequeno passa pela mesma travessia que o calado de 2,5 m bloqueia (prova que o LIMIAR, nao a agua em si, e o que muda)",
+    { timeout: 30000 },
+    () => {
+      // calado de lancha pequena/veleiro raso (0,8 m) — mesma margem padrao,
+      // limiar 1,8 m: bem abaixo do que barra a travessia com 2,5 m (limiar 3,5 m).
+      const comCaladoPequeno = acharCaminho(grade, SEPETIBA_A, SEPETIBA_B, config(0.8))
+      expect(comCaladoPequeno).not.toBeNull()
+
+      const comCaladoGrande = acharCaminho(grade, SEPETIBA_A, SEPETIBA_B, config(CALADO_TESTE_M))
+      expect(comCaladoGrande).toBeNull()
+    },
+  )
+
+  it(
+    "trecho com desvio (nao bloqueio total): calado de 2,5 m produz rota mais longa que sem restricao, na mesma baia",
+    { timeout: 30000 },
+    () => {
+      // par mais curto dentro da mesma baia, onde a travessia com calado 2,5 m
+      // AINDA existe — mas desvia (fica mais longa) da agua mais rasa em vez de
+      // ser bloqueada por completo. Mesmo achado da varredura real (ver
+      // relatorio): a diferenca e pequena (a baia inteira e rasa, sobra pouco
+      // corredor fundo pra desviar), mas e mensuravel e na direcao certa.
+      const A: Coord = { la: -22.96, lo: -44.0 }
+      const B: Coord = { la: -22.99, lo: -44.08 }
+      const semCalado = acharCaminho(grade, A, B)
+      const comCalado = acharCaminho(grade, A, B, config(CALADO_TESTE_M))
+      expect(semCalado).not.toBeNull()
+      expect(comCalado).not.toBeNull()
+      expect(distanciaDaRota(comCalado!)).toBeGreaterThan(distanciaDaRota(semCalado!))
+    },
+  )
+
+  it("regressao onda 5 — Abraao -> Angra continua identica quando NENHUM calado e pedido (config ausente)", { timeout: 30000 }, () => {
+    const { distancia } = medirRota("Abraao -> Angra (regressao onda 12)", ABRAAO, ANGRA)
+    expect(distancia!).toBeLessThan(25)
+    expect(distancia!).toBeGreaterThan(distanciaDaRota([ABRAAO, ANGRA]) * 1.05)
+  })
 })
