@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Onda 14 — plugin NmeaSocket (TCP/UDP pro gateway WiFi NMEA 0183):
+         todas de instalacao (normal), nenhuma pede prompt em runtime.
+         ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE: o worker usa pra decidir
+         quando vale tentar reconectar. CHANGE_WIFI_MULTICAST_STATE: o
+         listener UDP prende um MulticastLock pra nao perder pacotes de
+         broadcast quando a tela apaga e o WiFi entra em modo de economia
+         de energia — ver NmeaSocketWorker#adquirirMulticastLock. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <!-- Onda 14 — @capacitor/geolocation (posicao/velocidade que
+         `web/lib/nmea/nativo-capacitor.ts` casa com cada leitura de
+         profundidade — ver `LeituraTransporte.lat/lon/velocidadeKt`). O
+         plugin PEDE essas permissoes em runtime, mas so pode pedir o que
+         o app declarou aqui primeiro. FINE cobre COARSE tambem (o usuario
+         so ve um pedido). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- NAO habilitada nesta onda — GPS em SEGUNDO PLANO (tela apagada)
+         pro alarme de ancora/trilha exige um plugin dedicado (nao
+         @capacitor/geolocation, que para quando o app e suspenso) +
+         foreground service com notificacao persistente. Ver
+         "GPS em segundo plano" em docs/APP-NATIVO.md pro que falta.
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    -->
+</manifest>
