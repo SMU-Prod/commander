@@ -24,19 +24,45 @@
  *
  *   1. "fina" — região de operação (Ilhabela/São Sebastião → Búzios), 15
  *      arc-sec (~450 m), a mesma bbox de scripts/gerar-mascara-agua.mjs.
- *      Faixas rasas (0-5 até >50 m), porque é onde a lancha realmente
- *      navega perto da costa. INALTERADA da versão anterior deste script.
+ *      Gradiente raso→fundo (0 até ~120 m), porque é onde a lancha realmente
+ *      navega perto da costa.
  *   2. "ampla" — costa brasileira inteira + oceano adjacente, resolução bem
  *      mais grossa (2 arc-min ≈ 3,7 km — dataset de 60 arc-sec do ERDDAP
  *      reamostrado com stride 2, em vez de baixar 15 arc-sec pra essa área
- *      enorme, o que geraria dezenas de milhões de pixels). Faixas mais
- *      profundas (0-50 até >3000 m), porque mar aberto é muito mais fundo
- *      que a Baía da Ilha Grande — a mesma paleta de 5 cores da camada fina,
- *      só que remapeada pra essas profundidades.
+ *      enorme, o que geraria dezenas de milhões de pixels). Gradiente mais
+ *      fundo (0 até ~6000 m), porque mar aberto é muito mais fundo que a
+ *      Baía da Ilha Grande — a MESMA paleta de 6 âncoras da camada fina, só
+ *      que remapeada pra essas profundidades.
  *
  *   O componente do mapa (web/components/mapa/mapa-nautico.tsx) desenha as
  *   duas com minzoom/maxzoom complementares: a ampla aparece de longe
  *   (zoom baixo) e some quando a fina — mais precisa — já cobre a tela.
+ *
+ * RENDERIZAÇÃO (branch onda-10-batimetria-bonita — reescrita completa desta
+ * seção; o dado-fonte/bbox/resolução acima NÃO mudou, só como ele vira
+ * pixel). O desenho anterior (5 faixas de cor sólida, alfa fixo, sem
+ * esmaecimento de borda) lia como "adesivo colado" — o dono comparou com um
+ * PNG mascarado. Três mudanças, todas dentro de `amostrarGradiente` e
+ * `fatorEsmaecimentoBorda` abaixo:
+ *   1. Gradiente contínuo: cor E alfa são interpolados linearmente entre
+ *      "paradas" de profundidade (não mais um degrau duro por faixa) — ver
+ *      `amostrarGradiente`. As âncoras de cor são as MESMAS 5 cores da
+ *      paleta antiga (reaproveitadas como marcos do gradiente, não
+ *      redesenhadas), mais uma 6ª âncora funda igual a `--fundo` (#0b1d2d)
+ *      de web/app/globals.css — a cor de fundo do próprio produto.
+ *   2. Alfa variável: raso é mais opaco (a informação que importa pra
+ *      lancha), fundo é mais transparente (contexto, deixa o mapa-base/
+ *      satélite aparecer por baixo) — em vez de um bloco opaco uniforme, a
+ *      camada TINGE a água.
+ *   3. Esmaecimento de borda (`fatorEsmaecimentoBorda`): o alfa cai pra 0
+ *      suavemente (smoothstep) nos últimos pixels de cada lado do bbox —
+ *      ataca direto o sintoma "aresta reta onde a imagem acaba" que fazia a
+ *      camada parecer colada por cima do mapa em vez de fazer parte dele.
+ * `raster-resampling: "linear"` (não `"nearest"`) é aplicado no consumidor
+ * (mapa-nautico.tsx), não aqui — é a GPU que faz a interpolação bilinear
+ * entre pixels ao dar zoom, e por isso NÃO supersample-amos o PNG antes de
+ * escrever (ver decisão documentada no relatório da task, seção
+ * "resolução").
  *
  * Algoritmo (por camada):
  *   1. Baixa (ou reusa cache local) o grid ESRI ASCII de elevação/profundidade
@@ -44,8 +70,8 @@
  *      ERDDAP usa longitude em convenção 0–360, não -180..180 — o script
  *      converte antes de montar a URL.
  *   2. Classifica cada célula em terra (z ≥ 0 → totalmente transparente) ou
- *      numa das 5 faixas de profundidade da camada, cada uma com uma cor
- *      sólida da paleta navy do produto (escuro = fundo, claro = raso).
+ *      amostra o gradiente contínuo de profundidade da camada (cor + alfa),
+ *      multiplicando o alfa pelo fator de esmaecimento de borda.
  *   3. Escreve PNG RGBA (pngjs) + JSON de metadados no mesmo formato de
  *      mascara-agua.json (bbox + dimensões + fonte + geradoEm).
  *
@@ -68,11 +94,34 @@ const { PNG } = requireFromWeb("pngjs");
 const CACHE_DIR = path.join(ROOT, "scripts", ".cache");
 const OUT_DIR = path.join(ROOT, "web", "public", "mapa");
 
-// Translúcido o bastante pra basemap/OpenSeaMap por baixo continuarem
-// legíveis por cima da cor de profundidade — mesmo valor nas duas camadas,
-// é sobre legibilidade do mapa base, não sobre a fonte do dado.
-const ALFA_AGUA = 210;
 const ALFA_TERRA = 0; // totalmente transparente — a máscara e o mapa base já cuidam de terra
+
+// Esmaecimento de borda (ver `fatorEsmaecimentoBorda`): largura da faixa,
+// em pixels, onde o alfa cai suavemente até 0 nos 4 lados do PNG. 6% do
+// menor lado da imagem, com piso e teto — pequeno o bastante pra não comer
+// uma fração grande da camada "fina" (338px de altura → ~20px de piso já é
+// visível o suficiente), grande o bastante pra a "ampla" (1216px) não virar
+// 1 px de esmaecimento imperceptível.
+const FEATHER_FRACAO = 0.06;
+const FEATHER_MIN_PX = 6;
+const FEATHER_MAX_PX = 48;
+
+// Quantização leve dos canais de saída (arredonda cada canal pro múltiplo
+// mais próximo). Gradiente contínuo de verdade (1 cor por valor de ponto
+// flutuante) faz cada pixel diferir do vizinho, o que é ÓTIMO pro olho mas
+// PÉSSIMO pro compressor PNG (deflate perde os blocos de cor repetida que a
+// versão de 5 faixas sólidas comprimia de graça — medido: sem quantização
+// nenhuma, a camada "fina" foi de 18,5 KB pra 90 KB e a "ampla" de 58,6 KB
+// pra 639 KB). Arredondar os canais reintroduz repetição local sem
+// reintroduzir degrau visível: 12/255 (~5%) e 10/255 (~4%) estão bem abaixo
+// do que o olho distingue numa cor semitransparente sobre mapa-base, ainda
+// mais depois do blend com satélite/OpenSeaMap por cima. Testado
+// visualmente (Read no PNG) em 3 níveis — 6/4, 12/10 e 18/16 — antes de
+// escolher: 18/16 já mostrava um leve terraceamento no oceano profundo
+// (long-range, baixo contraste) por um ganho marginal de ~5 KB sobre 12/10;
+// 12/10 ficou limpo nos 3 zooms testados e é o valor abaixo.
+const QUANT_PASSO_COR = 12;
+const QUANT_PASSO_ALFA = 10;
 
 // ---------------------------------------------------------------------------
 // Configuração das 2 camadas
@@ -88,16 +137,22 @@ const CAMADAS = [
     stride: 1,
     resolucaoAprox: "~450 m (15 arc-sec)",
     fonteDataset: "ETOPO 2022 15 Arc-Second Global Relief Model (Ice Surface), NOAA/NCEI",
-    // Faixas de profundidade relevantes pra lancha de 40-60 pés — da mais
-    // rasa pra mais funda (a ORDEM importa: é a primeira faixa cuja `ateM`
-    // cobre a profundidade que vence). Cores da paleta navy do produto (ver
-    // web/app/globals.css: --fundo #0b1d2d), escuro = fundo, claro = raso.
-    faixas: [
-      { rotulo: "0-5m", ateM: 5, cor: [127, 209, 236] },
-      { rotulo: "5-10m", ateM: 10, cor: [59, 154, 199] },
-      { rotulo: "10-20m", ateM: 20, cor: [27, 100, 148] },
-      { rotulo: "20-50m", ateM: 50, cor: [15, 58, 92] },
-      { rotulo: ">50m", ateM: Infinity, cor: [7, 21, 33] },
+    // Âncoras do gradiente contínuo (profundidade crescente), relevantes pra
+    // lancha de 40-60 pés — MESMAS 5 cores da paleta navy do produto que a
+    // versão anterior usava como faixas sólidas (ver web/app/globals.css:
+    // --fundo #0b1d2d), agora como marcos interpolados por
+    // `amostrarGradiente`, não mais degraus. 6ª âncora (120 m) = --fundo
+    // exato, pra dar uma cauda funda mais longa/suave em vez de platô logo
+    // aos 50 m. Alfa cai de raso (mais presente — é o que importa pra
+    // navegação) pra fundo (mais discreto — contexto, deixa o mapa-base
+    // aparecer).
+    paradas: [
+      { profundidadeM: 0, cor: [127, 209, 236], alfa: 230 },
+      { profundidadeM: 5, cor: [59, 154, 199], alfa: 205 },
+      { profundidadeM: 10, cor: [27, 100, 148], alfa: 175 },
+      { profundidadeM: 20, cor: [15, 58, 92], alfa: 145 },
+      { profundidadeM: 50, cor: [7, 21, 33], alfa: 110 },
+      { profundidadeM: 120, cor: [11, 29, 45], alfa: 85 },
     ],
     cachePath: path.join(CACHE_DIR, "batimetria.asc"),
     outPng: path.join(OUT_DIR, "batimetria.png"),
@@ -123,18 +178,20 @@ const CAMADAS = [
     stride: 2,
     resolucaoAprox: "~3,7 km (2 arc-min — ETOPO 60 arc-sec com stride 2 no ERDDAP)",
     fonteDataset: "ETOPO 2022 60 Arc-Second Global Relief Model (Ice Surface), NOAA/NCEI",
-    // Faixas DIFERENTES da camada fina: mar aberto é muito mais fundo que a
+    // Âncoras DIFERENTES da camada fina: mar aberto é muito mais fundo que a
     // Baía da Ilha Grande (profundidade média do Atlântico ~3.700 m), então
-    // as faixas rasas (0-5, 5-10...) da camada fina ficariam todas
-    // "achatadas" numa cor só. Mesma paleta (mesmas 5 cores, claro→escuro),
-    // remapeada pra profundidades que fazem sentido vistas de longe.
-    // Documentado também no aviso da tela — ver mapa-nautico.tsx.
-    faixas: [
-      { rotulo: "0-50m", ateM: 50, cor: [127, 209, 236] },
-      { rotulo: "50-200m", ateM: 200, cor: [59, 154, 199] },
-      { rotulo: "200-1000m", ateM: 1000, cor: [27, 100, 148] },
-      { rotulo: "1000-3000m", ateM: 3000, cor: [15, 58, 92] },
-      { rotulo: ">3000m", ateM: Infinity, cor: [7, 21, 33] },
+    // as âncoras rasas (0, 5, 10...) da camada fina ficariam todas
+    // "achatadas" numa cor só. MESMA paleta (mesmas 6 cores, claro→escuro,
+    // inclusive a 6ª âncora = --fundo), remapeada pra profundidades que
+    // fazem sentido vistas de longe — cauda abissal (6000 m) bem discreta
+    // (alfa 55), documentado também no aviso da tela — ver mapa-nautico.tsx.
+    paradas: [
+      { profundidadeM: 0, cor: [127, 209, 236], alfa: 200 },
+      { profundidadeM: 50, cor: [59, 154, 199], alfa: 170 },
+      { profundidadeM: 200, cor: [27, 100, 148], alfa: 140 },
+      { profundidadeM: 1000, cor: [15, 58, 92], alfa: 105 },
+      { profundidadeM: 3000, cor: [7, 21, 33], alfa: 75 },
+      { profundidadeM: 6000, cor: [11, 29, 45], alfa: 55 },
     ],
     cachePath: path.join(CACHE_DIR, "batimetria-ampla.asc"),
     outPng: path.join(OUT_DIR, "batimetria-ampla.png"),
@@ -292,18 +349,70 @@ function parseEsriAscii(texto) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Colorização
+// 3. Colorização — gradiente contínuo + alfa variável + esmaecimento de borda
 // ---------------------------------------------------------------------------
 
-/** @returns {[number, number, number] | null} cor RGB, ou null pra terra/sem-dado (transparente) */
-function corParaElevacao(z, nodata, faixas) {
+function interpolarLinear(a, b, t) {
+  return a + (b - a) * t;
+}
+
+/** Amostra o gradiente de `paradas` (array ordenado por `profundidadeM`
+ *  crescente) numa profundidade qualquer, interpolando linearmente cor E
+ *  alfa entre as 2 paradas vizinhas — é isso que troca os degraus duros por
+ *  uma rampa suave, sem serrilhado de banda. Fora dos extremos, satura no
+ *  valor da parada mais próxima (não extrapola: mais raso que a 1ª parada
+ *  vira a cor/alfa dela; mais fundo que a última idem). */
+function amostrarGradiente(profundidadeM, paradas) {
+  const primeira = paradas[0];
+  if (profundidadeM <= primeira.profundidadeM) return { cor: primeira.cor, alfa: primeira.alfa };
+  const ultima = paradas[paradas.length - 1];
+  if (profundidadeM >= ultima.profundidadeM) return { cor: ultima.cor, alfa: ultima.alfa };
+  for (let i = 0; i < paradas.length - 1; i++) {
+    const p0 = paradas[i];
+    const p1 = paradas[i + 1];
+    if (profundidadeM < p1.profundidadeM) {
+      const t = (profundidadeM - p0.profundidadeM) / (p1.profundidadeM - p0.profundidadeM);
+      return {
+        cor: [
+          interpolarLinear(p0.cor[0], p1.cor[0], t),
+          interpolarLinear(p0.cor[1], p1.cor[1], t),
+          interpolarLinear(p0.cor[2], p1.cor[2], t),
+        ],
+        alfa: interpolarLinear(p0.alfa, p1.alfa, t),
+      };
+    }
+  }
+  return { cor: ultima.cor, alfa: ultima.alfa }; // nunca deveria cair aqui (loop acima cobre tudo < última parada)
+}
+
+/** @returns {{ cor: [number, number, number], alfa: number } | null} null pra terra/sem-dado (transparente) */
+function amostraParaElevacao(z, nodata, paradas) {
   if (!Number.isFinite(z) || z === nodata) return null;
   if (z >= 0) return null; // terra — a máscara e o mapa base já cuidam disso
-  const profundidadeM = -z;
-  for (const faixa of faixas) {
-    if (profundidadeM <= faixa.ateM) return faixa.cor;
-  }
-  return faixas[faixas.length - 1].cor; // nunca deveria cair aqui (última faixa é Infinity)
+  return amostrarGradiente(-z, paradas);
+}
+
+/** smoothstep clássico: ease-in/ease-out entre `low` e `high`, sem quina na
+ *  derivada nas pontas (ao contrário de um lerp linear) — usado tanto pro
+ *  esmaecimento de borda quanto poderia ser reusado em qualquer outra rampa
+ *  que precise "começar e terminar devagar". */
+function suavizarBorda(low, high, x) {
+  const t = Math.min(1, Math.max(0, (x - low) / (high - low)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Fator [0,1] pra esmaecer a borda retangular do PNG: 1.0 no miolo, caindo
+ *  suavemente pra 0.0 exatamente no último pixel de cada lado. É o remédio
+ *  pro sintoma "PNG colado" — sem isso a imagem tem uma aresta reta onde a
+ *  cor simplesmente para (visível toda vez que o usuário navega até a borda
+ *  do bbox); multiplicando o alfa por este fator, a cor dissolve no mapa
+ *  antes de chegar na borda, em vez de cortar. Mesma largura nos 4 lados —
+ *  a distância até a borda mais próxima já lida bem com imagens não
+ *  quadradas. */
+function fatorEsmaecimentoBorda(col, row, ncols, nrows, larguraPx) {
+  if (larguraPx <= 0) return 1;
+  const distMinima = Math.min(col, ncols - 1 - col, row, nrows - 1 - row);
+  return suavizarBorda(0, larguraPx, distMinima);
 }
 
 // ---------------------------------------------------------------------------
@@ -319,16 +428,32 @@ async function gerarCamada(camada) {
   const totalCelulas = ncols * nrows;
   console.log(`Grid: ${ncols} x ${nrows} = ${totalCelulas.toLocaleString("pt-BR")} células.`);
 
-  const png = new PNG({ width: ncols, height: nrows });
+  const larguraFeatherPx = Math.min(
+    FEATHER_MAX_PX,
+    Math.max(FEATHER_MIN_PX, Math.round(Math.min(ncols, nrows) * FEATHER_FRACAO))
+  );
+  console.log(
+    `Esmaecimento de borda: ${larguraFeatherPx}px (${(FEATHER_FRACAO * 100).toFixed(0)}% do menor lado, piso ${FEATHER_MIN_PX}px, teto ${FEATHER_MAX_PX}px).`
+  );
+
+  // deflateStrategy 1 = Z_FILTERED (zlib), pensada exatamente pra dados de
+  // imagem já passados pelo filtro por-linha do PNG (deltas pequenos perto
+  // de zero) — o padrão do pngjs é 3 (Z_RLE, só repetição literal), pior
+  // pra gradiente. Medido: ~30% menor só com essa troca, antes até da
+  // quantização acima.
+  const png = new PNG({ width: ncols, height: nrows, deflateStrategy: 1 });
   let celulasAgua = 0;
   for (let idx = 0; idx < valores.length; idx++) {
-    const cor = corParaElevacao(valores[idx], nodata, camada.faixas);
+    const amostra = amostraParaElevacao(valores[idx], nodata, camada.paradas);
     const o = idx * 4;
-    if (cor) {
-      png.data[o] = cor[0];
-      png.data[o + 1] = cor[1];
-      png.data[o + 2] = cor[2];
-      png.data[o + 3] = ALFA_AGUA;
+    if (amostra) {
+      const row = Math.floor(idx / ncols);
+      const col = idx % ncols;
+      const fatorBorda = fatorEsmaecimentoBorda(col, row, ncols, nrows, larguraFeatherPx);
+      png.data[o] = Math.round(amostra.cor[0] / QUANT_PASSO_COR) * QUANT_PASSO_COR;
+      png.data[o + 1] = Math.round(amostra.cor[1] / QUANT_PASSO_COR) * QUANT_PASSO_COR;
+      png.data[o + 2] = Math.round(amostra.cor[2] / QUANT_PASSO_COR) * QUANT_PASSO_COR;
+      png.data[o + 3] = Math.round((amostra.alfa * fatorBorda) / QUANT_PASSO_ALFA) * QUANT_PASSO_ALFA;
       celulasAgua++;
     } else {
       png.data[o] = 0;
@@ -366,7 +491,9 @@ async function gerarCamada(camada) {
     latMax: camada.regiao.latMax,
     largura: ncols,
     altura: nrows,
-    faixasM: camada.faixas.map((f) => f.rotulo),
+    renderizacao: "gradiente continuo (cor+alfa interpolados), esmaecimento de borda nos 4 lados",
+    paradasM: camada.paradas.map((p) => `${p.profundidadeM}m`),
+    featherPx: larguraFeatherPx,
     resolucaoAprox: camada.resolucaoAprox,
     geradoEm: new Date().toISOString(),
     fonte: `${camada.fonteDataset} — domínio público dos EUA`,

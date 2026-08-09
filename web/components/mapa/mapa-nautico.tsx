@@ -369,7 +369,13 @@ export function MapaNautico({
                 source: "batimetria-ampla",
                 maxzoom: ZOOM_TRANSICAO_BATIMETRIA,
                 layout: { visibility: camadasRef.current.profundidade ? "visible" : "none" },
-                paint: { "raster-fade-duration": 0 },
+                // "linear" já É o default do Mapbox GL (confirmado na style
+                // spec) — deixado explícito aqui de propósito, porque é
+                // exatamente a propriedade que o pedido do dono pedia pra
+                // conferir: sem isso a textura reamostraria com "nearest"
+                // (pixel quadrado, o outro sintoma clássico de "PNG colado")
+                // sempre que o zoom passa da resolução nativa do PNG.
+                paint: { "raster-fade-duration": 0, "raster-resampling": "linear" },
               },
               mapa.getLayer("batimetria")
                 ? "batimetria"
@@ -401,7 +407,9 @@ export function MapaNautico({
                 source: "batimetria",
                 minzoom: ZOOM_TRANSICAO_BATIMETRIA,
                 layout: { visibility: camadasRef.current.profundidade ? "visible" : "none" },
-                paint: { "raster-fade-duration": 0 },
+                // Ver comentário equivalente na camada "ampla" acima —
+                // "linear" já é o default, explícito de propósito.
+                paint: { "raster-fade-duration": 0, "raster-resampling": "linear" },
               },
               mapa.getLayer("openseamap") ? "openseamap" : undefined,
             )
