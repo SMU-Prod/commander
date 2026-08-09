@@ -41,11 +41,13 @@
 
     <!-- Onda 14 — plugin NmeaSocket (TCP/UDP pro gateway WiFi NMEA 0183):
          todas de instalacao (normal), nenhuma pede prompt em runtime.
-         ACCESS_NETWORK_STATE/ACCESS_WIFI_STATE: o worker usa pra decidir
-         quando vale tentar reconectar. CHANGE_WIFI_MULTICAST_STATE: o
-         listener UDP prende um MulticastLock pra nao perder pacotes de
-         broadcast quando a tela apaga e o WiFi entra em modo de economia
-         de energia — ver NmeaSocketWorker#adquirirMulticastLock. -->
+         ACCESS_WIFI_STATE: WifiManager pro MulticastLock abaixo.
+         CHANGE_WIFI_MULTICAST_STATE: o listener UDP prende um
+         MulticastLock pra nao perder pacotes de broadcast quando a tela
+         apaga e o WiFi entra em modo de economia de energia — ver
+         NmeaSocketWorker#adquirirMulticastLock. O worker de hoje NAO
+         consulta estado de rede pra reconectar (backoff cego simples);
+         ACCESS_NETWORK_STATE fica declarada pro dia em que consultar. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
