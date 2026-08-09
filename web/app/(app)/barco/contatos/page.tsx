@@ -37,7 +37,7 @@ export default async function ContatosPage({
       </Link>
       <h1 className="titulo-pagina mt-3">Contatos</h1>
       {volta && (
-        <p className="mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 corpo text-dim">
+        <p className="mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 corpo text-dim-chip">
           Cadastre o prestador e volte pro registro — o que você já preencheu lá continua salvo.
         </p>
       )}

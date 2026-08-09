@@ -101,7 +101,7 @@ export default async function AssinaturaPage({
             <p className="apoio mt-1 text-dim">Próxima cobrança em {dataBr(proximaCobranca)}</p>
           )}
           {assinatura.fundador_numero !== null && (
-            <p className="apoio mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel2 px-3 py-1.5 text-dim">
+            <p className="apoio mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel2 px-3 py-1.5 text-dim-chip">
               <Icone nome="estrela" className="size-3.5" /> Fundador #{assinatura.fundador_numero}
             </p>
           )}

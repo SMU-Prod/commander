@@ -144,7 +144,7 @@ export function FormularioNovoEvento({
                 aria-pressed={selecionado}
                 onClick={() => setTipo(t.valor)}
                 className={`flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[14px] border px-3 py-4 text-sm font-medium ${
-                  selecionado ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line bg-panel2 text-dim"
+                  selecionado ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line bg-panel2 text-dim-chip"
                 }`}
               >
                 <Icone nome={t.icone} className="size-6" />

@@ -19,6 +19,11 @@
   --meter: #0b1d2d;
   --meter-texto: #e9f1f8;
   --meter-dim: #7c93ab;
+  /* texto-dim foi calibrado contra --superficie; sobre --superficie-2 (badges,
+     chips, pills recolhidos) o par reprova AA: 4.45:1 no light, 4.16:1 no
+     dark (mínimo é 4.5:1). Token dedicado pra essa combinação, medido ao
+     vivo via getComputedStyle: 5.00:1 aqui, 4.89:1 no dark abaixo. */
+  --texto-dim-chip: #596976;
 }
 
 [data-theme="dark"] {
@@ -38,6 +43,7 @@
   --meter: #060d16;
   --meter-texto: #e9f1f8;
   --meter-dim: #7c93ab;
+  --texto-dim-chip: #88a0b8;
 }
 
 @theme inline {
@@ -47,6 +53,7 @@
   --color-line: var(--linha);
   --color-texto: var(--texto);
   --color-dim: var(--texto-dim);
+  --color-dim-chip: var(--texto-dim-chip);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-crit: var(--crit);
