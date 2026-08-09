@@ -208,6 +208,33 @@ export interface Assinatura {
   atualizado_em: string
 }
 
+// Sondagem colaborativa (onda 13) — ver web/lib/domain/sondagem.ts.
+export type TransporteSondagem = "signalk" | "nativo"
+
+export interface Sondagem {
+  id: string
+  embarcacao_id: string
+  usuario_id: string
+  lat: number
+  lon: number
+  profundidade_m: number
+  celula_id: string
+  transporte: TransporteSondagem
+  medido_em: string
+  criado_em: string
+}
+
+/** Linha devolvida por `sondagens_por_celula` (RPC) — SEMPRE agregado por
+ *  celula, nunca a leitura individual de alguem (ver migration 025). */
+export interface CelulaSondagemAgregada {
+  celula_id: string
+  lat: number
+  lon: number
+  profundidade_m: number
+  leituras: number
+  ultima_leitura: string
+}
+
 export type CategoriaParceiro = "marina" | "posto" | "pousada" | "restaurante"
 export type PlanoParceiro = "cortesia" | "basico" | "destaque"
 
