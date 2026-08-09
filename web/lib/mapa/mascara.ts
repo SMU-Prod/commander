@@ -1,4 +1,4 @@
-import type { Grade } from "@/lib/domain/rota"
+import type { Grade, GradeProfundidade } from "@/lib/domain/rota"
 
 /** `dentroDaGrade` mudou de casa na onda 11 (agora vive em lib/domain/rota.ts —
  *  e geometria pura sobre Grade/Coord, pertence ao dominio). Reexportada aqui
@@ -123,3 +123,113 @@ export const carregarGrade = criarCarregadorDeGrade(URL_JSON_FINA, URL_PNG_FINA)
  *  decodificados, cabe em memoria tranquilo; e o A* sobre ela sem recorte que
  *  não caberia). */
 export const carregarGradeNacional = criarCarregadorDeGrade(URL_JSON_NACIONAL, URL_PNG_NACIONAL)
+
+// ---------------------------------------------------------------------------
+// Onda 12 — grade de profundidade (rota por calado). PNG/JSON gerados por
+// scripts/gerar-grade-profundidade.mjs — formato DIFERENTE da mascara de
+// agua/terra acima: aqui o valor do pixel (byte 0-255) codifica profundidade,
+// nao um booleano agua/terra. Ver a codificacao completa (e a justificativa
+// dela) no cabecalho daquele script.
+// ---------------------------------------------------------------------------
+
+interface MascaraProfundidadeMetadados {
+  lngMin: number
+  latMin: number
+  lngMax: number
+  latMax: number
+  largura: number
+  altura: number
+  /** Metros por "bucket" do byte — profundidadeM = (byte-1)*passoM. Ver
+   *  scripts/gerar-grade-profundidade.mjs § CODIFICAÇÃO. */
+  passoM: number
+}
+
+const URL_JSON_PROFUNDIDADE_FINA = "/mapa/profundidade-fina.json"
+const URL_PNG_PROFUNDIDADE_FINA = "/mapa/profundidade-fina.png"
+const URL_JSON_PROFUNDIDADE_NACIONAL = "/mapa/profundidade-nacional.json"
+const URL_PNG_PROFUNDIDADE_NACIONAL = "/mapa/profundidade-nacional.png"
+
+/** Decodifica o canal R de cada pixel pra metros de profundidade. byte 0
+ *  (terra/sem-dado no script gerador) vira +Infinity — NUNCA bloqueia por
+ *  profundidade sozinho (ver `profundidadeEm` em lib/domain/rota.ts: fora de
+ *  cobertura tambem e +Infinity, mesma filosofia — so a grade de agua/terra
+ *  decide bloqueio por terra). Demais bytes: piso conservador do bucket,
+ *  MESMA formula de `byteParaMetros` em scripts/gerar-grade-profundidade.mjs
+ *  (duplicada aqui de proposito — um roda em Node no build, o outro no
+ *  navegador; nao ha um modulo compartilhado sensato entre os dois runtimes
+ *  pra essa unica linha de conta). */
+function paraCanalProfundidade(imageData: ImageData, passoM: number): Float32Array {
+  const { width, height, data } = imageData
+  const profundidadeM = new Float32Array(width * height)
+  for (let i = 0; i < width * height; i++) {
+    const byte = data[i * 4]
+    profundidadeM[i] = byte === 0 ? Number.POSITIVE_INFINITY : (byte - 1) * passoM
+  }
+  return profundidadeM
+}
+
+async function decodificarGradeProfundidade(
+  metadados: MascaraProfundidadeMetadados,
+  imagemBlob: Blob,
+): Promise<GradeProfundidade> {
+  const bitmap = await createImageBitmap(imagemBlob)
+  try {
+    const imageData = obterImageData(bitmap)
+    return {
+      largura: imageData.width,
+      altura: imageData.height,
+      lngMin: metadados.lngMin,
+      latMin: metadados.latMin,
+      lngMax: metadados.lngMax,
+      latMax: metadados.latMax,
+      profundidadeM: paraCanalProfundidade(imageData, metadados.passoM),
+    }
+  } finally {
+    bitmap.close()
+  }
+}
+
+/** Mesma politica de memoizacao de `criarCarregadorDeGrade` (ver comentario
+ *  la em cima): so sucesso memoiza (PNG/JSON ausentes contam como sucesso —
+ *  "essa cobertura nao tem grade de profundidade"), falha real limpa a
+ *  promessa pra proxima chamada tentar de novo. Fabrica separada (nao
+ *  reaproveita `criarCarregadorDeGrade`) porque o passo de decodificacao e
+ *  diferente (profundidade em metros, nao canal binario de agua). */
+function criarCarregadorDeGradeProfundidade(
+  urlJson: string,
+  urlPng: string,
+): () => Promise<GradeProfundidade | null> {
+  let promessa: Promise<GradeProfundidade | null> | null = null
+  return function carregar(): Promise<GradeProfundidade | null> {
+    if (!promessa) {
+      promessa = (async () => {
+        try {
+          const [respostaJson, respostaPng] = await Promise.all([fetch(urlJson), fetch(urlPng)])
+          if (!respostaJson.ok || !respostaPng.ok) return null
+
+          const metadados = (await respostaJson.json()) as MascaraProfundidadeMetadados
+          const imagemBlob = await respostaPng.blob()
+          return await decodificarGradeProfundidade(metadados, imagemBlob)
+        } catch {
+          promessa = null
+          return null
+        }
+      })()
+    }
+    return promessa
+  }
+}
+
+/** Grade de profundidade da regiao fina (Ilhabela/Sao Sebastiao -> Buzios,
+ *  ~450 m/celula, ETOPO). */
+export const carregarGradeProfundidade = criarCarregadorDeGradeProfundidade(
+  URL_JSON_PROFUNDIDADE_FINA,
+  URL_PNG_PROFUNDIDADE_FINA,
+)
+
+/** Grade de profundidade nacional (costa brasileira inteira, ~3,6 km/celula,
+ *  ETOPO — mesma cobertura geografica da mascara nacional de agua/terra). */
+export const carregarGradeProfundidadeNacional = criarCarregadorDeGradeProfundidade(
+  URL_JSON_PROFUNDIDADE_NACIONAL,
+  URL_PNG_PROFUNDIDADE_NACIONAL,
+)
