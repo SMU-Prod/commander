@@ -1,5 +1,5 @@
 "use client"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { Icone, type NomeIcone } from "@/components/icone"
 import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
@@ -60,6 +60,9 @@ export function FormularioNovoEvento({
   alvoInicial,
   itemInicial,
   custoInicial,
+  descricaoInicial = "",
+  horasInicial = "",
+  contatoInicial = "",
 }: {
   tipoInicial: string | null
   dataInicial: string
@@ -70,10 +73,42 @@ export function FormularioNovoEvento({
   alvoInicial: string
   itemInicial: string
   custoInicial: string
+  descricaoInicial?: string
+  horasInicial?: string
+  contatoInicial?: string
 }) {
+  const router = useRouter()
   const [tipo, setTipo] = useState<string | null>(tipoInicial)
   const [horaSaida, setHoraSaida] = useState("")
   const [horaRetorno, setHoraRetorno] = useState("")
+
+  // "Cadastrar" (prestador) navegava embora e apagava tudo que já tinha sido
+  // digitado — não tinha volta. Em vez de um <Link> mudo, lê os campos do
+  // form (pelo FormData, sem precisar de estado controlado extra por campo)
+  // e leva junto na querystring — mesmo padrão que `alvo`/`item`/`custo` já
+  // usam pra chegar pré-preenchidos vindos da ficha do equipamento.
+  function irCadastrarContato(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault()
+    const form = e.currentTarget.closest("form")
+    const params = new URLSearchParams()
+    if (form) {
+      const dados = new FormData(form)
+      // nome do campo no form -> nome do parametro que /diario/novo le de volta
+      // (so "item_id" diverge — o form usa o nome da coluna, a URL usa "item",
+      // igual o link que ja chega da ficha do equipamento).
+      const CAMPO_PARA_PARAM: Record<string, string> = {
+        tipo: "tipo", data: "data", alvo: "alvo", descricao: "descricao",
+        item_id: "item", custo: "custo", horas: "horas",
+      }
+      for (const [campo, param] of Object.entries(CAMPO_PARA_PARAM)) {
+        const v = dados.get(campo)
+        if (v != null && String(v) !== "") params.set(param, String(v))
+      }
+    }
+    const query = params.toString()
+    const voltaPara = query ? `/diario/novo?${query}` : "/diario/novo"
+    router.push(`/barco/contatos?volta=${encodeURIComponent(voltaPara)}`)
+  }
 
   const duracao = useMemo(
     () => duracaoHoras(horaSaida || null, horaRetorno || null),
@@ -242,6 +277,7 @@ export function FormularioNovoEvento({
               <input
                 id="descricao"
                 name="descricao"
+                defaultValue={descricaoInicial}
                 placeholder={DESCRICAO_POR_TIPO[tipo]?.placeholder}
                 className={campo}
               />
@@ -274,7 +310,7 @@ export function FormularioNovoEvento({
                 </div>
                 <div>
                   <label className={rotulo} htmlFor="horas">Horas do motor agora — opcional</label>
-                  <input id="horas" name="horas" inputMode="decimal" className={`${campo} font-mono-instr tabular-nums`} />
+                  <input id="horas" name="horas" inputMode="decimal" defaultValue={horasInicial} className={`${campo} font-mono-instr tabular-nums`} />
                 </div>
               </div>
             ) : (
@@ -288,7 +324,7 @@ export function FormularioNovoEvento({
           {mostraCustoAnexo && !mostraMaisDetalhes && campoAnexo}
 
           {mostraMaisDetalhes && (
-            <details className="group rounded-[14px] border border-line bg-panel2">
+            <details className="group rounded-[14px] border border-line bg-panel2" open={contatoInicial !== ""}>
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 [&::-webkit-details-marker]:hidden">
                 <span className={rotulo}>Mais detalhes</span>
                 <Icone nome="chevron" className="size-4 shrink-0 text-dim transition-transform group-open:rotate-90" />
@@ -297,15 +333,20 @@ export function FormularioNovoEvento({
                 <div>
                   <label className={rotulo} htmlFor="contato_id">Prestador (opcional)</label>
                   {contatos.length > 0 ? (
-                    <select id="contato_id" name="contato_id" defaultValue="" className={campo}>
-                      <option value="">Nenhum</option>
-                      {contatos.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nome}{c.especialidade ? ` — ${c.especialidade}` : ""}</option>
-                      ))}
-                    </select>
+                    <>
+                      <select id="contato_id" name="contato_id" defaultValue={contatoInicial} className={campo}>
+                        <option value="">Nenhum</option>
+                        {contatos.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nome}{c.especialidade ? ` — ${c.especialidade}` : ""}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1.5 apoio text-dim">
+                        Não achou quem procurava? <a href="/barco/contatos" onClick={irCadastrarContato} className="text-accent-forte">Cadastrar</a>
+                      </p>
+                    </>
                   ) : (
                     <p className="corpo text-dim">
-                      Nenhum prestador cadastrado ainda. <Link href="/barco/contatos" className="text-accent-forte">Cadastrar</Link>
+                      Nenhum prestador cadastrado ainda. <a href="/barco/contatos" onClick={irCadastrarContato} className="text-accent-forte">Cadastrar</a>
                     </p>
                   )}
                 </div>

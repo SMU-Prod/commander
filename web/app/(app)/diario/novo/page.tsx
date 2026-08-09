@@ -9,9 +9,19 @@ import { supabaseServer } from "@/lib/supabase/server"
 export default async function NovoEventoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string; alvo?: string; item?: string; custo?: string }>
+  searchParams: Promise<{
+    erro?: string
+    alvo?: string
+    item?: string
+    custo?: string
+    tipo?: string
+    data?: string
+    descricao?: string
+    horas?: string
+    contato?: string
+  }>
 }) {
-  const { erro, alvo, item, custo } = await searchParams
+  const { erro, alvo, item, custo, tipo, data, descricao, horas, contato } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const supabase = await supabaseServer()
@@ -28,8 +38,10 @@ export default async function NovoEventoPage({
   // Chegando direto da ficha de um equipamento ("Registrar serviço") o alvo
   // já vem escolhido — nesse caso pula direto pra Manutenção em vez de fazer
   // a pessoa responder "o que aconteceu" de novo. Sem isso, a pergunta abre
-  // em branco e a pessoa escolhe entre os 6 cartões.
-  const tipoInicial = alvo ? "manutencao" : null
+  // em branco e a pessoa escolhe entre os 6 cartões. `tipo` explícito vence
+  // (volta de "Cadastrar contato" com um tipo diferente de manutenção, ex.:
+  // Avaria, já tinha alvo preenchido também).
+  const tipoInicial = tipo ?? (alvo ? "manutencao" : null)
 
   return (
     <main>
@@ -42,7 +54,7 @@ export default async function NovoEventoPage({
       <form action={criarEvento} className="mt-5 space-y-4">
         <FormularioNovoEvento
           tipoInicial={tipoInicial}
-          dataInicial={hojeISO()}
+          dataInicial={data ?? hojeISO()}
           tripulacao={tripulacaoOpcoes}
           equipamentos={painel.equipamentos}
           itens={painel.itens}
@@ -50,6 +62,9 @@ export default async function NovoEventoPage({
           alvoInicial={alvo ?? ""}
           itemInicial={item ?? ""}
           custoInicial={custo ?? ""}
+          descricaoInicial={descricao ?? ""}
+          horasInicial={horas ?? ""}
+          contatoInicial={contato ?? ""}
         />
       </form>
     </main>
