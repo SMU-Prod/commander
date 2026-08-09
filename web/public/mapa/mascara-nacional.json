@@ -1,0 +1,12 @@
+{
+  "lngMin": -58,
+  "latMin": -34.5,
+  "lngMax": -20,
+  "latMax": 6,
+  "largura": 1141,
+  "altura": 1216,
+  "metrosPorCelula": 3637,
+  "margemCelulas": 2,
+  "geradoEm": "2026-08-09T08:13:36.025Z",
+  "fonte": "ETOPO 2022 60 Arc-Second Global Relief Model (Ice Surface), NOAA/NCEI, via ERDDAP — domínio público dos EUA. Água/terra derivadas de elevação (z<0 = água), não de linha de costa vetorial."
+}
