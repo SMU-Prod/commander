@@ -1,0 +1,87 @@
+import Link from "next/link"
+import { notFound, redirect } from "next/navigation"
+import { Confirmar } from "@/components/confirmar"
+import { Icone } from "@/components/icone"
+import { excluirSistema, salvarSistema } from "@/lib/acoes/sistemas"
+import { carregarPainel } from "@/lib/consultas"
+import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
+import { campo, rot } from "@/lib/ui/form"
+import { supabaseServer } from "@/lib/supabase/server"
+import type { Documento, EquipamentoSistema } from "@/lib/db/types"
+
+export default async function EditarSistemaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string; sistemaId: string }>
+  searchParams: Promise<{ erro?: string }>
+}) {
+  const { id, sistemaId } = await params
+  const { erro } = await searchParams
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+  const equipamento = painel.equipamentos.find((e) => e.id === id)
+  if (!equipamento) notFound()
+  const aba = equipamento.tipo === "motor" ? "motores" : "eletrica"
+  if (!podeEditar(painel.permissoes, aba)) {
+    redirect(`/barco/equipamento/${id}?erro=${encodeURIComponent(`Seu acesso não permite editar ${ROTULO_ABA[aba]}.`)}`)
+  }
+
+  const supabase = await supabaseServer()
+  const [{ data: sistema }, { data: documentos }] = await Promise.all([
+    supabase.from("equipamento_sistemas").select("*").eq("id", sistemaId).eq("equipamento_id", id).maybeSingle(),
+    supabase.from("documentos").select("id, nome").eq("embarcacao_id", painel.embarcacao.id)
+      .not("arquivo_path", "is", null).order("nome"),
+  ])
+  if (!sistema) notFound()
+  const s = sistema as EquipamentoSistema
+
+  return (
+    <main>
+      <Link href={`/barco/equipamento/${id}`} className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> Voltar
+      </Link>
+      <h1 className="titulo-pagina mt-3">Editar sistema</h1>
+      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+
+      <form action={salvarSistema} className="mt-5 space-y-4">
+        <input type="hidden" name="equipamento_id" value={id} />
+        <input type="hidden" name="sistema_id" value={sistemaId} />
+        <div>
+          <label className={rot} htmlFor="nome">Nome do sistema</label>
+          <input id="nome" name="nome" required defaultValue={s.nome} className={campo} />
+        </div>
+        {(documentos ?? []).length === 0 ? (
+          <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+            Sem documentos no acervo ainda. <Link href="/barco/documentos" className="text-accent-forte">Adicione o manual em Documentos</Link> e volte aqui pra vincular.
+          </p>
+        ) : (
+          <div>
+            <label className={rot} htmlFor="documento_id">Manual do acervo — opcional</label>
+            <select id="documento_id" name="documento_id" defaultValue={s.documento_id ?? ""} className={campo}>
+              <option value="">Sem manual vinculado</option>
+              {(documentos as Pick<Documento, "id" | "nome">[]).map((d) => (
+                <option key={d.id} value={d.id}>{d.nome}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className={rot} htmlFor="pagina">Página do manual — opcional</label>
+          <input id="pagina" name="pagina" inputMode="numeric" defaultValue={s.pagina ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
+        </div>
+        <div>
+          <label className={rot} htmlFor="observacao">Observação — opcional</label>
+          <input id="observacao" name="observacao" defaultValue={s.observacao ?? ""} className={campo} />
+        </div>
+        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar sistema</button>
+      </form>
+
+      <form action={excluirSistema} className="mt-8 flex justify-center">
+        <input type="hidden" name="equipamento_id" value={id} />
+        <input type="hidden" name="sistema_id" value={sistemaId} />
+        <Confirmar mensagem="Excluir sistema?" rotulo="Excluir sistema" className="flex h-11 items-center corpo text-crit" />
+      </form>
+    </main>
+  )
+}

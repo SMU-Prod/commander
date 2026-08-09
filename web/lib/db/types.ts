@@ -114,6 +114,20 @@ export interface Documento {
   created_at: string
 }
 
+/** Onda 15 ("motor vivo") — sistema do equipamento (Arrefecimento, Injeção,
+ *  Elétrica do motor, Transmissão...), opcionalmente apontando pra página
+ *  certa de um documento do acervo. Ver `web/lib/domain/sistemas.ts`. */
+export interface EquipamentoSistema {
+  id: string
+  equipamento_id: string
+  nome: string
+  documento_id: string | null
+  pagina: number | null
+  observacao: string | null
+  ordem: number
+  created_at: string
+}
+
 export interface Vinculo {
   id: string
   usuario_id: string
