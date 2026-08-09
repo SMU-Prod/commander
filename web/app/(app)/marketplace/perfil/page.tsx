@@ -27,7 +27,7 @@ export default async function PerfilComandantePage({
         <Icone nome="voltar" className="size-4" /> Comandantes
       </Link>
       <h1 className="mt-3 text-xl font-semibold">Meu perfil de comandante</h1>
-      <p className="mt-1 text-sm text-dim">O que os proprietários da plataforma veem sobre você.</p>
+      <p className="mt-1 text-sm text-dim">O que o dono do barco vê quando procura um comandante para contratar.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={salvarPerfilComandante} className="mt-5 space-y-4">

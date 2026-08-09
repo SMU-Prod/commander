@@ -11,16 +11,13 @@ export default async function MarketplacePage() {
 
   return (
     <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Comandantes</h1>
-        <Link href="/marketplace/perfil" className="inline-flex items-center gap-1 corpo text-accent-forte"><Icone nome="pessoas" className="size-4" /> Sou comandante</Link>
-      </div>
+      <h1 className="titulo-pagina">Comandantes</h1>
       <p className="apoio mt-1 text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
 
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {((perfis ?? []) as PerfilComandante[]).length === 0 && (
           <p className="corpo py-5 text-dim">
-            Nenhum comandante cadastrado ainda. É comandante? Toque em &quot;Sou comandante&quot; e crie seu perfil.
+            Ainda não há comandantes cadastrados na sua região. Assim que houver, eles aparecem aqui.
           </p>
         )}
         {((perfis ?? []) as PerfilComandante[]).map((p) => (
@@ -56,6 +53,10 @@ export default async function MarketplacePage() {
         Até lá, os dados são declarados pelo próprio profissional e a contratação é combinada
         diretamente entre as partes.
       </p>
+
+      <Link href="/marketplace/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
+        <Icone nome="pessoas" className="size-3.5" /> É comandante? Toque aqui para criar seu perfil.
+      </Link>
     </main>
   )
 }

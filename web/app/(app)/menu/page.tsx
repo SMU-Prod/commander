@@ -74,16 +74,6 @@ export default async function MenuPage({
         <p className="apoio mt-0.5 text-dim">Ative os avisos por aparelho e veja o histórico</p>
       </Link>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="ancora" className="size-3.5" /> Parceiro comercial
-      </p>
-      <Link href="/parceiro" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="titulo-card">Meu perfil de parceiro</p>
-        <p className="apoio mt-0.5 text-dim">
-          É marina, posto, pousada ou restaurante? Apareça no mapa de quem navega perto.
-        </p>
-      </Link>
-
       {painel?.papel === "PROP" && (
         <>
           <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
@@ -95,6 +85,16 @@ export default async function MenuPage({
           </Link>
         </>
       )}
+
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="ancora" className="size-3.5" /> Para estabelecimentos
+      </p>
+      <Link href="/parceiro" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
+        <p className="titulo-card">É marina, posto, pousada ou restaurante?</p>
+        <p className="apoio mt-0.5 text-dim">
+          Publique seu perfil e apareça no mapa de quem navega perto.
+        </p>
+      </Link>
 
       <form action={sair} className="mt-8">
         <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">

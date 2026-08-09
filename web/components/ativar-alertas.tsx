@@ -94,7 +94,7 @@ export function AtivarAlertas() {
 
   return (
     <div className="rounded-[14px] border border-line bg-panel p-4">
-      <p className="text-sm font-semibold">Avisos neste aparelho</p>
+      <p className="text-sm font-semibold">Neste aparelho</p>
       {estado === "sem-suporte" && (
         <p className="mt-1.5 text-xs text-dim">
           Este navegador não suporta notificações. No iPhone, instale o app primeiro:
