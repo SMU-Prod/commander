@@ -1,36 +1,40 @@
+import { Capacitor } from "@capacitor/core"
+import { criarTransporteNativoCapacitor } from "./nativo-capacitor"
 import type { TransporteProfundidade } from "./transporte"
 
 /**
- * Stub do transporte nativo (onda 14) — CONTRATO entre agentes: outro
- * agente está escrevendo o plugin Capacitor (socket TCP/UDP pro gateway
- * WiFi do ecobatímetro, decodificando NMEA 0183 cru — DPT/DBT) em paralelo
- * e vai substituir o miolo deste arquivo. As DUAS assinaturas abaixo são o
- * contrato entre as duas ondas — não mudar sem combinar; `selecionar.ts` e
- * a tela (`sondagem-painel.tsx`) dependem exatamente delas.
+ * Onda 14 — ponto de entrada do transporte nativo, contrato com quem
+ * consome (painel de sondagem / fila offline, `web/lib/nmea/fila.ts` e
+ * `components/mapa/sondagem-painel.tsx` — nao mexidos nesta onda).
+ * `transporteNativoDisponivel` e `criarTransporteNativo` sao as DUAS
+ * assinaturas combinadas entre ondas — nao mudam.
  *
- * Por que isto não é apenas "TODO": no navegador puro (sem shell
- * Capacitor), JavaScript de página não abre socket TCP/UDP cru — por isso
- * a onda 13 implementou Signal K (WebSocket) primeiro, e por isso este
- * stub é HONESTO — sempre indisponível no web, nunca finge ter um
- * transporte que não existe (mesma régua da onda 13 pra sondagem em si:
- * nunca sugerir algo que o app não pode entregar de verdade).
+ * A implementacao de verdade (socket TCP/UDP contra o gateway WiFi NMEA
+ * 0183, plugin Capacitor `NmeaSocket`) mora em `./nativo-capacitor.ts`;
+ * este arquivo so decide QUANDO delegar pra ela.
+ *
+ * Por que o `if` abaixo nao e paranoia: no navegador puro (incluindo o
+ * PWA instalado), JavaScript de pagina nao abre socket TCP/UDP cru — por
+ * isso a onda 13 implementou Signal K (WebSocket) primeiro, e por isso
+ * fora do shell isto devolve `null` honesto em vez de fingir um
+ * transporte que nao existe (mesma regua da onda 13 pra sondagem em si).
  */
 
-/** `false` no navegador — sempre, hoje. Quando o outro agente terminar o
- *  plugin Capacitor, esta função passa a checar a plataforma nativa (ex.:
- *  `Capacitor.isNativePlatform()` + o plugin registrado) — a assinatura
- *  (sem parâmetros, devolve `boolean`) não muda. */
+/** `true` quando o app roda dentro do shell nativo Capacitor
+ *  (Android/iOS empacotado — onda 14, ver `capacitor.config.ts`). So
+ *  nesse ambiente o plugin `NmeaSocket` existe de verdade; num navegador
+ *  comum (incluindo o PWA instalado) isto e sempre `false`. */
 export function transporteNativoDisponivel(): boolean {
-  return false
+  return Capacitor.isNativePlatform()
 }
 
-/** `null` enquanto o transporte nativo não existir — mesma regra de
- *  `transporteNativoDisponivel`. Quando o plugin Capacitor estiver pronto,
- *  esta função passa a devolver um `TransporteProfundidade` que reusa
- *  `parseSentencaProfundidade` (`web/lib/domain/sondagem.ts`) pra decodificar
- *  as sentenças cruas do gateway TCP/UDP — o painel de sondagem nunca muda
- *  uma linha, porque só conhece a interface `TransporteProfundidade`
- *  (`transporte.ts`), nunca o transporte concreto. */
+/** Cria o transporte nativo com a configuracao padrao (UDP broadcast,
+ *  porta 10110 — ver `PORTA_PADRAO_NMEA` em `./nmea-socket-plugin.ts`) ou
+ *  devolve `null` fora do shell Capacitor. Sem parametro de proposito:
+ *  quem decide host/porta customizados (modo TCP, porta diferente) chama
+ *  `criarTransporteNativoCapacitor` direto — esta funcao existe pro caso
+ *  comum, pra bater com a assinatura combinada entre ondas. */
 export function criarTransporteNativo(): TransporteProfundidade | null {
-  return null
+  if (!transporteNativoDisponivel()) return null
+  return criarTransporteNativoCapacitor()
 }

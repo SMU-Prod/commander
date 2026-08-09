@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onda 14 — so entra no build de DEBUG (o Gradle faz merge deste arquivo
+  com `src/main/AndroidManifest.xml` so nesse variant). `usesCleartextTraffic`
+  libera HTTP puro (sem TLS) — necessario pra `server.url` apontar pro
+  `next dev` na rede local (`http://192.168.x.x:3010`, ver
+  `capacitor.config.ts` e docs/APP-NATIVO.md), porque o Android 28+ bloqueia
+  cleartext por padrao. O build de RELEASE nunca ve este arquivo — continua
+  HTTPS-only.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

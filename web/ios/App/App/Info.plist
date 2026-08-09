@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<!--
+	  Onda 14 - plugin NmeaSocket (TCP/UDP pro gateway WiFi NMEA 0183).
+	  iOS 14+ exige a permissao "Local Network" pra QUALQUER conexao com
+	  IP da rede local, socket cru incluso (nao so descoberta Bonjour) -
+	  sem esta chave o app nem chega a mostrar o prompt, o socket so
+	  falha. NSBonjourServices e tecnicamente so obrigatorio pra quem usa
+	  a API de descoberta Bonjour (nao e o caso aqui - o app conecta
+	  direto no IP:porta configurados), mas deixamos um servico generico
+	  declarado: reduz o risco de review da App Store pedir esclarecimento
+	  sobre uso de rede local sem contexto nenhum no manifesto.
+	-->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>O Commander conecta no ecobatimetro do barco pela rede WiFi local (gateway NMEA 0183) para gravar a sondagem colaborativa.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_nmea-0183._tcp</string>
+		<string>_nmea-0183._udp</string>
+	</array>
+	<!--
+	  Onda 14 - GPS (posicao/velocidade casada com cada leitura de
+	  profundidade, ver web/lib/nmea/nativo-capacitor.ts). So a permissao
+	  "quando em uso" nesta onda (@capacitor/geolocation, foreground) -
+	  "sempre" (segundo plano) fica pra quando um plugin de background
+	  geolocation for integrado, ver docs/APP-NATIVO.md.
+	-->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O Commander usa sua posicao para registrar onde cada leitura de profundidade foi medida.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Commander</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            <key>UISceneStoryboardFile</key>
+            <string>Main</string>
+        </dict>
+      </array>
+    </dict>
+	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	<!--
+	  Onda 14 — NAO adicionado por padrao (fica ativo mesmo em builds de
+	  release, ao contrario do `usesCleartextTraffic` do Android, que so
+	  entra no source set `debug`). Se `CAPACITOR_SERVER_URL` apontar pro
+	  IP da LAN em HTTP puro (dev), o ATS do iOS bloqueia o load do
+	  WKWebView sem uma excecao — adicione manualmente durante o
+	  desenvolvimento (nunca commitar isto ligado):
+
+	  <key>NSAppTransportSecurity</key>
+	  <dict>
+	    <key>NSAllowsArbitraryLoads</key>
+	    <true/>
+	  </dict>
+
+	  Ver "Apontar pro dev server na LAN" em docs/APP-NATIVO.md.
+	-->
+</dict>
+</plist>
