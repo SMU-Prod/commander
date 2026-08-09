@@ -1,6 +1,14 @@
-import type { Coord, Grade } from "@/lib/domain/rota"
+import type { Grade } from "@/lib/domain/rota"
 
-/** Metadados de `mascara-agua.json` (gerado por scripts/gerar-mascara-agua.mjs). */
+/** `dentroDaGrade` mudou de casa na onda 11 (agora vive em lib/domain/rota.ts —
+ *  e geometria pura sobre Grade/Coord, pertence ao dominio). Reexportada aqui
+ *  pra nao quebrar quem ja importa `dentroDaGrade` de "@/lib/mapa/mascara"
+ *  (rota.worker.ts). */
+export { dentroDaGrade } from "@/lib/domain/rota"
+
+/** Metadados de `mascara-agua.json`/`mascara-nacional.json` (gerados por
+ *  scripts/gerar-mascara-agua.mjs e scripts/gerar-mascara-nacional.mjs — mesmo
+ *  formato pras duas). */
 interface MascaraMetadados {
   lngMin: number
   latMin: number
@@ -12,16 +20,10 @@ interface MascaraMetadados {
   margemCelulas: number
 }
 
-const URL_JSON = "/mapa/mascara-agua.json"
-const URL_PNG = "/mapa/mascara-agua.png"
-
-/** Memoiza a promessa de carga: decodificar milhoes de pixels e um custo que nao vale
- *  pagar duas vezes. `null` (sucesso mas sem grade — PNG/JSON ausentes no servidor)
- *  tambem fica memoizado: se a mascara nao existe, nao adianta tentar de novo a cada
- *  chamada. Já uma FALHA (rede caiu, decode explodiu) NUNCA é memoizada — ver
- *  carregarGrade abaixo — senão um erro transitório no boot deixa a sessão inteira
- *  sem rota marítima até o usuário recarregar a página. */
-let promessaGrade: Promise<Grade | null> | null = null
+const URL_JSON_FINA = "/mapa/mascara-agua.json"
+const URL_PNG_FINA = "/mapa/mascara-agua.png"
+const URL_JSON_NACIONAL = "/mapa/mascara-nacional.json"
+const URL_PNG_NACIONAL = "/mapa/mascara-nacional.png"
 
 /** Desenha o bitmap num canvas (OffscreenCanvas quando disponivel, <canvas> comum
  *  como fallback) e devolve o ImageData decodificado — mesma leitura de pixel em
@@ -77,35 +79,47 @@ async function decodificarGrade(metadados: MascaraMetadados, imagemBlob: Blob): 
   }
 }
 
-/** Busca a mascara agua/terra da costa e monta a `Grade` usada por acharCaminho.
- *  Memoizada num modulo-level: chamadas subsequentes reusam a mesma promessa — mas
- *  so quando ela terminou em SUCESSO (PNG/JSON ausentes contam como sucesso: `null`
- *  e uma resposta valida, "esta mascara nao existe"). Numa falha real (rede fora do
- *  ar no boot, decode do PNG explodindo, timeout) a promessa memoizada e limpa antes
- *  de propagar `null`, pra proxima chamada tentar de novo em vez de a sessao inteira
- *  ficar sem rota maritima por causa de um erro transitorio. */
-export function carregarGrade(): Promise<Grade | null> {
-  if (!promessaGrade) {
-    promessaGrade = (async () => {
-      try {
-        const [respostaJson, respostaPng] = await Promise.all([fetch(URL_JSON), fetch(URL_PNG)])
-        if (!respostaJson.ok || !respostaPng.ok) return null
+/** Fabrica um carregador memoizado pra uma mascara (fina OU nacional — mesmo
+ *  formato de PNG/JSON pras duas, so muda a URL). Cada carregador tem sua
+ *  PROPRIA promessa (closure), entao a fina e a nacional nunca compartilham
+ *  memoizacao uma da outra. Regras de memoizacao (onda 5, preservadas aqui):
+ *  chamadas subsequentes reusam a mesma promessa — mas so quando ela terminou
+ *  em SUCESSO (PNG/JSON ausentes contam como sucesso: `null` e uma resposta
+ *  valida, "esta mascara nao existe"). Numa falha real (rede fora do ar no
+ *  boot, decode do PNG explodindo, timeout) a promessa memoizada e limpa antes
+ *  de propagar `null`, pra proxima chamada tentar de novo em vez de a sessao
+ *  inteira ficar sem essa mascara por causa de um erro transitorio. */
+function criarCarregadorDeGrade(urlJson: string, urlPng: string): () => Promise<Grade | null> {
+  let promessa: Promise<Grade | null> | null = null
+  return function carregar(): Promise<Grade | null> {
+    if (!promessa) {
+      promessa = (async () => {
+        try {
+          const [respostaJson, respostaPng] = await Promise.all([fetch(urlJson), fetch(urlPng)])
+          if (!respostaJson.ok || !respostaPng.ok) return null
 
-        const metadados = (await respostaJson.json()) as MascaraMetadados
-        const imagemBlob = await respostaPng.blob()
-        return await decodificarGrade(metadados, imagemBlob)
-      } catch {
-        promessaGrade = null // falha nao memoiza: proxima chamada tenta de novo
-        return null
-      }
-    })()
+          const metadados = (await respostaJson.json()) as MascaraMetadados
+          const imagemBlob = await respostaPng.blob()
+          return await decodificarGrade(metadados, imagemBlob)
+        } catch {
+          promessa = null // falha nao memoiza: proxima chamada tenta de novo
+          return null
+        }
+      })()
+    }
+    return promessa
   }
-  return promessaGrade
 }
 
-/** Confere se uma coordenada cai dentro do bbox coberto pela grade — barato o
- *  suficiente pra checar antes de chamar acharCaminho num ponto fora da costa
- *  mapeada (RJ/Angra/Buzios), sem precisar montar celula nenhuma. */
-export function dentroDaGrade(g: Grade, p: Coord): boolean {
-  return p.lo >= g.lngMin && p.lo <= g.lngMax && p.la >= g.latMin && p.la <= g.latMax
-}
+/** Mascara fina (100 m/celula): Ilhabela/Sao Sebastiao -> Buzios, o circuito
+ *  historico de operacao — melhor detalhe perto de casa. Nome mantido
+ *  (`carregarGrade`, sem sufixo) por compatibilidade com quem ja importava. */
+export const carregarGrade = criarCarregadorDeGrade(URL_JSON_FINA, URL_PNG_FINA)
+
+/** Mascara nacional (~3,6 km/celula, onda 11): costa brasileira inteira, pra
+ *  quando origem OU destino caem fora da fina. Recorte por trecho
+ *  (`recortarGrade`+`bboxComFolga` em lib/domain/rota.ts) e feito pelo
+ *  chamador ANTES do A* — aqui so carrega a grade inteira (~1,4 MB
+ *  decodificados, cabe em memoria tranquilo; e o A* sobre ela sem recorte que
+ *  não caberia). */
+export const carregarGradeNacional = criarCarregadorDeGrade(URL_JSON_NACIONAL, URL_PNG_NACIONAL)

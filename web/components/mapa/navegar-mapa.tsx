@@ -27,7 +27,7 @@ type Ancora = { la: number; lo: number; raioM: number }
  *  como valor DERIVADO (ver `estadoRotaAtual`), nunca guardado em estado. */
 type EstadoRotaResultado =
   | { tipo: "calculando"; paraDestino: Coord }
-  | { tipo: "rota"; paraDestino: Coord; pernas: Coord[]; distanciaNm: number }
+  | { tipo: "rota"; paraDestino: Coord; pernas: Coord[]; distanciaNm: number; precisao: "fina" | "nacional" }
   | { tipo: "fora-da-area"; paraDestino: Coord }
   | { tipo: "sem-caminho"; paraDestino: Coord }
 type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
@@ -337,7 +337,13 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
       const paraDestino = pedido.destino
       switch (e.data.tipo) {
         case "rota":
-          setEstadoRota({ tipo: "rota", paraDestino, pernas: e.data.pernas, distanciaNm: e.data.distanciaNm })
+          setEstadoRota({
+            tipo: "rota",
+            paraDestino,
+            pernas: e.data.pernas,
+            distanciaNm: e.data.distanciaNm,
+            precisao: e.data.precisao,
+          })
           break
         case "fora-da-area":
           setEstadoRota({ tipo: "fora-da-area", paraDestino })
@@ -1014,15 +1020,21 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             )}
             {posAtual && estadoRotaAtual.tipo === "fora-da-area" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-dim">
-                Fora da área com rota (Ilhabela/São Sebastião a Búzios). Mostrando rumo direto.
+                Fora da costa brasileira mapeada. Mostrando rumo direto.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "sem-caminho" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-warn">Não achei caminho pela água até esse ponto.</p>
             )}
-            {posAtual && estadoRotaAtual.tipo === "rota" && (
+            {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "fina" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-dim">
                 Rota pela água — contorna a costa, não considera profundidade.
+              </p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "nacional" && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">
+                Rota pela água (cobertura nacional) — grade mais grossa, margem de segurança maior. Boa pra
+                travessia longa; não use pra aproximação de porto.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "ausente" && nav && (
