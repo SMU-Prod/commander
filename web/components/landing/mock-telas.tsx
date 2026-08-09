@@ -53,7 +53,7 @@ export function MockTelas() {
               <Horimetro rotulo="Motor BE" horas={608} status="ok" />
             </div>
 
-            <div className="rounded-[12px] border border-line bg-panel px-3 py-2.5 apoio text-dim">
+            <div className="rounded-[14px] border border-line bg-panel px-3 py-2.5 apoio text-dim">
               Nenhum vencimento na margem. Bom vento e mar calmo.
             </div>
           </div>
