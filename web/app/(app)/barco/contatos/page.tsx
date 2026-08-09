@@ -14,9 +14,9 @@ const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14
 export default async function ContatosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string }>
+  searchParams: Promise<{ erro?: string; volta?: string }>
 }) {
-  const { erro } = await searchParams
+  const { erro, volta } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   if (!podeVer(painel.permissoes, "contatos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os contatos."))
@@ -32,10 +32,15 @@ export default async function ContatosPage({
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
+      <Link href={volta || "/barco"} className="inline-flex items-center gap-1 rotulo text-accent-forte">
+        <Icone nome="voltar" className="size-4" /> {volta ? "Voltar ao registro" : "Barco"}
       </Link>
       <h1 className="titulo-pagina mt-3">Contatos</h1>
+      {volta && (
+        <p className="mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 corpo text-dim-chip">
+          Cadastre o prestador e volte pro registro — o que você já preencheu lá continua salvo.
+        </p>
+      )}
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
@@ -76,6 +81,7 @@ export default async function ContatosPage({
 
       <p className="rotulo text-dim mt-6 mb-2">Novo contato</p>
       <form action={criarContato} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        {volta && <input type="hidden" name="volta" value={volta} />}
         <div>
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required className={campo} />

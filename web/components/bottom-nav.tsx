@@ -51,7 +51,12 @@ export function BottomNav() {
               {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação",
                   "Comandantes") estouram o flex-1 e encostam um no outro em
                   tela de 375px — foi o que aconteceu ao trocar Marketplace por
-                  Comandantes. tracking removido pelo mesmo motivo. */}
+                  Comandantes. tracking removido pelo mesmo motivo.
+                  text-[9.5px] é exceção documentada ao piso de 11px de
+                  globals.css — "COMANDANTES" maiúsculo não cabe em 11px nos
+                  71px disponíveis por aba (medido: precisa de 81px); 9.5px é
+                  o maior tamanho que ainda cabe (ver comentário completo em
+                  globals.css, acima de .titulo-pagina). */}
               <span className="w-full truncate px-0.5 text-center">{a.rotulo}</span>
             </Link>
           )

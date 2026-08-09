@@ -1022,17 +1022,17 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             {navExibido && (
               <div className="mt-2 grid grid-cols-3 gap-2">
                 <div className="text-center">
-                  <p className="text-[10px] uppercase tracking-[.14em] text-dim">Distância</p>
+                  <p className="text-[11px] uppercase tracking-[.16em] text-dim">Distância</p>
                   <p className="font-mono-instr text-sm tabular-nums">
                     {navExibido.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] uppercase tracking-[.14em] text-dim">Rumo</p>
+                  <p className="text-[11px] uppercase tracking-[.16em] text-dim">Rumo</p>
                   <p className="font-mono-instr text-sm tabular-nums">{Math.round(navExibido.rumo)}°</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] uppercase tracking-[.14em] text-dim">ETA</p>
+                  <p className="text-[11px] uppercase tracking-[.16em] text-dim">ETA</p>
                   <p className="font-mono-instr text-sm tabular-nums">{navExibido.eta != null ? `${navExibido.eta} min` : "—"}</p>
                 </div>
               </div>

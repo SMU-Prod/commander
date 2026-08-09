@@ -7,6 +7,11 @@ import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { hojeISO } from "@/lib/domain/datas"
 import { boletimDoMar } from "@/lib/mar"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
+import { emLotes } from "@/lib/lotes"
+
+// Envio (push + e-mail) por usuário em lotes concorrentes — ver comentário
+// no laço de usuários, abaixo.
+const TAMANHO_LOTE = 10
 
 export const maxDuration = 60
 
@@ -89,7 +94,13 @@ export async function POST(req: NextRequest) {
     alertas++
 
     const usuarios = usuariosPorBarco.get(embarcacaoId) ?? []
-    for (const u of usuarios) {
+    // Um usuário por vez em série (push + getUserById + fetch pro Resend)
+    // era o mesmo padrão que estourava o `relatorio/mensal` — aqui some
+    // dentro de `registrarEDisparar`, chamada por item/aviso, então a conta
+    // multiplica: itens × usuários. Lotes de `Promise.allSettled` (mesmo
+    // estilo que já valia só pro push de um único usuário, agora pro grupo
+    // de usuários da embarcação) resolvem os dois sem esperar um de cada vez.
+    await emLotes(usuarios, TAMANHO_LOTE, async (u) => {
       const doUsuario = assinaturas.filter((s) => s.usuario_id === u)
       const resultados = await Promise.allSettled(
         doUsuario.map((a) =>
@@ -137,7 +148,7 @@ export async function POST(req: NextRequest) {
           // segue para o próximo usuário; push é o canal primário
         }
       }
-    }
+    })
   }
 
   for (const item of (itensR.data ?? []) as ItemMonitorado[]) {

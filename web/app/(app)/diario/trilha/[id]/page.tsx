@@ -28,7 +28,7 @@ export default async function TrilhaPage({ params }: { params: Promise<{ id: str
       <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Diário
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Trilha — {e.data.split("-").reverse().join("/")}</h1>
+      <h1 className="titulo-pagina mt-3">Trilha — {e.data.split("-").reverse().join("/")}</h1>
       {e.descricao && <p className="mt-1 text-sm text-dim">{e.descricao}</p>}
 
       <div className="mt-4">

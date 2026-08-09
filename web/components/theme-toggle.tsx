@@ -33,7 +33,7 @@ export function ThemeToggle() {
           onClick={() => trocar(o.valor)}
           aria-pressed={tema === o.valor}
           className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
-            tema === o.valor ? "bg-accent text-acao-texto" : "text-dim"
+            tema === o.valor ? "bg-accent text-acao-texto" : "text-dim-chip"
           }`}
         >
           {o.rotulo}

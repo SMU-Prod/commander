@@ -41,7 +41,7 @@ export default async function MarketplacePage() {
               )}
             </div>
             {p.bio && <p className="apoio mt-2 text-dim">{p.bio}</p>}
-            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.1em] text-dim">
+            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
               {p.verificado ? "Verificado" : "Documentação declarada"}
             </span>
           </div>

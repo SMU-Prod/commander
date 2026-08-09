@@ -62,7 +62,7 @@ export function CardEmbarcacao({
         <svg viewBox="0 0 48 34" className="h-3.5 w-auto" aria-hidden="true">
           <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="#d4af37" />
         </svg>
-        <span className="rounded-full bg-[#0b1d2d]/75 px-2 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.2em] text-[#e9f1f8] backdrop-blur">
+        <span className="rounded-full bg-[#0b1d2d]/75 px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.16em] text-[#e9f1f8] backdrop-blur">
           Commander
         </span>
       </span>

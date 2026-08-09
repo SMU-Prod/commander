@@ -4,6 +4,7 @@ import type { Embarcacao, Equipamento, Evento, ItemMonitorado } from "@/lib/db/t
 import { hojeISO } from "@/lib/domain/datas"
 import { formatarReais } from "@/lib/domain/gastos"
 import { mesAnteriorISO, mesSeguinte, resumoDoMes, type ResumoMes } from "@/lib/domain/relatorio"
+import { emLotes } from "@/lib/lotes"
 
 export const maxDuration = 60
 
@@ -86,6 +87,12 @@ export async function POST(req: NextRequest) {
   let puladas = 0
   let falhas = 0
 
+  // 1º passo (síncrono, sem I/O): decide quem recebe e-mail e monta o corpo.
+  // Fica separado do envio pra podermos paralelizar só a parte que tem
+  // latência de rede (getUserById + Resend), sem misturar com o cálculo puro.
+  type Envio = { usuarioId: string; assunto: string; corpo: string }
+  const envios: Envio[] = []
+
   for (const emb of (embarcacoesR.data ?? []) as Embarcacao[]) {
     embarcacoesProcessadas++
     try {
@@ -107,35 +114,44 @@ export async function POST(req: NextRequest) {
 
       const corpo = corpoDoEmail(emb.nome, resumo, mesNome, mesSeguinteNome)
       const assunto = `Seu barco em ${mesNome}`
-      const props = propsPorBarco.get(emb.id) ?? []
-
-      for (const usuarioId of props) {
-        try {
-          const { data: dadosUsuario } = await admin.auth.admin.getUserById(usuarioId)
-          const email = dadosUsuario?.user?.email
-          if (!email) continue
-          const resposta = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${resendKey}`,
-            },
-            body: JSON.stringify({
-              from: "Commander <onboarding@resend.dev>",
-              to: email,
-              subject: assunto,
-              text: corpo,
-            }),
-          })
-          if (resposta.ok) enviadas++
-        } catch {
-          // um PROP falhar nao pode travar os demais da mesma embarcacao
-        }
+      for (const usuarioId of propsPorBarco.get(emb.id) ?? []) {
+        envios.push({ usuarioId, assunto, corpo })
       }
     } catch {
       falhas++
     }
   }
+
+  // 2º passo: envia em lotes concorrentes (Promise.allSettled, mesmo padrão
+  // que `alertas/disparar` já usa pros pushes) em vez de um PROP por vez em
+  // série. Antes: até ~100 embarcações × ~1,3 PROP × 2 chamadas seriais
+  // (getUserById + Resend) ≈ 78 s — acima do maxDuration=60 lá em cima. Em
+  // lotes de 10 concorrentes, o tempo vira o número de lotes × a chamada mais
+  // lenta do lote, não a soma de todas — poucos segundos pra essa mesma conta.
+  const TAMANHO_LOTE = 10
+  await emLotes(envios, TAMANHO_LOTE, async (envio) => {
+    try {
+      const { data: dadosUsuario } = await admin.auth.admin.getUserById(envio.usuarioId)
+      const email = dadosUsuario?.user?.email
+      if (!email) return
+      const resposta = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({
+          from: "Commander <onboarding@resend.dev>",
+          to: email,
+          subject: envio.assunto,
+          text: envio.corpo,
+        }),
+      })
+      if (resposta.ok) enviadas++
+    } catch {
+      // um PROP falhar nao pode travar os demais do lote
+    }
+  })
 
   console.log(
     `[relatorio-mensal] ${mesISO} · ${embarcacoesProcessadas} embarcações · ${enviadas} e-mails · ${puladas} puladas · ${falhas} falhas`,

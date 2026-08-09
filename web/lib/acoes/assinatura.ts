@@ -75,7 +75,18 @@ export async function assinar(formData: FormData) {
     })
     .select("id")
   if (error || !criada?.length) {
+    // Nunca deixa a assinatura orfa no Asaas: se a gravacao no banco falhou
+    // (por QUALQUER motivo), desfaz o que ja foi criado la fora.
     await cancelarAssinaturaAsaas(subscriptionId).catch(() => {})
+    // 23505 = violacao do indice unico `assinaturas_uma_viva_idx` (migration 019):
+    // outra requisicao (duplo clique, ou retry de rede) venceu a corrida e ja
+    // gravou a assinatura viva deste usuario primeiro. Nao e falha — e o duplo
+    // clique sendo pego pelo banco. Manda pra tela de assinatura (onde a que
+    // venceu ja aparece) em vez do erro cru "tente de novo", que so faria a
+    // pessoa clicar de novo e criar mais um cliente/assinatura descartavel no Asaas.
+    if (error?.code === "23505") {
+      redirect("/menu/assinatura?ok=" + encodeURIComponent("Você já tem uma assinatura em andamento"))
+    }
     erroAssinar("Não foi possível registrar a assinatura. Tente de novo.")
   }
 

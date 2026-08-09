@@ -2,9 +2,11 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
+import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
-import { zerarCiclo } from "@/lib/domain/diario"
+import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
+import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -128,14 +130,34 @@ export async function criarEvento(formData: FormData) {
     }
   }
 
+  // "Horas do motor agora" tambem deve virar a leitura oficial do equipamento
+  // — nao so o horimetro do item de manutencao escolhido acima. Mesma escrita
+  // de "Voltei ao mar" (registro.ts), reusada via atualizarLeituraEquipamento.
+  // So propaga se a leitura avancou (nunca regride): um valor menor aqui fica
+  // salvo no evento como historico, mas so vira leitura oficial por correcao
+  // explicita em Embarcacao — nao sobrescrevemos silenciosamente com o que
+  // pode ser so um registro retroativo (servico de um mes anterior, por ex.).
+  if (equipamentoId && horas != null) {
+    const eqAlvo = painel.equipamentos.find((e) => e.id === equipamentoId)
+    if (eqAlvo && devePropagarLeitura(horas, eqAlvo.horas_atuais)) {
+      const { data: atualizado, error: erroLeitura } = await atualizarLeituraEquipamento(supabase, equipamentoId, horas)
+      if (erroLeitura || !atualizado?.length) {
+        revalidatePath("/diario")
+        redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas a leitura do motor não foi atualizada. Confira em Embarcação.")}`)
+      }
+    }
+  }
+
   revalidatePath("/diario")
   revalidatePath("/barco")
   revalidatePath("/hoje")
 
   // A sinergia: saida de navegacao com duracao relevante manda pra tela de
-  // sugestao de horas do motor, antes de voltar pro diario.
+  // sugestao de horas do motor, antes de voltar pro diario — essa tela ja
+  // confirma visualmente ("Saída registrada"), entao nao precisa de "?ok=".
   if (tipo === "navegacao" && horasSugeridas(duracaoHoras(horaSaida, horaRetorno)) !== null) {
     redirect(`/diario/${inserido!.id}/horas`)
   }
-  redirect("/diario")
+  // Acao mais frequente do app redirecionava muda — nunca fica claro se salvou.
+  redirect(`/diario?ok=${encodeURIComponent(`Registrado no diário: ${TIPO_ROTULO[tipo] ?? "evento"}`)}`)
 }

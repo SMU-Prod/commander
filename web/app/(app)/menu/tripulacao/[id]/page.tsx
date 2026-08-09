@@ -39,7 +39,7 @@ export default async function MatrizPage({
       <Link href="/menu/tripulacao" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Tripulação
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">{nome}</h1>
+      <h1 className="titulo-pagina mt-3">{nome}</h1>
       <p className="mt-1 text-sm text-dim">Defina, área por área, o que este comandante vê e edita.</p>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
       {salvo && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 text-sm">Permissões salvas.</p>}

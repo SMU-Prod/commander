@@ -49,7 +49,7 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
           <Icone nome="relogio" className="size-5" />
         </span>
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold">
+          <h1 className="titulo-pagina">
             {duracao != null ? `Essa saída durou ${textoDuracao(duracao)}.` : "Saída registrada."}
           </h1>
           <p className="mt-0.5 text-sm text-dim">Atualizar as horas dos motores?</p>

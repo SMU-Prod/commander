@@ -235,7 +235,7 @@ export default async function HojePage({
           .filter((a) => !a.aba || podeVer(permissoes, a.aba))
           .map((a) => (
             <Link key={a.href} href={a.href}
-              className="sombra-1 flex flex-col items-center gap-1.5 rounded-[12px] border border-line bg-panel px-1 py-3">
+              className="sombra-1 flex flex-col items-center gap-1.5 rounded-[14px] border border-line bg-panel px-1 py-3">
               <Icone nome={a.icone} className="size-5 text-accent-forte" />
               <span className="text-[11px] font-medium">{a.rotulo}</span>
             </Link>
