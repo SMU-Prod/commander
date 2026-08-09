@@ -295,6 +295,17 @@ export function MapaNautico({
       if (!mod) return
       const mapboxgl = mod.default
       if (cancelado || !containerRef.current) return
+      // Contexto inseguro (shell nativo em dev carrega HTTP por IP): o
+      // Chrome esconde DeviceOrientationEvent, e o GeolocateControl do
+      // mapbox-gl referencia o global sem checar existencia —
+      // ReferenceError real vivido no emulador (09/08/2026). Stub vazio:
+      // o mapbox cai no ramo sem requestPermission e escuta um evento que
+      // nunca dispara (sem bussola — que nesse contexto nao existiria de
+      // qualquer forma; em producao HTTPS a API real esta la e o stub nao
+      // e criado).
+      if (typeof window.DeviceOrientationEvent === "undefined") {
+        ;(window as unknown as { DeviceOrientationEvent: unknown }).DeviceOrientationEvent = function () {}
+      }
       mapboxgl.accessToken = TOKEN
       const estiloInicial = camadasRef.current.estilo
       const mapa = new mapboxgl.Map({
