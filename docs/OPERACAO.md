@@ -339,6 +339,157 @@ custo depende de quanto a VIAGEM anda, não de quanta costa a máscara cobre.
   rodar `node scripts/gerar-batimetria.mjs` antes preenche esse cache sem
   precisar gerar a máscara nacional junto).
 
+## Rota por calado (`onda-12-rota-por-calado`)
+
+Equivalente ao **Auto Guidance+** do Navionics: a rota que contorna terra
+(`web/lib/domain/rota.ts`) passa a respeitar o **calado da embarcação**
+(`embarcacoes.calado_m`, cadastrado em `/barco/editar`) — evita água rasa
+demais pro barco, com uma zona de penalidade (não bloqueio duro) perto do
+limite pra preferir água mais funda quando o desvio é barato. Antes desta
+onda a máscara só sabia água/terra — não sabia profundidade.
+
+### 1. Grade de profundidade (`scripts/gerar-grade-profundidade.mjs`)
+
+Novo script — não mexe no PNG visual de `gerar-batimetria.mjs` (esse é
+gradiente contínuo pensado pro olho humano, com quantização/esmaecimento de
+borda que **não é decodificável de volta pra profundidade exata**). Gera um
+PNG **grayscale onde o byte do pixel é um valor numérico**, pras duas
+coberturas (fina e nacional), reaproveitando **o mesmo cache ETOPO já
+baixado** (`scripts/.cache/batimetria.asc` e `batimetria-ampla.asc`,
+via `baixarGradeBatimetria`+`parseEsriAscii` exportados de
+`gerar-batimetria.mjs`) — **zero download novo**.
+
+**Codificação escolhida** (documentada no cabeçalho do script):
+
+- byte `0` = terra ou sem dado (`z >= 0`, ou nodata do ERDDAP).
+- byte `1..255` = **piso** (lower bound) do bucket de profundidade:
+  `profundidadeM = (byte - 1) * passoM`.
+- byte `255` satura: "pelo menos `254 * passoM` metros" — fundo o bastante
+  pra qualquer calado de lancha, não precisa distinguir 300 m de 3000 m pra
+  decidir se o barco passa.
+
+Decodificação sempre **conservadora** (o piso do bucket, nunca o teto): um
+bucket `[1,00 m, 1,25 m)` decodifica como 1,00 m, nunca 1,25 m — o pior caso
+dentro do bucket. Mesma filosofia do resto do produto (nunca inventar dado
+otimista).
+
+`passoM` difere por cobertura (metros por bucket do byte):
+
+| Cobertura | Fonte/resolução espacial | `passoM` | Codifica até (satura em) |
+|---|---|---|---|
+| fina | ETOPO 15 arc-sec, ~450 m/célula | 0,25 m | 63,5 m |
+| nacional | ETOPO 60 arc-sec stride 2, ~3,6 km/célula | 4 m | 1016 m |
+
+A fina usa passo fino (25 cm) porque é onde o calado de 1-3 m de uma lancha
+realmente decide passagem; a nacional usa passo grosso (4 m) porque a célula
+já é ~8000× maior em área — granularidade fina de profundidade não faz
+sentido quando o erro de amostragem espacial já domina.
+
+**Tamanho medido** (`node scripts/gerar-grade-profundidade.mjs`, a partir da
+raiz):
+
+| Cobertura | Dimensões | Tamanho do PNG | Água com dado |
+|---|---|---|---|
+| fina | 961×338 px | **18,9 KB** | 65,4% |
+| nacional | 1141×1216 px | **42,7 KB** | 62,9% |
+
+Ambos bem abaixo do orçamento de ~800 KB já usado como referência pras outras
+máscaras. Inspeção visual (`Read` no PNG): silhueta da costa reconhecível —
+preto (terra) na metade superior, gradiente cinza→branco (raso→fundo)
+acompanhando a linha de costa, exatamente como esperado de um heightmap.
+
+### 2. Custo do A* com calado (`web/lib/domain/rota.ts`)
+
+- **`GradeProfundidade`**: profundidade em metros por célula, com bbox e
+  resolução PRÓPRIOS — DIFERENTES da grade de água/terra (a fina de água vem
+  de linha de costa OSM a 100 m/célula; a de profundidade vem de ETOPO a
+  ~450 m/célula). Por isso a amostragem é por **coordenada**
+  (`profundidadeEm`, nearest-neighbor), não por índice compartilhado com a
+  grade de água. Fora do bbox da grade de profundidade (ou célula marcada
+  terra/sem-dado nela) devolve `+Infinity` — **ausência de cobertura nunca
+  bloqueia por profundidade**; só a grade de água decide bloqueio por terra.
+- **`ConfigCalado`**: `{ caladoM, margemSegurancaM, zonaPenalidadeM?, profundidade }`.
+  - **Bloqueio**: célula com `profundidadeEm(...) < caladoM + margemSegurancaM`
+    é intransponível — mesmo tratamento que terra no A* (skip do vizinho).
+  - **Penalidade**: célula na faixa `[limiar, limiar + zonaPenalidadeM)` passa,
+    mas o custo do movimento é multiplicado por um fator interpolado (até 4×
+    bem no limiar, 1× na borda da zona) — faz o A* preferir um desvio de até
+    ~3× a distância direta na água rasa antes de aceitar atravessá-la, sem
+    proibir quando não há alternativa mais funda por perto. `zonaPenalidadeM`
+    default: a própria `margemSegurancaM` (não existe um número "certo"
+    documentado separado disso).
+  - **Origem/destino ISENTOS** do check de profundidade: o barco pode estar
+    numa marina rasa (origem) ou ir pra uma (destino) — a restrição vale pro
+    CAMINHO entre eles, não pros extremos que o snap já escolheu. Sem essa
+    isenção, um destino em água rasa (marina típica) ficaria
+    PERMANENTEMENTE inalcançável com calado configurado.
+  - **`suavizar` (string-pulling) também respeita calado** quando `config` é
+    passado — achado importante da implementação: sem isso, a simplificação
+    do caminho podia "atalhar" em linha reta de volta por cima de uma célula
+    rasa que o A* tinha desviado de propósito (ela é ÁGUA, só não é FUNDA o
+    suficiente — o check antigo, só de água/terra, deixava passar).
+- **Margem de segurança padrão** (`MARGEM_SEGURANCA_PADRAO_M = 1,0 m`):
+  0,5 m de folga sob a quilha (praxe de navegação costeira) + 0,5 m pra
+  cobrir o quanto a maré pode baixar abaixo do nível médio que a elevação
+  ETOPO usa como referência (marés de sizígia na costa SE brasileira — região
+  de operação do Commander — costumam ficar entre 1,0 e 1,5 m de amplitude;
+  metade disso é uma estimativa razoável de quanto o nível cai abaixo da
+  média). **Não é dado de maré real** (o Commander não consulta tábua de
+  maré) — é uma folga fixa e conservadora, configurável por quem navega numa
+  região de maré maior.
+
+### 3. A tela (`web/components/mapa/navegar-mapa.tsx` + `rota.worker.ts`)
+
+O worker recebe `caladoM` no pedido (vindo de `embarcacoes.calado_m` da
+embarcação ativa, buscado em `/navegar/page.tsx` via `carregarPainel`) e
+carrega a `GradeProfundidade` que casa com a grade de água escolhida (fina ou
+nacional). A resposta traz `caladoM` **efetivamente aplicado** (pode ser
+`null` mesmo com calado pedido, se a grade de profundidade não carregou —
+degrada em silêncio pra rota sem restrição, igual ao resto do app faz com
+máscara ausente; a tela distingue os dois casos comparando com o que ELA
+pediu). Três avisos honestos, nunca um calado inventado em silêncio:
+
+1. **Sem calado cadastrado**: "Calado não cadastrado — a rota não leva em
+   conta a profundidade." + link **Cadastrar calado** pra `/barco/editar`.
+2. **Rota respeita o calado**: "Rota respeita o calado de X m — evita águas
+   rasas CONHECIDAS na resolução do mapa; não garante a profundidade real no
+   local exato." — nunca "rota segura".
+3. **Sem caminho com esse calado**: quando existe rota sem a restrição mas
+   não com ela, o worker marca `semCaminhoPorCalado: true` e a tela troca o
+   texto genérico por "Não achei caminho com o calado do seu barco (X m) —
+   existe rota sem essa restrição."
+
+O disclaimer de resolução grossa do ETOPO (~450 m fina / ~3,6 km nacional —
+não vê pedra isolada nem banco de areia) já valia pro texto de "contorna a
+costa"; agora vale igualmente pro calado — reforçado no texto acima
+("águas rasas CONHECIDAS", nunca "profundidade garantida").
+
+### Gate: trecho real onde o calado muda a rota (`rota-real.test.ts`)
+
+Achado **varrendo os dados reais** (não um palpite): a **Baía de Sepetiba**
+(entre Mangaratiba e Itacuruçá, atrás da Restinga da Marambaia — dentro do
+bbox da grade fina) é rasa em boa parte da sua extensão na grade de
+profundidade real. Com calado de teste de **2,5 m** + margem padrão
+(1,0 m → limiar de bloqueio 3,5 m):
+
+- `(-22.95,-44.05) → (-23.00,-43.95)`: **existe** rota sem restrição
+  (8,66 MN) e **não existe nenhuma** com calado 2,5 m — prova direta que a
+  profundidade bloqueia de verdade (não é decorativa).
+- O mesmo par com calado de 0,8 m (veleiro raso) **passa** normalmente pela
+  mesma travessia que o calado de 2,5 m bloqueia — prova que é o LIMIAR que
+  muda o resultado, não a água em si.
+- Um par mais curto na mesma baía onde a travessia com calado 2,5 m **ainda
+  existe**, mas fica mensuravelmente mais longa que sem restrição — o
+  comportamento de desvio (penalidade), não só bloqueio total.
+- Achado honesto: como a baía inteira é rasa nessa resolução, sobra pouco
+  corredor fundo pra desviar — a maioria dos pares testados vira "sem rota"
+  em vez de "desvio", o que é o comportamento correto do produto (não
+  inventar um corredor fundo que os dados não sustentam).
+
+Regressão: Abraão→Angra (onda 5) e as travessias nacionais RJ→Salvador/
+Floripa→RJ (onda 11) continuam idênticas quando nenhum calado é pedido —
+`config` ausente é literalmente o mesmo código-caminho de antes desta onda.
+
 ## Camada de profundidade (batimetria)
 
 `web/public/mapa/batimetria*.{png,json}` — gradiente contínuo de profundidade,
