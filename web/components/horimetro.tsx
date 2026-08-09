@@ -20,7 +20,7 @@ export function Horimetro({
     : "—"
   return (
     <div className="rounded-[10px] border border-line bg-meter text-meter-texto px-3 py-2 font-mono-instr tabular-nums">
-      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[.14em] text-meter-dim">
+      <div className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[.16em] text-meter-dim">
         {rotulo} <Farol status={status} />
       </div>
       <div className={grande ? "text-4xl" : "text-2xl"}>

@@ -91,7 +91,15 @@ body {
   .sombra-1 { box-shadow: var(--sombra-1); }
   .sombra-2 { box-shadow: var(--sombra-2); }
 
-  /* Escala tipográfica — 4 vozes, nada abaixo de 11px */
+  /* Escala tipográfica — 4 vozes, nada abaixo de 11px.
+     Exceção documentada: a nav inferior (components/bottom-nav.tsx) roda a
+     9.5px. Medido ao vivo: 5 abas dividem 375px em 75px cada, sobrando 71px
+     de texto por aba; "COMANDANTES" maiúsculo precisa de 81px a 11px/tracking
+     zero — não cabe. Testado em canvas: 9.5px é o maior tamanho que ainda
+     cabe (9.75px já estoura pra 71.8px). Ficou fora da escala de conteúdo de
+     propósito — é chrome global (5 abas fixas, rótulos curtos, papel de
+     ícone com legenda, não de texto de leitura), mais perto da convenção
+     nativa de tab bar (iOS usa 10pt) do que da escala de corpo/rótulo. */
   .titulo-pagina {
     font-size: 1.5rem;      /* 24px */
     font-weight: 600;

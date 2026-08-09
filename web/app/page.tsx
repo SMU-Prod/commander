@@ -147,7 +147,7 @@ export default async function LandingPage() {
             </p>
           </div>
           <div className="sombra-2 relative rounded-[16px] border border-accent/50 bg-panel p-5">
-            <span className="absolute -top-3 right-4 rounded-full bg-accent px-2.5 py-1 font-mono-instr text-[10px] uppercase tracking-[.1em] text-acao-texto">
+            <span className="absolute -top-3 right-4 rounded-full bg-accent px-2.5 py-1 font-mono-instr text-[11px] uppercase tracking-[.1em] text-acao-texto">
               2 meses grátis
             </span>
             <p className="titulo-card">{PLANOS.fundador_anual.rotulo}</p>

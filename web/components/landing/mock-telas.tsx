@@ -21,7 +21,7 @@ export function MockTelas() {
       <div className="sombra-2 rounded-[34px] border border-line bg-panel2 p-2">
         <div className="overflow-hidden rounded-[26px] border border-line bg-ink">
           {/* Barra de status fake */}
-          <div className="flex items-center justify-between px-4 pb-1 pt-3 font-mono-instr text-[10px] tracking-[.12em] text-dim">
+          <div className="flex items-center justify-between px-4 pb-1 pt-3 font-mono-instr text-[11px] tracking-[.12em] text-dim">
             <span>9:41</span>
             <span>••••</span>
           </div>
@@ -39,7 +39,7 @@ export function MockTelas() {
               />
               <span className="absolute right-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-ink/80 px-2 py-1 backdrop-blur">
                 <Farol status="ok" />
-                <span className="font-mono-instr text-[9px] uppercase tracking-[.1em] text-ok">Tudo em dia</span>
+                <span className="font-mono-instr text-[11px] uppercase tracking-[.1em] text-ok">Tudo em dia</span>
               </span>
               <div className="absolute inset-x-0 bottom-0 p-3">
                 <p className="text-base font-semibold uppercase tracking-[.05em] text-meter-texto">Blue Horizon</p>
