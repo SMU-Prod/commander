@@ -1,0 +1,19 @@
+{
+  "lngMin": -58,
+  "latMin": -34.5,
+  "lngMax": -20,
+  "latMax": 6,
+  "largura": 1141,
+  "altura": 1216,
+  "faixasM": [
+    "0-50m",
+    "50-200m",
+    "200-1000m",
+    "1000-3000m",
+    ">3000m"
+  ],
+  "resolucaoAprox": "~3,7 km (2 arc-min — ETOPO 60 arc-sec com stride 2 no ERDDAP)",
+  "geradoEm": "2026-08-09T06:43:13.709Z",
+  "fonte": "ETOPO 2022 60 Arc-Second Global Relief Model (Ice Surface), NOAA/NCEI — domínio público dos EUA",
+  "licenca": "Domínio público (dado do governo dos EUA); NOAA pede reconhecimento da fonte por transparência, mas não há restrição de uso comercial."
+}

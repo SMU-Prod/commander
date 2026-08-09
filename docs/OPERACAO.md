@@ -227,17 +227,55 @@ errada, a rota manda o barco por cima de terra ou de uma ilha.
 
 ## Camada de profundidade (batimetria)
 
-`web/public/mapa/batimetria.png` + `.json` — sombreamento de profundidade por faixas
-(0-5 m, 5-10 m, 10-20 m, 20-50 m, >50 m) na mesma bbox da máscara de água, desenhado
-no mapa como source `image` (sobreposição de bbox fixa, sem tiles).
+`web/public/mapa/batimetria*.{png,json}` — sombreamento de profundidade por faixas,
+desenhado no mapa como source `image` (sobreposição de bbox fixa, sem tiles).
 
-- **Regerar:** `node scripts/gerar-batimetria.mjs` a partir da raiz.
-- **Origem do dado:** **ETOPO 2022 15 Arc-Second Global Relief Model (NOAA/NCEI)**,
-  obtido via ERDDAP griddap. **Domínio público dos EUA** — sem restrição de uso
-  comercial; citamos a fonte por transparência (aparece na atribuição do mapa).
-- **Resolução ~450 m.** É orientação geral, não sondagem. A camada nasce DESLIGADA no
-  app e, quando ligada, o painel avisa: "Profundidade aproximada — NÃO substitui a
-  carta náutica oficial".
+**DUAS camadas** desde a branch `onda-10-mapa-completo`. Antes só existia a "fina": ao
+afastar o zoom, sobrava uma mancha retangular escura só sobre a região de operação, com
+o resto do oceano e da costa brasileira sem cor nenhuma — o dono reportou vendo isso no
+mapa. A camada "ampla" resolve cobrindo a costa inteira, numa resolução bem mais grossa
+pra manter o PNG pequeno; `minzoom`/`maxzoom` fazem uma sumir exatamente onde a outra
+cobre, sem dupla pintura nem serrilhado:
+
+| | **fina** (região de operação) | **ampla** (costa brasileira inteira) |
+|---|---|---|
+| Arquivos | `batimetria.png` / `.json` | `batimetria-ampla.png` / `.json` |
+| Bbox | Ilhabela/SP → Búzios/RJ (4° × 1,4°) | Oiapoque → Chuí + oceano adjacente, `lngMin -58, latMin -34.5, lngMax -20, latMax 6` (38° × 40,5°) |
+| Dataset ERDDAP | `ETOPO_2022_v1_15s` | `ETOPO_2022_v1_60s` com stride 2 |
+| Resolução | ~450 m (15 arc-sec) | ~3,7 km (2 arc-min efetivo) |
+| Faixas | 0-5 / 5-10 / 10-20 / 20-50 / >50 m | 0-50 / 50-200 / 200-1000 / 1000-3000 / >3000 m |
+| Zoom no mapa | `minzoom` 8 (ativa perto) | `maxzoom` 8 (ativa longe) |
+| Tamanho do PNG | 18,5 KB | 58,6 KB (1141×1216px, medido) |
+
+**Por que faixas diferentes:** mar aberto é muito mais fundo que a Baía da Ilha Grande
+(o Atlântico tem ~3.700 m de profundidade média) — as faixas rasas da camada fina
+(0-5 m... >50 m) "achatariam" o oceano inteiro numa cor só de longe. A camada ampla usa
+a MESMA paleta de 5 cores (claro→escuro), remapeada para profundidades que fazem sentido
+vistas de longe. O aviso no painel do mapa (`web/components/mapa/mapa-nautico.tsx`)
+documenta as duas resoluções pro navegante.
+
+**Por que não 15 arc-sec na costa inteira:** a bbox da camada ampla (38° × 40,5°) em 15
+arc-sec geraria dezenas de milhões de pixels — pesado demais pra um PNG estático
+versionado no repo. 2 arc-min (stride 2 sobre o dataset de 60 arc-sec do ERDDAP, em vez
+de baixar 15 arc-sec inteiro) chega em ~1,4 M células, mantendo o arquivo pequeno e ainda
+reconhecível de longe.
+
+**Vazão do ERDDAP pra esse volume:** medida manualmente (~550 KB/min) bem mais lenta que
+o necessário pros 6 min/2 tentativas que bastavam pra bbox pequena da camada fina — por
+isso o script usa timeout/tentativas configuráveis por camada (`timeoutMs`/`tentativas`
+em `CAMADAS`, dentro de `scripts/gerar-batimetria.mjs`): a ampla tem até 30 min e 1
+tentativa só (a lentidão é vazão baixa e constante, não falha transitória — repetir não
+ajuda). É só a geração do asset (uma vez, versionado depois); não afeta o app rodando.
+
+- **Regerar (as duas):** `node scripts/gerar-batimetria.mjs` a partir da raiz. Cache do
+  grid bruto em `scripts/.cache/batimetria.asc` e `batimetria-ampla.asc` (ignorados pelo
+  git) — apagar força um novo download.
+- **Origem do dado:** **ETOPO 2022 Global Relief Model (NOAA/NCEI)**, obtido via ERDDAP
+  griddap. **Domínio público dos EUA** — sem restrição de uso comercial; citamos a fonte
+  por transparência (aparece na atribuição do mapa).
+- **Resolução aproximada, não sondagem.** A camada nasce DESLIGADA no app e, quando
+  ligada, o painel avisa a resolução de cada faixa e que isso NÃO substitui a carta
+  náutica oficial.
 
 ### Por que NÃO usamos as cartas da Marinha
 

@@ -10,14 +10,25 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 // Baía da Ilha Grande — praça inicial do Commander.
 const CENTRO_PADRAO: [number, number] = [-44.14, -23.09]
 
-/** Metadados de `batimetria.json` (gerado por scripts/gerar-batimetria.mjs) —
- *  só os 4 campos que viram os cantos da imagem no mapa. */
+/** Metadados de `batimetria.json`/`batimetria-ampla.json` (gerado por
+ *  scripts/gerar-batimetria.mjs) — só os 4 campos que viram os cantos da
+ *  imagem no mapa. */
 interface BatimetriaMetadados {
   lngMin: number
   latMin: number
   lngMax: number
   latMax: number
 }
+
+/** Zoom onde a camada "ampla" (costa brasileira inteira, baixa resolução)
+ *  cede lugar pra "fina" (região de operação, alta resolução). Escolhido
+ *  porque é aproximadamente o zoom em que a bbox da camada fina (~4° de
+ *  longitude) já preenche a largura de uma tela típica — abaixo disso, a
+ *  fina sozinha deixaria o resto do mapa sem cor (o bug que esta camada
+ *  ampla resolve); acima disso, ela é mais precisa e a ampla só serrilharia
+ *  por cima. minzoom/maxzoom tornam as duas mutuamente exclusivas, sem
+ *  dupla pintura. */
+const ZOOM_TRANSICAO_BATIMETRIA = 8
 
 /** Botão discreto (mesmo grupo visual dos outros controles do Mapbox — zoom,
  *  bússola, locate — em "top-right") que abre o painel de camadas. DOM puro
@@ -131,6 +142,9 @@ export function MapaNautico({
     if (mapa.getLayer("batimetria")) {
       mapa.setLayoutProperty("batimetria", "visibility", camadas.profundidade ? "visible" : "none")
     }
+    if (mapa.getLayer("batimetria-ampla")) {
+      mapa.setLayoutProperty("batimetria-ampla", "visibility", camadas.profundidade ? "visible" : "none")
+    }
   }, [camadas])
 
   useEffect(() => {
@@ -195,6 +209,55 @@ export function MapaNautico({
         // Sem o JSON (asset não gerado/404), a camada simplesmente não
         // existe — mesmo padrão "honesto" da máscara água/terra: ausência
         // não é erro, só significa "essa camada não está disponível".
+        //
+        // DUAS camadas (branch onda-10-mapa-completo): "fina" (região de operação, precisa) e
+        // "ampla" (costa brasileira inteira, mais grossa — ver
+        // scripts/gerar-batimetria.mjs). Sem isso, afastar o zoom deixava
+        // uma mancha retangular escura só sobre a região de operação e o
+        // resto do oceano sem nada. minzoom/maxzoom fazem uma sumir onde a
+        // outra cobre (ZOOM_TRANSICAO_BATIMETRIA), sem dupla pintura.
+        //
+        // Os 2 fetches são independentes — podem resolver em qualquer
+        // ordem. O beforeId de cada addLayer é calculado na hora (não fixo)
+        // pra garantir a pilha "ampla abaixo de fina abaixo de openseamap"
+        // não importa qual dos dois chega primeiro:
+        //   - fina aponta sempre pra baixo de "openseamap";
+        //   - ampla aponta pra baixo de "batimetria" (fina) SE ela já
+        //     existir, senão cai pro mesmo alvo que a fina (openseamap) —
+        //     e quando a fina chegar depois, o addLayer dela (também com
+        //     beforeId "openseamap") a insere ACIMA da ampla automaticamente.
+        fetch("/mapa/batimetria-ampla.json")
+          .then((r) => (r.ok ? (r.json() as Promise<BatimetriaMetadados>) : null))
+          .then((meta) => {
+            if (cancelado || !meta || mapa.getSource("batimetria-ampla")) return
+            mapa.addSource("batimetria-ampla", {
+              type: "image",
+              url: "/mapa/batimetria-ampla.png",
+              coordinates: [
+                [meta.lngMin, meta.latMax],
+                [meta.lngMax, meta.latMax],
+                [meta.lngMax, meta.latMin],
+                [meta.lngMin, meta.latMin],
+              ],
+            })
+            mapa.addLayer(
+              {
+                id: "batimetria-ampla",
+                type: "raster",
+                source: "batimetria-ampla",
+                maxzoom: ZOOM_TRANSICAO_BATIMETRIA,
+                layout: { visibility: camadas.profundidade ? "visible" : "none" },
+                paint: { "raster-fade-duration": 0 },
+              },
+              mapa.getLayer("batimetria")
+                ? "batimetria"
+                : mapa.getLayer("openseamap")
+                  ? "openseamap"
+                  : undefined,
+            )
+          })
+          .catch(() => {})
+
         fetch("/mapa/batimetria.json")
           .then((r) => (r.ok ? (r.json() as Promise<BatimetriaMetadados>) : null))
           .then((meta) => {
@@ -214,6 +277,7 @@ export function MapaNautico({
                 id: "batimetria",
                 type: "raster",
                 source: "batimetria",
+                minzoom: ZOOM_TRANSICAO_BATIMETRIA,
                 layout: { visibility: camadas.profundidade ? "visible" : "none" },
                 paint: { "raster-fade-duration": 0 },
               },
@@ -319,8 +383,8 @@ export function MapaNautico({
             </div>
             {camadas.profundidade && (
               <p className="apoio rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
-                Profundidade aproximada (~450 m de resolução) — orientação geral, NÃO substitui a carta náutica
-                oficial.
+                Profundidade aproximada — ~450 m de resolução perto da região de operação, ~3,7 km no resto da costa
+                brasileira e mar adjacente. Orientação geral, NÃO substitui a carta náutica oficial.
               </p>
             )}
 
