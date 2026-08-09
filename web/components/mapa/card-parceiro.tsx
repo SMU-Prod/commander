@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
-import { Icone, type NomeIcone } from "@/components/icone"
+import { Icone } from "@/components/icone"
 import { formatarReais } from "@/lib/domain/gastos"
 import { tempoDesde } from "@/lib/domain/navegacao"
 import { supabaseBrowser } from "@/lib/supabase/client"
@@ -11,12 +11,6 @@ const CATEGORIA_ROTULO: Record<CategoriaParceiro, string> = {
   posto: "Posto de combustível",
   pousada: "Pousada",
   restaurante: "Restaurante",
-}
-const CATEGORIA_ICONE: Record<CategoriaParceiro, NomeIcone> = {
-  marina: "ancora",
-  posto: "oleo",
-  pousada: "inicio",
-  restaurante: "estrela",
 }
 
 const DIAS_DESATUALIZADO = 30
@@ -59,22 +53,33 @@ export function CardParceiro({
             <span className="h-1 w-10 rounded-full bg-line" />
           </div>
 
-          <div className="mt-2 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="titulo-card">{parceiro.nome}</p>
-              <p className="apoio mt-0.5 flex items-center gap-1.5 text-dim">
-                <Icone nome={CATEGORIA_ICONE[parceiro.categoria]} className="size-3.5" />
-                {CATEGORIA_ROTULO[parceiro.categoria]}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={aoFechar}
-              aria-label="Fechar"
-              className="flex size-11 shrink-0 items-center justify-center text-dim"
+          <div className="mt-2 flex items-start gap-3">
+            {/* Mesmo ícone/cor escolhidos pelo parceiro (onda 10, Pedido 2) —
+                mesma receita visual do pino no mapa: fundo colorido + ícone
+                branco + anel branco (dourado se "destaque"), pra legibilidade
+                sobre qualquer cor da paleta. */}
+            <div
+              className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
+                parceiro.plano === "destaque" ? "ring-2 ring-[#D4AF37]" : "ring-2 ring-white"
+              }`}
+              style={{ backgroundColor: parceiro.cor }}
             >
-              <Icone nome="mais" className="size-5 rotate-45" />
-            </button>
+              <Icone nome={parceiro.icone} className="size-4 text-white" />
+            </div>
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="titulo-card">{parceiro.nome}</p>
+                <p className="apoio mt-0.5 text-dim">{CATEGORIA_ROTULO[parceiro.categoria]}</p>
+              </div>
+              <button
+                type="button"
+                onClick={aoFechar}
+                aria-label="Fechar"
+                className="flex size-11 shrink-0 items-center justify-center text-dim"
+              >
+                <Icone nome="mais" className="size-5 rotate-45" />
+              </button>
+            </div>
           </div>
 
           {(parceiro.plano === "destaque" || parceiro.tem_poita) && (

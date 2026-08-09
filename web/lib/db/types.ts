@@ -1,3 +1,5 @@
+import type { NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
+
 export interface Embarcacao {
   id: string
   nome: string
@@ -220,6 +222,10 @@ export interface Parceiro {
   horario: string | null
   lat: number
   lng: number
+  // Ícone/cor do pino no mapa — escolhidos pelo parceiro (onda 10, Pedido 2).
+  // Paleta e conjunto de ícones curados: web/lib/mapa/pino-parceiro.ts.
+  icone: NomeIconeParceiro
+  cor: string
   preco_diaria_centavos: number | null
   preco_diesel_centavos: number | null
   calado_max_m: number | null
