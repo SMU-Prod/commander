@@ -15,23 +15,76 @@
 // viavel em memoria de celular: o custo depende do TRECHO, nao da cobertura.
 // A nacional so e BUSCADA (fetch) quando a fina nao cobre os dois pontos —
 // poupa banda/memoria no caso comum (navegando perto de casa).
-import { carregarGrade, carregarGradeNacional, dentroDaGrade } from "@/lib/mapa/mascara"
-import { acharCaminho, bboxComFolga, distanciaDaRota, escolherGrade, recortarGrade, suavizar, type Coord, type TipoGrade } from "@/lib/domain/rota"
+//
+// Onda 12 (rota por calado): quando o pedido traz `caladoM` (calado da
+// embarcacao ativa, cadastrado em /barco/editar), a rota passa a respeitar
+// profundidade — carrega a GRADE DE PROFUNDIDADE que casa com a grade de
+// agua escolhida (fina ou nacional) e roda o A*/suavizacao com
+// `ConfigCalado`. Degrada com HONESTIDADE, nunca em silencio absoluto: se a
+// grade de profundidade nao carregar, o calado NAO e aplicado e a resposta
+// avisa isso via `caladoM: null` (a tela distingue "sem calado cadastrado"
+// de "calado cadastrado mas nao pude aplicar agora" comparando com o que ELA
+// mesma pediu). Se nao houver caminho respeitando o calado mas houver sem
+// essa restricao, a resposta marca `semCaminhoPorCalado: true` — a tela
+// explica "nao achei caminho com o calado do seu barco" em vez de um
+// generico "sem caminho".
+import {
+  carregarGrade,
+  carregarGradeNacional,
+  carregarGradeProfundidade,
+  carregarGradeProfundidadeNacional,
+  dentroDaGrade,
+} from "@/lib/mapa/mascara"
+import {
+  acharCaminho,
+  bboxComFolga,
+  distanciaDaRota,
+  escolherGrade,
+  MARGEM_SEGURANCA_PADRAO_M,
+  recortarGrade,
+  suavizar,
+  type Coord,
+  type ConfigCalado,
+  type TipoGrade,
+} from "@/lib/domain/rota"
 
 export interface PedidoRota {
   id: number
   de: Coord
   para: Coord
+  /** Calado da embarcacao ativa, em metros (onda 12). `null`/ausente = barco
+   *  sem calado cadastrado — o worker roteia sem restricao de profundidade;
+   *  a TELA e quem decide o que mostrar sobre isso (ver navegar-mapa.tsx). */
+  caladoM?: number | null
 }
 
 export type RespostaRota =
-  | { id: number; tipo: "rota"; pernas: Coord[]; distanciaNm: number; precisao: TipoGrade }
+  | {
+      id: number
+      tipo: "rota"
+      pernas: Coord[]
+      distanciaNm: number
+      precisao: TipoGrade
+      /** Calado EFETIVAMENTE aplicado no calculo desta rota — `null` quando
+       *  NAO foi aplicado (pedido sem calado, OU grade de profundidade
+       *  indisponivel: degrada pra rota sem restricao). Comparar com o
+       *  calado que a tela pediu e o que decide qual aviso mostrar. */
+      caladoM: number | null
+    }
   | { id: number; tipo: "fora-da-area" }
-  | { id: number; tipo: "sem-caminho" }
+  | {
+      id: number
+      tipo: "sem-caminho"
+      /** true = existe rota SEM considerar o calado pedido, so nao COM ele —
+       *  a tela troca o texto generico por "nao achei caminho com o calado
+       *  do seu barco". false = nem sem calado ha caminho (ou calado nem foi
+       *  pedido). */
+      semCaminhoPorCalado: boolean
+    }
   | { id: number; tipo: "sem-mascara" }
 
 self.onmessage = async (e: MessageEvent<PedidoRota>) => {
-  const { id, de, para } = e.data
+  const { id, de, para, caladoM } = e.data
   const gradeFina = await carregarGrade()
 
   // Caminho rapido: se a fina ja cobre os dois pontos, nem busca a nacional —
@@ -56,17 +109,41 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
   // provar que NAO acontece).
   const gradeParaRota = escolha.tipo === "nacional" ? recortarGrade(escolha.grade, bboxComFolga(de, para)) : escolha.grade
 
-  const caminho = acharCaminho(gradeParaRota, de, para)
+  // Grade de profundidade so e buscada quando ha calado pra aplicar — mesma
+  // economia de banda/memoria da nacional acima. A grade de profundidade
+  // NUNCA precisa ser recortada (diferente da de agua): `profundidadeEm`
+  // amostra por coordenada, nao por indice compartilhado com `gradeParaRota`.
+  let config: ConfigCalado | undefined
+  let caladoAplicado: number | null = null
+  if (caladoM != null && caladoM > 0) {
+    const gradeProfundidade =
+      escolha.tipo === "nacional" ? await carregarGradeProfundidadeNacional() : await carregarGradeProfundidade()
+    if (gradeProfundidade) {
+      config = { caladoM, margemSegurancaM: MARGEM_SEGURANCA_PADRAO_M, profundidade: gradeProfundidade }
+      caladoAplicado = caladoM
+    }
+    // gradeProfundidade null (rede, etc.): degrada em silencio pra rota sem
+    // calado, igual ao resto do app faz com mascara ausente — `caladoM: null`
+    // na resposta e quem avisa a tela que a restricao nao foi aplicada.
+  }
+
+  const caminho = acharCaminho(gradeParaRota, de, para, config)
   if (!caminho) {
-    postMessage({ id, tipo: "sem-caminho" } satisfies RespostaRota)
+    // Se havia config de calado, confere se EXISTIRIA caminho sem essa
+    // restricao — e o que decide a mensagem "nao achei com o calado do seu
+    // barco" (existe rota, so nao pra esse calado) vs o generico "sem
+    // caminho" (nao ha rota nem sem restricao nenhuma).
+    const semCaminhoPorCalado = config != null && acharCaminho(gradeParaRota, de, para) != null
+    postMessage({ id, tipo: "sem-caminho", semCaminhoPorCalado } satisfies RespostaRota)
     return
   }
-  const pernas = suavizar(gradeParaRota, caminho)
+  const pernas = suavizar(gradeParaRota, caminho, config)
   postMessage({
     id,
     tipo: "rota",
     pernas,
     distanciaNm: distanciaDaRota(pernas),
     precisao: escolha.tipo,
+    caladoM: caladoAplicado,
   } satisfies RespostaRota)
 }
