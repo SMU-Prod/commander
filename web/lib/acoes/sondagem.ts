@@ -24,10 +24,23 @@ const LIMITE_LEITURAS_POR_ENVIO = 2000
 
 export type ResultadoGravarSondagens = { ok: true; gravadas: number } | { ok: false; erro: string }
 
+/** `loteId` vem da fila persistente (`web/lib/nmea/fila.ts`, onda 14) —
+ *  sorteado UMA vez quando o lote é congelado e reenviado sem mudar em toda
+ *  retentativa. Junto com `celulaId`, forma `origem_id`
+ *  (`${loteId}:${celulaId}`), a chave de deduplicação que o `upsert`
+ *  abaixo usa: se a resposta de um envio anterior se perdeu e o cliente
+ *  reenvia o MESMO lote, o `unique index` da migration
+ *  `026_sondagens_idempotencia.sql` rejeita a segunda tentativa em
+ *  silêncio (`ignoreDuplicates`) — nunca duplica linha, nunca perde a
+ *  leitura original. */
 export async function gravarSondagens(
   leituras: LeituraParaGravar[],
   transporte: TransporteSondagem,
+  loteId: string,
 ): Promise<ResultadoGravarSondagens> {
+  if (typeof loteId !== "string" || loteId.length === 0) {
+    return { ok: false, erro: "Lote sem identificador — não é possível gravar com segurança." }
+  }
   const validas = (Array.isArray(leituras) ? leituras : []).filter(
     (l) =>
       typeof l?.lat === "number" && l.lat >= -90 && l.lat <= 90 &&
@@ -53,9 +66,13 @@ export async function gravarSondagens(
     celula_id: l.celulaId,
     transporte,
     medido_em: l.medidoEm,
+    origem_id: `${loteId}:${l.celulaId}`,
   }))
 
-  const { data: inseridas, error } = await supabase.from("sondagens").insert(linhas).select("id")
+  const { data: inseridas, error } = await supabase
+    .from("sondagens")
+    .upsert(linhas, { onConflict: "origem_id", ignoreDuplicates: true })
+    .select("id")
   if (error || !inseridas) {
     return { ok: false, erro: "Não foi possível gravar a sondagem — ela continua nesta saída, tente enviar de novo." }
   }
