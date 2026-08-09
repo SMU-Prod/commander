@@ -2,22 +2,147 @@
 import { useEffect, useRef, useState } from "react"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { IControl, Map as MapaMapbox } from "mapbox-gl"
-import { Icone } from "@/components/icone"
-import { carregarCamadas, salvarCamadas, type ChaveCamada, type EstadoCamadas } from "@/lib/mapa/camadas"
+import { Icone, type NomeIcone } from "@/components/icone"
+import { ESTILOS_MAPA, carregarCamadas, salvarCamadas, type ChaveCamada, type EstadoCamadas, type EstiloMapa } from "@/lib/mapa/camadas"
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
 // Baía da Ilha Grande — praça inicial do Commander.
 const CENTRO_PADRAO: [number, number] = [-44.14, -23.09]
 
-/** Metadados de `batimetria.json` (gerado por scripts/gerar-batimetria.mjs) —
- *  só os 4 campos que viram os cantos da imagem no mapa. */
+/** Config do estilo "nautico" (`standard`) — mesma de sempre: instrumento de
+ *  bordo, não mapa de carro. Extraída pra constante porque é reaplicada toda
+ *  vez que se volta pro estilo náutico vindo de satélite/relevo (setStyle). */
+const CONFIG_NAUTICO = {
+  basemap: {
+    theme: "faded",
+    lightPreset: "day",
+    showRoadLabels: false,
+    showTransitLabels: false,
+    showPointOfInterestLabels: false,
+    show3dObjects: false,
+  },
+} as const
+
+/** URL do estilo-base do Mapbox por opção do painel (pedido do dono,
+ *  comparando com o "Satellite Imagery" do Navionics). "relevo3d" reaproveita
+ *  o MESMO estilo satélite — o relevo 3D é `setTerrain` + câmera inclinada
+ *  por cima dele (ver `aplicarTerrenoEPitch` mais abaixo), não um 4º estilo;
+ *  isso também evita um `setStyle()` (que destrói camadas customizadas, ver
+ *  comentário grande abaixo) ao alternar só entre satélite e relevo. */
+const ESTILO_URL: Record<EstiloMapa, string> = {
+  nautico: "mapbox://styles/mapbox/standard",
+  satelite: "mapbox://styles/mapbox/satellite-streets-v12",
+  relevo3d: "mapbox://styles/mapbox/satellite-streets-v12",
+}
+
+const ROTULO_ESTILO: Record<EstiloMapa, string> = {
+  nautico: "Náutico",
+  satelite: "Satélite",
+  relevo3d: "Relevo 3D",
+}
+
+// Nenhum dos 28 ícones de components/icone.tsx é "satélite" ou "montanha"
+// dedicado (mesma situação de "bússola"/"camadas" documentada acima) —
+// "imagem" (moldura de foto) é o mais próximo de "imagem de satélite", e
+// "grafico" (barras ascendentes) é o mais próximo de "perfil de elevação".
+const ICONE_ESTILO: Record<EstiloMapa, NomeIcone> = {
+  nautico: "mapa",
+  satelite: "imagem",
+  relevo3d: "grafico",
+}
+
+/** Pitch (inclinação da câmera) por estilo — só o relevo 3D nasce inclinado;
+ *  os outros dois voltam pra vista de cima ao serem escolhidos. */
+const PITCH_ESTILO: Record<EstiloMapa, number> = {
+  nautico: 0,
+  satelite: 0,
+  relevo3d: 60,
+}
+
+const SOURCE_TERRENO = "mapbox-dem"
+
+/** `SetStyleOptions` não é exportado pelo pacote `mapbox-gl` (é um tipo
+ *  interno do .d.ts), e a versão instalada (v3.28) marca `localFontFamily`/
+ *  `localIdeographFontFamily` como obrigatórios mesmo aceitando `undefined`
+ *  — bug conhecido do pacote: o próprio exemplo oficial da Mapbox chama
+ *  `setStyle(url, { config: {...} })` sem esses dois campos. Derivar o tipo
+ *  via `Parameters<>` (em vez de tipar à mão ou usar `as`) mantém a chamada
+ *  type-safe de verdade, sem escapar do compilador. */
+type OpcoesSetStyle = NonNullable<Parameters<MapaMapbox["setStyle"]>[1]>
+
+function opcoesParaEstilo(estilo: EstiloMapa): OpcoesSetStyle | undefined {
+  if (estilo !== "nautico") return undefined
+  return { config: CONFIG_NAUTICO, localFontFamily: undefined, localIdeographFontFamily: undefined }
+}
+
+/** Liga/desliga o terreno 3D (Mapbox GL JS v3.28 — `map.setTerrain` +
+ *  source `raster-dem`, API estável desde a v2, confirmada na doc atual:
+ *  https://docs.mapbox.com/mapbox-gl-js/example/add-terrain/). Só existe
+ *  quando o estilo já está carregado (senão `addSource`/`setTerrain` não tem
+ *  o que aplicar) — por isso só é chamada de dentro de "style.load" ou
+ *  quando o estilo-base não mudou (satélite ⇄ relevo3d, mesma URL). */
+function aplicarTerrenoEPitch(mapa: MapaMapbox, estilo: EstiloMapa): void {
+  if (estilo === "relevo3d") {
+    if (!mapa.getSource(SOURCE_TERRENO)) {
+      mapa.addSource(SOURCE_TERRENO, {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      })
+    }
+    mapa.setTerrain({ source: SOURCE_TERRENO, exaggeration: 1.5 })
+  } else {
+    mapa.setTerrain(null)
+  }
+  mapa.setPitch(PITCH_ESTILO[estilo])
+}
+
+/** Some com rótulos/ícones de POI de terceiros (marinas, restaurantes,
+ *  postos, hospedagem…) vindos do mapa-base do Mapbox — decisão de negócio
+ *  do dono: só quem fecha parceria aparece no mapa (Pedido 3, onda 10). No
+ *  estilo "nautico" (`standard`) isso já é feito declarativamente via
+ *  `config.basemap.showPointOfInterestLabels: false` acima; mas os estilos
+ *  clássicos (satélite/relevo3d, `satellite-streets-v12`) NÃO são
+ *  fragmentos "Standard" — não entendem `config`, então precisam da mesma
+ *  coisa feita camada a camada. `poi-label` é o único symbol layer desse
+ *  estilo com `metadata["mapbox:featureComponent"] === "point-of-interest-labels"`
+ *  (conferido inspecionando o style JSON real via Styles API) — cobre TODAS
+ *  as categorias de POI (inclusive "marina"/"harbor"), não só uma. Rodar
+ *  isso também no náutico é inofensivo (idempotente) e serve de rede de
+ *  segurança caso a Mapbox troque a implementação do config no futuro. */
+function ocultarPoisDeTerceiros(mapa: MapaMapbox): void {
+  const estiloAtual = mapa.getStyle()
+  if (!estiloAtual?.layers) return
+  for (const camada of estiloAtual.layers) {
+    if (camada.type !== "symbol") continue
+    const metadados = (camada as { metadata?: Record<string, unknown> }).metadata
+    const ehPoi =
+      metadados?.["mapbox:featureComponent"] === "point-of-interest-labels" || camada.id.toLowerCase().includes("poi")
+    if (ehPoi) mapa.setLayoutProperty(camada.id, "visibility", "none")
+  }
+}
+
+/** Metadados de `batimetria.json`/`batimetria-ampla.json` (gerado por
+ *  scripts/gerar-batimetria.mjs) — só os 4 campos que viram os cantos da
+ *  imagem no mapa. */
 interface BatimetriaMetadados {
   lngMin: number
   latMin: number
   lngMax: number
   latMax: number
 }
+
+/** Zoom onde a camada "ampla" (costa brasileira inteira, baixa resolução)
+ *  cede lugar pra "fina" (região de operação, alta resolução). Escolhido
+ *  porque é aproximadamente o zoom em que a bbox da camada fina (~4° de
+ *  longitude) já preenche a largura de uma tela típica — abaixo disso, a
+ *  fina sozinha deixaria o resto do mapa sem cor (o bug que esta camada
+ *  ampla resolve); acima disso, ela é mais precisa e a ampla só serrilharia
+ *  por cima. minzoom/maxzoom tornam as duas mutuamente exclusivas, sem
+ *  dupla pintura. */
+const ZOOM_TRANSICAO_BATIMETRIA = 8
 
 /** Botão discreto (mesmo grupo visual dos outros controles do Mapbox — zoom,
  *  bússola, locate — em "top-right") que abre o painel de camadas. DOM puro
@@ -99,6 +224,22 @@ export function MapaNautico({
   const [camadas, setCamadas] = useState<EstadoCamadas>(() => carregarCamadas())
   const [painelAberto, setPainelAberto] = useState(false)
 
+  // `camadas` sempre atualizado, sem recriar closures — quem lê isso é
+  // código assíncrono (listener de "style.load", que dispara bem depois do
+  // render que o originou) e precisa do estado MAIS RECENTE das camadas
+  // (ex.: usuário desligou balizamento e SÓ DEPOIS trocou de estilo — a
+  // camada reconstruída tem que nascer desligada, não com o valor do mount).
+  const camadasRef = useRef(camadas)
+  useEffect(() => {
+    camadasRef.current = camadas
+  }, [camadas])
+
+  // Estilo efetivamente carregado no mapa agora — não necessariamente igual
+  // a `camadas.estilo` no meio de uma troca em voo. Usado pra decidir se uma
+  // mudança de estilo precisa de `setStyle()` (URLs diferentes) ou só de
+  // terreno/pitch (satélite ⇄ relevo3d, mesma URL — ver efeito abaixo).
+  const estiloCarregadoRef = useRef<EstiloMapa>(camadas.estilo)
+
   const aoMudarCamadasRef = useRef(aoMudarCamadas)
   useEffect(() => {
     aoMudarCamadasRef.current = aoMudarCamadas
@@ -112,6 +253,15 @@ export function MapaNautico({
   function alternarCamada(chave: ChaveCamada) {
     setCamadas((atual) => {
       const proximo = { ...atual, [chave]: !atual[chave] }
+      salvarCamadas(proximo)
+      return proximo
+    })
+  }
+
+  function escolherEstilo(estilo: EstiloMapa) {
+    setCamadas((atual) => {
+      if (atual.estilo === estilo) return atual
+      const proximo = { ...atual, estilo }
       salvarCamadas(proximo)
       return proximo
     })
@@ -131,6 +281,9 @@ export function MapaNautico({
     if (mapa.getLayer("batimetria")) {
       mapa.setLayoutProperty("batimetria", "visibility", camadas.profundidade ? "visible" : "none")
     }
+    if (mapa.getLayer("batimetria-ampla")) {
+      mapa.setLayoutProperty("batimetria-ampla", "visibility", camadas.profundidade ? "visible" : "none")
+    }
   }, [camadas])
 
   useEffect(() => {
@@ -143,26 +296,157 @@ export function MapaNautico({
       const mapboxgl = mod.default
       if (cancelado || !containerRef.current) return
       mapboxgl.accessToken = TOKEN
+      const estiloInicial = camadasRef.current.estilo
       const mapa = new mapboxgl.Map({
         container: containerRef.current,
-        style: "mapbox://styles/mapbox/standard",
+        style: ESTILO_URL[estiloInicial],
         center: CENTRO_PADRAO,
         zoom: 10,
+        // já nasce inclinado se "relevo3d" veio do localStorage — evita um
+        // salto de câmera visível logo após o primeiro paint.
+        pitch: PITCH_ESTILO[estiloInicial],
         attributionControl: false,
         // Instrumento de bordo, nao mapa de carro: cores desbotadas (a
         // sinalizacao nautica do OpenSeaMap e quem pinta por cima), sem
         // placas de rodovia, sem transporte publico, sem POI de cidade.
-        config: {
-          basemap: {
-            theme: "faded",
-            lightPreset: "day",
-            showRoadLabels: false,
-            showTransitLabels: false,
-            showPointOfInterestLabels: false,
-            show3dObjects: false,
-          },
-        },
+        // Só se aplica ao estilo "standard" (nautico) — nos outros dois
+        // (satellite-streets-v12, um estilo clássico) é ignorado pelo
+        // Mapbox; a supressão de POI equivalente pra eles é
+        // `ocultarPoisDeTerceiros`, chamada no listener de "style.load".
+        config: estiloInicial === "nautico" ? CONFIG_NAUTICO : undefined,
       })
+
+      // Reconstrói TUDO que este componente desenha no estilo (batimetria +
+      // OpenSeaMap) — chamada tanto no carregamento inicial quanto depois de
+      // toda troca de estilo via "style.load" (ver listener logo abaixo).
+      // `setStyle()` é a armadilha clássica do Mapbox: troca de estilo
+      // DESTRÓI toda source/layer customizada. "Parceiros" não precisa disso
+      // — os pinos são `mapboxgl.Marker` (elementos DOM posicionados por
+      // cima do canvas), não fazem parte do estilo, sobrevivem sozinhos.
+      function adicionarCamadasProprias() {
+        // Batimetria (profundidade aproximada) — ABAIXO do balizamento e da
+        // rota (ver beforeId: adiciona sempre logo antes de "openseamap" na
+        // pilha, então fica por baixo dele; a rota é adicionada depois disso,
+        // por fora, sem beforeId — entra por cima de tudo que já existe).
+        // Sem o JSON (asset não gerado/404), a camada simplesmente não
+        // existe — mesmo padrão "honesto" da máscara água/terra: ausência
+        // não é erro, só significa "essa camada não está disponível".
+        //
+        // DUAS camadas (branch onda-10-mapa-completo): "fina" (região de operação, precisa) e
+        // "ampla" (costa brasileira inteira, mais grossa — ver
+        // scripts/gerar-batimetria.mjs). Sem isso, afastar o zoom deixava
+        // uma mancha retangular escura só sobre a região de operação e o
+        // resto do oceano sem nada. minzoom/maxzoom fazem uma sumir onde a
+        // outra cobre (ZOOM_TRANSICAO_BATIMETRIA), sem dupla pintura.
+        //
+        // Os 2 fetches são independentes — podem resolver em qualquer
+        // ordem. O beforeId de cada addLayer é calculado na hora (não fixo)
+        // pra garantir a pilha "ampla abaixo de fina abaixo de openseamap"
+        // não importa qual dos dois chega primeiro:
+        //   - fina aponta sempre pra baixo de "openseamap";
+        //   - ampla aponta pra baixo de "batimetria" (fina) SE ela já
+        //     existir, senão cai pro mesmo alvo que a fina (openseamap) —
+        //     e quando a fina chegar depois, o addLayer dela (também com
+        //     beforeId "openseamap") a insere ACIMA da ampla automaticamente.
+        fetch("/mapa/batimetria-ampla.json")
+          .then((r) => (r.ok ? (r.json() as Promise<BatimetriaMetadados>) : null))
+          .then((meta) => {
+            if (cancelado || !meta || mapa.getSource("batimetria-ampla")) return
+            mapa.addSource("batimetria-ampla", {
+              type: "image",
+              url: "/mapa/batimetria-ampla.png",
+              coordinates: [
+                [meta.lngMin, meta.latMax],
+                [meta.lngMax, meta.latMax],
+                [meta.lngMax, meta.latMin],
+                [meta.lngMin, meta.latMin],
+              ],
+            })
+            mapa.addLayer(
+              {
+                id: "batimetria-ampla",
+                type: "raster",
+                source: "batimetria-ampla",
+                maxzoom: ZOOM_TRANSICAO_BATIMETRIA,
+                layout: { visibility: camadasRef.current.profundidade ? "visible" : "none" },
+                // "linear" já É o default do Mapbox GL (confirmado na style
+                // spec) — deixado explícito aqui de propósito, porque é
+                // exatamente a propriedade que o pedido do dono pedia pra
+                // conferir: sem isso a textura reamostraria com "nearest"
+                // (pixel quadrado, o outro sintoma clássico de "PNG colado")
+                // sempre que o zoom passa da resolução nativa do PNG.
+                paint: { "raster-fade-duration": 0, "raster-resampling": "linear" },
+              },
+              mapa.getLayer("batimetria")
+                ? "batimetria"
+                : mapa.getLayer("openseamap")
+                  ? "openseamap"
+                  : undefined,
+            )
+          })
+          .catch(() => {})
+
+        fetch("/mapa/batimetria.json")
+          .then((r) => (r.ok ? (r.json() as Promise<BatimetriaMetadados>) : null))
+          .then((meta) => {
+            if (cancelado || !meta || mapa.getSource("batimetria")) return
+            mapa.addSource("batimetria", {
+              type: "image",
+              url: "/mapa/batimetria.png",
+              coordinates: [
+                [meta.lngMin, meta.latMax],
+                [meta.lngMax, meta.latMax],
+                [meta.lngMax, meta.latMin],
+                [meta.lngMin, meta.latMin],
+              ],
+            })
+            mapa.addLayer(
+              {
+                id: "batimetria",
+                type: "raster",
+                source: "batimetria",
+                minzoom: ZOOM_TRANSICAO_BATIMETRIA,
+                layout: { visibility: camadasRef.current.profundidade ? "visible" : "none" },
+                // Ver comentário equivalente na camada "ampla" acima —
+                // "linear" já é o default, explícito de propósito.
+                paint: { "raster-fade-duration": 0, "raster-resampling": "linear" },
+              },
+              mapa.getLayer("openseamap") ? "openseamap" : undefined,
+            )
+          })
+          .catch(() => {})
+
+        // Sinalização náutica (boias, faróis, marcas) — overlay CC-BY-SA.
+        if (!mapa.getSource("openseamap")) {
+          mapa.addSource("openseamap", {
+            type: "raster",
+            tiles: ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: "© OpenSeaMap",
+          })
+        }
+        if (!mapa.getLayer("openseamap")) {
+          mapa.addLayer({
+            id: "openseamap",
+            type: "raster",
+            source: "openseamap",
+            layout: { visibility: camadasRef.current.balizamento ? "visible" : "none" },
+          })
+        }
+      }
+
+      // Dispara em TODO carregamento de estilo — o inicial e cada
+      // `setStyle()` subsequente (troca Náutico/Satélite/Relevo 3D, ver
+      // efeito mais abaixo). É o remédio pra armadilha do `setStyle()`
+      // descrita acima: sem isso, trocar de estilo e voltar deixaria o mapa
+      // sem balizamento/batimetria pra sempre.
+      mapa.on("style.load", () => {
+        if (cancelado) return
+        adicionarCamadasProprias()
+        aplicarTerrenoEPitch(mapa, camadasRef.current.estilo)
+        ocultarPoisDeTerceiros(mapa)
+      })
+
       mapa.addControl(
         new mapboxgl.AttributionControl({
           compact: true,
@@ -185,62 +469,25 @@ export function MapaNautico({
         "top-right",
       )
       mapa.addControl(new ControleCamadas(() => setPainelAberto((v) => !v)), "top-right")
+      // "load" só dispara uma vez na vida do mapa (estilo inicial + fontes
+      // prontas) — o que ele faz agora é só resize/aoIniciar; reconstruir
+      // camadas em toda troca de estilo é responsabilidade do listener
+      // "style.load" registrado acima, que cobre esta primeira carga também.
       mapa.on("load", () => {
         if (cancelado) return
-
-        // Batimetria (profundidade aproximada) — ABAIXO do balizamento e da
-        // rota (ver beforeId: adiciona sempre logo antes de "openseamap" na
-        // pilha, então fica por baixo dele; a rota é adicionada depois disso,
-        // por fora, sem beforeId — entra por cima de tudo que já existe).
-        // Sem o JSON (asset não gerado/404), a camada simplesmente não
-        // existe — mesmo padrão "honesto" da máscara água/terra: ausência
-        // não é erro, só significa "essa camada não está disponível".
-        fetch("/mapa/batimetria.json")
-          .then((r) => (r.ok ? (r.json() as Promise<BatimetriaMetadados>) : null))
-          .then((meta) => {
-            if (cancelado || !meta || mapa.getSource("batimetria")) return
-            mapa.addSource("batimetria", {
-              type: "image",
-              url: "/mapa/batimetria.png",
-              coordinates: [
-                [meta.lngMin, meta.latMax],
-                [meta.lngMax, meta.latMax],
-                [meta.lngMax, meta.latMin],
-                [meta.lngMin, meta.latMin],
-              ],
-            })
-            mapa.addLayer(
-              {
-                id: "batimetria",
-                type: "raster",
-                source: "batimetria",
-                layout: { visibility: camadas.profundidade ? "visible" : "none" },
-                paint: { "raster-fade-duration": 0 },
-              },
-              mapa.getLayer("openseamap") ? "openseamap" : undefined,
-            )
-          })
-          .catch(() => {})
-
-        // Sinalização náutica (boias, faróis, marcas) — overlay CC-BY-SA.
-        mapa.addSource("openseamap", {
-          type: "raster",
-          tiles: ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"],
-          tileSize: 256,
-          attribution: "© OpenSeaMap",
-        })
-        mapa.addLayer({
-          id: "openseamap",
-          type: "raster",
-          source: "openseamap",
-          layout: { visibility: camadas.balizamento ? "visible" : "none" },
-        })
         // se o container foi medido antes do CSS/layout assentar, o canvas
         // fica com tamanho errado (mapa "branco") — remedir resolve
         mapa.resize()
         aoIniciarRef.current?.(mapa)
       })
       mapaRef.current = mapa
+      // Gancho de depuração, só em dev — é o que permite inspecionar
+      // `map.getStyle().layers`/`getTerrain()`/`getPitch()` no console do
+      // navegador ao verificar a troca de estilo (pedido explícito da task).
+      // Nunca existe em produção.
+      if (process.env.NODE_ENV === "development") {
+        ;(window as unknown as { __commanderMapa?: MapaMapbox }).__commanderMapa = mapa
+      }
     })
 
     return () => {
@@ -248,12 +495,35 @@ export function MapaNautico({
       mapaRef.current?.remove()
       mapaRef.current = null
     }
-    // camadas.balizamento/profundidade só entram aqui como valor INICIAL do
-    // layout (lido uma vez, no "load" — que só dispara uma vez na vida do
-    // mapa); trocas depois disso são cobertas pelo efeito de cima. Colocar
-    // `camadas` nas deps recriaria o mapa inteiro a cada toggle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // `camadasRef.current` cobre o valor inicial de estilo/toggles (lido uma
+    // vez, no mount, via ref — por isso o linter não pede pra entrar nas
+    // deps); trocas depois disso são cobertas pelos efeitos de cima
+    // (visibilidade) e de baixo (estilo). Colocar `camadas` nas deps
+    // recriaria o mapa inteiro a cada toggle.
   }, [])
+
+  // Troca de estilo do mapa (Náutico/Satélite/Relevo 3D) depois que o mapa já
+  // existe — a criação em si (estilo inicial vindo do localStorage) é feita
+  // no efeito de cima. `setStyle()` só é chamado quando a URL do estilo-base
+  // muda de verdade (nautico ⇄ satelite/relevo3d); entre satélite e relevo3d
+  // é a MESMA URL (ver ESTILO_URL), então só terreno/pitch mudam, sem
+  // recarregar o estilo inteiro nem disparar "style.load" à toa.
+  useEffect(() => {
+    const mapa = mapaRef.current
+    if (!mapa) return
+    const alvo = camadas.estilo
+    if (estiloCarregadoRef.current === alvo) return
+    const trocaEstiloBase = ESTILO_URL[estiloCarregadoRef.current] !== ESTILO_URL[alvo]
+    estiloCarregadoRef.current = alvo
+    if (trocaEstiloBase) {
+      // O listener "style.load" registrado no mount (permanente) é quem
+      // reconstrói batimetria/openseamap e reaplica terreno/pitch depois
+      // desta chamada — aqui só dispara a troca.
+      mapa.setStyle(ESTILO_URL[alvo], opcoesParaEstilo(alvo))
+    } else {
+      aplicarTerrenoEPitch(mapa, alvo)
+    }
+  }, [camadas.estilo])
 
   if (!TOKEN) {
     return (
@@ -294,6 +564,33 @@ export function MapaNautico({
           </div>
 
           <div className="space-y-3">
+            <div>
+              <p className="rotulo mb-1.5 text-dim">Estilo do mapa</p>
+              <div role="radiogroup" aria-label="Estilo do mapa" className="grid grid-cols-3 gap-1.5">
+                {ESTILOS_MAPA.map((estilo) => {
+                  const selecionado = camadas.estilo === estilo
+                  return (
+                    <button
+                      key={estilo}
+                      type="button"
+                      role="radio"
+                      aria-checked={selecionado}
+                      onClick={() => escolherEstilo(estilo)}
+                      className={`flex flex-col items-center gap-1 rounded-[10px] border px-2 py-2.5 text-center ${
+                        selecionado ? "border-accent bg-accent/10 text-accent-forte" : "border-line text-dim"
+                      }`}
+                    >
+                      <Icone nome={ICONE_ESTILO[estilo]} className="size-4" />
+                      <span className="apoio">{ROTULO_ESTILO[estilo]}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {camadas.estilo === "relevo3d" && (
+                <p className="apoio mt-1.5 text-dim">Terreno com elevação — igual à imagem de satélite, só inclinado.</p>
+              )}
+            </div>
+
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="corpo">Balizamento</p>
@@ -319,8 +616,8 @@ export function MapaNautico({
             </div>
             {camadas.profundidade && (
               <p className="apoio rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
-                Profundidade aproximada (~450 m de resolução) — orientação geral, NÃO substitui a carta náutica
-                oficial.
+                Profundidade aproximada — ~450 m de resolução perto da região de operação, ~3,7 km no resto da costa
+                brasileira e mar adjacente. Orientação geral, NÃO substitui a carta náutica oficial.
               </p>
             )}
 

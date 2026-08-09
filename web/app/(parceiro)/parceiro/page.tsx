@@ -2,9 +2,11 @@ import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { EscolherPonto } from "@/components/mapa/escolher-ponto"
+import { EscolherPinoParceiro } from "@/components/mapa/escolher-pino-parceiro"
 import { excluirFotoParceiro, salvarParceiro, subirFotoParceiro } from "@/lib/acoes/parceiro"
 import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
+import { COR_PADRAO, ICONE_PADRAO_POR_CATEGORIA } from "@/lib/mapa/pino-parceiro"
 import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
 
 const CATEGORIAS: { valor: CategoriaParceiro; rotulo: string; icone: NomeIcone }[] = [
@@ -94,6 +96,15 @@ export default async function ParceiroPage({
             <p className={rot}>Ponto no mapa</p>
             <EscolherPonto lat={p?.lat ?? null} lng={p?.lng ?? null} />
           </div>
+        </section>
+
+        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <p className="rotulo text-dim">Pino no mapa</p>
+          <EscolherPinoParceiro
+            iconeInicial={p?.icone ?? ICONE_PADRAO_POR_CATEGORIA[p?.categoria ?? "marina"]}
+            corInicial={p?.cor ?? COR_PADRAO}
+            destaque={p?.plano === "destaque"}
+          />
         </section>
 
         <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">

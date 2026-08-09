@@ -227,17 +227,118 @@ errada, a rota manda o barco por cima de terra ou de uma ilha.
 
 ## Camada de profundidade (batimetria)
 
-`web/public/mapa/batimetria.png` + `.json` — sombreamento de profundidade por faixas
-(0-5 m, 5-10 m, 10-20 m, 20-50 m, >50 m) na mesma bbox da máscara de água, desenhado
-no mapa como source `image` (sobreposição de bbox fixa, sem tiles).
+`web/public/mapa/batimetria*.{png,json}` — gradiente contínuo de profundidade,
+desenhado no mapa como source `image` (sobreposição de bbox fixa, sem tiles).
 
-- **Regerar:** `node scripts/gerar-batimetria.mjs` a partir da raiz.
-- **Origem do dado:** **ETOPO 2022 15 Arc-Second Global Relief Model (NOAA/NCEI)**,
-  obtido via ERDDAP griddap. **Domínio público dos EUA** — sem restrição de uso
-  comercial; citamos a fonte por transparência (aparece na atribuição do mapa).
-- **Resolução ~450 m.** É orientação geral, não sondagem. A camada nasce DESLIGADA no
-  app e, quando ligada, o painel avisa: "Profundidade aproximada — NÃO substitui a
-  carta náutica oficial".
+**DUAS camadas** desde a branch `onda-10-mapa-completo`. Antes só existia a "fina": ao
+afastar o zoom, sobrava uma mancha retangular escura só sobre a região de operação, com
+o resto do oceano e da costa brasileira sem cor nenhuma — o dono reportou vendo isso no
+mapa. A camada "ampla" resolve cobrindo a costa inteira, numa resolução bem mais grossa
+pra manter o PNG pequeno; `minzoom`/`maxzoom` fazem uma sumir exatamente onde a outra
+cobre, sem dupla pintura nem serrilhado:
+
+| | **fina** (região de operação) | **ampla** (costa brasileira inteira) |
+|---|---|---|
+| Arquivos | `batimetria.png` / `.json` | `batimetria-ampla.png` / `.json` |
+| Bbox | Ilhabela/SP → Búzios/RJ (4° × 1,4°) | Oiapoque → Chuí + oceano adjacente, `lngMin -58, latMin -34.5, lngMax -20, latMax 6` (38° × 40,5°) |
+| Dataset ERDDAP | `ETOPO_2022_v1_15s` | `ETOPO_2022_v1_60s` com stride 2 |
+| Resolução | ~450 m (15 arc-sec) | ~3,7 km (2 arc-min efetivo) |
+| Âncoras do gradiente | 0 / 5 / 10 / 20 / 50 / 120 m | 0 / 50 / 200 / 1000 / 3000 / 6000 m |
+| Zoom no mapa | `minzoom` 8 (ativa perto) | `maxzoom` 8 (ativa longe) |
+| Tamanho do PNG | 29,3 KB (era 18,5 KB nas 5 faixas sólidas) | 162,2 KB (era 58,6 KB) |
+
+**Por que âncoras diferentes:** mar aberto é muito mais fundo que a Baía da Ilha Grande
+(o Atlântico tem ~3.700 m de profundidade média) — as âncoras rasas da camada fina
+(0, 5, 10... 120 m) "achatariam" o oceano inteiro numa cor só de longe. A camada ampla usa
+a MESMA paleta de 6 cores (claro→escuro, a última = `--fundo` do produto), remapeada para
+profundidades que fazem sentido vistas de longe. O aviso no painel do mapa
+(`web/components/mapa/mapa-nautico.tsx`) documenta as duas resoluções pro navegante.
+
+### Renderização: gradiente contínuo, não faixas sólidas (`onda-10-batimetria-bonita`)
+
+O desenho original (5 faixas de cor sólida, alfa fixo em 210, sem esmaecimento de borda)
+lia como **"PNG colado"** — foi exatamente essa a reação do dono comparando com o
+Navionics (gradiente suave, integrado à carta). A fonte do dado (ETOPO 2022) e as bboxes
+acima **não mudaram** — só como o grid vira pixel, tudo dentro de
+`scripts/gerar-batimetria.mjs`:
+
+1. **Gradiente contínuo** (`amostrarGradiente`): cor E alfa são interpolados linearmente
+   entre "paradas" de profundidade, não mais um degrau duro por faixa. As âncoras de cor
+   são as MESMAS 5 cores da paleta antiga (reaproveitadas como marcos do gradiente), mais
+   uma 6ª âncora funda = `--fundo` (#0b1d2d) de `web/app/globals.css` — literalmente a cor
+   de fundo do produto.
+2. **Alfa variável**: raso é mais opaco (alfa 230/200 no anchor 0 m — é a informação que
+   importa pra lancha), fundo é mais transparente (alfa 85/55 no anchor mais profundo —
+   contexto, deixa o mapa-base/satélite aparecer por baixo). A camada **tinge** a água em
+   vez de cobri-la com um bloco opaco uniforme. `raster-opacity` da layer continua no
+   default (1) de propósito — a variação já está no alfa por pixel do PNG; um
+   `raster-opacity` uniforme só achataria o contraste raso↔fundo que essa mudança criou.
+3. **Esmaecimento de borda** (`fatorEsmaecimentoBorda`, smoothstep): o alfa cai pra 0
+   suavemente nos últimos pixels de cada lado do bbox — ataca direto o sintoma "aresta
+   reta onde a imagem acaba". 6% do menor lado da imagem, piso 6px/teto 48px (20px na fina,
+   48px na ampla). Aplicado às duas camadas.
+4. **`raster-resampling: "linear"`**, explícito em `web/components/mapa/mapa-nautico.tsx`
+   nas duas layers — já é o default do Mapbox GL (confirmado na style spec), mas deixado
+   explícito porque é exatamente a propriedade que evita reamostragem `"nearest"` (pixel
+   quadrado) ao dar zoom além da resolução nativa do PNG.
+5. **Peso do PNG**: gradiente contínuo por pixel é ótimo pro olho e péssimo pro
+   compressor — cada pixel difere levemente do vizinho, o que destrói os blocos de cor
+   repetida que a versão de faixas sólidas comprimia de graça (medido: sem quantização
+   nenhuma, a fina foi de 18,5 KB pra 90 KB e a ampla de 58,6 KB pra 639 KB). Dois ajustes
+   trouxeram de volta pra perto do original sem reintroduzir degrau visível:
+   `deflateStrategy: 1` (Z_FILTERED do zlib, ~30% menor sozinho) e quantização leve dos
+   canais de saída (`QUANT_PASSO_COR = 12`, `QUANT_PASSO_ALFA = 10` — arredonda pro
+   múltiplo mais próximo, ~5%/4% do range 0-255, abaixo do que o olho distingue numa cor
+   semitransparente sobre mapa-base). Testado visualmente em 3 níveis antes de escolher
+   este: um passo maior (18/16) já mostrava leve terraceamento no oceano profundo por
+   ~5 KB de economia a mais — não valeu a troca.
+6. **Resolução da fina**: avaliado subir acima de 15 arc-sec (pedido explícito da task) e
+   **descartado** — é a resolução nativa mais fina do ETOPO 2022 disponível sem licença
+   restrita (ver seção "Por que NÃO usamos as cartas da Marinha" abaixo), e
+   supersample-ar o PNG manualmente antes de escrever seria redundante: é exatamente o que
+   `raster-resampling: "linear"` já faz em tempo de render (interpolação bilinear da GPU
+   entre pixels ao dar zoom), só que sem inflar o arquivo.
+7. **Isóbatas (contornos 5/10/20/50 m) — avaliadas e descartadas.** Protótipo com marching
+   squares na grade fina (450 m), com encadeamento de segmentos em polilinhas + suavização
+   Chaikin (2 iterações). Resultado **honesto e misto**: a isóbata de 50 m saiu limpa (seguiu
+   a quebra da plataforma continental de forma suave); a de 20 m ficou aceitável na costa
+   aberta mas embolada perto de arquipélagos complexos (a região de Ilhabela tem ilhotas
+   menores que uma célula de 450 m); as de 5 m e 10 m — as que mais importam pra navegação
+   rasa — ficaram visivelmente serrilhadas/embaraçadas perto de qualquer ilha pequena, com
+   ou sem suavização (o grid de 450 m simplesmente não resolve essas formas). Mostrar uma
+   linha de "5 m" torta bem ao lado de um recife seria pior que não mostrar nada — o tipo de
+   falsa precisão mais perigoso justo na profundidade mais crítica. Como só 1 das 4
+   profundidades pedidas (50 m, a menos útil pro dia a dia de uma lancha) ficou
+   consistentemente elegante, a linha de corte foi **não enviar isóbatas nesta rodada** —
+   prefere-se a camada de gradiente sozinha, limpa, a uma com esse extra malfeito.
+
+Verificado nos 3 estilos do painel (Náutico, Satélite, Relevo 3D): `batimetria-ampla` <
+`batimetria` < `openseamap` na pilha de camadas em todos, com `raster-resampling: "linear"`
+presente e a troca de estilo (inclusive via `setStyle()`, que destrói/reconstrói layers
+customizadas) preservando tudo.
+
+**Por que não 15 arc-sec na costa inteira:** a bbox da camada ampla (38° × 40,5°) em 15
+arc-sec geraria dezenas de milhões de pixels — pesado demais pra um PNG estático
+versionado no repo. 2 arc-min (stride 2 sobre o dataset de 60 arc-sec do ERDDAP, em vez
+de baixar 15 arc-sec inteiro) chega em ~1,4 M células, mantendo o arquivo pequeno e ainda
+reconhecível de longe.
+
+**Vazão do ERDDAP pra esse volume:** medida manualmente (~550 KB/min) bem mais lenta que
+o necessário pros 6 min/2 tentativas que bastavam pra bbox pequena da camada fina — por
+isso o script usa timeout/tentativas configuráveis por camada (`timeoutMs`/`tentativas`
+em `CAMADAS`, dentro de `scripts/gerar-batimetria.mjs`): a ampla tem até 30 min e 1
+tentativa só (a lentidão é vazão baixa e constante, não falha transitória — repetir não
+ajuda). É só a geração do asset (uma vez, versionado depois); não afeta o app rodando.
+
+- **Regerar (as duas):** `node scripts/gerar-batimetria.mjs` a partir da raiz. Cache do
+  grid bruto em `scripts/.cache/batimetria.asc` e `batimetria-ampla.asc` (ignorados pelo
+  git) — apagar força um novo download.
+- **Origem do dado:** **ETOPO 2022 Global Relief Model (NOAA/NCEI)**, obtido via ERDDAP
+  griddap. **Domínio público dos EUA** — sem restrição de uso comercial; citamos a fonte
+  por transparência (aparece na atribuição do mapa).
+- **Resolução aproximada, não sondagem.** A camada nasce DESLIGADA no app e, quando
+  ligada, o painel avisa a resolução de cada faixa e que isso NÃO substitui a carta
+  náutica oficial.
 
 ### Por que NÃO usamos as cartas da Marinha
 

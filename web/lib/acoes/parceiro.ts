@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ehCorParceiroValida, ehIconeParceiroValido } from "@/lib/mapa/pino-parceiro"
 import type { CategoriaParceiro } from "@/lib/db/types"
 
 const CATEGORIAS: CategoriaParceiro[] = ["marina", "posto", "pousada", "restaurante"]
@@ -45,6 +46,15 @@ export async function salvarParceiro(formData: FormData) {
   const nome = texto("nome")
   if (!nome || nome.length < 3) erroParceiro("O nome precisa de pelo menos 3 letras.")
 
+  // Ícone/cor do pino (onda 10, Pedido 2) — paleta curada, nunca livre; o
+  // formulário só manda hidden inputs vindos de EscolherPinoParceiro, mas
+  // valida de novo aqui (nunca confia só no que o cliente mandou — o mesmo
+  // CHECK existe no banco, migration 024, como segunda trava).
+  const icone = texto("icone")
+  if (!ehIconeParceiroValido(icone)) erroParceiro("Escolha um ícone válido pro pino.")
+  const cor = texto("cor")
+  if (!ehCorParceiroValida(cor)) erroParceiro("Escolha uma cor válida pro pino.")
+
   const latBruto = texto("lat")
   const lngBruto = texto("lng")
   const lat = latBruto === null ? NaN : Number(latBruto.replace(",", "."))
@@ -75,6 +85,8 @@ export async function salvarParceiro(formData: FormData) {
   const dados = {
     categoria,
     nome,
+    icone,
+    cor,
     sobre: texto("sobre"),
     telefone: texto("telefone"),
     email: texto("email"),
