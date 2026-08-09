@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource } from "mapbox-gl"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
@@ -27,9 +28,26 @@ type Ancora = { la: number; lo: number; raioM: number }
  *  como valor DERIVADO (ver `estadoRotaAtual`), nunca guardado em estado. */
 type EstadoRotaResultado =
   | { tipo: "calculando"; paraDestino: Coord }
-  | { tipo: "rota"; paraDestino: Coord; pernas: Coord[]; distanciaNm: number; precisao: "fina" | "nacional" }
+  | {
+      tipo: "rota"
+      paraDestino: Coord
+      pernas: Coord[]
+      distanciaNm: number
+      precisao: "fina" | "nacional"
+      /** Calado EFETIVAMENTE aplicado pelo worker — onda 12. `null` quando
+       *  nao foi aplicado (sem calado cadastrado, OU grade de profundidade
+       *  indisponivel no momento). Comparar com a prop `caladoM` (o que o
+       *  barco TEM cadastrado) e o que decide qual aviso mostrar. */
+      caladoM: number | null
+    }
   | { tipo: "fora-da-area"; paraDestino: Coord }
-  | { tipo: "sem-caminho"; paraDestino: Coord }
+  | {
+      tipo: "sem-caminho"
+      paraDestino: Coord
+      /** true = existe rota sem considerar calado, so nao com o calado
+       *  pedido — troca a mensagem generica por uma que explica o motivo. */
+      semCaminhoPorCalado: boolean
+    }
 type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
 
 // Recalcular a cada tick do GPS faria a linha da rota tremer (o A* nao devolve
@@ -144,8 +162,13 @@ function colecaoVazia() {
  *  puro sobre `posAtual`, não dependem do mapa. Só o que é desenho (linha de
  *  rumo, círculo do alarme, marcador do MOB) não aparece, porque não existe
  *  `mapaPronto`; os efeitos que desenham isso já saem cedo quando o mapa não
- *  existe, então nada quebra. */
-export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
+ *  existe, então nada quebra.
+ *
+ *  `caladoM` (onda 12): calado cadastrado da embarcação ativa (metros), vindo
+ *  do servidor (`embarcacoes.calado_m`). `null` = barco sem calado cadastrado
+ *  — a tela avisa e oferece o link pra cadastrar, nunca inventa um valor
+ *  padrão em silêncio. */
+export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; caladoM: number | null }) {
   const router = useRouter()
 
   // --- trilha (preservado do que já existia na página, ver comentário acima) -
@@ -343,13 +366,14 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
             pernas: e.data.pernas,
             distanciaNm: e.data.distanciaNm,
             precisao: e.data.precisao,
+            caladoM: e.data.caladoM,
           })
           break
         case "fora-da-area":
           setEstadoRota({ tipo: "fora-da-area", paraDestino })
           break
         case "sem-caminho":
-          setEstadoRota({ tipo: "sem-caminho", paraDestino })
+          setEstadoRota({ tipo: "sem-caminho", paraDestino, semCaminhoPorCalado: e.data.semCaminhoPorCalado })
           break
         case "sem-mascara":
           // mascara nao carregou (rede, etc.) — nao e culpa do usuario, cai
@@ -385,8 +409,8 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     pedidoEmVooRef.current = { id, destino }
     ultimoCalculoRef.current = { pos: posAtual, destino }
     setEstadoRota({ tipo: "calculando", paraDestino: destino })
-    worker.postMessage({ id, de: posAtual, para: destino } satisfies PedidoRota)
-  }, [destino, posAtual])
+    worker.postMessage({ id, de: posAtual, para: destino, caladoM } satisfies PedidoRota)
+  }, [destino, posAtual, caladoM])
 
   // Estado de rota valido pro destino/posicao ATUAIS — colapsa pra "ausente"
   // se falta destino/posicao, ou se o resultado guardado pertence a um
@@ -588,6 +612,37 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
     }
     return { distanciaNm: nav.distanciaNm, rumo: nav.rumo, eta: nav.eta, pernasQtd: null as number | null }
   }, [nav, estadoRotaAtual, posAtual, sogKt])
+
+  // Aviso de calado (onda 12) — so existe quando ha uma ROTA resolvida (nos
+  // demais estados a mensagem propria ja cobre o motivo, inclusive
+  // "sem-caminho" que ja usa `semCaminhoPorCalado` pra explicar por que).
+  // Compara o calado APLICADO pelo worker (estadoRotaAtual.caladoM) com o
+  // calado CADASTRADO do barco (prop `caladoM`) pra distinguir os 3 casos
+  // honestos pedidos na task: respeita X m / sem calado cadastrado (com link
+  // pra cadastrar) / calado cadastrado mas não pude aplicar agora. NUNCA
+  // inventa um calado padrão em silêncio.
+  const avisoCalado = useMemo(() => {
+    if (estadoRotaAtual.tipo !== "rota") return null
+    if (estadoRotaAtual.caladoM != null) {
+      return {
+        tom: "info" as const,
+        texto: `Rota respeita o calado de ${estadoRotaAtual.caladoM.toLocaleString("pt-BR")} m — evita águas rasas CONHECIDAS na resolução do mapa; não garante a profundidade real no local exato.`,
+        linkCadastrar: false,
+      }
+    }
+    if (caladoM == null) {
+      return {
+        tom: "aviso" as const,
+        texto: "Calado não cadastrado — a rota não leva em conta a profundidade.",
+        linkCadastrar: true,
+      }
+    }
+    return {
+      tom: "aviso" as const,
+      texto: "Não consegui carregar o dado de profundidade agora — a rota não leva em conta o calado desta vez.",
+      linkCadastrar: false,
+    }
+  }, [estadoRotaAtual, caladoM])
 
   // --- alarme de âncora (estado principal declarado antes do watcher) -----
   const garrandoAnteriorRef = useRef(false)
@@ -1024,17 +1079,34 @@ export function NavegarMapa({ parceiros }: { parceiros: Parceiro[] }) {
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "sem-caminho" && (
-              <p className="apoio mt-2 border-t border-line pt-2 text-warn">Não achei caminho pela água até esse ponto.</p>
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">
+                {estadoRotaAtual.semCaminhoPorCalado
+                  ? `Não achei caminho com o calado do seu barco${caladoM != null ? ` (${caladoM.toLocaleString("pt-BR")} m)` : ""} — existe rota sem essa restrição.`
+                  : "Não achei caminho pela água até esse ponto."}
+              </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "fina" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-dim">
-                Rota pela água — contorna a costa, não considera profundidade.
+                Rota pela água — contorna a costa. Auxílio à navegação, não substitui a carta náutica.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "nacional" && (
               <p className="apoio mt-2 border-t border-line pt-2 text-warn">
                 Rota pela água (cobertura nacional) — grade mais grossa, margem de segurança maior. Boa pra
                 travessia longa; não use pra aproximação de porto.
+              </p>
+            )}
+            {posAtual && estadoRotaAtual.tipo === "rota" && avisoCalado && (
+              <p className={`apoio mt-2 ${estadoRotaAtual.precisao === "nacional" ? "" : "border-t border-line pt-2"} ${avisoCalado.tom === "aviso" ? "text-warn" : "text-dim"}`}>
+                {avisoCalado.texto}
+                {avisoCalado.linkCadastrar && (
+                  <>
+                    {" "}
+                    <Link href="/barco/editar" className="underline">
+                      Cadastrar calado
+                    </Link>
+                  </>
+                )}
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "ausente" && nav && (
