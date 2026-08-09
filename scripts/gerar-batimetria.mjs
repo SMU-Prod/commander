@@ -147,12 +147,16 @@ const CAMADAS = [
     // navegação) pra fundo (mais discreto — contexto, deixa o mapa-base
     // aparecer).
     paradas: [
-      { profundidadeM: 0, cor: [127, 209, 236], alfa: 230 },
-      { profundidadeM: 5, cor: [59, 154, 199], alfa: 205 },
-      { profundidadeM: 10, cor: [27, 100, 148], alfa: 175 },
-      { profundidadeM: 20, cor: [15, 58, 92], alfa: 145 },
-      { profundidadeM: 50, cor: [7, 21, 33], alfa: 110 },
-      { profundidadeM: 120, cor: [11, 29, 45], alfa: 85 },
+      // Mesma decisão da camada ampla: a rampa MORRE na quebra da
+      // plataforma em vez de virar cinza-escuro no fundo. Água funda fica
+      // com o azul do mapa base; o que a camada acrescenta é o raso, que é
+      // justamente o que importa pra quem tem 1,5 m de calado.
+      { profundidadeM: 0, cor: [127, 209, 236], alfa: 225 },
+      { profundidadeM: 5, cor: [86, 178, 219], alfa: 200 },
+      { profundidadeM: 10, cor: [59, 154, 199], alfa: 170 },
+      { profundidadeM: 20, cor: [38, 120, 172], alfa: 135 },
+      { profundidadeM: 50, cor: [27, 100, 148], alfa: 90 },
+      { profundidadeM: 150, cor: [20, 76, 118], alfa: 0 },
     ],
     cachePath: path.join(CACHE_DIR, "batimetria.asc"),
     outPng: path.join(OUT_DIR, "batimetria.png"),
@@ -185,13 +189,20 @@ const CAMADAS = [
     // inclusive a 6ª âncora = --fundo), remapeada pra profundidades que
     // fazem sentido vistas de longe — cauda abissal (6000 m) bem discreta
     // (alfa 55), documentado também no aviso da tela — ver mapa-nautico.tsx.
+    // Para lancha de 40-60 pés, só a PLATAFORMA importa: além da quebra
+    // (~200 m) o barco não vai, e pintar o abissal transformava todo o
+    // Atlântico num filme cinza — feio, e ainda revelava as listras de
+    // trilha de navio do ETOPO. Agora a rampa morre na quebra: azul vivo
+    // colado na costa, dissolvendo no mar aberto. O oceano profundo fica
+    // com o azul do próprio mapa base, que é mais bonito que qualquer
+    // cinza nosso por cima.
     paradas: [
-      { profundidadeM: 0, cor: [127, 209, 236], alfa: 200 },
-      { profundidadeM: 50, cor: [59, 154, 199], alfa: 170 },
-      { profundidadeM: 200, cor: [27, 100, 148], alfa: 140 },
-      { profundidadeM: 1000, cor: [15, 58, 92], alfa: 105 },
-      { profundidadeM: 3000, cor: [7, 21, 33], alfa: 75 },
-      { profundidadeM: 6000, cor: [11, 29, 45], alfa: 55 },
+      { profundidadeM: 0, cor: [127, 209, 236], alfa: 205 },
+      { profundidadeM: 20, cor: [86, 178, 219], alfa: 180 },
+      { profundidadeM: 50, cor: [59, 154, 199], alfa: 150 },
+      { profundidadeM: 120, cor: [38, 120, 172], alfa: 105 },
+      { profundidadeM: 200, cor: [27, 100, 148], alfa: 60 },
+      { profundidadeM: 400, cor: [20, 76, 118], alfa: 0 },
     ],
     cachePath: path.join(CACHE_DIR, "batimetria-ampla.asc"),
     outPng: path.join(OUT_DIR, "batimetria-ampla.png"),
