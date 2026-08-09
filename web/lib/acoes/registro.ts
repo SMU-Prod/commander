@@ -6,6 +6,7 @@ import { validarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { supabaseServer } from "@/lib/supabase/server"
 import { hojeISO } from "@/lib/domain/datas"
+import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 
 export async function registrarVoltaAoMar(formData: FormData) {
   const supabase = await supabaseServer()
@@ -32,10 +33,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
   // 2º passo: gravar
   let falhas = 0
   for (const l of leituras) {
-    const { error: upErro } = await supabase
-      .from("equipamentos")
-      .update({ horas_atuais: l.nova, ultima_leitura: new Date().toISOString() })
-      .eq("id", l.equipamentoId)
+    const { data: atualizado, error: upErro } = await atualizarLeituraEquipamento(supabase, l.equipamentoId, l.nova)
     const { error: evErro } = await supabase.from("eventos").insert({
       embarcacao_id: embarcacaoId,
       equipamento_id: l.equipamentoId,
@@ -44,7 +42,7 @@ export async function registrarVoltaAoMar(formData: FormData) {
       criado_por: user.id,
       data: hojeISO(),
     })
-    if (upErro || evErro) falhas++
+    if (upErro || !atualizado?.length || evErro) falhas++
   }
 
   const litros = String(formData.get("litros") ?? "").trim()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { validarLeitura } from "./leituras"
+import { devePropagarLeitura, validarLeitura } from "./leituras"
 
 describe("validarLeitura", () => {
   it("aceita leitura maior que a atual", () => {
@@ -22,5 +22,23 @@ describe("validarLeitura", () => {
   it("recusa valores não positivos ou não numéricos", () => {
     expect(validarLeitura(-5, null).ok).toBe(false)
     expect(validarLeitura(Number.NaN, null).ok).toBe(false)
+  })
+})
+
+describe("devePropagarLeitura", () => {
+  it("propaga quando não há leitura atual (primeira leitura)", () => {
+    expect(devePropagarLeitura(620, null)).toBe(true)
+  })
+  it("propaga quando a nova leitura é maior que a atual", () => {
+    expect(devePropagarLeitura(620, 610)).toBe(true)
+  })
+  it("propaga quando a nova leitura é igual à atual", () => {
+    expect(devePropagarLeitura(610, 610)).toBe(true)
+  })
+  it("não propaga quando a nova leitura é menor que a atual (correção manual, não regride)", () => {
+    expect(devePropagarLeitura(590, 610)).toBe(false)
+  })
+  it("propaga saltos grandes (evento do diário pode ser meses depois da última leitura)", () => {
+    expect(devePropagarLeitura(1500, 610)).toBe(true)
   })
 })

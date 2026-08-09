@@ -2,9 +2,11 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
+import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
 import { zerarCiclo } from "@/lib/domain/diario"
+import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -125,6 +127,24 @@ export async function criarEvento(formData: FormData) {
     if (erroItem) {
       revalidatePath("/diario")
       redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo da manutenção não foi zerado. Confira e ajuste se precisar.")}`)
+    }
+  }
+
+  // "Horas do motor agora" tambem deve virar a leitura oficial do equipamento
+  // — nao so o horimetro do item de manutencao escolhido acima. Mesma escrita
+  // de "Voltei ao mar" (registro.ts), reusada via atualizarLeituraEquipamento.
+  // So propaga se a leitura avancou (nunca regride): um valor menor aqui fica
+  // salvo no evento como historico, mas so vira leitura oficial por correcao
+  // explicita em Embarcacao — nao sobrescrevemos silenciosamente com o que
+  // pode ser so um registro retroativo (servico de um mes anterior, por ex.).
+  if (equipamentoId && horas != null) {
+    const eqAlvo = painel.equipamentos.find((e) => e.id === equipamentoId)
+    if (eqAlvo && devePropagarLeitura(horas, eqAlvo.horas_atuais)) {
+      const { data: atualizado, error: erroLeitura } = await atualizarLeituraEquipamento(supabase, equipamentoId, horas)
+      if (erroLeitura || !atualizado?.length) {
+        revalidatePath("/diario")
+        redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas a leitura do motor não foi atualizada. Confira em Embarcação.")}`)
+      }
     }
   }
 
