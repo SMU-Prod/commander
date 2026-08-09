@@ -31,6 +31,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | "confira seu acesso a esta aba" | o nome da área: **"Seu acesso não permite editar Motores"** |
 | mapa de profundidade (sem qualificar) | **camada Profundidade** (grade estática ETOPO, `lib/mapa/camadas.ts`, onda 6/12) — não confundir com **sondagem colaborativa** (onda 13, pontos gravados por barcos) |
 | dado de sonar cru · leitura de NMEA | **sondagem colaborativa** (a funcionalidade) · **leitura** (um ponto) |
+| buffer · cache local · enviar sondagem | **fila** (leituras guardadas no aparelho esperando conexão pra enviar, `web/lib/nmea/fila.ts`, onda 14) — nunca "enviar" sozinho: sondagem sempre entra na fila primeiro, o envio é automático e em segundo plano |
 
 A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"*,
 *"Agora não"*, *"Essa saída durou 3 h 30 — atualizar as horas dos motores?"*.
@@ -45,6 +46,19 @@ carta náutica oficial** — mesma régua que já vale para a camada de
 profundidade ETOPO (onda 6/12) e para a rota por calado (onda 12). Todo texto
 novo que mencionar profundidade medida por usuário repete essa ressalva, não
 assume que quem lê já sabe.
+
+### Fila persistente (onda 14) — honestidade obrigatória
+
+O sonar chega ao celular por WiFi da própria caixa de sonar (o celular fica
+sem internet enquanto conectado nela) e, no mar, raramente há sinal de
+celular — **não existe "enviar sondagem ao vivo"**. Nenhum texto novo pode
+sugerir isso. Toda leitura entra primeiro na **fila** (`web/lib/nmea/fila.ts`)
+e só sai quando o servidor confirma; o envio roda sozinho em segundo plano
+(conexão voltando, app voltando ao primeiro plano, ou um timer de segurança) —
+a pessoa nunca precisa "clicar em enviar" nem esperar olhando a tela. Todo
+texto que mencionar o estado da fila é honesto sobre o que está **guardado**
+vs. o que já foi **enviado**, e nunca deixa a pessoa achar que perdeu uma
+saída sem sinal — é o oposto: nada se perde, só demora pra subir.
 
 ## Antes de fechar uma fase
 1. `npm test` e `npm run build` verdes

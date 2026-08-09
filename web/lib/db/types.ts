@@ -222,6 +222,10 @@ export interface Sondagem {
   transporte: TransporteSondagem
   medido_em: string
   criado_em: string
+  /** Chave de deduplicação do cliente (`loteId:celulaId`, onda 14 — ver
+   *  `web/lib/nmea/fila.ts` e a migration `026_sondagens_idempotencia.sql`).
+   *  `null` em linhas gravadas antes desta onda. */
+  origem_id: string | null
 }
 
 /** Linha devolvida por `sondagens_por_celula` (RPC) — SEMPRE agregado por

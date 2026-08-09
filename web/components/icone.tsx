@@ -36,6 +36,12 @@ const PATHS = {
   // Estado da conexao com o transporte (Signal K hoje) — 3 arcos + ponto,
   // leitura universal de "sinal"/conectividade.
   sinal: <><path d="M4 9a12 12 0 0 1 16 0" /><path d="M7 12.5a7.5 7.5 0 0 1 10 0" /><path d="M10 16a3.2 3.2 0 0 1 4 0" /><circle cx="12" cy="19" r="1" /></>,
+  // Onda 14 (fila de sondagem): caixa/arquivo com um check dentro — "guardado
+  // com seguranca, confirmado" (leituras esperando envio na fila local, ou
+  // ja confirmadas). Nao e "nuvem" de proposito: nuvem sugere que ja saiu do
+  // aparelho, e o ponto desta tela e o contrario — mostrar o que ESTA
+  // guardado a bordo enquanto nao ha sinal pra enviar.
+  guardado: <><path d="M3 8l2-4h14l2 4" /><path d="M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z" /><path d="m9 13 2 2 4-4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS
