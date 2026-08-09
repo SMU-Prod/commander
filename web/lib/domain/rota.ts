@@ -49,6 +49,102 @@ function raioSnapCelulas(g: Grade): number {
 const D = 1
 const D2 = Math.SQRT2
 
+// ---------------------------------------------------------------------------
+// Onda 12 — rota por calado: grade de profundidade + bloqueio/penalidade.
+// Equivalente ao "Auto Guidance+" do Navionics: a rota evita agua rasa
+// demais pro calado do barco, preferindo agua mais funda quando o desvio e
+// barato. Ver scripts/gerar-grade-profundidade.mjs pra como o PNG e gerado
+// e docs/OPERACAO.md § Rota por calado pro desenho completo.
+// ---------------------------------------------------------------------------
+
+/** Grade de profundidade: profundidade em METROS por celula (nao agua/terra
+ *  binario). Resolucao e bbox podem ser DIFERENTES da Grade de agua/terra —
+ *  a grade fina de agua vem de linha de costa OSM a 100 m/celula; a de
+ *  profundidade vem de elevacao ETOPO a ~450 m/celula (fina) ou ~3,6 km
+ *  (nacional). Por isso a profundidade e amostrada por COORDENADA
+ *  (`profundidadeEm`), nunca pelo mesmo indice da grade de agua. */
+export interface GradeProfundidade {
+  largura: number
+  altura: number
+  lngMin: number
+  latMin: number
+  lngMax: number
+  latMax: number
+  /** Metros, ja decodificados do PNG (piso conservador do bucket — ver
+   *  scripts/gerar-grade-profundidade.mjs). `Number.POSITIVE_INFINITY` marca
+   *  terra/sem-dado NESSA grade — nunca bloqueia por profundidade sozinho (a
+   *  grade de agua/terra ja cobre terra; ausencia de dado de profundidade
+   *  tambem nao pode travar uma rota que a grade de agua permite). Indexado
+   *  y*largura+x, linha 0 = latMax (mesma convencao de Grade.agua). */
+  profundidadeM: Float32Array
+}
+
+/** Amostra a profundidade (metros) na coordenada mais proxima (nearest
+ *  neighbor — a grade de profundidade normalmente e mais grossa que a de
+ *  agua, entao varias celulas de agua caem na mesma celula de profundidade,
+ *  o que e esperado). Fora do bbox da grade de profundidade devolve
+ *  +Infinity: SEM COBERTURA NAO E TRATADO COMO RASO. Bloquear por ausencia
+ *  de dado quebraria rotas em qualquer regiao fora do bbox mais apertado
+ *  (ex.: usar a grade fina de profundidade — regiao de operacao historica —
+ *  numa rota que a grade de AGUA nacional ja cobre mais longe da costa). */
+export function profundidadeEm(gp: GradeProfundidade, p: Coord): number {
+  if (p.lo < gp.lngMin || p.lo > gp.lngMax || p.la < gp.latMin || p.la > gp.latMax) {
+    return Number.POSITIVE_INFINITY
+  }
+  const x = Math.min(gp.largura - 1, Math.max(0, Math.floor(((p.lo - gp.lngMin) / (gp.lngMax - gp.lngMin)) * gp.largura)))
+  const y = Math.min(gp.altura - 1, Math.max(0, Math.floor(((gp.latMax - p.la) / (gp.latMax - gp.latMin)) * gp.altura)))
+  return gp.profundidadeM[y * gp.largura + x]
+}
+
+/** Margem de seguranca PADRAO pra lancha, em metros: 0,5 m de folga sob a
+ *  quilha (praxe de navegacao costeira pra qualquer embarcacao de recreio)
+ *  + 0,5 m pra cobrir o quanto a mare pode baixar abaixo do nivel medio que
+ *  o dado de elevacao usa como referencia (mares de sizigia na costa SE
+ *  brasileira — regiao de operacao do Commander — costumam ficar entre
+ *  1,0 e 1,5 m de amplitude; metade disso e uma estimativa razoavel de
+ *  quanto o nivel cai abaixo da media = ~0,5-0,75 m, arredondado pra baixo
+ *  pra nao inflar demais o numero "padrao"). Total: 1,0 m. NAO e dado de
+ *  mare real (o Commander nao consulta tabua de mare) — e uma folga fixa e
+ *  conservadora; quem navega numa regiao de mare maior deve aumentar. */
+export const MARGEM_SEGURANCA_PADRAO_M = 1
+
+/** Fator multiplicativo maximo de custo pra uma celula na zona de
+ *  penalidade (bem no limiar de bloqueio) — 4x o custo normal. Alto o
+ *  suficiente pra fazer o A* preferir um desvio de ate ~3x a distancia
+ *  direta na zona rasa antes de aceitar atravessa-la; nao e "infinito"
+ *  (isso seria bloqueio, nao penalidade) pra ainda permitir a rota rasa
+ *  quando NAO ha alternativa mais funda por perto. */
+const PENALIDADE_MAXIMA = 4
+
+/** Configuracao de calado pro A*: celulas com profundidade abaixo de
+ *  `caladoM + margemSegurancaM` sao intransponiveis (como terra); celulas
+ *  na faixa `[limiar, limiar + zonaPenalidadeM)` ainda passam, mas custam
+ *  mais caro (interpolado ate PENALIDADE_MAXIMA bem no limiar) — o que faz
+ *  o A* preferir agua mais funda quando o desvio pra chegar la e barato. */
+export interface ConfigCalado {
+  caladoM: number
+  margemSegurancaM: number
+  /** Largura (metros) da faixa de penalidade acima do limiar de bloqueio.
+   *  Default: a propria margemSegurancaM (nao ha um numero "certo"
+   *  documentado separado disso — reusar a margem evita inventar uma
+   *  terceira constante sem base nenhuma). */
+  zonaPenalidadeM?: number
+  profundidade: GradeProfundidade
+}
+
+/** Fator de custo [1, PENALIDADE_MAXIMA] pra uma profundidade `profundidadeM`
+ *  dado o limiar de bloqueio e a largura da zona de penalidade acima dele.
+ *  1.0 (sem penalidade) a partir de `limiarBloqueioM + zonaPenalidadeM`;
+ *  interpola ate PENALIDADE_MAXIMA exatamente no limiar. Celulas ABAIXO do
+ *  limiar nunca chegam aqui — sao bloqueadas antes (ver acharCaminhoEmCelulas). */
+function fatorPenalidadeProfundidade(profundidadeM: number, limiarBloqueioM: number, zonaPenalidadeM: number): number {
+  if (zonaPenalidadeM <= 0) return 1
+  const acimaDoLimiar = profundidadeM - limiarBloqueioM
+  if (acimaDoLimiar >= zonaPenalidadeM) return 1
+  const t = Math.max(0, acimaDoLimiar) / zonaPenalidadeM // 0 no limiar (penalidade maxima), 1 na borda da zona
+  return PENALIDADE_MAXIMA - (PENALIDADE_MAXIMA - 1) * t
+}
+
 export function ehAgua(g: Grade, c: Celula): boolean {
   if (c.x < 0 || c.x >= g.largura || c.y < 0 || c.y >= g.altura) return false
   return g.agua[c.y * g.largura + c.x] === 1
@@ -217,14 +313,25 @@ function reconstruirCaminho(pai: Int32Array, destinoIdx: number, largura: number
 const VIZINHOS_DX = [1, -1, 0, 0, 1, 1, -1, -1]
 const VIZINHOS_DY = [0, 0, 1, -1, 1, -1, 1, -1]
 
-/** A* 8-conectado sobre indices de celula. Origem e destino ja precisam ser agua. */
-function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celula[] | null {
+/** A* 8-conectado sobre indices de celula. Origem e destino ja precisam ser agua.
+ *  `config` (onda 12): quando presente, celulas rasas demais pro calado+margem
+ *  sao tratadas como terra (skip, igual ao check de agua), e celulas na zona
+ *  de penalidade tem o custo do movimento multiplicado — ver
+ *  `fatorPenalidadeProfundidade`. O check de profundidade se aplica so a
+ *  celula DE DESTINO do movimento (bIdx), nao as duas ortogonais do
+ *  anti-corner-cutting — a grade de profundidade e tipicamente mais grossa
+ *  que a de agua, entao esse refinamento extra nao muda o resultado na
+ *  pratica e simplifica o codigo. */
+function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula, config?: ConfigCalado): Celula[] | null {
   const { largura, altura } = g
   const n = largura * altura
   const idxOrigem = origem.y * largura + origem.x
   const idxDestino = destino.y * largura + destino.x
 
   if (idxOrigem === idxDestino) return [origem]
+
+  const limiarBloqueioM = config ? config.caladoM + config.margemSegurancaM : 0
+  const zonaPenalidadeM = config ? (config.zonaPenalidadeM ?? config.margemSegurancaM) : 0
 
   // gScore em Float32: a precisao de float32 (~7 digitos significativos) sobra pra
   // custos de celula (octile, no maximo alguns milhares numa grade de milhoes de
@@ -273,7 +380,18 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celul
         if (!aguaNoIndice(g, ortoA) || !aguaNoIndice(g, ortoB)) continue
       }
 
-      const custoMovimento = dx !== 0 && dy !== 0 ? D2 : D
+      let custoMovimento = dx !== 0 && dy !== 0 ? D2 : D
+      // Origem e destino ficam ISENTOS do check de profundidade: o barco pode
+      // estar numa marina rasa (origem) ou ir pra uma (destino) — a restricao
+      // de calado vale pro CAMINHO entre eles, nao pros extremos que o
+      // usuario/snap ja escolheu. Sem essa isencao, um destino em agua rasa
+      // (marina tipica) ficaria PERMANENTEMENTE inalcancavel com calado
+      // configurado, de qualquer direcao que se tentasse chegar nele.
+      if (config && bIdx !== idxDestino && bIdx !== idxOrigem) {
+        const profundidadeAqui = profundidadeEm(config.profundidade, paraCoord(g, { x: bx, y: by }))
+        if (profundidadeAqui < limiarBloqueioM) continue // rasa demais pro calado: intransponivel, como terra
+        custoMovimento *= fatorPenalidadeProfundidade(profundidadeAqui, limiarBloqueioM, zonaPenalidadeM)
+      }
       const gTentativo = gScore[atual] + custoMovimento
       if (gTentativo < gScore[bIdx]) {
         pai[bIdx] = atual
@@ -288,23 +406,41 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula): Celul
 }
 
 /** Faz snap da origem e do destino pra agua e roda o A*. `null` se algum snap falhar
- *  ou se nao houver caminho navegavel entre eles. */
-export function acharCaminho(g: Grade, de: Coord, para: Coord): Coord[] | null {
+ *  ou se nao houver caminho navegavel entre eles. `config` (onda 12, opcional):
+ *  roda o A* respeitando o calado do barco — ver `ConfigCalado` e
+ *  `acharCaminhoEmCelulas`. O snap em si NAO considera profundidade: a
+ *  origem/destino podem estar numa marina rasa (e e la que o barco esta/vai),
+ *  a restricao vale pro CAMINHO entre eles, nao pros extremos. */
+export function acharCaminho(g: Grade, de: Coord, para: Coord, config?: ConfigCalado): Coord[] | null {
   const raio = raioSnapCelulas(g)
   const origemCelula = snapParaAgua(g, de, raio)
   const destinoCelula = snapParaAgua(g, para, raio)
   if (!origemCelula || !destinoCelula) return null
 
-  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula)
+  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula, config)
   if (!caminhoCelulas) return null
 
   return caminhoCelulas.map((c) => paraCoord(g, c))
 }
 
-/** Linha de visao livre entre duas celulas via Bresenham, conferindo agua em toda celula do
- *  tracado (inclusive as duas pontas) e aplicando a mesma regra de "nao corta quina" do A*
- *  nos passos diagonais. */
-function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula): boolean {
+/** Celula passa no check de agua E (se `config` presente) de calado — MESMO
+ *  limiar do A* (`caladoM + margemSegurancaM`), mas sem a penalidade suave:
+ *  aqui e binario (passa ou nao), porque string-pulling nao otimiza custo,
+ *  so decide se uma linha reta pode substituir um trecho do caminho. Sem
+ *  isso, `suavizar` poderia "atalhar" de volta por cima de uma celula rasa
+ *  que o A* desviou de proposito (ela e AGUA, entao passaria no check antigo
+ *  — so o check de profundidade barra). */
+function passaNoCalado(g: Grade, c: Celula, config: ConfigCalado | undefined): boolean {
+  if (!ehAgua(g, c)) return false
+  if (!config) return true
+  const profundidade = profundidadeEm(config.profundidade, paraCoord(g, c))
+  return profundidade >= config.caladoM + config.margemSegurancaM
+}
+
+/** Linha de visao livre entre duas celulas via Bresenham, conferindo agua (e calado, se
+ *  `config` presente) em toda celula do tracado (inclusive as duas pontas) e aplicando a
+ *  mesma regra de "nao corta quina" do A* nos passos diagonais. */
+function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula, config?: ConfigCalado): boolean {
   let x0 = a.x
   let y0 = a.y
   const x1 = b.x
@@ -315,7 +451,7 @@ function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula): boolean {
   const sy = y0 < y1 ? 1 : -1
   let err = dx + dy
 
-  if (!ehAgua(g, { x: x0, y: y0 })) return false
+  if (!passaNoCalado(g, { x: x0, y: y0 }, config)) return false
 
   while (x0 !== x1 || y0 !== y1) {
     const e2 = 2 * err
@@ -324,7 +460,7 @@ function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula): boolean {
 
     if (movX && movY) {
       // passo diagonal do Bresenham: mesma checagem de quina do A*
-      if (!ehAgua(g, { x: x0 + sx, y: y0 }) || !ehAgua(g, { x: x0, y: y0 + sy })) return false
+      if (!passaNoCalado(g, { x: x0 + sx, y: y0 }, config) || !passaNoCalado(g, { x: x0, y: y0 + sy }, config)) return false
     }
     if (movX) {
       err += dy
@@ -334,14 +470,15 @@ function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula): boolean {
       err += dx
       y0 += sy
     }
-    if (!ehAgua(g, { x: x0, y: y0 })) return false
+    if (!passaNoCalado(g, { x: x0, y: y0 }, config)) return false
   }
   return true
 }
 
 /** String-pulling: do ponto atual, avanca ate o ponto mais distante com linha de visao livre,
- *  cria a perna ali, repete. Preserva o primeiro e o ultimo ponto exatamente. */
-export function suavizar(g: Grade, caminho: Coord[]): Coord[] {
+ *  cria a perna ali, repete. Preserva o primeiro e o ultimo ponto exatamente. `config` (onda
+ *  12, opcional): a linha reta tambem respeita calado, nao so agua/terra — ver `passaNoCalado`. */
+export function suavizar(g: Grade, caminho: Coord[], config?: ConfigCalado): Coord[] {
   if (caminho.length <= 2) return caminho.slice()
 
   const celulas = caminho.map((p) => paraCelula(g, p))
@@ -351,7 +488,7 @@ export function suavizar(g: Grade, caminho: Coord[]): Coord[] {
   while (atual < celulas.length - 1) {
     let proximo = atual + 1
     for (let candidato = celulas.length - 1; candidato > atual; candidato--) {
-      if (linhaDeVisaoLivre(g, celulas[atual], celulas[candidato])) {
+      if (linhaDeVisaoLivre(g, celulas[atual], celulas[candidato], config)) {
         proximo = candidato
         break
       }

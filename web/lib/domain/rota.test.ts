@@ -6,11 +6,15 @@ import {
   distanciaDaRota,
   ehAgua,
   escolherGrade,
+  MARGEM_SEGURANCA_PADRAO_M,
   paraCelula,
+  profundidadeEm,
   recortarGrade,
   snapParaAgua,
   suavizar,
+  type ConfigCalado,
   type Grade,
+  type GradeProfundidade,
 } from "./rota"
 
 /** 40x20, tudo água menos uma ilha retangular no meio. */
@@ -231,5 +235,206 @@ describe("escolherGrade", () => {
 
   it("null quando as duas grades estao indisponiveis", () => {
     expect(escolherGrade(null, null, { la: 2, lo: 2 }, { la: 8, lo: 8 })).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 12 — rota por calado: grade de profundidade + bloqueio/penalidade no A*
+// ---------------------------------------------------------------------------
+
+/** Grade de profundidade sintetica 4x2 (bbox 0..4 lng, 0..2 lat) com valores
+ *  conhecidos, pra testar profundidadeEm isoladamente. */
+function gradeProfundidadeSimples(): GradeProfundidade {
+  // linha 0 (norte, la proximo de 2): 1m, 5m, 10m, 20m
+  // linha 1 (sul, la proximo de 0): Infinity (terra/sem-dado), 3m, 7m, 15m
+  return {
+    largura: 4,
+    altura: 2,
+    lngMin: 0,
+    latMin: 0,
+    lngMax: 4,
+    latMax: 2,
+    profundidadeM: Float32Array.from([1, 5, 10, 20, Number.POSITIVE_INFINITY, 3, 7, 15]),
+  }
+}
+
+describe("profundidadeEm", () => {
+  it("devolve a profundidade decodificada na celula certa", () => {
+    const gp = gradeProfundidadeSimples()
+    expect(profundidadeEm(gp, { la: 1.5, lo: 0.5 })).toBe(1) // linha 0, col 0
+    expect(profundidadeEm(gp, { la: 1.5, lo: 3.5 })).toBe(20) // linha 0, col 3
+    expect(profundidadeEm(gp, { la: 0.5, lo: 1.5 })).toBe(3) // linha 1, col 1
+  })
+  it("Infinity pra celula marcada terra/sem-dado dentro do bbox", () => {
+    const gp = gradeProfundidadeSimples()
+    expect(profundidadeEm(gp, { la: 0.5, lo: 0.5 })).toBe(Number.POSITIVE_INFINITY)
+  })
+  it("Infinity fora do bbox da grade de profundidade (sem cobertura nao bloqueia por profundidade)", () => {
+    const gp = gradeProfundidadeSimples()
+    expect(profundidadeEm(gp, { la: 10, lo: 10 })).toBe(Number.POSITIVE_INFINITY)
+    expect(profundidadeEm(gp, { la: -5, lo: -5 })).toBe(Number.POSITIVE_INFINITY)
+  })
+})
+
+/** Grade totalmente aberta (sem terra), 20x5, com um "corredor" na linha do
+ *  meio (y=2): a rota DIRETA entre origem e destino segue exatamente por
+ *  essa linha (custo 19 celulas). As linhas y=1 e y=3 sao rotas alternativas
+ *  levemente mais longas (exigem 1 passo diagonal em cada ponta pra entrar/
+ *  sair da linha do meio, custo ~20,83) — servem de "canal fundo" quando a
+ *  linha do meio estiver rasa/penalizada. As demais linhas (y=0,4) existem
+ *  so pra dar folga de grade, profundidade nao importa nelas.
+ *  `profundidadeMeioM` controla a profundidade da linha do meio; as demais
+ *  ficam sempre fundas (10 m). */
+function gradeCorredor(profundidadeMeioM: number): { agua: Grade; profundidade: GradeProfundidade } {
+  const largura = 20
+  const altura = 5
+  const agua: Grade = {
+    largura,
+    altura,
+    lngMin: 0,
+    latMin: 0,
+    lngMax: largura,
+    latMax: altura,
+    agua: new Uint8Array(largura * altura).fill(1),
+  }
+  const profundidadeM = new Float32Array(largura * altura).fill(10)
+  for (let x = 0; x < largura; x++) profundidadeM[2 * largura + x] = profundidadeMeioM
+  const profundidade: GradeProfundidade = {
+    largura,
+    altura,
+    lngMin: 0,
+    latMin: 0,
+    lngMax: largura,
+    latMax: altura,
+    profundidadeM,
+  }
+  return { agua, profundidade }
+}
+
+const ORIGEM_CORREDOR = { la: 2.5, lo: 0.5 } // y=2, x=0
+const DESTINO_CORREDOR = { la: 2.5, lo: 19.5 } // y=2, x=19
+
+describe("A* respeitando calado (onda 12)", () => {
+  it("celula rasa demais pro calado bloqueia como terra: sem rota quando o UNICO caminho e raso", () => {
+    // grade de 1 unica linha (altura=1): nao ha como desviar por cima/baixo.
+    const largura = 10
+    const agua: Grade = {
+      largura,
+      altura: 1,
+      lngMin: 0,
+      latMin: 0,
+      lngMax: largura,
+      latMax: 1,
+      agua: new Uint8Array(largura).fill(1),
+    }
+    const profundidade: GradeProfundidade = {
+      largura,
+      altura: 1,
+      lngMin: 0,
+      latMin: 0,
+      lngMax: largura,
+      latMax: 1,
+      profundidadeM: new Float32Array(largura).fill(0.1), // rasissimo, a linha inteira
+    }
+    const de = { la: 0.5, lo: 0.5 }
+    const para = { la: 0.5, lo: 9.5 }
+
+    // sem config de calado, a rota existe normalmente (ignora profundidade)
+    expect(acharCaminho(agua, de, para)).not.toBeNull()
+
+    const config: ConfigCalado = { caladoM: 2, margemSegurancaM: 0.5, profundidade }
+    // 0.1m < calado(2) + margem(0.5) = 2.5m em toda a linha -> intransponivel, como se fosse terra
+    expect(acharCaminho(agua, de, para, config)).toBeNull()
+  })
+
+  it("celula com profundidade suficiente (fora da zona de penalidade) NAO e penalizada nem bloqueada", () => {
+    const { agua, profundidade } = gradeCorredor(10) // linha do meio tambem funda
+    const config: ConfigCalado = { caladoM: 1, margemSegurancaM: 0.5, profundidade } // limiar 1.5m
+    const caminho = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, config)
+    expect(caminho).not.toBeNull()
+    // com tudo igualmente fundo, a rota mais barata e a linha reta do meio (19 celulas)
+    expect(distanciaDaRota(caminho!)).toBeCloseTo(distanciaDaRota([ORIGEM_CORREDOR, DESTINO_CORREDOR]), 1)
+  })
+
+  it("penalidade (nao bloqueio) faz a rota preferir o canal fundo quando o desvio e curto", () => {
+    // linha do meio com 1.2m: calado 0.5 + margem 0.5 = limiar 1.0m -> 1.2m PASSA (nao bloqueia),
+    // mas esta bem perto do limite (dentro da zona de penalidade de 0.5m acima do limiar) -> custa caro.
+    const { agua, profundidade } = gradeCorredor(1.2)
+    const semConfig = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR)
+    expect(semConfig).not.toBeNull()
+    // sem calado, a rota direta (mais barata) passa pela linha do meio (y=2) o tempo todo
+    const celulasSemConfig = semConfig!.map((p) => paraCelula(agua, p))
+    expect(celulasSemConfig.every((c) => c.y === 2)).toBe(true)
+
+    const config: ConfigCalado = { caladoM: 0.5, margemSegurancaM: 0.5, profundidade }
+    const comConfig = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, config)
+    expect(comConfig).not.toBeNull()
+    // com a penalidade, a rota EVITA a linha do meio (rasa) no MIOLO do caminho e usa uma
+    // das linhas fundas adjacentes — os extremos continuam em y=2 (origem/destino sao
+    // isentos do check: e onde o usuario esta/vai, nao faz sentido bloquear a marina dele)
+    const celulasComConfig = comConfig!.map((p) => paraCelula(agua, p))
+    expect(celulasComConfig.every((c) => c.y === 2)).toBe(false) // deixa de ser 100% linha do meio
+    expect(distanciaDaRota(comConfig!)).toBeGreaterThan(distanciaDaRota(semConfig!))
+  })
+
+  it("calado maior gera rota diferente (desvia) onde o calado menor passava direto", () => {
+    // linha do meio com 1.5m: passa folgado pra calado pequeno, mas fica abaixo do limiar
+    // (bloqueado, nao so penalizado) pro calado grande.
+    const { agua, profundidade } = gradeCorredor(1.5)
+
+    const caladoPequeno: ConfigCalado = { caladoM: 0.5, margemSegurancaM: 0.3, profundidade } // limiar 0.8m -> 1.5m passa livre
+    const rotaPequena = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, caladoPequeno)
+    expect(rotaPequena).not.toBeNull()
+    expect(rotaPequena!.map((p) => paraCelula(agua, p)).every((c) => c.y === 2)).toBe(true)
+
+    const caladoGrande: ConfigCalado = { caladoM: 2, margemSegurancaM: 0.5, profundidade } // limiar 2.5m -> 1.5m bloqueia
+    const rotaGrande = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, caladoGrande)
+    expect(rotaGrande).not.toBeNull() // ainda ha caminho, so que desviando
+    // deixa de ser 100% linha do meio (so os extremos, isentos, continuam em y=2)
+    expect(rotaGrande!.map((p) => paraCelula(agua, p)).every((c) => c.y === 2)).toBe(false)
+    // rota final e DIFERENTE (mais longa) da rota do calado pequeno
+    expect(distanciaDaRota(rotaGrande!)).toBeGreaterThan(distanciaDaRota(rotaPequena!))
+  })
+
+  it("MARGEM_SEGURANCA_PADRAO_M e um numero positivo e sensato pra lancha (nem zero, nem exagerado)", () => {
+    expect(MARGEM_SEGURANCA_PADRAO_M).toBeGreaterThan(0)
+    expect(MARGEM_SEGURANCA_PADRAO_M).toBeLessThanOrEqual(2)
+  })
+
+  it("suavizar NAO atalha de volta por cima de uma celula rasa que o caminho bruto desviou", () => {
+    // 10x5, tudo agua (sem terra) — o caminho bruto (dado a mao, como se viesse
+    // do A*) desvia por cima (y=0) de duas celulas rasas em y=2 (x=4 e x=5).
+    // Sem considerar calado, a linha reta do primeiro ao ultimo ponto passa
+    // DIRETO por cima das celulas rasas (e agua, entao "passaria" no check antigo).
+    const largura = 10
+    const altura = 5
+    const agua: Grade = {
+      largura,
+      altura,
+      lngMin: 0,
+      latMin: 0,
+      lngMax: largura,
+      latMax: altura,
+      agua: new Uint8Array(largura * altura).fill(1),
+    }
+    const profundidadeM = new Float32Array(largura * altura).fill(10)
+    profundidadeM[2 * largura + 4] = 0.1 // (4,2) rasissimo
+    profundidadeM[2 * largura + 5] = 0.1 // (5,2) rasissimo
+    const profundidade: GradeProfundidade = { largura, altura, lngMin: 0, latMin: 0, lngMax: largura, latMax: altura, profundidadeM }
+
+    const p0 = { la: 2.5, lo: 0.5 } // celula (0,2)
+    const p1 = { la: 4.5, lo: 4.5 } // celula (4,0)
+    const p2 = { la: 4.5, lo: 5.5 } // celula (5,0)
+    const p3 = { la: 2.5, lo: 9.5 } // celula (9,2)
+    const caminhoBruto = [p0, p1, p2, p3]
+
+    const semConfig = suavizar(agua, caminhoBruto)
+    expect(semConfig).toEqual([p0, p3]) // colapsa direto: linha reta passa por (4,2)/(5,2), mas e agua
+
+    const config: ConfigCalado = { caladoM: 1, margemSegurancaM: 0.5, profundidade } // limiar 1.5m, 0.1m bloqueia
+    const comConfig = suavizar(agua, caminhoBruto, config)
+    expect(comConfig.length).toBeGreaterThan(2) // nao pode colapsar: o atalho cruzaria agua rasa demais
+    expect(comConfig[0]).toEqual(p0)
+    expect(comConfig[comConfig.length - 1]).toEqual(p3)
   })
 })

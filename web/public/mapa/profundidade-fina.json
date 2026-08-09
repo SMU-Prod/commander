@@ -1,0 +1,16 @@
+{
+  "lngMin": -45.75,
+  "latMin": -24.05,
+  "lngMax": -41.75,
+  "latMax": -22.65,
+  "largura": 961,
+  "altura": 338,
+  "passoM": 0.25,
+  "profundidadeMaximaCodificadaM": 63.5,
+  "codificacao": "byte 0 = terra/sem-dado; byte 1..255 = piso do bucket de profundidade, profundidadeM = (byte-1)*passoM; byte 255 satura em profundidadeM >= 254*passoM (fundo o bastante pra qualquer calado). Decodificação conservadora: sempre o PISO do bucket, nunca o teto.",
+  "resolucaoAprox": "~450 m (15 arc-sec)",
+  "geradoEm": "2026-08-09T08:46:51.770Z",
+  "fonte": "ETOPO 2022 15 Arc-Second Global Relief Model (Ice Surface), NOAA/NCEI — domínio público dos EUA",
+  "licenca": "Domínio público (dado do governo dos EUA); NOAA pede reconhecimento da fonte por transparência, mas não há restrição de uso comercial.",
+  "aviso": "Grade derivada de elevação global (ETOPO 2022), NÃO de carta náutica oficial. Resolução espacial (~450 m fina / ~3,6 km nacional) não resolve pedra isolada, banco de areia ou recife menores que a célula — evita áreas rasas CONHECIDAS nessa resolução, não garante profundidade real no local exato."
+}
