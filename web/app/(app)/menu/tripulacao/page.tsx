@@ -33,7 +33,7 @@ export default async function TripulacaoPage({
       <Link href="/menu" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Menu
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Tripulação</h1>
+      <h1 className="titulo-pagina mt-3">Tripulação</h1>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       {criado && (

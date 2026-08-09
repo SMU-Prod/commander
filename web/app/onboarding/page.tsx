@@ -30,7 +30,7 @@ export default async function OnboardingPage({
           <Icone nome="voltar" className="size-4" /> Menu
         </Link>
       )}
-      <h1 className="text-2xl font-semibold mt-3">
+      <h1 className="titulo-pagina mt-3">
         {jaTemBarco ? "Cadastrar outra embarcação" : "Vamos cadastrar seu barco"}
       </h1>
       <p className="mt-1 text-sm text-dim">

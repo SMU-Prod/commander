@@ -31,7 +31,7 @@ export default async function ConvitePage({
         </p>
       ) : (
         <>
-          <h1 className="mt-6 text-xl font-semibold">Você foi convidado para a tripulação</h1>
+          <h1 className="titulo-pagina mt-6">Você foi convidado para a tripulação</h1>
           <p className="mt-2 text-sm text-dim">
             Embarcação <span className="font-semibold text-texto">{info.nome_embarcacao}</span>
           </p>

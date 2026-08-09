@@ -24,7 +24,7 @@ export default async function LocalPage({
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Barco
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Posição da marina</h1>
+      <h1 className="titulo-pagina mt-3">Posição da marina</h1>
       <p className="mt-1 text-sm text-dim">
         É daqui que saem o boletim do mar da tela Início e, no futuro, o modo marina.
         Vá até o barco e toque em “Usar minha posição atual” — ou preencha as coordenadas.

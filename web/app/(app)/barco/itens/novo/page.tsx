@@ -34,7 +34,7 @@ export default async function NovoItemPage({
       <Link href={voltarPara} className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Voltar
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Nova manutenção</h1>
+      <h1 className="titulo-pagina mt-3">Nova manutenção</h1>
       <p className="mt-1 text-sm text-dim">
         Tudo que vence por horas de uso e/ou por data — o semáforo cuida do resto.
       </p>

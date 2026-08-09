@@ -48,7 +48,7 @@ export default async function NovoEventoPage({
       <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Diário
       </Link>
-      <h1 className="mt-3 text-xl font-semibold">Novo registro</h1>
+      <h1 className="titulo-pagina mt-3">Novo registro</h1>
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarEvento} className="mt-5 space-y-4">
