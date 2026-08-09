@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest"
-import { acharCaminho, distanciaDaRota, ehAgua, paraCelula, snapParaAgua, suavizar, type Grade } from "./rota"
+import {
+  acharCaminho,
+  bboxComFolga,
+  dentroDaGrade,
+  distanciaDaRota,
+  ehAgua,
+  escolherGrade,
+  paraCelula,
+  recortarGrade,
+  snapParaAgua,
+  suavizar,
+  type Grade,
+} from "./rota"
 
 /** 40x20, tudo água menos uma ilha retangular no meio. */
 function gradeComIlha(): Grade {
@@ -79,5 +91,145 @@ describe("distanciaDaRota", () => {
   it("soma as pernas em MN", () => {
     expect(distanciaDaRota([{ la: 0, lo: 0 }, { la: 0, lo: 0 }])).toBe(0)
     expect(distanciaDaRota([{ la: 0, lo: 0 }, { la: 1, lo: 0 }])).toBeCloseTo(60, 0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 11 — recorte por trecho + escolha de grade (fina vs nacional)
+// ---------------------------------------------------------------------------
+
+describe("dentroDaGrade", () => {
+  it("verdadeiro dentro do bbox, falso fora", () => {
+    const g = gradeComIlha()
+    expect(dentroDaGrade(g, { la: 10, lo: 20 })).toBe(true)
+    expect(dentroDaGrade(g, { la: 10, lo: 20 })).toBe(true) // canto/miolo, sanidade
+    expect(dentroDaGrade(g, { la: -1, lo: 20 })).toBe(false)
+    expect(dentroDaGrade(g, { la: 10, lo: 41 })).toBe(false)
+  })
+})
+
+describe("bboxComFolga", () => {
+  it("bbox contem origem e destino, com folga positiva em volta", () => {
+    const de = { la: 10, lo: 5 }
+    const para = { la: 12, lo: 25 }
+    const bbox = bboxComFolga(de, para)
+    expect(bbox.lngMin).toBeLessThan(Math.min(de.lo, para.lo))
+    expect(bbox.lngMax).toBeGreaterThan(Math.max(de.lo, para.lo))
+    expect(bbox.latMin).toBeLessThan(Math.min(de.la, para.la))
+    expect(bbox.latMax).toBeGreaterThan(Math.max(de.la, para.la))
+  })
+
+  it("respeita o piso de folga quando origem e destino estao muito perto (ou coincidem)", () => {
+    const p = { la: 10, lo: 5 }
+    const bbox = bboxComFolga(p, p)
+    // diagonal zero -> a folga toda vem do piso, nao da fracao da diagonal
+    const folga = bbox.lngMax - p.lo
+    expect(folga).toBeGreaterThan(0.15) // piso documentado em rota.ts (0.2 grau)
+  })
+
+  it("folga cresce com a distancia entre origem e destino", () => {
+    const perto = bboxComFolga({ la: 0, lo: 0 }, { la: 1, lo: 1 })
+    const longe = bboxComFolga({ la: 0, lo: 0 }, { la: 20, lo: 20 })
+    const folgaPerto = perto.lngMax - 1
+    const folgaLonge = longe.lngMax - 20
+    expect(folgaLonge).toBeGreaterThan(folgaPerto)
+  })
+})
+
+describe("recortarGrade", () => {
+  it("preserva agua/terra nas celulas certas e converte coordenadas corretamente", () => {
+    const g = gradeComIlha()
+    const bbox = { lngMin: 10, latMin: 3, lngMax: 30, latMax: 17 }
+    const recorte = recortarGrade(g, bbox)
+
+    const pontos = [
+      { la: 4, lo: 12 }, // agua
+      { la: 10, lo: 20 }, // dentro da ilha (terra)
+      { la: 16, lo: 28 }, // agua
+      { la: 6, lo: 16 }, // agua, perto da borda da ilha
+    ]
+    for (const p of pontos) {
+      const original = ehAgua(g, paraCelula(g, p))
+      const recortado = ehAgua(recorte, paraCelula(recorte, p))
+      expect(recortado).toBe(original)
+    }
+  })
+
+  it("as dimensoes do recorte sao menores que a grade original e cobrem o bbox pedido", () => {
+    const g = gradeComIlha()
+    const bbox = { lngMin: 10, latMin: 3, lngMax: 30, latMax: 17 }
+    const recorte = recortarGrade(g, bbox)
+    expect(recorte.largura).toBeLessThan(g.largura)
+    expect(recorte.altura).toBeLessThan(g.altura)
+    expect(recorte.lngMin).toBeLessThanOrEqual(bbox.lngMin)
+    expect(recorte.lngMax).toBeGreaterThanOrEqual(bbox.lngMax)
+    expect(recorte.latMin).toBeLessThanOrEqual(bbox.latMin)
+    expect(recorte.latMax).toBeGreaterThanOrEqual(bbox.latMax)
+  })
+
+  it("bbox maior que a grade e clampado aos limites dela, sem estourar indices", () => {
+    const g = gradeComIlha()
+    const bbox = { lngMin: -1000, latMin: -1000, lngMax: 1000, latMax: 1000 }
+    const recorte = recortarGrade(g, bbox)
+    expect(recorte.largura).toBe(g.largura)
+    expect(recorte.altura).toBe(g.altura)
+    expect(recorte.agua).toEqual(g.agua)
+  })
+
+  it("uma rota calculada na grade recortada da o MESMO caminho que na grade inteira", () => {
+    const g = gradeComIlha()
+    const de = { la: 10.5, lo: 5.5 }
+    const para = { la: 10.5, lo: 35.5 }
+    const recorte = recortarGrade(g, bboxComFolga(de, para))
+
+    const caminhoInteiro = acharCaminho(g, de, para)
+    const caminhoRecorte = acharCaminho(recorte, de, para)
+    expect(caminhoInteiro).not.toBeNull()
+    expect(caminhoRecorte).toEqual(caminhoInteiro)
+  })
+})
+
+describe("escolherGrade", () => {
+  const fina: Grade = {
+    largura: 10,
+    altura: 10,
+    lngMin: 0,
+    latMin: 0,
+    lngMax: 10,
+    latMax: 10,
+    agua: new Uint8Array(100).fill(1),
+  }
+  const nacional: Grade = {
+    largura: 10,
+    altura: 10,
+    lngMin: -50,
+    latMin: -50,
+    lngMax: 50,
+    latMax: 50,
+    agua: new Uint8Array(100).fill(1),
+  }
+
+  it("usa a fina quando origem E destino cabem nela (melhor detalhe perto de casa)", () => {
+    const r = escolherGrade(fina, nacional, { la: 2, lo: 2 }, { la: 8, lo: 8 })
+    expect(r).toEqual({ grade: fina, tipo: "fina" })
+  })
+
+  it("usa a nacional quando um dos pontos esta fora da fina mas os dois cabem na nacional", () => {
+    const r = escolherGrade(fina, nacional, { la: 2, lo: 2 }, { la: 30, lo: 30 })
+    expect(r).toEqual({ grade: nacional, tipo: "nacional" })
+  })
+
+  it("null quando nenhuma das duas grades cobre os dois pontos ao mesmo tempo (fora da area)", () => {
+    const r = escolherGrade(fina, nacional, { la: 2, lo: 2 }, { la: 1000, lo: 1000 })
+    expect(r).toBeNull()
+  })
+
+  it("funciona so com a nacional quando a fina nao carregou (null)", () => {
+    const r = escolherGrade(null, nacional, { la: 30, lo: 30 }, { la: -30, lo: -30 })
+    expect(r).toEqual({ grade: nacional, tipo: "nacional" })
+  })
+
+  it("null quando as duas grades estao indisponiveis", () => {
+    expect(escolherGrade(null, null, { la: 2, lo: 2 }, { la: 8, lo: 8 })).toBeNull()
   })
 })

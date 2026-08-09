@@ -231,19 +231,22 @@ const LICENCA =
 
 /** ERDDAP guarda longitude em convenção 0–360 (testado manualmente: uma
  *  longitude negativa direto na query devolve 404 — não há wrap automático). */
-function paraLongitude360(lng) {
+export function paraLongitude360(lng) {
   return lng < 0 ? lng + 360 : lng;
 }
 
 /** Monta o segmento `[(min):stride:(max)]` de uma dimensão da query griddap.
  *  Sem stride (ou stride 1) omite o meio, igual à sintaxe original deste
  *  script antes da camada "ampla" existir. */
-function segmentoGriddap(min, max, stride) {
+export function segmentoGriddap(min, max, stride) {
   return stride && stride > 1 ? `(${min}):${stride}:(${max})` : `(${min}):(${max})`;
 }
 
-/** @returns {Promise<{ texto: string, deCache: boolean }>} */
-async function baixarGradeBatimetria(camada) {
+/** Exportada pra scripts/gerar-mascara-nacional.mjs reaproveitar o MESMO
+ *  pipeline de download+cache do ERDDAP (em vez de duplicar a lógica de
+ *  fetch/retry/cache) — ver comentário no topo desse outro script.
+ *  @returns {Promise<{ texto: string, deCache: boolean }>} */
+export async function baixarGradeBatimetria(camada) {
   const { regiao, datasetBase, stride, cachePath } = camada;
   // A camada "ampla" (~1,4M células) mediu ~550 KB/min de vazão real nesse
   // ERDDAP (testado manualmente com curl) — bem mais lento que o suficiente
@@ -317,8 +320,9 @@ const CHAVES_CABECALHO = new Set([
  *  grid de números (nrows linhas, ncols valores cada, NORTE→SUL — confirmado
  *  manualmente contra o dataset: a primeira linha de dados bate com a
  *  latitude mais ao norte pedida). Mesma orientação que
- *  scripts/gerar-mascara-agua.mjs usa pra mascara-agua.png (row 0 = norte). */
-function parseEsriAscii(texto) {
+ *  scripts/gerar-mascara-agua.mjs usa pra mascara-agua.png (row 0 = norte).
+ *  Exportada — reaproveitada por scripts/gerar-mascara-nacional.mjs. */
+export function parseEsriAscii(texto) {
   const linhas = texto.split("\n");
   const cabecalho = {};
   let i = 0;
@@ -542,8 +546,15 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("");
-  console.error("ERRO:", err.message);
-  process.exitCode = 1;
-});
+// Guarda de execução direta: este módulo agora é IMPORTADO por
+// scripts/gerar-mascara-nacional.mjs (reaproveitando baixarGradeBatimetria +
+// parseEsriAscii, ver comentário lá) — sem esse guard, o simples `import`
+// dispararia a geração das DUAS camadas de batimetria como efeito colateral.
+const ehExecucaoDireta = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (ehExecucaoDireta) {
+  main().catch((err) => {
+    console.error("");
+    console.error("ERRO:", err.message);
+    process.exitCode = 1;
+  });
+}

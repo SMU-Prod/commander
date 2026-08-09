@@ -369,3 +369,125 @@ export function distanciaDaRota(pontos: Coord[]): number {
   for (let i = 1; i < pontos.length; i++) total += haversineNm(pontos[i - 1], pontos[i])
   return total
 }
+
+// ---------------------------------------------------------------------------
+// Onda 11 — rota nacional: grade ampla (grossa, Brasil inteiro) + recorte por
+// trecho + escolha entre fina/ampla. Ver docs/OPERACAO.md § Máscara nacional.
+// ---------------------------------------------------------------------------
+
+export interface Bbox {
+  lngMin: number
+  latMin: number
+  lngMax: number
+  latMax: number
+}
+
+/** Confere se uma coordenada cai dentro do bbox coberto pela grade — barato o
+ *  suficiente pra checar antes de chamar acharCaminho num ponto fora da area
+ *  mapeada, sem precisar montar celula nenhuma. Movida de lib/mapa/mascara.ts
+ *  (onda 11): e geometria pura sobre Grade/Coord, pertence ao dominio — mascara.ts
+ *  reexporta pra nao quebrar quem ja importava de la. */
+export function dentroDaGrade(g: Grade, p: Coord): boolean {
+  return p.lo >= g.lngMin && p.lo <= g.lngMax && p.la >= g.latMin && p.la <= g.latMax
+}
+
+// Folga do recorte: fracao da diagonal origem-destino, com piso. O piso evita
+// um recorte minusculo demais pra rodear qualquer obstaculo quando os dois
+// pontos estao proximos (ou coincidem) — 0.2 grau ~= 22 km de folga minima em
+// cada direcao, suficiente pra contornar uma reentrancia de costa tipica sem
+// esbarrar na borda do recorte.
+const FRACAO_FOLGA_RECORTE = 0.25
+const FOLGA_MINIMA_GRAUS = 0.2
+
+/** Bbox que contem origem e destino, com folga proporcional a diagonal entre
+ *  eles (piso pra trechos curtos). E o retangulo que `recortarGrade` usa pra
+ *  recortar a grade ampla ANTES do A* — memoria do calculo passa a depender do
+ *  TRECHO da viagem, nao da cobertura inteira da grade. */
+export function bboxComFolga(de: Coord, para: Coord): Bbox {
+  const lngMin0 = Math.min(de.lo, para.lo)
+  const lngMax0 = Math.max(de.lo, para.lo)
+  const latMin0 = Math.min(de.la, para.la)
+  const latMax0 = Math.max(de.la, para.la)
+  const diagonalGraus = Math.hypot(lngMax0 - lngMin0, latMax0 - latMin0)
+  const folga = Math.max(diagonalGraus * FRACAO_FOLGA_RECORTE, FOLGA_MINIMA_GRAUS)
+  return {
+    lngMin: lngMin0 - folga,
+    latMin: latMin0 - folga,
+    lngMax: lngMax0 + folga,
+    latMax: latMax0 + folga,
+  }
+}
+
+/** Recorta uma grade ao retangulo `bbox` (coordenadas geograficas), alinhado a
+ *  celula. `bbox` e clampado aos limites da propria grade antes de converter
+ *  pra indices — um bbox parcialmente (ou totalmente) fora da grade so recorta
+ *  a parte que existe. As novas bordas geograficas (lngMin/latMin/lngMax/latMax)
+ *  sao recalculadas a partir do tamanho real da celula da grade original, entao
+ *  paraCelula/paraCoord continuam corretos na grade recortada. */
+export function recortarGrade(g: Grade, bbox: Bbox): Grade {
+  const larguraCelulaGraus = (g.lngMax - g.lngMin) / g.largura
+  const alturaCelulaGraus = (g.latMax - g.latMin) / g.altura
+
+  const bboxClampado = {
+    lngMin: Math.max(bbox.lngMin, g.lngMin),
+    latMin: Math.max(bbox.latMin, g.latMin),
+    lngMax: Math.min(bbox.lngMax, g.lngMax),
+    latMax: Math.min(bbox.latMax, g.latMax),
+  }
+
+  const clampCol = (c: number) => Math.min(g.largura - 1, Math.max(0, c))
+  const clampRow = (r: number) => Math.min(g.altura - 1, Math.max(0, r))
+
+  const colMin = clampCol(Math.floor((bboxClampado.lngMin - g.lngMin) / larguraCelulaGraus))
+  const colMax = Math.max(colMin, clampCol(Math.floor((bboxClampado.lngMax - g.lngMin) / larguraCelulaGraus)))
+  // linha 0 = norte (latMax) — mesma convencao de paraCelula
+  const rowMin = clampRow(Math.floor((g.latMax - bboxClampado.latMax) / alturaCelulaGraus))
+  const rowMax = Math.max(rowMin, clampRow(Math.floor((g.latMax - bboxClampado.latMin) / alturaCelulaGraus)))
+
+  const largura = colMax - colMin + 1
+  const altura = rowMax - rowMin + 1
+
+  const agua = new Uint8Array(largura * altura)
+  for (let r = 0; r < altura; r++) {
+    const origemLinha = (r + rowMin) * g.largura
+    const destinoLinha = r * largura
+    for (let c = 0; c < largura; c++) {
+      agua[destinoLinha + c] = g.agua[origemLinha + (c + colMin)]
+    }
+  }
+
+  return {
+    largura,
+    altura,
+    lngMin: g.lngMin + colMin * larguraCelulaGraus,
+    lngMax: g.lngMin + (colMax + 1) * larguraCelulaGraus,
+    latMax: g.latMax - rowMin * alturaCelulaGraus,
+    latMin: g.latMax - (rowMax + 1) * alturaCelulaGraus,
+    agua,
+    metrosPorCelula: g.metrosPorCelula,
+  }
+}
+
+export type TipoGrade = "fina" | "nacional"
+
+/** Regra de escolha de grade (onda 11): se origem E destino cabem na grade
+ *  fina (mais detalhe, area de operacao historica), usa ela. Senao, se os dois
+ *  cabem na grade nacional (grossa, Brasil inteiro), usa a nacional — quem
+ *  chama e responsavel por recortar (`recortarGrade`+`bboxComFolga`) antes de
+ *  rodar o A*, isso aqui so decide QUAL grade. `null` quando nenhuma das duas
+ *  cobre os dois pontos ao mesmo tempo — so nesse caso a tela deve mostrar
+ *  "fora da area". */
+export function escolherGrade(
+  fina: Grade | null,
+  nacional: Grade | null,
+  de: Coord,
+  para: Coord,
+): { grade: Grade; tipo: TipoGrade } | null {
+  if (fina && dentroDaGrade(fina, de) && dentroDaGrade(fina, para)) {
+    return { grade: fina, tipo: "fina" }
+  }
+  if (nacional && dentroDaGrade(nacional, de) && dentroDaGrade(nacional, para)) {
+    return { grade: nacional, tipo: "nacional" }
+  }
+  return null
+}

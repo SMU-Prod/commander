@@ -225,6 +225,120 @@ errada, a rota manda o barco por cima de terra ou de uma ilha.
   rasa demais para o casco — isso não substitui carta náutica nem sonda de
   profundidade.
 
+## Máscara nacional + recorte por trecho (`onda-11-rota-nacional`)
+
+Antes desta onda, a rota que contorna terra só funcionava dentro do bbox da máscara
+fina (Ilhabela/São Sebastião → Búzios) — fora dali a tela caía pro rumo direto com
+"Fora da área com rota". O dono pediu navegação em todo o mapa. Gerar a mesma máscara
+(linha de costa OSM, 100 m/célula) pra costa brasileira inteira daria bilhões de
+células — não cabe em memória de celular. A solução tem duas partes:
+
+### 1. Máscara nacional (grossa, `mascara-nacional.png`/`.json`)
+
+Cobre a costa brasileira inteira, mas **derivada de elevação**, não de linha de
+costa vetorial — a query do Overpass pra costa inteira seria pesada demais, e o
+dado fino de OSM não faz diferença nessa escala.
+
+- **Reaproveita literalmente o pipeline (e o cache) da batimetria.**
+  `scripts/gerar-batimetria.mjs` exporta agora `baixarGradeBatimetria` e
+  `parseEsriAscii` (guardadas atrás de um check de execução direta — `import`
+  não dispara mais a geração das 2 camadas como efeito colateral) e
+  `scripts/gerar-mascara-nacional.mjs` as importa, apontando pro **MESMO**
+  `cachePath` da camada "ampla" de batimetria (`scripts/.cache/batimetria-ampla.asc`,
+  já baixado do ERDDAP na onda 10) — **zero download novo**. Classificação:
+  `z < 0` (ETOPO 2022, elevação em metros) → água; `z ≥ 0` → terra.
+- **Resolução obtida: ~3,6 km/célula** (mesma bbox + dataset + stride 2 da
+  camada "ampla" de batimetria — `ETOPO_2022_v1_60s`, `lngMin -58, latMin -34.5,
+  lngMax -20, latMax 6`; grid 1141×1216 = ~1,39 M células), **mais grossa que os
+  ~1 km cogitados inicialmente**. Decisão consciente: baixar mais fino (ex.:
+  stride 1, ~1,85 km) exigiria um NOVO download de ~4× o volume já cacheado —
+  não há motivo pra pagar esse custo de tempo quando 3,6 km já cabe com folga
+  no orçamento de PNG e de memória do A* pro trecho recortado (ver seção 2).
+- **Dilatação de segurança:** MESMA contagem de células da máscara fina (2,
+  `MARGEM_CELULAS_TERRA` em `gerar-mascara-nacional.mjs`) — como a célula é
+  ~37× maior, isso já dá uma margem física proporcionalmente maior (~7,4 km,
+  contra 200 m na fina), coerente com o aviso da tela (rota pela nacional é
+  "margem de segurança maior").
+- **Tamanho medido:** PNG grayscale (255=água, 0=terra, mesmo formato da
+  fina) com **5,7 KB** — bem abaixo do orçamento de ~800 KB.
+- **Verificação visual (Read no PNG):** a costa brasileira é claramente
+  reconhecível (silhueta característica, "bojo" do Nordeste visível), com
+  pontinhos isolados no oceano batendo com ilhas oceânicas (Fernando de
+  Noronha, Trindade). Marajó, Ilhabela e Santa Catarina aparecem corretamente
+  como **terra**. A Baía de Guanabara e o canal da Ilha Grande **NÃO**
+  aparecem como água nessa resolução — colapsam pra terra junto com a costa ao
+  redor: a 3,6 km/célula + 2 células de dilatação, baías com poucos km de boca
+  (Guanabara ~1,7 km na entrada) somem inteiras, não só o canal estreito.
+  Verificado com um probe direto no raster (BFS 8-conectado, mesma regra de
+  "não corta quina" do A*) — o achado é honesto e esperado, não um bug: quem
+  navega DENTRO dessas baías continua com origem E destino cobertos pela
+  máscara fina, que resolve o detalhe corretamente (é exatamente o caso "sem
+  regressão" coberto no teste do gate, `Abraão -> Angra`). A nacional só entra
+  quando pelo menos um dos pontos cai fora da fina — na prática, travessias
+  longas que partem de mar aberto, não de dentro de uma marina específica.
+
+### 2. Recorte por trecho (o que torna a cobertura nacional viável)
+
+`recortarGrade(grade, bbox)` em `web/lib/domain/rota.ts`: recorta a grade ao
+retângulo (alinhado a célula) que contém origem e destino, ANTES de rodar o
+A*. `bboxComFolga(de, para)` calcula esse retângulo com folga de 25% da
+diagonal entre os pontos (piso de 0,2° pra trechos curtos/coincidentes, dá
+espaço pro A* contornar uma reentrância típica sem esbarrar na borda do
+recorte). Memória do A* (`gScore`+`pai`+`fechado`, 9 bytes/célula, ver seção
+"Máscara de água" acima) passa a depender do **TRECHO da viagem**, não da
+cobertura inteira da grade — a grade nacional inteira (~1,39 M células) já
+caberia em memória (~12,5 MB), mas o recorte reduz isso a uma fração ainda
+menor por rota (ver medições abaixo). A grade FINA nunca é recortada — já é
+pequena o bastante pra rodar o A* nela inteira, e recortar mudaria a
+precisão/distância de rotas que já funcionavam.
+
+### 3. Escolha da grade
+
+`escolherGrade(fina, nacional, de, para)` em `web/lib/domain/rota.ts`: se
+origem E destino cabem na fina, usa a fina (melhor detalhe perto de casa).
+Senão, se os dois cabem na nacional, usa a nacional (recortada pelo chamador
+— quem decide qual grade não é responsável por recortar). `null` só quando
+NENHUMA das duas cobre os dois pontos ao mesmo tempo — só nesse caso a tela
+mostra "fora da área" (antes disparava sempre que saía do bbox da fina; agora
+só dispara fora da costa brasileira mapeada inteira, ex.: outro continente).
+`web/components/mapa/rota.worker.ts` só busca (fetch) a mascara nacional
+quando a fina não cobre os dois pontos — poupa banda/memória no caso comum
+(navegando perto de casa).
+
+### 4. A tela
+
+Quando a rota vem da grade nacional, o painel do destino
+(`web/components/mapa/navegar-mapa.tsx`) mostra um aviso específico —
+diferente do texto padrão de "rota pela água" — avisando que a precisão é
+menor e a margem de segurança é maior, e que não serve pra aproximação de
+porto.
+
+### Gate: travessias longas (`web/lib/domain/rota-real.test.ts`)
+
+Reproduz o fluxo exato do worker (`escolherGrade` → recorta se for nacional →
+A*) sobre as máscaras reais em disco, e mede tempo + memória estimada da
+grade efetivamente usada:
+
+| Rota | Grade | Recorte | Células | Memória est. | Tempo | Pontos | Distância |
+|---|---|---|---|---|---|---|---|
+| Rio de Janeiro → Salvador | nacional | 309×469 | 144.921 | ~1,24 MB | ~35 ms | 336 | 745,8 MN |
+| Florianópolis → Rio de Janeiro | nacional | 262×238 | 62.356 | ~0,54 MB | ~3 ms | 158 | 401,5 MN |
+| Abraão → Angra (regressão) | **fina** (sem recorte) | 4088×1547 | 6.324.136 | ~54,3 MB | ~81 ms | 201 | 13,1 MN |
+
+As duas travessias longas batem `tipo === "nacional"` (prova de que usam a
+grade certa), ficam inteiras na água, e são mais longas que a reta (prova de
+que contornaram a costa). Abraão→Angra bate `tipo === "fina"` e reproduz a
+MESMA distância do teste original da onda 5 (13,1 MN, teto de 25 MN) — prova
+de não-regressão. O ponto que mais salta aos olhos: a memória de uma rota
+RJ→Salvador (~750 MN de travessia) é ~40× MENOR que a de uma rota local
+Abraão→Angra na fina — exatamente o efeito pretendido do recorte por trecho:
+custo depende de quanto a VIAGEM anda, não de quanta costa a máscara cobre.
+
+- **Como regerar a nacional:** `node scripts/gerar-mascara-nacional.mjs` a
+  partir da raiz (reusa `scripts/.cache/batimetria-ampla.asc` se existir —
+  rodar `node scripts/gerar-batimetria.mjs` antes preenche esse cache sem
+  precisar gerar a máscara nacional junto).
+
 ## Camada de profundidade (batimetria)
 
 `web/public/mapa/batimetria*.{png,json}` — gradiente contínuo de profundidade,
