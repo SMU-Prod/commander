@@ -8,6 +8,7 @@ import {
   type LeituraParaFila,
   type LoteParaEnviar,
   type ResultadoEnvioLote,
+  gerarUuid,
 } from "./fila"
 
 /** localStorage não existe no ambiente de teste (node puro, sem jsdom) — mesmo
@@ -304,5 +305,27 @@ describe("despachar (envio em lote com retentativa e backoff)", () => {
     await Promise.all([primeira, segunda])
 
     expect(enviar).toHaveBeenCalledTimes(1)
+  })
+})
+
+// Erro real do primeiro teste no emulador (09/08/2026): crypto.randomUUID
+// nao existe em contexto inseguro (o shell nativo em dev carrega HTTP por
+// IP) e a cadeia inteira do sonar morria na hora de dar id a leitura.
+describe("gerarUuid", () => {
+  it("gera uuid v4 valido mesmo sem crypto.randomUUID (contexto inseguro)", () => {
+    const original = crypto.randomUUID
+    // simula o WebView em HTTP: a funcao simplesmente nao existe
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true })
+    try {
+      const uuid = gerarUuid()
+      expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+      expect(gerarUuid()).not.toBe(uuid)
+    } finally {
+      Object.defineProperty(crypto, "randomUUID", { value: original, configurable: true })
+    }
+  })
+
+  it("usa crypto.randomUUID quando disponivel", () => {
+    expect(gerarUuid()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
   })
 })

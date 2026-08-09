@@ -193,13 +193,29 @@ export function descartarExcedente<T>(itens: T[], teto: number): T[] {
   return itens.slice(itens.length - teto)
 }
 
+/** UUID v4 com fallback pra contexto inseguro. `crypto.randomUUID` só
+ *  existe em contexto seguro (HTTPS ou localhost) — e o shell nativo em
+ *  DEV carrega `http://10.0.2.2:3050` (HTTP por IP), onde a função some.
+ *  Erro real vivido no primeiro teste no emulador (09/08/2026): a cadeia
+ *  inteira do sonar funcionou e morreu aqui, no id do item. O fallback usa
+ *  `crypto.getRandomValues` (disponível em qualquer contexto) com os bits
+ *  de versão/variante do v4 — mesma unicidade na prática. */
+export function gerarUuid(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 /** Adiciona uma leitura já validada à fila persistente. Nunca lança —
  *  sem `localStorage` (SSR) ou com ele falhando (quota/privado), a leitura
  *  em si não é perdida da COLETA em andamento (quem chama já tem o dado),
  *  só não fica garantida entre reaberturas do app. */
 export function enfileirar(leitura: LeituraParaFila): void {
   const estado = carregar()
-  const nova: LeituraNaFila = { ...leitura, id: crypto.randomUUID() }
+  const nova: LeituraNaFila = { ...leitura, id: gerarUuid() }
   estado.pendentes = descartarExcedente([...estado.pendentes, nova], TETO_PENDENTES_FILA)
   salvar(estado)
 }
@@ -312,7 +328,7 @@ export async function despachar(enviar: (lote: LoteParaEnviar) => Promise<Result
 
       if (estado.pendentes.length === 0) return
 
-      estado.loteEmVoo = { id: crypto.randomUUID(), itens: estado.pendentes, tentativas: 0, proximaTentativaEm: 0 }
+      estado.loteEmVoo = { id: gerarUuid(), itens: estado.pendentes, tentativas: 0, proximaTentativaEm: 0 }
       estado.pendentes = []
       salvar(estado)
       // volta ao topo do loop — cai no ramo "tem loteEmVoo" e tenta na hora.
