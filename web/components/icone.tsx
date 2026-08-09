@@ -29,6 +29,13 @@ const PATHS = {
   mais: <path d="M12 5v14M5 12h14" />,
   relogio: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
   mapa: <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15" />,
+  // Onda 13 (sondagem colaborativa): pulso do ecobatimetro descendo ate um
+  // fundo irregular — nao e so um icone generico, representa a propria ideia
+  // do produto (medir profundidade e comparar com o que ja foi medido).
+  sonar: <><path d="M4 5h16" /><path d="M12 5v11" /><path d="m9 13 3 3 3-3" /><path d="M3 20c1.3 0 1.3-1.4 2.6-1.4S7.9 20 9.2 20s1.3-1.4 2.6-1.4S14.1 20 15.4 20s1.3-1.4 2.6-1.4S20.3 20 21 20" /></>,
+  // Estado da conexao com o transporte (Signal K hoje) — 3 arcos + ponto,
+  // leitura universal de "sinal"/conectividade.
+  sinal: <><path d="M4 9a12 12 0 0 1 16 0" /><path d="M7 12.5a7.5 7.5 0 0 1 10 0" /><path d="M10 16a3.2 3.2 0 0 1 4 0" /><circle cx="12" cy="19" r="1" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

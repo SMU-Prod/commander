@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource } from "mapbox-gl"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
+import { SondagemPainel } from "@/components/mapa/sondagem-painel"
 import { Icone } from "@/components/icone"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
@@ -922,6 +923,7 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
           )}
         </div>
 
+        <SondagemPainel />
       </div>
 
       {/* Faixa de baixo em COLUNA: botões em cima, painel do destino embaixo.
