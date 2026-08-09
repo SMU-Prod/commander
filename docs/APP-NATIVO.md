@@ -85,6 +85,18 @@ Só necessário na máquina onde for de fato compilar/rodar o app (não nesta).
 2. JDK 21 — o próprio Android Studio já traz um embutido (Android Studio → **Settings → Build,
    Execution, Deployment → Build Tools → Gradle → Gradle JDK**); normalmente não precisa
    instalar nada à parte.
+
+   **Pegadinha vivida em 09/08/2026 (Android Studio 2026.1.3 "Quail 3"):** o JBR
+   embutido da IDE é **Java 25**, e o Gradle 8.14.3 do projeto só roda até Java 24 —
+   `gradlew` na linha de comando com `JAVA_HOME` apontando pro JBR da IDE quebra com
+   `Unsupported class file major version 69` antes de compilar qualquer coisa. A IDE em si
+   não sofre (ela provisiona um JBR 21 próprio pro Gradle em `%USERPROFILE%\.jdks\`).
+   Na linha de comando, aponte pro mesmo JBR 21:
+
+   ```powershell
+   $env:JAVA_HOME = "$env:USERPROFILE\.jdks\jbr-21.0.11"   # confira o nome exato em ~\.jdks
+   .\gradlew.bat assembleDebug
+   ```
 3. Confirme `ANDROID_HOME` configurado (o instalador do Android Studio faz isso sozinho na
    maioria dos casos).
 
