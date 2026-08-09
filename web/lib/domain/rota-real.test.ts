@@ -2,7 +2,18 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { PNG } from "pngjs"
 import { beforeAll, describe, expect, it } from "vitest"
-import { acharCaminho, distanciaDaRota, ehAgua, paraCelula, suavizar, type Coord, type Grade } from "./rota"
+import {
+  acharCaminho,
+  bboxComFolga,
+  distanciaDaRota,
+  ehAgua,
+  escolherGrade,
+  paraCelula,
+  recortarGrade,
+  suavizar,
+  type Coord,
+  type Grade,
+} from "./rota"
 
 /**
  * O GATE da onda 5: prova, com a mascara real da costa do Rio gerada por
@@ -16,6 +27,10 @@ import { acharCaminho, distanciaDaRota, ehAgua, paraCelula, suavizar, type Coord
  */
 const CAMINHO_PNG = fileURLToPath(new URL("../../public/mapa/mascara-agua.png", import.meta.url))
 const CAMINHO_JSON = fileURLToPath(new URL("../../public/mapa/mascara-agua.json", import.meta.url))
+// Onda 11: grade nacional (grossa, costa brasileira inteira) — gerada por
+// scripts/gerar-mascara-nacional.mjs. Mesmo formato de PNG/JSON da fina.
+const CAMINHO_PNG_NACIONAL = fileURLToPath(new URL("../../public/mapa/mascara-nacional.png", import.meta.url))
+const CAMINHO_JSON_NACIONAL = fileURLToPath(new URL("../../public/mapa/mascara-nacional.json", import.meta.url))
 
 interface MascaraMetadados {
   lngMin: number
@@ -27,11 +42,9 @@ interface MascaraMetadados {
   metrosPorCelula: number
 }
 
-let grade: Grade
-
-beforeAll(() => {
-  const metadados = JSON.parse(readFileSync(CAMINHO_JSON, "utf8")) as MascaraMetadados
-  const png = PNG.sync.read(readFileSync(CAMINHO_PNG))
+function carregarGradeDeArquivo(caminhoPng: string, caminhoJson: string): Grade {
+  const metadados = JSON.parse(readFileSync(caminhoJson, "utf8")) as MascaraMetadados
+  const png = PNG.sync.read(readFileSync(caminhoPng))
 
   // pngjs sempre normaliza pra RGBA (4 bytes/pixel) na leitura, mesmo o PNG em
   // disco sendo grayscale — mesma convencao que web/lib/mapa/mascara.ts usa
@@ -47,7 +60,7 @@ beforeAll(() => {
   // ./rota, ja testado na Task 2) e quem faz toda a conversao coordenada<->
   // celula por interpolacao linear do bbox; este teste nao reimplementa essa
   // conta, só monta a Grade e delega pra ele.
-  grade = {
+  const g: Grade = {
     largura: png.width,
     altura: png.height,
     lngMin: metadados.lngMin,
@@ -59,8 +72,17 @@ beforeAll(() => {
   }
 
   // sanidade: o PNG decodificado tem que bater com o que o JSON diz que ele e.
-  expect(grade.largura).toBe(metadados.largura)
-  expect(grade.altura).toBe(metadados.altura)
+  expect(g.largura).toBe(metadados.largura)
+  expect(g.altura).toBe(metadados.altura)
+  return g
+}
+
+let grade: Grade
+let gradeNacional: Grade
+
+beforeAll(() => {
+  grade = carregarGradeDeArquivo(CAMINHO_PNG, CAMINHO_JSON)
+  gradeNacional = carregarGradeDeArquivo(CAMINHO_PNG_NACIONAL, CAMINHO_JSON_NACIONAL)
 })
 
 // Coordenadas reais da costa do Rio (mesmo sistema la/lo de Coord).
@@ -145,6 +167,106 @@ function medirRota(rotulo: string, de: Coord, para: Coord) {
   )
   return { caminho, ms, distancia }
 }
+
+// ---------------------------------------------------------------------------
+// Onda 11 — gate: travessias longas, so possiveis com a grade nacional +
+// recorte por trecho (web/lib/domain/rota.ts: escolherGrade/bboxComFolga/
+// recortarGrade). Reproduz EXATAMENTE o fluxo do worker
+// (web/components/mapa/rota.worker.ts): escolhe a grade, recorta se for a
+// nacional, roda o A* no recorte — e mede tempo + memoria estimada da
+// alocacao do A* (gScore Float32 + pai Int32 + fechado Uint8 = 9 bytes por
+// celula da grade EFETIVAMENTE usada, ver docs/OPERACAO.md § Mascara de agua).
+// ---------------------------------------------------------------------------
+
+const BYTES_POR_CELULA_ASTAR = 9 // gScore(4) + pai(4) + fechado(1), ver rota.ts
+
+// Pontos ao largo (mar aberto), nao dentro de baias fechadas — a grade
+// nacional deriva de elevacao ETOPO a ~3,6 km/celula (ver
+// scripts/gerar-mascara-nacional.mjs) e, com a dilatacao de seguranca de 2
+// celulas, baias estreitas como Guanabara ou o canal da Ilha Grande NAO
+// resolvem como agua nessa resolucao (viram terra) — rotas que ficam dentro
+// delas continuam usando a grade FINA (ambos os pontos cabem nela). Os
+// pontos abaixo representam os trechos de mar aberto de cada cidade, onde a
+// nacional resolve corretamente.
+const RJ_AO_LARGO: Coord = { la: -23.15, lo: -43.05 }
+const SALVADOR_AO_LARGO: Coord = { la: -13.1, lo: -38.35 }
+const FLORIPA_AO_LARGO: Coord = { la: -27.6, lo: -48.3 }
+
+/** Reproduz o fluxo de decisao do worker: escolhe fina/nacional
+ *  (`escolherGrade`), recorta a nacional ao trecho (`bboxComFolga`+
+ *  `recortarGrade` — a fina NUNCA e recortada, ela ja e pequena e recortar
+ *  mudaria a precisao de rotas que ja funcionavam), roda o A* e mede tempo +
+ *  memoria estimada da grade efetivamente usada. */
+function rotearComEscolha(rotulo: string, de: Coord, para: Coord) {
+  const escolha = escolherGrade(grade, gradeNacional, de, para)
+  expect(escolha).not.toBeNull()
+  const { grade: gradeEscolhida, tipo } = escolha!
+  const gradeParaRota = tipo === "nacional" ? recortarGrade(gradeEscolhida, bboxComFolga(de, para)) : gradeEscolhida
+
+  const celulas = gradeParaRota.largura * gradeParaRota.altura
+  const memoriaEstimadaMb = (celulas * BYTES_POR_CELULA_ASTAR) / (1024 * 1024)
+
+  const inicio = performance.now()
+  const caminho = acharCaminho(gradeParaRota, de, para)
+  const ms = performance.now() - inicio
+  const distancia = caminho ? distanciaDaRota(caminho) : null
+
+  console.log(
+    `[rota-nacional] ${rotulo}: grade=${tipo} ${gradeParaRota.largura}x${gradeParaRota.altura} ` +
+      `(${celulas.toLocaleString("pt-BR")} celulas, ~${memoriaEstimadaMb.toFixed(2)} MB) em ${ms.toFixed(1)}ms` +
+      (caminho ? `, ${caminho.length} pontos, ${distancia!.toFixed(1)} MN` : ", sem rota"),
+  )
+
+  return { tipo, gradeParaRota, caminho, ms, distancia, memoriaEstimadaMb, celulas }
+}
+
+describe("rota nacional (gate da onda 11)", () => {
+  it(
+    "Rio de Janeiro -> Salvador: existe rota pela grade nacional, nenhum ponto em terra, mais longa que a reta",
+    { timeout: 30000 },
+    () => {
+      const { tipo, gradeParaRota, caminho, distancia } = rotearComEscolha("RJ -> Salvador", RJ_AO_LARGO, SALVADOR_AO_LARGO)
+      expect(tipo).toBe("nacional") // prova que a travessia longa usa a grade nacional, nao a fina
+      expect(caminho).not.toBeNull()
+      expect(caminho!.every((p) => ehAgua(gradeParaRota, paraCelula(gradeParaRota, p)))).toBe(true)
+      const reta = distanciaDaRota([RJ_AO_LARGO, SALVADOR_AO_LARGO])
+      expect(distancia!).toBeGreaterThan(reta) // contornou a costa, nao foi uma reta perfeita
+      // faixa sa: reta ~660 MN: rota real segue a costa (RJ->Cabo Frio->Bahia),
+      // mais longa que a reta mas nao um circum-navegacao absurda
+      expect(distancia!).toBeGreaterThan(500)
+      expect(distancia!).toBeLessThan(1200)
+    },
+  )
+
+  it(
+    "Florianopolis -> Rio de Janeiro: existe rota pela grade nacional, nenhum ponto em terra, mais longa que a reta",
+    { timeout: 30000 },
+    () => {
+      const { tipo, gradeParaRota, caminho, distancia } = rotearComEscolha("Floripa -> RJ", FLORIPA_AO_LARGO, RJ_AO_LARGO)
+      expect(tipo).toBe("nacional")
+      expect(caminho).not.toBeNull()
+      expect(caminho!.every((p) => ehAgua(gradeParaRota, paraCelula(gradeParaRota, p)))).toBe(true)
+      const reta = distanciaDaRota([FLORIPA_AO_LARGO, RJ_AO_LARGO])
+      expect(distancia!).toBeGreaterThan(reta)
+      expect(distancia!).toBeGreaterThan(300)
+      expect(distancia!).toBeLessThan(700)
+    },
+  )
+
+  it(
+    "Abraao -> Angra continua na grade FINA (prova de nao-regressao: mesma precisao/distancia de hoje)",
+    { timeout: 30000 },
+    () => {
+      const { tipo, distancia } = rotearComEscolha("Abraao -> Angra (regressao)", ABRAAO, ANGRA)
+      expect(tipo).toBe("fina") // os dois pontos cabem na fina -> tem que usar ela, nao a nacional
+      // MESMO teto do teste original da onda 5 (rota real, gate) — prova que
+      // introduzir a grade nacional nao mudou o comportamento da fina.
+      expect(distancia!).not.toBeNull()
+      expect(distancia!).toBeLessThan(25)
+      expect(distancia!).toBeGreaterThan(distanciaDaRota([ABRAAO, ANGRA]) * 1.05)
+    },
+  )
+})
 
 describe("rota na costa real (gate da onda 5)", () => {
   it(
