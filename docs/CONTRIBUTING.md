@@ -29,10 +29,22 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | matriz de permissões | **o que ele pode ver e editar** |
 | cota de nuvem | **espaço de fotos** |
 | "confira seu acesso a esta aba" | o nome da área: **"Seu acesso não permite editar Motores"** |
+| mapa de profundidade (sem qualificar) | **camada Profundidade** (grade estática ETOPO, `lib/mapa/camadas.ts`, onda 6/12) — não confundir com **sondagem colaborativa** (onda 13, pontos gravados por barcos) |
+| dado de sonar cru · leitura de NMEA | **sondagem colaborativa** (a funcionalidade) · **leitura** (um ponto) |
 
 A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"*,
 *"Agora não"*, *"Essa saída durou 3 h 30 — atualizar as horas dos motores?"*.
 Mensagem de erro diz **o que fazer**, não só que deu errado.
+
+### Sondagem colaborativa (onda 13) — honestidade obrigatória
+
+A tela de `/navegar` nunca pode sugerir que a sondagem coletada pelos usuários
+vira carta confiável. É **dado colaborativo bruto**: melhora com o tempo (mais
+barcos passando pela mesma célula, mais confiança), mas **nunca substitui a
+carta náutica oficial** — mesma régua que já vale para a camada de
+profundidade ETOPO (onda 6/12) e para a rota por calado (onda 12). Todo texto
+novo que mencionar profundidade medida por usuário repete essa ressalva, não
+assume que quem lê já sabe.
 
 ## Antes de fechar uma fase
 1. `npm test` e `npm run build` verdes
