@@ -5,7 +5,7 @@ import { subirArquivo } from "@/lib/acervo"
 import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
-import { zerarCiclo } from "@/lib/domain/diario"
+import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { boletimDoMar } from "@/lib/mar"
@@ -153,9 +153,11 @@ export async function criarEvento(formData: FormData) {
   revalidatePath("/hoje")
 
   // A sinergia: saida de navegacao com duracao relevante manda pra tela de
-  // sugestao de horas do motor, antes de voltar pro diario.
+  // sugestao de horas do motor, antes de voltar pro diario — essa tela ja
+  // confirma visualmente ("Saída registrada"), entao nao precisa de "?ok=".
   if (tipo === "navegacao" && horasSugeridas(duracaoHoras(horaSaida, horaRetorno)) !== null) {
     redirect(`/diario/${inserido!.id}/horas`)
   }
-  redirect("/diario")
+  // Acao mais frequente do app redirecionava muda — nunca fica claro se salvou.
+  redirect(`/diario?ok=${encodeURIComponent(`Registrado no diário: ${TIPO_ROTULO[tipo] ?? "evento"}`)}`)
 }
