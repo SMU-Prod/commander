@@ -24,6 +24,12 @@ const TIPOS: { valor: string; rotulo: string; icone: NomeIcone }[] = [
 // tem seus próprios campos de saída, nada disso).
 const TIPOS_COM_ONDE = new Set(["manutencao", "avaria", "docagem", "outro"])
 const TIPOS_COM_CUSTO_ANEXO = new Set(["manutencao", "abastecimento", "avaria", "docagem", "outro"])
+// Zerar o ciclo não é exclusivo de "Manutenção": uma docagem renova a pintura
+// de fundo, um conserto de avaria renova o item consertado. Prender a pergunta
+// a um tipo só fazia o app seguir avisando vencimento de serviço já feito.
+const TIPOS_COM_RENOVACAO = new Set(["manutencao", "docagem", "avaria"])
+// Abastecer é o momento mais natural pra anotar o horímetro depois de navegar.
+const TIPOS_COM_HORAS = new Set(["manutencao", "abastecimento"])
 
 const DESCRICAO_POR_TIPO: Record<string, { rotulo: string; placeholder: string }> = {
   manutencao: { rotulo: "O que foi feito?", placeholder: "Ex.: troca de óleo e filtros" },
@@ -183,6 +189,14 @@ export function FormularioNovoEvento({
                   </div>
                 </div>
               )}
+
+              {/* a saída também merece um campo livre: "mar grosso na volta",
+                  "parei em Angra pra almoçar". Sem isso, navegação era o único
+                  tipo sem nenhum lugar para escrever o que aconteceu. */}
+              <div>
+                <label className={rotulo} htmlFor="descricao-nav">Observações — opcional</label>
+                <input id="descricao-nav" name="descricao" placeholder="Ex.: mar grosso na volta" className={campo} />
+              </div>
             </div>
           )}
 
@@ -193,9 +207,19 @@ export function FormularioNovoEvento({
                 <optgroup label="Embarcação">
                   <option value="">Embarcação (geral)</option>
                 </optgroup>
-                {equipamentos.length > 0 && (
+                {/* separa de verdade: o barco pode ter gerador e baterias
+                    (fluxo real em /barco/eletrica), e listá-los sob "Motores"
+                    era rótulo errado */}
+                {equipamentos.some((e) => e.tipo === "motor") && (
                   <optgroup label="Motores">
-                    {equipamentos.map((e) => (
+                    {equipamentos.filter((e) => e.tipo === "motor").map((e) => (
+                      <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {equipamentos.some((e) => e.tipo !== "motor") && (
+                  <optgroup label="Elétrica">
+                    {equipamentos.filter((e) => e.tipo !== "motor").map((e) => (
                       <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
                     ))}
                   </optgroup>
@@ -224,7 +248,7 @@ export function FormularioNovoEvento({
             </div>
           )}
 
-          {tipo === "manutencao" && itens.length > 0 && (
+          {TIPOS_COM_RENOVACAO.has(tipo) && itens.length > 0 && (
             <div>
               <label className={rotulo} htmlFor="item_id">Isso renova alguma manutenção? (opcional)</label>
               <p className="mb-1.5 apoio text-dim">
@@ -242,7 +266,7 @@ export function FormularioNovoEvento({
           )}
 
           {mostraCustoAnexo && (
-            tipo === "manutencao" && temMotor ? (
+            TIPOS_COM_HORAS.has(tipo) && temMotor ? (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={rotulo} htmlFor="custo">Custo (R$) — opcional</label>
