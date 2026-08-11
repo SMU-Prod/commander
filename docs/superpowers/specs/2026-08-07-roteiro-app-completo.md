@@ -145,3 +145,36 @@ carona em estande) · Instagram de bastidor de marina.
 "barcos, marinas, postos, restaurantes, pousadas") e muda a frequência de uso do app de mensal
 para semanal. 5 fecha a espec da ficha e a retenção. 6 aprofunda o diferencial de navegação.
 8-10 dependem do advogado e de operação — o código espera a caneta.
+
+---
+
+## Pilar Strava do Mar (decidido pelo dono em 11/08/2026)
+
+Decisão do Erick, com o mockup do Pedro como referência visual: o Commander vira também o
+registro social/vivo do uso do barco — "um Strava no mar". A frase que define a estratégia:
+**"sempre que forem usar o app devemos traçar a rota real do barco e guardar isso sempre,
+para definir as rotas dos próximos barcos que solicitarem."** Mesmo desenho da sondagem
+colaborativa (onda 13), aplicado ao caminho: dado agregado por célula, nunca a rota
+individual de alguém exposta, consentimento explícito, e valor que só acumula.
+
+### Onda 17 — corredores (a rota que aprende)
+Toda trilha gravada alimenta, com consentimento, um agregado global de passagens por célula
+("corredores"). O A* passa a PREFERIR célula com passagem real comprovada (redutor de custo,
+nunca sobrepõe bloqueio por terra/calado). Trilha com gravação automática opcional ao
+navegar (preferência lembrada, aviso honesto de bateria). Com a tabela vazia, a rota fica
+idêntica à de hoje — testado.
+
+### Onda 18 — a saída como atividade
+Cada saída do Livro de Bordo vira uma "atividade" com mapa da trilha + distância/tempo/vel
+média/máx + condições de mar — a tela que dá orgulho de compartilhar. Totais pessoais
+(milhas no ano, horas no mar) na Início/perfil. Base: `resumoTrilha` e migration 022, que já
+guardam tudo — a onda é apresentação, não coleta nova.
+
+### Onda 19 — planejar viagem (Próximas paradas)
+Destino com paradas intermediárias usando a rota por A* + ETA pela velocidade de cruzeiro.
+Devolve ao mockup do Pedro o cartão "Próximas paradas" — agora com dado real. Depende da 17
+mergeada (rota preferindo corredores).
+
+Nota de privacidade (vale para as três): posição de barco é dado sensível. Entre barcos, SÓ
+agregado por célula via função security definer (mesma régua da migration 025); a trilha
+individual pertence ao dono e aparece apenas nas SUAS atividades.
