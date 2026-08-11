@@ -195,3 +195,13 @@ Escopo v1: painel de tempo em /navegar e boletim rico na Início — vento (dire
 (altura+período), temperatura da água, curva de maré estimada com ressalva. Overlay de setas
 de vento no mapa e correnteza CMEMS ficam para v2. Depende das ondas 16/17 mergeadas
 (conflito de arquivos em /hoje e /navegar).
+
+### Onda 21 — importar GPX (as rotas que o dono ja tem)
+Pergunta do Pedro (11/08): "a API aberta da Garmin com as rotas ja feitas, conseguimos?"
+Verificado: a API aberta da Garmin e o ActiveCaptain Community (avaliacoes/POIs de marinas
+e fundeadouros — nao rotas; e mostrar marina de terceiro contraria nossa decisao de
+parceiros). Rota de usuario NAO sai por API: o dono exporta GPX do plotter/app (fluxo
+oficial Garmin/Raymarine/Navionics). Entao: o Commander importa GPX (rotas e trilhas), o
+fundador chega com o historico dele em dois toques, e com consentimento as trilhas
+importadas semeiam os corredores da onda 17. Dado do dono, formato universal, zero
+dependencia de concorrente. Depende da onda 17 (corredores) mergeada.
