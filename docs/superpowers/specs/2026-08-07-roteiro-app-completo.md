@@ -178,3 +178,20 @@ mergeada (rota preferindo corredores).
 Nota de privacidade (vale para as três): posição de barco é dado sensível. Entre barcos, SÓ
 agregado por célula via função security definer (mesma régua da migration 025); a trilha
 individual pertence ao dono e aparece apenas nas SUAS atividades.
+
+### Onda 20 — tempo no mar (vento, onda, maré, correnteza)
+Pedido do dono (11/08/2026): "todas as informações de vento, maré, correnteza, tudo
+relacionado ao tempo de forma fácil para visualizar". Licenças verificadas na web em 11/08:
+- **Open-Meteo** (JÁ usamos no boletim, lib/mar.ts): a API hospedada é grátis SÓ para uso
+  não-comercial — o Commander é pago, então NO LANÇAMENTO precisamos do plano Standard
+  (US$ 29/mês, 1M chamadas, inclui Marine API) OU self-host (AGPL). Recomendação: pagar —
+  custo trivial, zero infra. PENDÊNCIA OPERACIONAL registrada.
+- **Correnteza**: Copernicus Marine (CMEMS) — grátis, uso comercial permitido, atribuição
+  com DOI do produto. Exige pipeline próprio (NetCDF, dado com validade) — v2 da onda.
+- **Maré**: a tábua do CHM segue na zona cinzenta ("fins científicos") — NÃO embutir sem
+  parecer. Caminho v1: curva de nível do mar da Marine API do Open-Meteo (modelo, rotulada
+  como ESTIMATIVA, nunca "tábua oficial") + link para a tábua oficial do CHM (linkar é livre).
+Escopo v1: painel de tempo em /navegar e boletim rico na Início — vento (direção+nós), onda
+(altura+período), temperatura da água, curva de maré estimada com ressalva. Overlay de setas
+de vento no mapa e correnteza CMEMS ficam para v2. Depende das ondas 16/17 mergeadas
+(conflito de arquivos em /hoje e /navegar).
