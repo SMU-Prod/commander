@@ -14,6 +14,7 @@ import {
   temInformacaoSuficiente,
   textoRestante,
   textoRestanteCompacto,
+  textoRestanteHero,
   type StatusFarol,
 } from "@/lib/domain/semaforo"
 import { formatarCarimbo } from "@/lib/domain/datas"
@@ -106,7 +107,7 @@ export default async function HojePage({
   })()
 
   const metricaProximaRevisao: MetricaHero = motorPrioritario
-    ? { rotulo: "Próxima revisão", valor: textoRestanteCompacto(motorPrioritario.r), status: motorPrioritario.r.status }
+    ? { rotulo: "Próxima revisão", valor: textoRestanteHero(motorPrioritario.r), status: motorPrioritario.r.status }
     : { rotulo: "Próxima revisão", valor: "—" }
 
   const itensDocComInfo = avaliados.filter((a) => a.item.categoria === "documento" && a.temInformacao)
@@ -270,7 +271,7 @@ export default async function HojePage({
         )
       )}
       <div className="space-y-2">
-        {alertas.map(({ item, r, onde }) => {
+        {alertas.map(({ item, eq, r }) => {
           const editavelItem = podeEditar(permissoes, abaDoItem(item, equipamentos))
           const conteudo = (
             <>
@@ -280,8 +281,12 @@ export default async function HojePage({
                 <Icone nome={item.equipamento_id ? "motor" : "documento"} className="size-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="titulo-card truncate">{onde}</p>
-                <p className="apoio mt-0.5 text-dim">{item.nome}</p>
+                <p className="titulo-card truncate">{item.nome}</p>
+                {/* Subtítulo só quando acrescenta algo: o equipamento do item.
+                    Documento sem equipamento repetia o próprio nome embaixo
+                    ("Seguro da embarcação / Seguro da embarcação" — QA do
+                    emulador, onda 16). */}
+                {eq && <p className="apoio mt-0.5 truncate text-dim">{nomeDoEquipamento(eq)}</p>}
               </div>
               <span className={`shrink-0 text-right font-mono-instr text-sm font-semibold tabular-nums ${
                 r.status === "vencido" ? "text-crit" : "text-warn"
