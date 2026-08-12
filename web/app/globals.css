@@ -154,6 +154,50 @@ body {
 }
 [data-theme="dark"] :focus-visible { outline-color: var(--acao); }
 
+/* Onda 24 (passe de arte, bloco 3) — skin dos controles NATIVOS do Mapbox
+   (zoom, bússola, locate — e o botão "Camadas" do próprio Commander, que já
+   entra no mesmo grupo visual, ver ControleCamadas em mapa-nautico.tsx) pra
+   ficarem na mesma linguagem dos cartões flutuantes: fundo navy translúcido,
+   ícones claros, mesma elevação. O Mapbox monta esse DOM sozinho (sem hook
+   de estilo do lado de fora) — vestir via CSS global é o único jeito de
+   alcançar esse markup sem recriar os controles, exatamente o pedido da
+   task. Mesmos tokens --mapa-instrumento/--mapa-instrumento-borda dos
+   cartões — fixo, não segue o tema (os controles ficam sempre sobre o mapa,
+   nunca sobre --superficie). `!important` só onde o mapbox-gl.css importado
+   tem especificidade própria que senão venceria a cascata. */
+.mapboxgl-ctrl-group {
+  background: var(--mapa-instrumento) !important;
+  border: 1px solid var(--mapa-instrumento-borda);
+  border-radius: 10px !important;
+  box-shadow: var(--sombra-2);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.mapboxgl-ctrl-group button {
+  /* Tamanho NÃO mexido de propósito (fica nos 32px default do mapbox-gl.css)
+     — os sprites dos ícones são posicionados/dimensionados pelo próprio
+     mapbox-gl.css contra esse tamanho; sobrescrever aqui desalinharia. */
+  background: transparent !important;
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid var(--mapa-instrumento-borda);
+}
+.mapboxgl-ctrl-group button:not(:disabled):hover {
+  background-color: rgb(255 255 255 / .08) !important;
+}
+/* Ícones default do Mapbox (zoom, bússola, e o estado NEUTRO/cinza do
+   locate) são sprites escuros pensados pro fundo claro de sempre; inverter
+   é o jeito padrão de virar claro-sobre-escuro sem recriar cada ícone.
+   Os estados coloridos do botão "locate" (azul = rastreando, vermelho =
+   erro) também passam pelo filtro — mudam de matiz (não ficam
+   cinza/ilegíveis, continuam claramente diferentes um do outro), mas não
+   valeu a pena recriar os data-URIs deles só por causa disso: o essencial
+   (zoom/bússola/locate legíveis e no mesmo idioma dos cartões) já fica
+   resolvido pelo estado default, que é o que aparece 99% do tempo. */
+.mapboxgl-ctrl-icon {
+  filter: invert(1) brightness(1.7);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
