@@ -4,6 +4,8 @@ import { PNG } from "pngjs"
 import { beforeAll, describe, expect, it } from "vitest"
 import {
   acharCaminho,
+  acharCaminhoCosturado,
+  acharCaminhoDetalhado,
   bboxComFolga,
   distanciaDaRota,
   ehAgua,
@@ -245,10 +247,16 @@ const FLORIPA_AO_LARGO: Coord = { la: -27.6, lo: -48.3 }
  *  (`escolherGrade`), recorta a nacional ao trecho (`bboxComFolga`+
  *  `recortarGrade` — a fina NUNCA e recortada, ela ja e pequena e recortar
  *  mudaria a precisao de rotas que ja funcionavam), roda o A* e mede tempo +
- *  memoria estimada da grade efetivamente usada. */
+ *  memoria estimada da grade efetivamente usada. So serve pra grade PURA
+ *  (fina ou nacional) — e o helper da regressao "rotas puras ficam
+ *  IDENTICAS" da onda 22; casos de costura tem gate proprio, ver
+ *  `describe("rota costurada (gate da onda 22)")` mais abaixo. */
 function rotearComEscolha(rotulo: string, de: Coord, para: Coord) {
   const escolha = escolherGrade(grade, gradeNacional, de, para)
   expect(escolha).not.toBeNull()
+  if (escolha!.tipo === "costura") {
+    throw new Error(`rotearComEscolha: "${rotulo}" caiu em costura, nao em grade pura — este helper e so pra regressao de grade pura.`)
+  }
   const { grade: gradeEscolhida, tipo } = escolha!
   const gradeParaRota = tipo === "nacional" ? recortarGrade(gradeEscolhida, bboxComFolga(de, para)) : gradeEscolhida
 
@@ -269,15 +277,66 @@ function rotearComEscolha(rotulo: string, de: Coord, para: Coord) {
   return { tipo, gradeParaRota, caminho, ms, distancia, memoriaEstimadaMb, celulas }
 }
 
+/** Mesma ideia de `rotearComEscolha`, mas pro caso COSTURA (onda 22): exige
+ *  que `escolherGrade` classifique o par como costura (senao falha alto,
+ *  igual ao guard de `rotearComEscolha` — sinal de que os pontos de teste
+ *  mudaram de categoria) e roda `acharCaminhoCosturado` sem config de
+ *  calado/corredores (mede so o caminho pela agua). */
+function rotearComCostura(rotulo: string, de: Coord, para: Coord) {
+  const escolha = escolherGrade(grade, gradeNacional, de, para)
+  expect(escolha).not.toBeNull()
+  if (!escolha || escolha.tipo !== "costura") {
+    throw new Error(`rotearComCostura: "${rotulo}" nao caiu em costura (tipo=${escolha?.tipo}) — use rotearComEscolha.`)
+  }
+  const { fina, nacional, extremoNaFina } = escolha
+  const inicio = performance.now()
+  const resultado = acharCaminhoCosturado({ fina, nacional, de, para, extremoNaFina })
+  const ms = performance.now() - inicio
+  const distancia = resultado.pernas ? distanciaDaRota(resultado.pernas) : null
+  console.log(
+    `[rota-costura] ${rotulo}: extremoNaFina=${extremoNaFina} em ${ms.toFixed(1)}ms` +
+      (resultado.pernas
+        ? `, ${resultado.pernas.length} pontos, ${distancia!.toFixed(1)} MN`
+        : `, sem rota (motivo=${resultado.motivoFalha})`),
+  )
+  return { extremoNaFina, resultado, ms, distancia }
+}
+
 describe("rota nacional (gate da onda 11)", () => {
+  // Regressao onda 22: par GENUINAMENTE fora da fina dos dois lados (Floripa
+  // e Salvador, bem mais longe da costa SP/RJ que o bbox da fina cobre) —
+  // prova que a nacional PURA continua identica a antes desta onda. RJ_AO_LARGO
+  // deixou de servir pra essa prova especifica porque, medido contra o bbox
+  // real da fina (lngMin -45.75/latMin -24.05 a lngMax -41.75/latMax -22.65),
+  // ele cai DENTRO dela — o par RJ<->Salvador virou costura (ver describe da
+  // onda 22 abaixo), nao nacional pura.
   it(
-    "Rio de Janeiro -> Salvador: existe rota pela grade nacional, nenhum ponto em terra, mais longa que a reta",
+    "Florianopolis -> Salvador: nacional PURA (os dois pontos fora da fina) — regressao onda 22",
     { timeout: 30000 },
     () => {
-      const { tipo, gradeParaRota, caminho, distancia } = rotearComEscolha("RJ -> Salvador", RJ_AO_LARGO, SALVADOR_AO_LARGO)
-      expect(tipo).toBe("nacional") // prova que a travessia longa usa a grade nacional, nao a fina
+      const { tipo, gradeParaRota, caminho, distancia } = rotearComEscolha("Floripa -> Salvador", FLORIPA_AO_LARGO, SALVADOR_AO_LARGO)
+      expect(tipo).toBe("nacional")
       expect(caminho).not.toBeNull()
       expect(caminho!.every((p) => ehAgua(gradeParaRota, paraCelula(gradeParaRota, p)))).toBe(true)
+      const reta = distanciaDaRota([FLORIPA_AO_LARGO, SALVADOR_AO_LARGO])
+      expect(distancia!).toBeGreaterThan(reta)
+      expect(distancia!).toBeGreaterThan(900)
+      expect(distancia!).toBeLessThan(1600)
+    },
+  )
+
+  it(
+    "Rio de Janeiro -> Salvador: existe rota (RJ_AO_LARGO cai DENTRO do bbox da fina -> costura), nenhum ponto em terra, mais longa que a reta",
+    { timeout: 30000 },
+    () => {
+      // RJ_AO_LARGO esta dentro do bbox da fina (area historica cobre as
+      // aguas do Rio) — a onda 22 corretamente escolhe costura aqui, nao
+      // nacional pura como antes. O teste continua provando a mesma coisa
+      // (travessia longa funciona, nenhum ponto em terra, distancia
+      // plausivel), so a classificacao/metodo mudou.
+      const { extremoNaFina, resultado, distancia } = rotearComCostura("RJ -> Salvador", RJ_AO_LARGO, SALVADOR_AO_LARGO)
+      expect(extremoNaFina).toBe("origem") // RJ_AO_LARGO (de) e quem esta na fina
+      expect(resultado.pernas).not.toBeNull()
       const reta = distanciaDaRota([RJ_AO_LARGO, SALVADOR_AO_LARGO])
       expect(distancia!).toBeGreaterThan(reta) // contornou a costa, nao foi uma reta perfeita
       // faixa sa: reta ~660 MN: rota real segue a costa (RJ->Cabo Frio->Bahia),
@@ -288,15 +347,20 @@ describe("rota nacional (gate da onda 11)", () => {
   )
 
   it(
-    "Florianopolis -> Rio de Janeiro: existe rota pela grade nacional, nenhum ponto em terra, mais longa que a reta",
+    "Florianopolis -> Rio de Janeiro: existe rota (RJ_AO_LARGO cai DENTRO do bbox da fina -> costura), nenhum ponto em terra, mais longa que a reta",
     { timeout: 30000 },
     () => {
-      const { tipo, gradeParaRota, caminho, distancia } = rotearComEscolha("Floripa -> RJ", FLORIPA_AO_LARGO, RJ_AO_LARGO)
-      expect(tipo).toBe("nacional")
-      expect(caminho).not.toBeNull()
-      expect(caminho!.every((p) => ehAgua(gradeParaRota, paraCelula(gradeParaRota, p)))).toBe(true)
+      const { extremoNaFina, resultado, distancia } = rotearComCostura("Floripa -> RJ", FLORIPA_AO_LARGO, RJ_AO_LARGO)
+      expect(extremoNaFina).toBe("destino") // RJ_AO_LARGO (para) e quem esta na fina, dessa vez
+      expect(resultado.pernas).not.toBeNull()
       const reta = distanciaDaRota([FLORIPA_AO_LARGO, RJ_AO_LARGO])
-      expect(distancia!).toBeGreaterThan(reta)
+      // trecho quase todo em mar aberto -> a rota pode ficar fracoes de MN
+      // MAIS CURTA que a reta entre as coordenadas PEDIDAS: RJ_AO_LARGO e
+      // snapado num CENTRO DE CELULA da fina (100 m/celula), nao no ponto
+      // exato, entao o endpoint real usado no calculo pode cair uma fracao
+      // mais perto de Floripa que o ponto pedido — ruido de snap esperado,
+      // nao sinal de rota errada (98% cobre essa folga com margem).
+      expect(distancia!).toBeGreaterThan(reta * 0.98)
       expect(distancia!).toBeGreaterThan(300)
       expect(distancia!).toBeLessThan(700)
     },
@@ -461,4 +525,142 @@ describe("rota por calado na costa real (gate da onda 12)", () => {
     expect(distancia!).toBeLessThan(25)
     expect(distancia!).toBeGreaterThan(distanciaDaRota([ABRAAO, ANGRA]) * 1.05)
   })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 22 — gate: rota costurada com a costa REAL. Caso real de producao
+// (12/08/2026): usuario em terra no Rio pediu rota pra costa da Bahia e
+// recebeu "sem caminho" — a mascara nacional (~3,6 km/celula) dilata a terra
+// em 2 celulas (~7,4 km), o que engole baias/estreitos inteiros (Guanabara,
+// Sepetiba, canais de Ilha Grande). A correcao costura perna fina (origem/
+// destino que caem na area historica) + perna nacional recortada (o resto).
+// Substitui rota-repro.test.ts (apagado nesta onda — cenarios viraram testes
+// permanentes aqui).
+// ---------------------------------------------------------------------------
+
+// Praca Maua, Centro do Rio: terra firme (nao passa no check de agua direto),
+// mas so 3 celulas (~300 m) da agua mais proxima na fina — dentro do raio de
+// snap padrao (10 celulas / 1 km), entao NAO depende de nenhuma folga extra
+// de snap, so da costura em si. (-22.906,-43.177, ~1,3 km da agua, tambem no
+// Centro, ficaria fora do raio padrao — usar Praca Maua evita confundir "a
+// costura falhou" com "o snap da fina precisava de mais alcance", um problema
+// diferente e fora do escopo desta onda.)
+const CENTRO_DO_RIO: Coord = { la: -22.895, lo: -43.183 } // Praca Maua
+const TERRA_LONGE_DA_AGUA: Coord = { la: -22.9, lo: -43.4 } // interior, longe de qualquer costa
+const BAHIA_COSTA: Coord = { la: -13.5, lo: -39.05 } // ponto costeiro fora da fina, caso original da task
+const VITORIA_ES: Coord = { la: -20.32, lo: -40.28 } // segundo print de producao (02:29, "nao achei caminho")
+
+describe("rota costurada na costa real (gate da onda 22)", () => {
+  it(
+    "Marina da Gloria -> costa da Bahia: existe rota (costurada), distancia plausivel",
+    { timeout: 30000 },
+    () => {
+      const escolha = escolherGrade(grade, gradeNacional, MARINA_DA_GLORIA, BAHIA_COSTA)
+      expect(escolha).not.toBeNull()
+      expect(escolha!.tipo).toBe("costura")
+      if (escolha!.tipo !== "costura") throw new Error("unreachable")
+      expect(escolha!.extremoNaFina).toBe("origem") // Marina da Gloria e quem esta na fina
+
+      const inicio = performance.now()
+      const resultado = acharCaminhoCosturado({
+        fina: escolha!.fina,
+        nacional: escolha!.nacional,
+        de: MARINA_DA_GLORIA,
+        para: BAHIA_COSTA,
+        extremoNaFina: escolha!.extremoNaFina,
+      })
+      const ms = performance.now() - inicio
+      const distancia = resultado.pernas ? distanciaDaRota(resultado.pernas) : null
+      console.log(
+        `[rota-costura] Gloria -> Bahia costa: em ${ms.toFixed(1)}ms` +
+          (resultado.pernas ? `, ${resultado.pernas.length} pontos, ${distancia!.toFixed(1)} MN` : `, sem rota (motivo=${resultado.motivoFalha})`),
+      )
+
+      expect(resultado.motivoFalha).toBeNull()
+      expect(resultado.pernas).not.toBeNull()
+      const reta = distanciaDaRota([MARINA_DA_GLORIA, BAHIA_COSTA])
+      expect(distancia!).toBeGreaterThan(reta * 0.98) // contorna a costa (com a mesma folga de snap do teste Floripa->RJ)
+      // real medido: ~724 MN (reta ~612 MN, ~18% mais longa contornando a
+      // costa SE->NE — Rio->Cabo Frio->Bahia). Faixa com folga generosa em
+      // volta do valor medido, nao um numero chutado (calculado, nao adivinhado).
+      expect(distancia!).toBeGreaterThan(600)
+      expect(distancia!).toBeLessThan(850)
+      // orcamento do worker: perna fina + nacional recortada nao pode
+      // estourar o tempo combinado no plano original (~300ms so pro A* de
+      // uma perna) — aqui sao DUAS pernas (ate 8 tentativas de direcao na
+      // perna 1, se a alinhada falhar) + a decodificacao NAO entra (rodada
+      // fora deste cronometro, em beforeAll).
+      expect(ms).toBeLessThan(2000)
+    },
+  )
+
+  it(
+    "origem em terra no Rio (Centro) -> costa da Bahia: existe rota (snap na fina + costura)",
+    { timeout: 30000 },
+    () => {
+      const escolha = escolherGrade(grade, gradeNacional, CENTRO_DO_RIO, BAHIA_COSTA)
+      expect(escolha).not.toBeNull()
+      expect(escolha!.tipo).toBe("costura")
+      if (escolha!.tipo !== "costura") throw new Error("unreachable")
+
+      const resultado = acharCaminhoCosturado({
+        fina: escolha!.fina,
+        nacional: escolha!.nacional,
+        de: CENTRO_DO_RIO,
+        para: BAHIA_COSTA,
+        extremoNaFina: escolha!.extremoNaFina,
+      })
+      expect(resultado.motivoFalha).toBeNull()
+      expect(resultado.pernas).not.toBeNull()
+      expect(distanciaDaRota(resultado.pernas!)).toBeGreaterThan(200)
+    },
+  )
+
+  it(
+    "origem em terra LONGE da agua (interior, nao Centro do Rio): motivo 'origem-longe-da-agua', nao 'sem-caminho' generico",
+    { timeout: 30000 },
+    () => {
+      // fora da fina E fora de qualquer agua alcancavel na nacional a
+      // partir dali — nao ha costura possivel (nenhum extremo chega na
+      // agua), entao o motivo tem que vir da origem, honesto.
+      const r = acharCaminhoDetalhado(gradeNacional, TERRA_LONGE_DA_AGUA, BAHIA_COSTA)
+      expect(r.caminho).toBeNull()
+      expect(r.motivoFalha).toBe("origem-longe-da-agua")
+    },
+  )
+
+  it(
+    "segundo print de producao — Marina da Gloria -> Vitoria/ES: existe rota e termina na altura de Vitoria",
+    { timeout: 30000 },
+    () => {
+      const escolha = escolherGrade(grade, gradeNacional, MARINA_DA_GLORIA, VITORIA_ES)
+      expect(escolha).not.toBeNull()
+      expect(escolha!.tipo).toBe("costura")
+      if (escolha!.tipo !== "costura") throw new Error("unreachable")
+      expect(escolha!.extremoNaFina).toBe("origem")
+
+      const resultado = acharCaminhoCosturado({
+        fina: escolha!.fina,
+        nacional: escolha!.nacional,
+        de: MARINA_DA_GLORIA,
+        para: VITORIA_ES,
+        extremoNaFina: escolha!.extremoNaFina,
+      })
+      expect(resultado.motivoFalha).toBeNull()
+      expect(resultado.pernas).not.toBeNull()
+      const distancia = distanciaDaRota(resultado.pernas!)
+      console.log(
+        `[rota-costura] Gloria -> Vitoria/ES: ${resultado.pernas!.length} pontos, ${distancia.toFixed(1)} MN, destinoAproximado=${resultado.destinoAproximado}`,
+      )
+      // print original: 225 MN — folga generosa em volta (rota real segue a
+      // costa, e mais longa que a reta ~216 MN).
+      expect(distancia).toBeGreaterThan(180)
+      expect(distancia).toBeLessThan(320)
+      // o ultimo ponto da rota fica perto (na resolucao da nacional, ~3,6
+      // km/celula) do pino de Vitoria — "perto" aqui e umas poucas dezenas
+      // de km, nunca do outro lado do estado.
+      const ultimoPonto = resultado.pernas![resultado.pernas!.length - 1]
+      expect(distanciaDaRota([ultimoPonto, VITORIA_ES])).toBeLessThan(30)
+    },
+  )
 })

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   acharCaminho,
+  acharCaminhoCosturado,
+  acharCaminhoDetalhado,
+  acharCaminhoNacionalComDestinoGeneroso,
   bboxComFolga,
   dentroDaGrade,
   distanciaDaRota,
@@ -9,7 +12,9 @@ import {
   MARGEM_SEGURANCA_PADRAO_M,
   paraCelula,
   paraCoord,
+  pontoDaBordaNaDirecao,
   profundidadeEm,
+  raioSnapDestinoNacionalCelulas,
   recortarGrade,
   RESOLUCAO_CELULA_CORREDOR_M,
   snapParaAgua,
@@ -224,8 +229,23 @@ describe("escolherGrade", () => {
     expect(r).toEqual({ grade: fina, tipo: "fina" })
   })
 
-  it("usa a nacional quando um dos pontos esta fora da fina mas os dois cabem na nacional", () => {
+  // Onda 22: antes desta onda, "um dos pontos fora da fina" caia direto na
+  // nacional PURA — mas a dilatacao de seguranca da nacional (~7,4 km) engole
+  // baias inteiras (Guanabara etc.), entao o ponto que estava DENTRO da fina
+  // podia falhar o snap mesmo sendo agua de verdade (caso real de producao,
+  // 12/08/2026). Agora esse caso vira costura (perna fina + perna nacional).
+  it("usa costura quando um dos pontos esta fora da fina mas os dois cabem na nacional (origem dentro)", () => {
     const r = escolherGrade(fina, nacional, { la: 2, lo: 2 }, { la: 30, lo: 30 })
+    expect(r).toEqual({ tipo: "costura", fina, nacional, extremoNaFina: "origem" })
+  })
+
+  it("usa costura com extremoNaFina invertido quando e o DESTINO que esta dentro da fina (simetria)", () => {
+    const r = escolherGrade(fina, nacional, { la: 30, lo: 30 }, { la: 2, lo: 2 })
+    expect(r).toEqual({ tipo: "costura", fina, nacional, extremoNaFina: "destino" })
+  })
+
+  it("usa a nacional pura quando NENHUM dos pontos esta na fina mas os dois cabem na nacional", () => {
+    const r = escolherGrade(fina, nacional, { la: -30, lo: -30 }, { la: 30, lo: 30 })
     expect(r).toEqual({ grade: nacional, tipo: "nacional" })
   })
 
@@ -585,5 +605,260 @@ describe("raioSnapCelulas", () => {
   })
   it("grade fina (100 m/celula) segue com 10 celulas — 1 km, sem mudanca", () => {
     expect(raioSnapCelulas({ ...base, metrosPorCelula: 100 })).toBe(10)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 22 — rota costurada. Segundo print de producao (12/08, 02:29): pino em
+// Vitoria/ES a 225 MN, "nao achei caminho" — o destino tocado pelo usuario
+// cai na faixa costeira que a mascara nacional dilatou como terra, e o
+// snap padrao (2 celulas) fica no limite.
+// ---------------------------------------------------------------------------
+
+describe("raioSnapDestinoNacionalCelulas", () => {
+  const base = { largura: 1, altura: 1, lngMin: 0, latMin: 0, lngMax: 1, latMax: 1, agua: new Uint8Array([1]) }
+  it("na resolucao real da nacional (3637 m/celula), da 8 celulas — cobre com folga os 2 casos medidos contra a mascara real (Vitoria: 2 celulas, Bahia: 6 celulas)", () => {
+    expect(raioSnapDestinoNacionalCelulas({ ...base, metrosPorCelula: 3637 })).toBe(8)
+  })
+  it("nunca e menor que raioSnapCelulas, em varias resolucoes", () => {
+    for (const metrosPorCelula of [50, 100, 500, 3600, 10_000]) {
+      const g = { ...base, metrosPorCelula }
+      expect(raioSnapDestinoNacionalCelulas(g)).toBeGreaterThanOrEqual(raioSnapCelulas(g))
+    }
+  })
+  it("sem metrosPorCelula (grade sintetica), cai no mesmo fallback de raioSnapCelulas", () => {
+    expect(raioSnapDestinoNacionalCelulas(base)).toBe(raioSnapCelulas(base))
+  })
+})
+
+describe("pontoDaBordaNaDirecao", () => {
+  const bbox = { lngMin: 0, latMin: 0, lngMax: 10, latMax: 10 }
+  it("direcao pura-leste: sai pela borda lngMax, na mesma latitude", () => {
+    const p = pontoDaBordaNaDirecao(bbox, { la: 5, lo: 5 }, { la: 5, lo: 20 })
+    expect(p.lo).toBeCloseTo(10, 6)
+    expect(p.la).toBeCloseTo(5, 6)
+  })
+  it("direcao pura-norte: sai pela borda latMax, na mesma longitude", () => {
+    const p = pontoDaBordaNaDirecao(bbox, { la: 5, lo: 5 }, { la: 20, lo: 5 })
+    expect(p.la).toBeCloseTo(10, 6)
+    expect(p.lo).toBeCloseTo(5, 6)
+  })
+  it("diagonal 45 graus: sai exatamente pelo canto", () => {
+    const p = pontoDaBordaNaDirecao(bbox, { la: 5, lo: 5 }, { la: 20, lo: 20 })
+    expect(p.lo).toBeCloseTo(10, 6)
+    expect(p.la).toBeCloseTo(10, 6)
+  })
+  it("direcao sudoeste: sai pelas bordas lngMin/latMin", () => {
+    const p = pontoDaBordaNaDirecao(bbox, { la: 5, lo: 5 }, { la: -20, lo: -20 })
+    expect(p.lo).toBeCloseTo(0, 6)
+    expect(p.la).toBeCloseTo(0, 6)
+  })
+  it("o ponto de saida esta sempre dentro dos limites do bbox (nunca extrapola)", () => {
+    const p = pontoDaBordaNaDirecao(bbox, { la: 3, lo: 8 }, { la: 50, lo: -50 })
+    expect(p.lo).toBeGreaterThanOrEqual(bbox.lngMin - 1e-6)
+    expect(p.lo).toBeLessThanOrEqual(bbox.lngMax + 1e-6)
+    expect(p.la).toBeGreaterThanOrEqual(bbox.latMin - 1e-6)
+    expect(p.la).toBeLessThanOrEqual(bbox.latMax + 1e-6)
+  })
+})
+
+describe("acharCaminhoDetalhado — motivo da falha", () => {
+  it("motivoFalha null e o mesmo caminho de acharCaminho quando da tudo certo", () => {
+    const g = gradeComIlha()
+    const de = { la: 2.5, lo: 2.5 }
+    const para = { la: 2.5, lo: 35.5 }
+    const r = acharCaminhoDetalhado(g, de, para)
+    expect(r.motivoFalha).toBeNull()
+    expect(r.caminho).toEqual(acharCaminho(g, de, para))
+  })
+
+  it("'origem-longe-da-agua' quando so a ORIGEM nao alcanca agua no raio (raioOrigemCelulas explicito)", () => {
+    const g = gradeComIlha()
+    const origemNaIlha = { la: 10.5, lo: 20.5 } // centro da ilha
+    const destinoNaAgua = { la: 2.5, lo: 2.5 }
+    const r = acharCaminhoDetalhado(g, origemNaIlha, destinoNaAgua, undefined, undefined, 0)
+    expect(r.caminho).toBeNull()
+    expect(r.motivoFalha).toBe("origem-longe-da-agua")
+  })
+
+  it("'destino-longe-da-agua' quando so o DESTINO nao alcanca agua no raio (raioDestinoCelulas explicito)", () => {
+    const g = gradeComIlha()
+    const origemNaAgua = { la: 2.5, lo: 2.5 }
+    const destinoNaIlha = { la: 10.5, lo: 20.5 }
+    const r = acharCaminhoDetalhado(g, origemNaAgua, destinoNaIlha, undefined, undefined, undefined, 0)
+    expect(r.caminho).toBeNull()
+    expect(r.motivoFalha).toBe("destino-longe-da-agua")
+  })
+
+  it("'sem-caminho' quando os dois snaps funcionam mas nao ha rota conectando (parede de terra ponta a ponta)", () => {
+    const largura = 10
+    const altura = 5
+    const agua = new Uint8Array(largura * altura).fill(1)
+    for (let y = 0; y < altura; y++) agua[y * largura + 5] = 0 // parede inteira em x=5
+    const g: Grade = { largura, altura, lngMin: 0, latMin: 0, lngMax: largura, latMax: altura, agua }
+    const de = { la: 2.5, lo: 1.5 }
+    const para = { la: 2.5, lo: 8.5 }
+    const r = acharCaminhoDetalhado(g, de, para)
+    expect(r.caminho).toBeNull()
+    expect(r.motivoFalha).toBe("sem-caminho")
+  })
+})
+
+describe("acharCaminhoNacionalComDestinoGeneroso", () => {
+  // grade 60x60 (1 unidade/celula), metrosPorCelula=1000 -> raioSnapCelulas
+  // (padrao) = 2 celulas, raioSnapDestinoNacionalCelulas (generoso) = 30.
+  // Uma ilhota de raio 5 em volta do destino bloqueia o padrao mas nao o generoso.
+  function gradeComIlhota(): Grade {
+    const largura = 60
+    const altura = 60
+    const agua = new Uint8Array(largura * altura).fill(1)
+    // ilhota centrada em (x=30,y=30) — coordenada equivalente (lo=0,la=0)
+    for (let y = 25; y <= 35; y++) {
+      for (let x = 25; x <= 35; x++) agua[y * largura + x] = 0
+    }
+    return { largura, altura, lngMin: -30, latMin: -30, lngMax: 30, latMax: 30, agua, metrosPorCelula: 1000 }
+  }
+
+  it("destinoAproximado false quando o raio padrao ja bastava (destino em agua franca)", () => {
+    const g = gradeComIlhota()
+    const de = { la: -20, lo: -20 }
+    const para = { la: 20, lo: 20 }
+    const r = acharCaminhoNacionalComDestinoGeneroso(g, de, para)
+    expect(r.caminho).not.toBeNull()
+    expect(r.destinoAproximado).toBe(false)
+  })
+
+  it("destinoAproximado true quando so o raio GENEROSO alcanca o destino (destino no meio da ilhota)", () => {
+    const g = gradeComIlhota()
+    const de = { la: -20, lo: -20 }
+    const paraNaIlhota = { la: 0, lo: 0 } // centro da ilhota — padrao (2 cel.) nao alcanca a agua, generoso (30) sim
+    const semGeneroso = acharCaminhoDetalhado(g, de, paraNaIlhota)
+    expect(semGeneroso.motivoFalha).toBe("destino-longe-da-agua")
+
+    const r = acharCaminhoNacionalComDestinoGeneroso(g, de, paraNaIlhota)
+    expect(r.caminho).not.toBeNull()
+    expect(r.destinoAproximado).toBe(true)
+  })
+})
+
+/** Distancia EUCLIDIANA simples em graus (nao haversine/MN) — as grades
+ *  sinteticas de costura abaixo usam coordenadas grandes sem significado
+ *  geografico real (ex.: la=30), onde haversineNm exageraria a distancia. */
+function distanciaGraus(a: Coord, b: Coord): number {
+  return Math.hypot(a.la - b.la, a.lo - b.lo)
+}
+
+describe("acharCaminhoCosturado", () => {
+  // fina: 10x10 (bbox 0..10), tudo agua — isola a mecanica de costura de
+  // qualquer desvio de terra dentro da propria fina (ja testado em outros
+  // describes). nacional: 100x100 (bbox -50..50, 1 unidade/celula,
+  // metrosPorCelula=1000 -> raioSnapCelulas=2), com um "bolsao de terra"
+  // cobrindo lo/la em [-3,7) — engole o CANTO ONDE A ORIGEM ESTA (bem mais
+  // fundo que o raio de snap de 2 celulas em qualquer direcao), mas deixa o
+  // canto oposto da propria fina (lo/la > 7) como agua real na nacional —
+  // exatamente o desenho do bug real (baia engolida, mar aberto logo depois
+  // da borda da area de operacao fina).
+  function gradeFinaTodaAgua(): Grade {
+    return { largura: 10, altura: 10, lngMin: 0, latMin: 0, lngMax: 10, latMax: 10, agua: new Uint8Array(100).fill(1) }
+  }
+  function gradeNacionalComBolsao(): Grade {
+    const largura = 100
+    const altura = 100
+    const agua = new Uint8Array(largura * altura).fill(1)
+    for (let y = 0; y < altura; y++) {
+      for (let x = 0; x < largura; x++) {
+        const lo = -50 + x + 0.5
+        const la = 50 - y - 0.5
+        if (lo >= -3 && lo < 7 && la >= -3 && la < 7) agua[y * largura + x] = 0
+      }
+    }
+    return { largura, altura, lngMin: -50, latMin: -50, lngMax: 50, latMax: 50, agua, metrosPorCelula: 1000 }
+  }
+
+  it("acha rota quando a ORIGEM esta numa baia engolida pela nacional (extremoNaFina: origem)", () => {
+    const fina = gradeFinaTodaAgua()
+    const nacional = gradeNacionalComBolsao()
+    const de = { la: 2, lo: 2 } // fundo do bolsao — nacional pura falha aqui
+    const para = { la: 30, lo: 30 } // bem fora da fina, agua franca na nacional
+
+    // controle: prova que o bug reproduz na nacional PURA (o que o produto
+    // fazia antes da onda 22) antes de prova que a costura resolve.
+    const nacionalPura = acharCaminhoDetalhado(nacional, de, para)
+    expect(nacionalPura.motivoFalha).toBe("origem-longe-da-agua")
+
+    const r = acharCaminhoCosturado({ fina, nacional, de, para, extremoNaFina: "origem" })
+    expect(r.motivoFalha).toBeNull()
+    expect(r.pernas).not.toBeNull()
+    expect(r.caminhoBruto).not.toBeNull()
+    // extremos ficam dentro de 1 celula (1 unidade) do que foi pedido — o A*
+    // devolve o CENTRO da celula snapada, nao o ponto exato (mesmo contrato
+    // de acharCaminho de sempre, nunca testado por igualdade exata em lugar
+    // nenhum; distancia aqui e em GRAUS sinteticos, nao MN de verdade).
+    expect(distanciaGraus(r.pernas![0], de)).toBeLessThan(1)
+    expect(distanciaGraus(r.pernas![r.pernas!.length - 1], para)).toBeLessThan(1)
+    // a rota entra e sai da fina, depois segue pela nacional — soma das
+    // pernas tem que ser mais longa que a reta (nao e um teletransporte)
+    expect(distanciaDaRota(r.pernas!)).toBeGreaterThan(distanciaDaRota([de, para]) * 0.99)
+    expect(r.destinoAproximado).toBe(false) // destino em agua franca, raio padrao ja bastava
+  })
+
+  it("simetria: acha rota quando o DESTINO esta na baia engolida (extremoNaFina: destino) — mesmo desenho invertido", () => {
+    const fina = gradeFinaTodaAgua()
+    const nacional = gradeNacionalComBolsao()
+    const de = { la: 30, lo: 30 }
+    const para = { la: 2, lo: 2 } // fundo do bolsao
+
+    const r = acharCaminhoCosturado({ fina, nacional, de, para, extremoNaFina: "destino" })
+    expect(r.motivoFalha).toBeNull()
+    expect(r.pernas).not.toBeNull()
+    expect(distanciaGraus(r.pernas![0], de)).toBeLessThan(1)
+    expect(distanciaGraus(r.pernas![r.pernas!.length - 1], para)).toBeLessThan(1)
+  })
+
+  it("motivo honesto (simetria): extremoNaFina=destino, se a ORIGEM real (de fora) esta longe da agua, o motivo diz 'origem-longe-da-agua' (nao 'destino')", () => {
+    const fina = gradeFinaTodaAgua()
+    // nacional: agua so dentro de um disco de raio 12 em volta do centro da
+    // fina — fora do disco e tudo terra. Um ponto BEM fora do disco nao
+    // alcanca agua nem com folga generosa nenhuma (o generoso nem se aplica
+    // a origem, so ao destino real — ver acharCaminhoCosturado).
+    const largura = 100
+    const altura = 100
+    const agua = new Uint8Array(largura * altura).fill(0)
+    for (let y = 0; y < altura; y++) {
+      for (let x = 0; x < largura; x++) {
+        const lo = -50 + x + 0.5
+        const la = 50 - y - 0.5
+        if (Math.hypot(lo - 5, la - 5) <= 12) agua[y * largura + x] = 1
+      }
+    }
+    const nacional: Grade = { largura, altura, lngMin: -50, latMin: -50, lngMax: 50, latMax: 50, agua, metrosPorCelula: 1000 }
+    const de = { la: 40, lo: 40 } // origem real, fora da fina, bem longe do disco de agua
+    const para = { la: 2, lo: 2 } // destino real, dentro da fina
+
+    const r = acharCaminhoCosturado({ fina, nacional, de, para, extremoNaFina: "destino" })
+    expect(r.pernas).toBeNull()
+    expect(r.motivoFalha).toBe("origem-longe-da-agua")
+  })
+
+  it("falha honesta ('sem-caminho') quando NENHUM ponto da perna fina ate a borda e agua na nacional", () => {
+    // bolsao cobrindo o bbox INTEIRO da fina (0..10) e alem — a rota dentro
+    // da fina nunca escapa da area que a nacional considera terra.
+    const fina = gradeFinaTodaAgua()
+    const largura = 100
+    const altura = 100
+    const agua = new Uint8Array(largura * altura).fill(1)
+    for (let y = 0; y < altura; y++) {
+      for (let x = 0; x < largura; x++) {
+        const lo = -50 + x + 0.5
+        const la = 50 - y - 0.5
+        if (lo >= -5 && lo < 20 && la >= -5 && la < 20) agua[y * largura + x] = 0
+      }
+    }
+    const nacional: Grade = { largura, altura, lngMin: -50, latMin: -50, lngMax: 50, latMax: 50, agua, metrosPorCelula: 1000 }
+    const de = { la: 2, lo: 2 }
+    const para = { la: 30, lo: 30 }
+    const r = acharCaminhoCosturado({ fina, nacional, de, para, extremoNaFina: "origem" })
+    expect(r.pernas).toBeNull()
+    expect(r.motivoFalha).toBe("sem-caminho")
   })
 })

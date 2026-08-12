@@ -52,6 +52,38 @@ export function raioSnapCelulas(g: Grade): number {
   return Math.max(2, Math.round(RAIO_SNAP_METROS / g.metrosPorCelula))
 }
 
+/** Alcance do snap do DESTINO, em metros, especificamente na grade NACIONAL —
+ *  bem mais generoso que RAIO_SNAP_METROS (usado pra origem e pra qualquer
+ *  snap na fina). Onda 22, segundo print de producao (12/08, 02:29): pino em
+ *  Vitoria/ES (-20.32,-40.28) media EXATAMENTE 2 celulas (~7,27 km) de agua
+ *  mais proxima na mascara nacional real — bem NO LIMITE do piso de 2
+ *  celulas de `raioSnapCelulas` (7,27 km), falhando por qualquer folga de
+ *  arredondamento. A origem raramente sofre disso (normalmente e o GPS do
+ *  barco, ja em agua ou perto — o piso de 2 celulas de `raioSnapCelulas` ja
+ *  resolve o caso "casa em terra firme" da onda original); o DESTINO e o
+ *  ponto que o usuario TOCA no mapa, e gente tocando destino tende a tocar
+ *  bem na costa/no porto — exatamente a faixa que a dilatacao de seguranca
+ *  da nacional (~7,4 km, MARGEM_CELULAS_TERRA em scripts/gerar-mascara-
+ *  nacional.mjs) engole como terra. Medido tambem contra o proprio caso
+ *  original da task (costa da Bahia, -13.5,-39.05, um recuo de baia): 6
+ *  celulas (~21,8 km) foram necessarias pra achar agua real na mascara
+ *  nacional. 30 km da folga confortavel sobre os dois casos medidos sem
+ *  abrir mao do carater LOCAL do snap — ainda nao "qualquer agua do
+ *  Atlantico", so uma vizinhanca costeira ampliada. Quando o raio padrao
+ *  (raioSnapCelulas) já bastaria, o resultado do snap é o MESMO — este raio
+ *  só é mais permissivo, nunca mais restritivo (ver uso condicionado a
+ *  `destinoAproximado` em `acharCaminhoNacionalComDestinoGeneroso`). */
+const RAIO_SNAP_DESTINO_NACIONAL_METROS = 30_000
+
+/** Raio de snap (em celulas) do DESTINO, generoso, SO pra grade NACIONAL —
+ *  ver `RAIO_SNAP_DESTINO_NACIONAL_METROS`. Nunca menor que `raioSnapCelulas`
+ *  (o generoso so amplia, nunca reduz o alcance padrao). */
+export function raioSnapDestinoNacionalCelulas(g: Grade): number {
+  const padrao = raioSnapCelulas(g)
+  if (!g.metrosPorCelula) return padrao
+  return Math.max(padrao, Math.round(RAIO_SNAP_DESTINO_NACIONAL_METROS / g.metrosPorCelula))
+}
+
 // custo octile: D para passo ortogonal, D2 para diagonal
 const D = 1
 const D2 = Math.SQRT2
@@ -503,6 +535,53 @@ function acharCaminhoEmCelulas(
   return null
 }
 
+/** Motivo pelo qual `acharCaminhoDetalhado` nao achou rota — onda 22 (rota
+ *  costurada): antes disso o dominio so devolvia `null`, sem dizer POR QUE, e
+ *  a tela mostrava sempre o mesmo "sem caminho" generico mesmo quando o
+ *  problema era o usuario ter tocado longe da agua (ou estar em terra firme
+ *  longe dela). `"origem-longe-da-agua"` / `"destino-longe-da-agua"`: o SNAP
+ *  falhou pra aquele extremo (nao ha agua no raio de busca). `"sem-caminho"`:
+ *  os dois extremos snaparam, mas nao ha rota navegavel conectando-os (ou,
+ *  na costura, uma falha estrutural interna — ver `acharCaminhoCosturado`). */
+export type MotivoFalhaRota = "origem-longe-da-agua" | "destino-longe-da-agua" | "sem-caminho"
+
+export interface ResultadoCaminho {
+  /** `null` junto de `motivoFalha` != null; nunca os dois null/nao-null ao mesmo tempo. */
+  caminho: Coord[] | null
+  motivoFalha: MotivoFalhaRota | null
+}
+
+/** Faz snap da origem e do destino pra agua e roda o A*, expondo QUAL dos
+ *  dois snaps falhou (ou se os dois deram certo mas nao ha rota entre eles)
+ *  — onda 22. `raioOrigemCelulas`/`raioDestinoCelulas` (opcionais) sobrescrevem
+ *  o raio padrao (`raioSnapCelulas(g)`) SO pro extremo correspondente; omitir
+ *  os dois reproduz exatamente o comportamento de sempre (usado pelo wrapper
+ *  `acharCaminho` e por qualquer chamada fora da costura). `config`/`corredores`:
+ *  ver `acharCaminhoEmCelulas`. */
+export function acharCaminhoDetalhado(
+  g: Grade,
+  de: Coord,
+  para: Coord,
+  config?: ConfigCalado,
+  corredores?: CorredoresPorCelula,
+  raioOrigemCelulas?: number,
+  raioDestinoCelulas?: number,
+): ResultadoCaminho {
+  const raioOrigem = raioOrigemCelulas ?? raioSnapCelulas(g)
+  const raioDestino = raioDestinoCelulas ?? raioSnapCelulas(g)
+
+  const origemCelula = snapParaAgua(g, de, raioOrigem)
+  if (!origemCelula) return { caminho: null, motivoFalha: "origem-longe-da-agua" }
+
+  const destinoCelula = snapParaAgua(g, para, raioDestino)
+  if (!destinoCelula) return { caminho: null, motivoFalha: "destino-longe-da-agua" }
+
+  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula, config, corredores)
+  if (!caminhoCelulas) return { caminho: null, motivoFalha: "sem-caminho" }
+
+  return { caminho: caminhoCelulas.map((c) => paraCoord(g, c)), motivoFalha: null }
+}
+
 /** Faz snap da origem e do destino pra agua e roda o A*. `null` se algum snap falhar
  *  ou se nao houver caminho navegavel entre eles. `config` (onda 12, opcional):
  *  roda o A* respeitando o calado do barco — ver `ConfigCalado` e
@@ -511,7 +590,8 @@ function acharCaminhoEmCelulas(
  *  a restricao vale pro CAMINHO entre eles, nao pros extremos. `corredores`
  *  (onda 17, opcional): preferencia por celulas com passagens reais — ver
  *  `CorredoresPorCelula`. Omitir (ou passar um Map vazio) da a MESMA rota de
- *  antes desta onda. */
+ *  antes desta onda. Onda 22: wrapper compativel sobre `acharCaminhoDetalhado`
+ *  — mesma assinatura e mesmo resultado de sempre, so descarta o motivo. */
 export function acharCaminho(
   g: Grade,
   de: Coord,
@@ -519,15 +599,36 @@ export function acharCaminho(
   config?: ConfigCalado,
   corredores?: CorredoresPorCelula,
 ): Coord[] | null {
-  const raio = raioSnapCelulas(g)
-  const origemCelula = snapParaAgua(g, de, raio)
-  const destinoCelula = snapParaAgua(g, para, raio)
-  if (!origemCelula || !destinoCelula) return null
+  return acharCaminhoDetalhado(g, de, para, config, corredores).caminho
+}
 
-  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula, config, corredores)
-  if (!caminhoCelulas) return null
+/** Roda o A* numa grade NACIONAL com o DESTINO tratado com snap mais generoso
+ *  que a origem — onda 22, ver `raioSnapDestinoNacionalCelulas`. Usado tanto
+ *  pra rota nacional PURA quanto pra perna nacional da costura que termina no
+ *  destino real do usuario (nunca na origem, nem na perna que termina num
+ *  ponto de costura interno — ver `acharCaminhoCosturado`).
+ *  `destinoAproximado`: `true` quando o raio PADRAO (o mesmo da origem) NAO
+ *  teria bastado — so o generoso achou agua. Sinal honesto pra tela: a rota
+ *  termina "na altura do" destino pedido, o trecho final ate o ponto exato
+ *  fica por conta do navegante, nunca finge precisao que a mascara nacional
+ *  (~3,6 km/celula) nao tem. */
+export interface ResultadoRotaNacionalGenerosa {
+  caminho: Coord[] | null
+  motivoFalha: MotivoFalhaRota | null
+  destinoAproximado: boolean
+}
 
-  return caminhoCelulas.map((c) => paraCoord(g, c))
+export function acharCaminhoNacionalComDestinoGeneroso(
+  g: Grade,
+  de: Coord,
+  para: Coord,
+  config?: ConfigCalado,
+  corredores?: CorredoresPorCelula,
+): ResultadoRotaNacionalGenerosa {
+  const raioDestinoPadrao = raioSnapCelulas(g)
+  const resultado = acharCaminhoDetalhado(g, de, para, config, corredores, undefined, raioSnapDestinoNacionalCelulas(g))
+  const destinoAproximado = resultado.caminho != null && snapParaAgua(g, para, raioDestinoPadrao) === null
+  return { caminho: resultado.caminho, motivoFalha: resultado.motivoFalha, destinoAproximado }
 }
 
 /** Celula passa no check de agua E (se `config` presente) de calado — MESMO
@@ -714,24 +815,306 @@ export function recortarGrade(g: Grade, bbox: Bbox): Grade {
 
 export type TipoGrade = "fina" | "nacional"
 
-/** Regra de escolha de grade (onda 11): se origem E destino cabem na grade
- *  fina (mais detalhe, area de operacao historica), usa ela. Senao, se os dois
- *  cabem na grade nacional (grossa, Brasil inteiro), usa a nacional — quem
- *  chama e responsavel por recortar (`recortarGrade`+`bboxComFolga`) antes de
- *  rodar o A*, isso aqui so decide QUAL grade. `null` quando nenhuma das duas
- *  cobre os dois pontos ao mesmo tempo — so nesse caso a tela deve mostrar
- *  "fora da area". */
-export function escolherGrade(
-  fina: Grade | null,
-  nacional: Grade | null,
-  de: Coord,
-  para: Coord,
-): { grade: Grade; tipo: TipoGrade } | null {
-  if (fina && dentroDaGrade(fina, de) && dentroDaGrade(fina, para)) {
-    return { grade: fina, tipo: "fina" }
+/** Resultado de `escolherGrade` (onda 22: ganhou o terceiro caso, "costura").
+ *  `"fina"`/`"nacional"`: os dois pontos cabem SO naquela grade — comportamento
+ *  identico a antes da onda 22 (rotas puras, ver regressao em rota-real.test.ts).
+ *  `"costura"`: EXATAMENTE um dos dois pontos cabe na fina, o outro fica fora
+ *  dela mas dentro da nacional — o caso que a onda 22 existe pra resolver (ver
+ *  `acharCaminhoCosturado`). `extremoNaFina` diz qual dos dois (`de` ou `para`)
+ *  e o que esta dentro da fina. */
+export type EscolhaGrade =
+  | { tipo: "fina"; grade: Grade }
+  | { tipo: "nacional"; grade: Grade }
+  | { tipo: "costura"; fina: Grade; nacional: Grade; extremoNaFina: "origem" | "destino" }
+
+/** Regra de escolha de grade: se origem E destino cabem na grade fina (mais
+ *  detalhe, area de operacao historica), usa ela. Senao, se os dois cabem na
+ *  grade nacional (grossa, Brasil inteiro): se EXATAMENTE um dos pontos
+ *  tambem cabe na fina, usa costura (perna fina + perna nacional emendadas,
+ *  onda 22 — ver `acharCaminhoCosturado`); senao (nenhum cabe na fina, ou a
+ *  fina nem existe), usa a nacional pura, como sempre. Quem chama e
+ *  responsavel por recortar (`recortarGrade`+`bboxComFolga`) a nacional antes
+ *  de rodar o A* nos casos "nacional"/"costura" — isso aqui so decide a
+ *  ESTRATEGIA. `null` quando nenhuma grade cobre os dois pontos ao mesmo
+ *  tempo — so nesse caso a tela deve mostrar "fora da area".
+ *
+ *  Onda 22 — por que a costura existe: antes, "um dos pontos fora da fina"
+ *  caia direto na nacional pura, mesmo que o outro ponto estivesse bem
+ *  dentro da area historica (Ilhabela<->Buzios) — mas a dilatacao de
+ *  seguranca da nacional (~7,4 km, MARGEM_CELULAS_TERRA em
+ *  scripts/gerar-mascara-nacional.mjs) engole baias e estreitos inteiros
+ *  (Guanabara, Sepetiba, canais de Ilha Grande viram terra nela), entao a
+ *  ORIGEM/DESTINO dentro da fina podia falhar o snap mesmo estando em agua de
+ *  verdade — caso real de producao, 12/08/2026. */
+export function escolherGrade(fina: Grade | null, nacional: Grade | null, de: Coord, para: Coord): EscolhaGrade | null {
+  const deNaFina = !!fina && dentroDaGrade(fina, de)
+  const paraNaFina = !!fina && dentroDaGrade(fina, para)
+  if (deNaFina && paraNaFina) {
+    return { tipo: "fina", grade: fina! }
   }
-  if (nacional && dentroDaGrade(nacional, de) && dentroDaGrade(nacional, para)) {
-    return { grade: nacional, tipo: "nacional" }
+
+  const deNaNacional = !!nacional && dentroDaGrade(nacional, de)
+  const paraNaNacional = !!nacional && dentroDaGrade(nacional, para)
+  if (deNaNacional && paraNaNacional) {
+    if (fina && deNaFina !== paraNaFina) {
+      return { tipo: "costura", fina, nacional: nacional!, extremoNaFina: deNaFina ? "origem" : "destino" }
+    }
+    return { tipo: "nacional", grade: nacional! }
   }
+
   return null
+}
+
+// ---------------------------------------------------------------------------
+// Onda 22 — rota costurada: quando exatamente um extremo (origem OU destino)
+// esta dentro da grade fina e o outro fora dela (mas dentro da nacional),
+// nenhuma das duas grades sozinha resolve honestamente — a fina nao cobre o
+// ponto de fora, e a nacional (dilatacao ~7,4 km) engole baias/estreitos
+// inteiros que a origem/destino de DENTRO da fina podem estar. A correcao NAO
+// e afrouxar a dilatacao da nacional (ela e planejador de mar aberto por
+// design — margem menor so muda qual estreito morre); e COSTURAR: perna 1
+// pela fina do extremo interno ate um PONTO DE COSTURA (agua nas duas
+// grades), perna 2 pela nacional recortada do ponto de costura ate o extremo
+// externo. Ver docs/OPERACAO.md § Rota costurada.
+// ---------------------------------------------------------------------------
+
+/** Ponto onde o raio de `de` em direcao a `para` sai do retangulo `bbox` —
+ *  geometria pura (nao depende de agua/terra), usada pra achar o ponto da
+ *  BORDA da grade fina mais alinhado com a direcao do extremo de fora (perna
+ *  1 da costura, ver `acharCaminhoCosturado`). Assume `de` DENTRO do bbox
+ *  (precondicao de quem chama: so roda quando ha costura, ou seja, o
+ *  "pontoDentro" e por definicao interno a fina) — nesse caso sempre existe
+ *  um t>0 de saida, entao o fallback (devolver `de`) so existe por
+ *  seguranca de tipo, nunca deveria disparar na pratica. */
+export function pontoDaBordaNaDirecao(bbox: Bbox, de: Coord, para: Coord): Coord {
+  const dLo = para.lo - de.lo
+  const dLa = para.la - de.la
+  if (dLo === 0 && dLa === 0) return de
+
+  const EPS = 1e-9
+  let melhorT = Infinity
+  const candidatosT: number[] = []
+  if (dLo !== 0) {
+    candidatosT.push((bbox.lngMin - de.lo) / dLo)
+    candidatosT.push((bbox.lngMax - de.lo) / dLo)
+  }
+  if (dLa !== 0) {
+    candidatosT.push((bbox.latMin - de.la) / dLa)
+    candidatosT.push((bbox.latMax - de.la) / dLa)
+  }
+  for (const t of candidatosT) {
+    if (t <= 0) continue
+    const lo = de.lo + t * dLo
+    const la = de.la + t * dLa
+    if (lo < bbox.lngMin - EPS || lo > bbox.lngMax + EPS || la < bbox.latMin - EPS || la > bbox.latMax + EPS) continue
+    if (t < melhorT) melhorT = t
+  }
+  if (!Number.isFinite(melhorT)) return de
+
+  return { lo: de.lo + melhorT * dLo, la: de.la + melhorT * dLa }
+}
+
+/** Leque de direcoes (graus, relativos a direcao pontoDentro->pontoFora) pra
+ *  buscar o ponto de costura quando o alinhamento direto falha — ver
+ *  `candidatosBordaNaDirecao`. 0 primeiro (o alinhamento direto, preferido:
+ *  o caminho mais curto costeando pra fora); os demais em leque cobrindo
+ *  todo o resto do horizonte, do mais proximo do alinhamento direto ao
+ *  oposto (180). Achado real (onda 22, teste RJ->Salvador): quando
+ *  `pontoDentro` esta perto de uma BORDA da fina que fica ao longo da costa
+ *  (nao mar adentro), o alinhamento direto ate a borda so anda um pouco
+ *  colado na costa — e a faixa costeira e EXATAMENTE o que a dilatacao da
+ *  nacional engole, entao nenhum ponto desse trecho curto e agua na
+ *  nacional. Outras direcoes (ex.: reto pra mar aberto) escapam da faixa
+ *  costeira mesmo sem apontar pro destino — a perna 2 (nacional) encontra o
+ *  caminho ate o destino de qualquer jeito a partir dali. */
+const LEQUE_DIRECOES_BORDA_GRAUS = [0, 45, -45, 90, -90, 135, -135, 180]
+
+/** Gera um candidato a ponto de costura pra cada direcao do leque (ver
+ *  `LEQUE_DIRECOES_BORDA_GRAUS`), em ordem de preferencia (a direcao direta
+ *  primeiro). Cada candidato e o ponto onde aquela direcao, partindo de
+ *  `de`, sai do bbox `g` (`pontoDaBordaNaDirecao`) — a distancia usada pra
+ *  definir a direcao (1000 graus) e arbitraria, so importa o ANGULO. */
+function candidatosBordaNaDirecao(g: Bbox, de: Coord, para: Coord): Coord[] {
+  const anguloBase = Math.atan2(para.la - de.la, para.lo - de.lo)
+  return LEQUE_DIRECOES_BORDA_GRAUS.map((graus) => {
+    const angulo = anguloBase + (graus * Math.PI) / 180
+    const longe: Coord = { la: de.la + Math.sin(angulo) * 1000, lo: de.lo + Math.cos(angulo) * 1000 }
+    return pontoDaBordaNaDirecao(g, de, longe)
+  })
+}
+
+/** Alcance do snap (em celulas da grade FINA) pro ponto da BORDA usado como
+ *  alvo intermediario da perna 1 da costura — mais generoso que
+ *  `raioSnapCelulas` porque o ponto da borda e geometria pura (onde o raio
+ *  pontoDentro->pontoFora sai do bbox), pode cair em terra sem nenhuma
+ *  relacao com uma coordenada que o usuario de fato pediu. 4 km (100 m/celula
+ *  = 40 celulas) da folga pra costa recortada perto da borda sem risco de
+ *  pular pra uma enseada totalmente diferente (o bbox da fina tem ~400x155
+ *  km — 4 km ainda e bem local). */
+const RAIO_SNAP_BORDA_METROS = 4_000
+
+function raioSnapBordaCelulas(g: Grade): number {
+  const padrao = raioSnapCelulas(g)
+  if (!g.metrosPorCelula) return padrao * 2
+  return Math.max(padrao, Math.round(RAIO_SNAP_BORDA_METROS / g.metrosPorCelula))
+}
+
+/** Corrige o `motivoFalha` de uma falha DENTRO da perna 1 (fina) pro motivo
+ *  correto do ponto de vista da rota INTEIRA. Perna 1 sempre roda como
+ *  `acharCaminhoDetalhado(fina, pontoDentro, bordaAlvo, ...)` — pontoDentro
+ *  no papel de "origem" da SUBCHAMADA, mesmo quando ele e o DESTINO real da
+ *  rota (caso `extremoNaFina === "destino"`, ver `acharCaminhoCosturado`).
+ *  Sem essa correcao, "pontoDentro nao alcanca agua" sempre sairia rotulado
+ *  "origem-longe-da-agua", mentindo pro usuario quando o problema era o
+ *  DESTINO dele. Falha no alvo da borda (geometria interna, nao pedida pelo
+ *  usuario) ou no A* entre eles vira o generico "sem-caminho" — nao e culpa
+ *  nem da origem nem do destino reais, e a costura que nao emendou. */
+function motivoPerna1ParaRotaInteira(motivo: MotivoFalhaRota, extremoNaFina: "origem" | "destino"): MotivoFalhaRota {
+  if (motivo !== "origem-longe-da-agua") return "sem-caminho"
+  return extremoNaFina === "origem" ? "origem-longe-da-agua" : "destino-longe-da-agua"
+}
+
+/** Mesma ideia que `motivoPerna1ParaRotaInteira`, pra perna 2 (nacional). Os
+ *  papeis "de"/"para" da SUBCHAMADA variam com `extremoNaFina` (ver
+ *  `acharCaminhoCosturado`): quando `"origem"`, a subchamada e
+ *  costura->pontoFora(destino real) — so a falha de DESTINO é do usuario;
+ *  quando `"destino"`, a subchamada e pontoFora(origem real)->costura — so a
+ *  falha de ORIGEM é do usuario. A outra ponta de cada subchamada e sempre o
+ *  ponto de costura (interno) — falha ali vira "sem-caminho" honesto. */
+function motivoPerna2ParaRotaInteira(motivo: MotivoFalhaRota, extremoNaFina: "origem" | "destino"): MotivoFalhaRota {
+  if (extremoNaFina === "origem") {
+    return motivo === "destino-longe-da-agua" ? "destino-longe-da-agua" : "sem-caminho"
+  }
+  return motivo === "origem-longe-da-agua" ? "origem-longe-da-agua" : "sem-caminho"
+}
+
+export interface ParametrosCostura {
+  fina: Grade
+  nacional: Grade
+  de: Coord
+  para: Coord
+  /** Qual extremo (`de` ou `para`) esta dentro da fina — vem de `escolherGrade`. */
+  extremoNaFina: "origem" | "destino"
+  configFina?: ConfigCalado
+  configNacional?: ConfigCalado
+  corredores?: CorredoresPorCelula
+}
+
+export interface ResultadoCostura {
+  /** Rota completa (as duas pernas ja suavizadas e emendadas, SEM duplicar o
+   *  ponto de costura), ordem origem->destino. `null` se a costura falhou —
+   *  ver `motivoFalha`. */
+  pernas: Coord[] | null
+  /** Caminho BRUTO (pre-suavizacao) das duas pernas emendado, mesma ordem —
+   *  quem chama usa isso pra checar corredores (onda 17: precisa do caminho
+   *  ANTES do string-pulling, igual ao fluxo sem costura). `null` junto de `pernas`. */
+  caminhoBruto: Coord[] | null
+  motivoFalha: MotivoFalhaRota | null
+  /** Ver `ResultadoRotaNacionalGenerosa.destinoAproximado`. So pode ser
+   *  `true` quando `extremoNaFina === "origem"` (a perna nacional termina no
+   *  DESTINO real — a unica perna/extremo onde o snap generoso se aplica). */
+  destinoAproximado: boolean
+}
+
+const SEM_ROTA: ResultadoCostura = { pernas: null, caminhoBruto: null, motivoFalha: null, destinoAproximado: false }
+
+/** Costura perna fina + perna nacional numa rota so — ver o cabecalho da
+ *  secao "Onda 22" pra o problema que isso resolve.
+ *
+ *  Desenho (perna 1, fina): traca a rota, na fina, do extremo INTERNO
+ *  (`pontoDentro`) ate o ponto onde uma direcao sai do bbox da fina
+ *  (`pontoDaBordaNaDirecao`, com snap generoso ali — `raioSnapBordaCelulas`).
+ *  Tenta primeiro a direcao ALINHADA com `pontoFora` (o caminho mais curto);
+ *  se o caminho ate ela nao tiver NENHUM ponto que tambem seja agua na
+ *  nacional (achado real, onda 22: quando `pontoDentro` fica perto de uma
+ *  borda que corre ao longo da costa, o trecho ate ela pode ficar colado na
+ *  faixa costeira que a dilatacao da nacional engole inteira), tenta as
+ *  outras direcoes do leque (`LEQUE_DIRECOES_BORDA_GRAUS`) em ordem de
+ *  proximidade angular ate uma funcionar. Pra cada tentativa que teve
+ *  caminho, caminha o caminho bruto do FIM (borda) pro COMECO (pontoDentro)
+ *  e para na PRIMEIRA coordenada que tambem e agua na grade NACIONAL — esse
+ *  e o ponto de costura (garante que a perna 2 pode comecar ali sem precisar
+ *  de snap). Se NENHUMA direcao do leque acha um ponto de costura, a costura
+ *  falha honestamente (`motivoFalha`).
+ *
+ *  Perna 2 (nacional recortada): do ponto de costura ate `pontoFora`, com
+ *  `recortarGrade`+`bboxComFolga`, exatamente como a rota nacional pura de
+ *  sempre — exceto que o extremo que e o DESTINO REAL do usuario ganha o
+ *  snap generoso (`acharCaminhoNacionalComDestinoGeneroso`); o ponto de
+ *  costura (ja confirmado agua) e o extremo interno da rota nacional pura
+ *  nunca ganham o generoso, so o destino real ganha.
+ *
+ *  Resultado: uma rota concatenada, sem duplicar o ponto de costura. */
+export function acharCaminhoCosturado(p: ParametrosCostura): ResultadoCostura {
+  const { fina, nacional, de, para, extremoNaFina, configFina, configNacional, corredores } = p
+  const pontoDentro = extremoNaFina === "origem" ? de : para
+  const pontoFora = extremoNaFina === "origem" ? para : de
+
+  const raioBorda = raioSnapBordaCelulas(fina)
+  let perna1Bruta: ResultadoCaminho | null = null
+  let idxCostura = -1
+  let primeiraFalhaSnap: MotivoFalhaRota | null = null
+  for (const bordaAlvo of candidatosBordaNaDirecao(fina, pontoDentro, pontoFora)) {
+    const tentativa = acharCaminhoDetalhado(fina, pontoDentro, bordaAlvo, configFina, corredores, undefined, raioBorda)
+    if (!tentativa.caminho) {
+      // so guarda a PRIMEIRA falha de snap da origem (pontoDentro) — as
+      // direcoes seguintes reusam o MESMO pontoDentro, entao um eventual
+      // "origem-longe-da-agua" seria identico em todas; guardar so a
+      // primeira evita sobrescrever com a falha (irrelevante) da BORDA em
+      // si numa direcao tentada depois.
+      if (!primeiraFalhaSnap) primeiraFalhaSnap = tentativa.motivoFalha
+      continue
+    }
+    for (let i = tentativa.caminho.length - 1; i >= 0; i--) {
+      if (ehAgua(nacional, paraCelula(nacional, tentativa.caminho[i]))) {
+        perna1Bruta = tentativa
+        idxCostura = i
+        break
+      }
+    }
+    if (perna1Bruta) break
+  }
+  if (!perna1Bruta || idxCostura === -1) {
+    const motivo = primeiraFalhaSnap ? motivoPerna1ParaRotaInteira(primeiraFalhaSnap, extremoNaFina) : "sem-caminho"
+    return { ...SEM_ROTA, motivoFalha: motivo }
+  }
+  const costuraCoord = perna1Bruta.caminho![idxCostura]
+  const perna1CaminhoBruto = perna1Bruta.caminho!.slice(0, idxCostura + 1)
+
+  const nacionalRecortada = recortarGrade(nacional, bboxComFolga(costuraCoord, pontoFora))
+  // so a subchamada que termina no DESTINO REAL (extremoNaFina === "origem")
+  // usa o snap generoso — ver docstring da funcao.
+  const perna2De = extremoNaFina === "origem" ? costuraCoord : pontoFora
+  const perna2Para = extremoNaFina === "origem" ? pontoFora : costuraCoord
+
+  let perna2Caminho: Coord[] | null
+  let perna2Motivo: MotivoFalhaRota | null
+  let destinoAproximado = false
+  if (extremoNaFina === "origem") {
+    const generoso = acharCaminhoNacionalComDestinoGeneroso(nacionalRecortada, perna2De, perna2Para, configNacional, corredores)
+    perna2Caminho = generoso.caminho
+    perna2Motivo = generoso.motivoFalha
+    destinoAproximado = generoso.destinoAproximado
+  } else {
+    const padrao = acharCaminhoDetalhado(nacionalRecortada, perna2De, perna2Para, configNacional, corredores)
+    perna2Caminho = padrao.caminho
+    perna2Motivo = padrao.motivoFalha
+  }
+  if (!perna2Caminho) {
+    return { ...SEM_ROTA, motivoFalha: motivoPerna2ParaRotaInteira(perna2Motivo!, extremoNaFina) }
+  }
+
+  const perna1Suave = suavizar(fina, perna1CaminhoBruto, configFina)
+  const perna2Suave = suavizar(nacionalRecortada, perna2Caminho, configNacional)
+
+  const pernas =
+    extremoNaFina === "origem"
+      ? [...perna1Suave, ...perna2Suave.slice(1)]
+      : [...perna2Suave, ...[...perna1Suave].reverse().slice(1)]
+  const caminhoBruto =
+    extremoNaFina === "origem"
+      ? [...perna1CaminhoBruto, ...perna2Caminho.slice(1)]
+      : [...perna2Caminho, ...[...perna1CaminhoBruto].reverse().slice(1)]
+
+  return { pernas, caminhoBruto, motivoFalha: null, destinoAproximado }
 }
