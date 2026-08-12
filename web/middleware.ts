@@ -38,5 +38,9 @@ export const config = {
   // handler faz a própria autenticação (ex.: Bearer ALERTAS_SEGREDO em
   // /api/alertas/disparar). Nunca crie uma rota /api que dependa de sessão
   // sem checar o usuário dentro do próprio handler.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|webmanifest)$).*)"],
+  // `json` na lista: as mascaras/grades do mapa (public/mapa/*.json) sao dado
+  // estatico publico; sem a exclusao, o middleware redirecionava o fetch do
+  // Web Worker pra /login (Safari/PWA nem sempre manda cookie de worker) e a
+  // rota "encolhia" pra mascara fina — visto no iPhone em producao, 12/08.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|webmanifest|json)$).*)"],
 }
