@@ -28,6 +28,17 @@
 // essa restricao, a resposta marca `semCaminhoPorCalado: true` — a tela
 // explica "nao achei caminho com o calado do seu barco" em vez de um
 // generico "sem caminho".
+//
+// Onda 17 (corredores — "Strava do Mar"): busca as passagens reais
+// conhecidas no bbox da viagem (`buscarCorredores`, endpoint leve
+// `/api/corredores`) e passa pro A* como PREFERENCIA (nunca restricao — ver
+// `CorredoresPorCelula` em lib/domain/rota.ts). Falha de rede/servidor
+// degrada em silencio pra `CorredoresPorCelula` vazio (mesma filosofia da
+// mascara/grade de profundidade acima): a rota continua saindo normal, so
+// sem a preferencia. `usouCorredores` na resposta e HONESTO — so vira `true`
+// se a rota calculada de fato passou por alguma celula com passagem
+// conhecida, nao so "havia corredor perto" (ver navegar-mapa.tsx pro texto
+// que isso habilita, e o cuidado de NUNCA dizer "validada"/"segura").
 import {
   carregarGrade,
   carregarGradeNacional,
@@ -35,18 +46,22 @@ import {
   carregarGradeProfundidadeNacional,
   dentroDaGrade,
 } from "@/lib/mapa/mascara"
+import { buscarCorredores } from "@/lib/mapa/corredores"
 import {
   acharCaminho,
   bboxComFolga,
   distanciaDaRota,
   escolherGrade,
   MARGEM_SEGURANCA_PADRAO_M,
+  RESOLUCAO_CELULA_CORREDOR_M,
   recortarGrade,
   suavizar,
   type Coord,
   type ConfigCalado,
+  type CorredoresPorCelula,
   type TipoGrade,
 } from "@/lib/domain/rota"
+import { celulaId } from "@/lib/domain/sondagem"
 
 export interface PedidoRota {
   id: number
@@ -70,6 +85,10 @@ export type RespostaRota =
        *  indisponivel: degrada pra rota sem restricao). Comparar com o
        *  calado que a tela pediu e o que decide qual aviso mostrar. */
       caladoM: number | null
+      /** true = a rota calculada passa por pelo menos UMA celula com
+       *  passagem real conhecida (onda 17). Honesto: nao significa "corredor
+       *  disponivel na area", significa "esta rota especifica usou um". */
+      usouCorredores: boolean
     }
   | { id: number; tipo: "fora-da-area" }
   | {
@@ -85,6 +104,10 @@ export type RespostaRota =
 
 self.onmessage = async (e: MessageEvent<PedidoRota>) => {
   const { id, de, para, caladoM } = e.data
+  // Corredores (onda 17) buscados EM PARALELO com a mascara — nao faz
+  // sentido esperar a grade carregar pra so entao pedir o bbox, os dois sao
+  // independentes. `buscarCorredores` nunca rejeita (falha vira mapa vazio).
+  const corredoresPromessa = buscarCorredores(bboxComFolga(de, para))
   const gradeFina = await carregarGrade()
 
   // Caminho rapido: se a fina ja cobre os dois pontos, nem busca a nacional —
@@ -127,7 +150,9 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     // na resposta e quem avisa a tela que a restricao nao foi aplicada.
   }
 
-  const caminho = acharCaminho(gradeParaRota, de, para, config)
+  const corredores: CorredoresPorCelula = await corredoresPromessa
+
+  const caminho = acharCaminho(gradeParaRota, de, para, config, corredores)
   if (!caminho) {
     // Se havia config de calado, confere se EXISTIRIA caminho sem essa
     // restricao — e o que decide a mensagem "nao achei com o calado do seu
@@ -138,6 +163,11 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     return
   }
   const pernas = suavizar(gradeParaRota, caminho, config)
+  // Honestidade (onda 17): so afirma "usou corredores" se a rota calculada
+  // de fato passa por uma celula com passagem conhecida — checa o caminho
+  // BRUTO do A* (antes do string-pulling de `suavizar`, que so remove
+  // pontos intermediarios pra desenho, nao muda por onde a rota passou).
+  const usouCorredores = corredores.porCelula.size > 0 && caminho.some((c) => corredores.porCelula.has(celulaId(c.la, c.lo, RESOLUCAO_CELULA_CORREDOR_M)))
   postMessage({
     id,
     tipo: "rota",
@@ -145,5 +175,6 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     distanciaNm: distanciaDaRota(pernas),
     precisao: escolha.tipo,
     caladoM: caladoAplicado,
+    usouCorredores,
   } satisfies RespostaRota)
 }

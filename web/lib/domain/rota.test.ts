@@ -8,14 +8,19 @@ import {
   escolherGrade,
   MARGEM_SEGURANCA_PADRAO_M,
   paraCelula,
+  paraCoord,
   profundidadeEm,
   recortarGrade,
+  RESOLUCAO_CELULA_CORREDOR_M,
   snapParaAgua,
   suavizar,
   type ConfigCalado,
+  type Coord,
+  type CorredoresPorCelula,
   type Grade,
   type GradeProfundidade,
 } from "./rota"
+import { celulaId } from "./sondagem"
 
 /** 40x20, tudo água menos uma ilha retangular no meio. */
 function gradeComIlha(): Grade {
@@ -436,5 +441,133 @@ describe("A* respeitando calado (onda 12)", () => {
     expect(comConfig.length).toBeGreaterThan(2) // nao pode colapsar: o atalho cruzaria agua rasa demais
     expect(comConfig[0]).toEqual(p0)
     expect(comConfig[comConfig.length - 1]).toEqual(p3)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 17 — corredores: trilhas GPS reais preferidas pelo A*, nunca
+// desbloqueando terra/calado, e so tornando um caminho comprovado mais
+// barato que um equivalente sem historico.
+// ---------------------------------------------------------------------------
+
+/** Marca intensidade 1 na celula de corredor correspondente a coordenada `p`
+ *  (mesma chave que `intensidadeCorredorEm` usa internamente: `celulaId`
+ *  na resolucao de corredor). */
+function marcarCorredor(porCelula: Map<string, number>, p: Coord, intensidade = 1): void {
+  porCelula.set(celulaId(p.la, p.lo, RESOLUCAO_CELULA_CORREDOR_M), intensidade)
+}
+
+/** Grade 21x5 totalmente agua, exceto uma coluna de terra em x=10 cobrindo
+ *  as linhas y=1..3 — origem e destino ficam em y=2 (o eixo da coluna
+ *  bloqueada), entao contornar exige passar por (10,0) OU (10,4), nunca
+ *  os dois. A mascara e SIMETRICA em torno de y=2 (linhas bloqueadas 1..3
+ *  refletem nelas mesmas), entao por espelhamento o caminho via topo (y=0)
+ *  e o caminho via base (y=4) tem EXATAMENTE o mesmo custo octile — um
+ *  empate de verdade, nao um acidente de implementacao. */
+function gradeComDesvioSimetrico(): Grade {
+  const largura = 21
+  const altura = 5
+  const agua = new Uint8Array(largura * altura).fill(1)
+  for (let y = 1; y <= 3; y++) agua[y * largura + 10] = 0
+  return { largura, altura, lngMin: 0, latMin: 0, lngMax: largura, latMax: altura, agua }
+}
+const ORIGEM_DESVIO: Coord = { la: 2.5, lo: 0.5 }
+const DESTINO_DESVIO: Coord = { la: 2.5, lo: 20.5 }
+
+describe("corredores (onda 17) — preferencia do A* por passagens reais", () => {
+  it("regressao: sem corredores (parametro omitido), a rota e IDENTICA a de hoje", () => {
+    const g = gradeComIlha()
+    const de = { la: 10.5, lo: 5.5 }
+    const para = { la: 10.5, lo: 35.5 }
+    const semParametro = acharCaminho(g, de, para)
+    expect(semParametro).not.toBeNull()
+    const comMapaVazio = acharCaminho(g, de, para, undefined, { porCelula: new Map() })
+    expect(comMapaVazio).toEqual(semParametro)
+  })
+
+  it("regressao: tabela de corredores vazia (endpoint fora) tambem preserva a rota por calado de hoje", () => {
+    const { agua, profundidade } = gradeCorredor(1.2)
+    const config: ConfigCalado = { caladoM: 0.5, margemSegurancaM: 0.5, profundidade }
+    const semCorredores = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, config)
+    const comMapaVazio = acharCaminho(agua, ORIGEM_CORREDOR, DESTINO_CORREDOR, config, { porCelula: new Map() })
+    expect(comMapaVazio).toEqual(semCorredores)
+  })
+
+  it("corredor NUNCA desbloqueia terra — intensidade maxima sobre a ilha inteira nao abre atalho por ela", () => {
+    const g = gradeComIlha()
+    const de = { la: 10.5, lo: 5.5 }
+    const para = { la: 10.5, lo: 35.5 }
+    const porCelula = new Map<string, number>()
+    for (let x = 0; x < g.largura; x++) {
+      for (let y = 0; y < g.altura; y++) marcarCorredor(porCelula, paraCoord(g, { x, y }), 1)
+    }
+    const corredores: CorredoresPorCelula = { porCelula }
+    const caminho = acharCaminho(g, de, para, undefined, corredores)
+    expect(caminho).not.toBeNull()
+    // continua contornando: nenhum ponto do caminho cai em terra, mesmo com
+    // a ilha INTEIRA marcada como corredor de intensidade maxima
+    expect(caminho!.every((p) => ehAgua(g, paraCelula(g, p)))).toBe(true)
+  })
+
+  it("corredor NUNCA desbloqueia celula rasa demais pro calado — bloqueio por profundidade continua absoluto", () => {
+    const largura = 10
+    const agua: Grade = {
+      largura,
+      altura: 1,
+      lngMin: 0,
+      latMin: 0,
+      lngMax: largura,
+      latMax: 1,
+      agua: new Uint8Array(largura).fill(1),
+    }
+    const profundidade: GradeProfundidade = {
+      largura,
+      altura: 1,
+      lngMin: 0,
+      latMin: 0,
+      lngMax: largura,
+      latMax: 1,
+      profundidadeM: new Float32Array(largura).fill(0.1), // rasissimo, a linha inteira
+    }
+    const de = { la: 0.5, lo: 0.5 }
+    const para = { la: 0.5, lo: 9.5 }
+    const config: ConfigCalado = { caladoM: 2, margemSegurancaM: 0.5, profundidade }
+
+    const porCelula = new Map<string, number>()
+    for (let x = 0; x < largura; x++) marcarCorredor(porCelula, paraCoord(agua, { x, y: 0 }), 1)
+
+    // sem corredor: bloqueado (ver teste identico na secao de calado, acima)
+    expect(acharCaminho(agua, de, para, config)).toBeNull()
+    // com TODA a linha marcada como corredor de intensidade maxima: continua bloqueado
+    expect(acharCaminho(agua, de, para, config, { porCelula })).toBeNull()
+  })
+
+  it("com dois caminhos de custo EMPATADO, o que tem passagens reais vence", () => {
+    const g = gradeComDesvioSimetrico()
+
+    // controle: sem corredor, o empate simetrico existe mesmo (so nao
+    // afirmamos qual lado o tie-break interno escolhe — isso e detalhe de
+    // implementacao, nao contrato)
+    const semCorredor = acharCaminho(g, ORIGEM_DESVIO, DESTINO_DESVIO)
+    expect(semCorredor).not.toBeNull()
+
+    // marca passagens reais SO na faixa de baixo (y=3 e y=4, todas as
+    // colunas) — a faixa de cima (y=0,1) fica sem nenhum registro
+    const porCelula = new Map<string, number>()
+    for (let x = 0; x < g.largura; x++) {
+      marcarCorredor(porCelula, paraCoord(g, { x, y: 3 }))
+      marcarCorredor(porCelula, paraCoord(g, { x, y: 4 }))
+    }
+    const comCorredor = acharCaminho(g, ORIGEM_DESVIO, DESTINO_DESVIO, undefined, { porCelula })
+    expect(comCorredor).not.toBeNull()
+
+    const celulas = comCorredor!.map((p) => paraCelula(g, p))
+    // o desvio pela faixa premiada (baixo) — nunca visita a faixa de cima
+    expect(celulas.some((c) => c.y <= 1)).toBe(false)
+    expect(celulas.some((c) => c.y >= 3)).toBe(true)
+  })
+
+  it("RESOLUCAO_CELULA_CORREDOR_M casa com a mascara fina de agua (100 m), nao com a sondagem (15 m)", () => {
+    expect(RESOLUCAO_CELULA_CORREDOR_M).toBe(100)
   })
 })

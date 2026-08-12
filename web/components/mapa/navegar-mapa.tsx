@@ -40,6 +40,10 @@ type EstadoRotaResultado =
        *  indisponivel no momento). Comparar com a prop `caladoM` (o que o
        *  barco TEM cadastrado) e o que decide qual aviso mostrar. */
       caladoM: number | null
+      /** true = esta rota especifica passa por passagens reais de outros
+       *  barcos (onda 17). Habilita um aviso DISCRETO — nunca "validada" ou
+       *  "segura", passagem historica nao garante profundidade. */
+      usouCorredores: boolean
     }
   | { tipo: "fora-da-area"; paraDestino: Coord }
   | {
@@ -57,6 +61,14 @@ type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
 const LIMIAR_RECALCULO_M = 200
 
 const CHAVE_ANCORA = "ancora"
+// Consentimento de corredores (onda 17) — localStorage, NAO coluna no banco:
+// e uma preferencia de DISPOSITIVO/navegador (mesmo raciocinio do
+// CHAVE_URL_SIGNALK em sondagem-painel.tsx), nao da conta — a pessoa pode
+// usar o mesmo login em varios aparelhos e decidir diferente em cada um
+// (ex.: barco emprestado). Nao precisa sobreviver a reinstalacao nem
+// sincronizar entre dispositivos, e ler antes de CADA salvamento (nao so
+// uma vez por sessao) e barato o bastante pra nao justificar ida ao banco.
+const CHAVE_CONSENTIMENTO_CORREDOR = "commander:consentimento-corredor"
 const RAIO_PADRAO_M = 40
 const COR_DOURADO = "#D4AF37"
 const COR_ALARME = "#FF5C5C"
@@ -176,6 +188,23 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
   const [estado, setEstado] = useState<"pronto" | "gravando" | "parado" | "salvando">("pronto")
   const [msg, setMsg] = useState<string | null>(null)
   const [obs, setObs] = useState("")
+  // Consentimento de corredores (onda 17) — lembrado no dispositivo (ver
+  // CHAVE_CONSENTIMENTO_CORREDOR). Nasce `false` (opt-IN, nunca opt-out) e só
+  // é sobrescrito depois de ler o localStorage no mount — mesmo padrão do
+  // rearme da âncora, abaixo.
+  const [contribuirCorredor, setContribuirCorredor] = useState(false)
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- so existe localStorage no cliente, le uma vez apos montar
+      setContribuirCorredor(localStorage.getItem(CHAVE_CONSENTIMENTO_CORREDOR) === "1")
+    } catch {}
+  }, [])
+  function alternarConsentimentoCorredor(valor: boolean) {
+    setContribuirCorredor(valor)
+    try {
+      localStorage.setItem(CHAVE_CONSENTIMENTO_CORREDOR, valor ? "1" : "0")
+    } catch {}
+  }
   const [painel, setPainel] = useState({ velKt: 0, resumo: RESUMO_VAZIO, qtd: 0 })
   // nasce recolhido: o mapa é o protagonista da tela, não os cartões
   const [painelAberto, setPainelAberto] = useState(false)
@@ -297,7 +326,7 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
   async function encerrarESalvar() {
     await pararGravacao()
     setEstado("salvando")
-    const r = await salvarTrilha(pontosRef.current, obs)
+    const r = await salvarTrilha(pontosRef.current, obs, contribuirCorredor)
     if (r.ok) {
       router.push(r.redirecionarPara)
       return
@@ -368,6 +397,7 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
             distanciaNm: e.data.distanciaNm,
             precisao: e.data.precisao,
             caladoM: e.data.caladoM,
+            usouCorredores: e.data.usouCorredores,
           })
           break
         case "fora-da-area":
@@ -887,6 +917,23 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
                 </div>
               </div>
 
+              {/* Consentimento de corredores (onda 17) — opt-IN explicito,
+                  lembrado no aparelho (CHAVE_CONSENTIMENTO_CORREDOR). Fica
+                  visível em qualquer estado do painel (não só "pronto"):
+                  o dono pode mudar de ideia a qualquer momento antes de
+                  salvar, e o texto continua valendo enquanto a trilha
+                  grava. */}
+              <label className="mt-4 flex min-h-11 cursor-pointer items-start gap-2.5 text-sm text-dim">
+                <input
+                  type="checkbox"
+                  checked={contribuirCorredor}
+                  onChange={(e) => alternarConsentimentoCorredor(e.target.checked)}
+                  className="mt-0.5 size-5 shrink-0"
+                />
+                Contribuir com o mapa de corredores — ao salvar, esta trilha vira passagens anônimas, agregadas por
+                área, nunca sua rota individual. Ajuda outros barcos a encontrar caminho.
+              </label>
+
               {estado === "pronto" && (
                 <button onClick={iniciar} className="mt-4 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
                   Iniciar gravação
@@ -1109,6 +1156,15 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
                     </Link>
                   </>
                 )}
+              </p>
+            )}
+            {/* Honestidade sobre corredores (onda 17) — discreto, NUNCA
+                "validada"/"segura": passagem historica de outro barco (as
+                vezes menor, mais raso) nao garante profundidade pro seu. */}
+            {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.usouCorredores && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-dim">
+                Considera passagens reais de outros barcos nesta área — não é garantia de profundidade, a carta
+                náutica continua sendo a referência.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "ausente" && nav && (

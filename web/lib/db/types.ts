@@ -253,6 +253,16 @@ export interface CelulaSondagemAgregada {
   ultima_leitura: string
 }
 
+// Corredores (onda 17) — agregado ANONIMO por celula de passagens reais de
+// barcos, sem embarcacao_id/usuario_id nenhum (diferente da Sondagem acima).
+// Ver web/lib/domain/rota.ts e migration 029_corredores.sql.
+export interface CorredorAgregado {
+  celula_id: string
+  lat: number
+  lon: number
+  passagens: number
+}
+
 export type CategoriaParceiro = "marina" | "posto" | "pousada" | "restaurante"
 export type PlanoParceiro = "cortesia" | "basico" | "destaque"
 

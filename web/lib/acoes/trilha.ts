@@ -4,12 +4,33 @@ import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { horasSugeridas } from "@/lib/domain/bordo"
 import { horaSP } from "@/lib/domain/datas"
 import { MAX_PONTOS_TRILHA, resumoTrilha, type PontoTrilha } from "@/lib/domain/geo"
+import { RESOLUCAO_CELULA_CORREDOR_M } from "@/lib/domain/rota"
+import { celulaId } from "@/lib/domain/sondagem"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
+
+/** Converte os pontos de uma trilha em celulas UNICAS de corredor (onda 17)
+ *  — uma trilha parada 10 minutos na mesma baia nao pode contar como 10
+ *  passagens, so 1. Chave e resolucao IDENTICAS a `intensidadeCorredorEm`
+ *  em lib/domain/rota.ts (RESOLUCAO_CELULA_CORREDOR_M), senao o A* nunca
+ *  encontraria o que a trilha gravou. */
+function celulasUnicasDaTrilha(pontos: PontoTrilha[]): { celulaId: string; lat: number; lon: number }[] {
+  const porCelula = new Map<string, { lat: number; lon: number }>()
+  for (const p of pontos) {
+    const id = celulaId(p.la, p.lo, RESOLUCAO_CELULA_CORREDOR_M)
+    if (!porCelula.has(id)) porCelula.set(id, { lat: p.la, lon: p.lo })
+  }
+  return Array.from(porCelula, ([id, c]) => ({ celulaId: id, lat: c.lat, lon: c.lon }))
+}
 
 export async function salvarTrilha(
   pontos: PontoTrilha[],
   observacao: string,
+  /** Consentimento explicito (onda 17) pra contribuir com o mapa de
+   *  corredores — sem isso, NADA sobe, a trilha salva normal do mesmo jeito.
+   *  Default `false`: sem esse argumento (chamador antigo), o comportamento
+   *  e exatamente o de antes desta onda. */
+  contribuirCorredor: boolean = false,
 ): Promise<{ ok: true; redirecionarPara: string } | { ok: false; erro: string }> {
   const textoObs = typeof observacao === "string" ? observacao : ""
   const supabase = await supabaseServer()
@@ -65,6 +86,22 @@ export async function salvarTrilha(
     mar_vento_kt: marVentoKt,
   }).select("id").single()
   if (error || !inserido) return { ok: false, erro: "Não foi possível salvar a trilha. Ela continua na tela — tente de novo." }
+
+  // Corredores (onda 17): SO com consentimento explicito, e SO depois da
+  // trilha ja estar gravada acima — e um bonus colaborativo pro mapa, nunca
+  // um requisito pra salvar. Melhor esforco: uma falha aqui NUNCA desfaz o
+  // salvamento (ja concluido) nem aparece como erro pro usuario — o dono ve
+  // a trilha salva normalmente, so o corredor que nao subiu desta vez.
+  if (contribuirCorredor) {
+    const celulas = celulasUnicasDaTrilha(validos)
+    if (celulas.length > 0) {
+      try {
+        await supabase.rpc("registrar_passagens_corredor", { p_celulas: celulas })
+      } catch {
+        // best-effort — ver comentario acima
+      }
+    }
+  }
 
   revalidatePath("/diario")
   revalidatePath("/hoje")
