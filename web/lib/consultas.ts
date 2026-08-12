@@ -3,7 +3,7 @@ import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
 import { avaliarSelo, MARCADOR_SOLICITACAO_SELO, type ResultadoSelo } from "@/lib/domain/selo"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
-import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
+import type { Embarcacao, Equipamento, ItemMonitorado, Viagem } from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
 
 export const carregarPainel = cache(async (): Promise<{
@@ -54,6 +54,27 @@ export const carregarPainel = cache(async (): Promise<{
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
 
   return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes, embarcacoes: todas ?? [] }
+})
+
+/** Próxima viagem planejada (onda 19, Pilar Strava do Mar) — data futura mais
+ *  perto pra embarcação ativa, pro cartão "Próximas paradas" em `/hoje`.
+ *  `null` sem nenhuma viagem com `data_prevista` a partir de hoje: quem usa
+ *  isto não mostra cartão nenhum (regra de honestidade — nada de porta pra
+ *  sala vazia). `cache()` evita repetir a consulta na mesma renderização,
+ *  mesmo padrão de `carregarPainel`/`carregarSelo`. */
+export const carregarProximaViagem = cache(async (): Promise<Viagem | null> => {
+  const painel = await carregarPainel()
+  if (!painel) return null
+  const supabase = await supabaseServer()
+  const { data } = await supabase
+    .from("viagens")
+    .select("*")
+    .eq("embarcacao_id", painel.embarcacao.id)
+    .gte("data_prevista", hojeISO())
+    .order("data_prevista", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  return (data as Viagem | null) ?? null
 })
 
 /** Selo Ouro: busca o que `carregarPainel` não traz (fotos, eventos do

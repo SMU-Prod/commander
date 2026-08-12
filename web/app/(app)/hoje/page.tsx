@@ -19,7 +19,7 @@ import {
 } from "@/lib/domain/semaforo"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
-import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { resumoAno, type EventoParaResumoAno } from "@/lib/domain/resumo-ano"
@@ -165,6 +165,14 @@ export default async function HojePage({
         .gte("data", `${anoAtual}-01-01`)
     : { data: [] as EventoParaResumoAno[] }
   const totaisAno = resumoAno((eventosSaida ?? []) as EventoParaResumoAno[], Number(anoAtual))
+
+  // Próximas paradas (onda 19, Pilar Strava do Mar) — a PRÓXIMA viagem
+  // planejada (data futura mais perto), com 2-3 paradas visíveis. Mesma
+  // checagem de `podeVerDiario` (viagem é conteúdo de navegação, igual
+  // "Seu ano no mar" acima) — sem ela, nem consulta o banco. Sem viagem
+  // planejada, o cartão simplesmente não aparece mais abaixo (regra de
+  // honestidade — nada de porta pra sala vazia).
+  const proximaViagem = podeVerDiario ? await carregarProximaViagem() : null
 
   // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
   // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
@@ -470,6 +478,30 @@ export default async function HojePage({
           <Link href="/diario" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4 text-center">
             <p className="font-mono-instr text-base font-semibold tabular-nums">
               {totaisAno.saidas} {totaisAno.saidas === 1 ? "saída" : "saídas"} · {Math.round(totaisAno.milhasNm).toLocaleString("pt-BR")} MN · {Math.round(totaisAno.horasNoMar).toLocaleString("pt-BR")} h
+            </p>
+          </Link>
+        </>
+      )}
+
+      {/* Próximas paradas (onda 19) — só aparece com uma viagem planejada de
+          verdade (data futura), nunca um cartão vazio convidando pra uma
+          feature sem dado nenhum atrás. */}
+      {proximaViagem && (
+        <>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="estrela" className="size-3.5" /> Próximas paradas
+          </p>
+          <Link href={`/navegar/viagem/${proximaViagem.id}`} className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="titulo-card truncate">{proximaViagem.nome}</p>
+              <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+            </div>
+            <p className="apoio mt-0.5 text-dim">
+              {new Date(`${proximaViagem.data_prevista}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}
+            </p>
+            <p className="apoio mt-2 truncate text-dim">
+              {proximaViagem.paradas.slice(0, 3).map((p) => p.nome).join(" · ")}
+              {proximaViagem.paradas.length > 3 && ` · +${proximaViagem.paradas.length - 3}`}
             </p>
           </Link>
         </>

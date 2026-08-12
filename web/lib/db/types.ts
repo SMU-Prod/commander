@@ -263,6 +263,24 @@ export interface CorredorAgregado {
   passagens: number
 }
 
+// Viagens (onda 19, Pilar Strava do Mar) — planejamento com paradas. Ver
+// web/lib/domain/viagem.ts (montagem de pernas/ETA) e migration 030_viagens.
+export interface ParadaDb {
+  nome: string
+  la: number
+  lo: number
+}
+
+export interface Viagem {
+  id: string
+  embarcacao_id: string
+  nome: string
+  data_prevista: string
+  paradas: ParadaDb[]
+  criado_por: string | null
+  created_at: string
+}
+
 export type CategoriaParceiro = "marina" | "posto" | "pousada" | "restaurante"
 export type PlanoParceiro = "cortesia" | "basico" | "destaque"
 
