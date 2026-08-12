@@ -368,6 +368,26 @@ export function MapaNautico({
       }
       setFalhaMapa(null)
 
+      // O construtor pode dar certo e o ESTILO falhar depois (rede, token
+      // com restricao de URL, CDN da Mapbox bloqueada) — erro assincrono
+      // que nao passa pelo try acima e deixava tela branca muda (visto no
+      // iPhone via proxy https, 11/08/2026). So falha ANTES do primeiro
+      // estilo carregado vira aviso: depois disso, "error" e ruido normal
+      // de tile individual e nao derruba o mapa.
+      let estiloJaCarregou = false
+      mapa.once("style.load", () => {
+        estiloJaCarregou = true
+      })
+      mapa.on("error", (ev: { error?: { message?: string; status?: number } }) => {
+        if (estiloJaCarregou || cancelado) return
+        const detalhe = ev.error?.message ?? "falha desconhecida"
+        const dica =
+          ev.error?.status === 401 || ev.error?.status === 403
+            ? " Provável restrição de URL no token do Mapbox — confira em account.mapbox.com se o token permite esta origem."
+            : ""
+        setFalhaMapa(`O mapa não conseguiu carregar o estilo (${detalhe}).${dica}`)
+      })
+
       // Reconstrói TUDO que este componente desenha no estilo (batimetria +
       // OpenSeaMap) — chamada tanto no carregamento inicial quanto depois de
       // toda troca de estilo via "style.load" (ver listener logo abaixo).
