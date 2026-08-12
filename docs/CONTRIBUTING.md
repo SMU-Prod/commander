@@ -37,6 +37,17 @@ A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"
 *"Agora não"*, *"Essa saída durou 3 h 30 — atualizar as horas dos motores?"*.
 Mensagem de erro diz **o que fazer**, não só que deu errado.
 
+### Corredores (onda 17) — honestidade obrigatória
+
+Corredor é passagem histórica agregada, não garantia: um barco menor pode ter
+passado onde o seu não passa. Todo texto sobre rota com corredores diz no
+máximo que ela **"considera passagens reais de outros barcos"** — nunca
+"validada", "segura" ou "recomendada". O redutor de custo do A* só atua em
+célula já aprovada por água/calado; escrever qualquer coisa que sugira o
+contrário é bug. E a contrapartida de privacidade: a contagem por célula é
+anônima por construção (tabela sem dono); nenhuma tela pode tentar
+reconstituir "quem passou aqui".
+
 ### Sondagem colaborativa (onda 13) — honestidade obrigatória
 
 A tela de `/navegar` nunca pode sugerir que a sondagem coletada pelos usuários
