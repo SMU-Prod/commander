@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { formatarCarimbo, horaSP, tempoRelativo } from "./datas"
+import { dataSP, formatarCarimbo, horaSP, tempoRelativo } from "./datas"
+
+describe("dataSP", () => {
+  it("converte epoch em AAAA-MM-DD no fuso de Sao Paulo (UTC-3)", () => {
+    const epoca = Date.UTC(2026, 0, 5, 14, 30, 0) / 1000 // 14:30 UTC de 05/01 = 11:30 em SP, mesmo dia
+    expect(dataSP(epoca)).toBe("2026-01-05")
+  })
+  it("madrugada UTC ainda pertence ao dia anterior em SP", () => {
+    const epoca = Date.UTC(2026, 0, 6, 2, 15, 0) / 1000 // 02:15 UTC do dia 06 = 23:15 do dia 05 em SP
+    expect(dataSP(epoca)).toBe("2026-01-05")
+  })
+})
 
 describe("horaSP", () => {
   it("converte epoch em HH:MM no fuso de Sao Paulo (UTC-3)", () => {

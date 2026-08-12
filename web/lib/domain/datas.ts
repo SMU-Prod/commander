@@ -2,6 +2,13 @@ export function hojeISO(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date())
 }
 
+/** Epoch (segundos) -> "AAAA-MM-DD" no fuso America/Sao_Paulo — mesmo raciocinio
+ *  de `hojeISO`, mas pra um instante qualquer no passado (onda 21: a data de
+ *  uma saida importada de um GPX vem do primeiro ponto da trilha, nao de hoje). */
+export function dataSP(epocaSegundos: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date(epocaSegundos * 1000))
+}
+
 /** Epoch (segundos) -> "HH:MM" no fuso America/Sao_Paulo — mesma abordagem via
  *  Intl de `hojeISO`, sem fazer o offset UTC-3 na mao (Brasil aboliu o horario
  *  de verao em 2019, mas o fuso e quem sabe disso, nao um numero fixo aqui). */

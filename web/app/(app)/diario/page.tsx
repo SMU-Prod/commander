@@ -28,7 +28,7 @@ export default async function DiarioPage({
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
     supabase.from("eventos")
-      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt")
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt, importado_do_plotter")
       .eq("embarcacao_id", painel.embarcacao.id)
       .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
     supabase.from("contatos").select("id, nome"),
@@ -78,6 +78,18 @@ export default async function DiarioPage({
           <span className="inline-flex items-center gap-1">
             <Icone nome="mais" className="size-4" /> Registrar
           </span>
+        </Link>
+      </div>
+      {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
+          Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
+          Segunda acao discreta pra nao competir com "+ Registrar" (o gesto
+          mais comum), mas ainda ≤3 toques a partir de /hoje. */}
+      <div className="mt-2 flex justify-end">
+        <Link
+          href="/diario/importar"
+          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
+        >
+          <Icone nome="guardado" className="size-3.5" /> Importar do plotter
         </Link>
       </div>
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
@@ -172,9 +184,18 @@ export default async function DiarioPage({
                     </p>
                     {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
                     {detalhesSaida && <p className="apoio mt-0.5 text-dim">{detalhesSaida}</p>}
-                    {badgeAtividade && (
-                      <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-accent-forte">
-                        <Icone nome="mapa" className="size-3" /> {badgeAtividade}
+                    {(badgeAtividade || e.importado_do_plotter) && (
+                      <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {badgeAtividade && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-accent-forte">
+                            <Icone nome="mapa" className="size-3" /> {badgeAtividade}
+                          </span>
+                        )}
+                        {e.importado_do_plotter && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr text-[11px] text-dim">
+                            <Icone nome="guardado" className="size-3" /> Importada do plotter
+                          </span>
+                        )}
                       </p>
                     )}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}

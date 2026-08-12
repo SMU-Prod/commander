@@ -41,10 +41,19 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
   const trilha = Array.isArray(e.trilha) && e.trilha.length >= 2 ? e.trilha : null
   const r = trilha ? resumoTrilha(trilha) : null
 
+  // Trilha importada do plotter (onda 21) sem horario no GPX original: os
+  // pontos gravados tem um `t` sintetico (indice, nao epoch real, ver
+  // paraPontosArmazenaveis em lib/domain/gpx.ts) so pra manter a ordem —
+  // duracao/tempo em movimento/velocidade calculados em cima disso seriam
+  // fabricados. So a distancia continua honesta (nao depende de `t`).
+  const semHorario = e.trilha_sem_horario === true
+  const rHonesto = semHorario ? null : r
+
   // Duracao registrada (hora_saida/hora_retorno) manda; so cai pra duracao
   // derivada da trilha se por algum motivo os horarios nao foram gravados —
   // no caminho normal (lib/acoes/trilha.ts) eles sao praticamente iguais.
-  const duracaoH = duracaoHoras(e.hora_saida, e.hora_retorno) ?? r?.duracaoH ?? null
+  // Trilha sem horario nunca cai nesse fallback (ver rHonesto acima).
+  const duracaoH = duracaoHoras(e.hora_saida, e.hora_retorno) ?? rHonesto?.duracaoH ?? null
 
   // Tripulacao a bordo NESTA saida — lista congelada no momento do registro
   // (migration 022). So busca os perfis que de fato aparecem aqui.
@@ -87,6 +96,13 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
         {duracaoH != null ? ` · ${textoDuracao(duracaoH)}` : ""}
         {retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) && " · retorno no dia seguinte"}
       </p>
+      {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
+          vivo pelo app, e o dono precisa saber disso olhando a tela. */}
+      {e.importado_do_plotter && (
+        <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+          <Icone nome="guardado" className="size-3" /> Importada do plotter
+        </p>
+      )}
       {e.descricao && <p className="mt-2 corpo text-dim">{e.descricao}</p>}
 
       <div className="mt-4">
@@ -113,21 +129,28 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Em movimento</p>
-          <p className={valorInstrumento}>{r ? textoDuracao(r.tempoMovimentoH) : "—"}</p>
+          <p className={valorInstrumento}>{rHonesto ? textoDuracao(rHonesto.tempoMovimentoH) : "—"}</p>
         </div>
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Vel. média</p>
           <p className={valorInstrumento}>
-            {r ? `${r.velMediaKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt` : "—"}
+            {rHonesto ? `${rHonesto.velMediaKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt` : "—"}
           </p>
         </div>
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Vel. máxima</p>
           <p className={valorInstrumento}>
-            {r ? `${r.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt` : "—"}
+            {rHonesto ? `${rHonesto.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt` : "—"}
           </p>
         </div>
       </div>
+
+      {semHorario && (
+        <p className="mt-3 apoio text-dim">
+          Essa trilha foi importada sem horário no arquivo original — duração, tempo em movimento e
+          velocidade não puderam ser calculados. A distância continua real.
+        </p>
+      )}
 
       {temMar && (
         <div className="mt-4 rounded-[14px] border border-line bg-panel p-4">

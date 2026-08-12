@@ -2,25 +2,29 @@
 import { revalidatePath } from "next/cache"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { horasSugeridas } from "@/lib/domain/bordo"
+import { celulasUnicasDaTrilha } from "@/lib/domain/corredores"
 import { horaSP } from "@/lib/domain/datas"
 import { MAX_PONTOS_TRILHA, resumoTrilha, type PontoTrilha } from "@/lib/domain/geo"
-import { RESOLUCAO_CELULA_CORREDOR_M } from "@/lib/domain/rota"
-import { celulaId } from "@/lib/domain/sondagem"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
-/** Converte os pontos de uma trilha em celulas UNICAS de corredor (onda 17)
- *  — uma trilha parada 10 minutos na mesma baia nao pode contar como 10
- *  passagens, so 1. Chave e resolucao IDENTICAS a `intensidadeCorredorEm`
- *  em lib/domain/rota.ts (RESOLUCAO_CELULA_CORREDOR_M), senao o A* nunca
- *  encontraria o que a trilha gravou. */
-function celulasUnicasDaTrilha(pontos: PontoTrilha[]): { celulaId: string; lat: number; lon: number }[] {
-  const porCelula = new Map<string, { lat: number; lon: number }>()
-  for (const p of pontos) {
-    const id = celulaId(p.la, p.lo, RESOLUCAO_CELULA_CORREDOR_M)
-    if (!porCelula.has(id)) porCelula.set(id, { lat: p.la, lon: p.lo })
+/** Sobe as celulas unicas da trilha pro agregado de corredores — melhor
+ *  esforco (nunca desfaz nem sinaliza erro pro chamador: uma trilha ja
+ *  salva/importada com sucesso nao pode falhar por causa de um bonus
+ *  colaborativo). Compartilhada entre `salvarTrilha` (trilha ao vivo) e a
+ *  importacao de GPX (onda 21) — MESMA porta de escrita (RPC security
+ *  definer `registrar_passagens_corredor`), nunca duas implementacoes. */
+export async function registrarCorredorMelhorEsforco(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  pontos: PontoTrilha[],
+): Promise<void> {
+  const celulas = celulasUnicasDaTrilha(pontos)
+  if (celulas.length === 0) return
+  try {
+    await supabase.rpc("registrar_passagens_corredor", { p_celulas: celulas })
+  } catch {
+    // best-effort — ver comentario acima
   }
-  return Array.from(porCelula, ([id, c]) => ({ celulaId: id, lat: c.lat, lon: c.lon }))
 }
 
 export async function salvarTrilha(
@@ -93,14 +97,7 @@ export async function salvarTrilha(
   // salvamento (ja concluido) nem aparece como erro pro usuario — o dono ve
   // a trilha salva normalmente, so o corredor que nao subiu desta vez.
   if (contribuirCorredor) {
-    const celulas = celulasUnicasDaTrilha(validos)
-    if (celulas.length > 0) {
-      try {
-        await supabase.rpc("registrar_passagens_corredor", { p_celulas: celulas })
-      } catch {
-        // best-effort — ver comentario acima
-      }
-    }
+    await registrarCorredorMelhorEsforco(supabase, validos)
   }
 
   revalidatePath("/diario")
