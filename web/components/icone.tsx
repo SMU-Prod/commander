@@ -42,6 +42,9 @@ const PATHS = {
   // aparelho, e o ponto desta tela e o contrario — mostrar o que ESTA
   // guardado a bordo enquanto nao ha sinal pra enviar.
   guardado: <><path d="M3 8l2-4h14l2 4" /><path d="M3 8h18v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8z" /><path d="m9 13 2 2 4-4" /></>,
+  // Onda 18 (saída como atividade): seta saindo de uma caixa — "exportar
+  // esta saída pra fora do app" (Web Share API ou clipboard).
+  compartilhar: <><path d="M12 14V4M8 8l4-4 4 4" /><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

@@ -22,6 +22,7 @@ import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/ga
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
+import { resumoAno, type EventoParaResumoAno } from "@/lib/domain/resumo-ano"
 import type { Equipamento } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -152,6 +153,18 @@ export default async function HojePage({
   const { data: comandantes } = await supabase
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
     .eq("visivel", true).limit(2)
+
+  // Seu ano no mar (onda 18, Pilar Strava do Mar) — totais pessoais a partir
+  // das saídas já registradas no diário, sem coleta nova nenhuma.
+  const podeVerDiario = podeVer(permissoes, "diario")
+  const anoAtual = hoje.slice(0, 4)
+  const { data: eventosSaida } = podeVerDiario
+    ? await supabase
+        .from("eventos").select("tipo, data, hora_saida, hora_retorno, trilha")
+        .eq("embarcacao_id", embarcacao.id).eq("tipo", "navegacao")
+        .gte("data", `${anoAtual}-01-01`)
+    : { data: [] as EventoParaResumoAno[] }
+  const totaisAno = resumoAno((eventosSaida ?? []) as EventoParaResumoAno[], Number(anoAtual))
 
   // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
   // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
@@ -446,6 +459,19 @@ export default async function HojePage({
               </div>
             ))}
           </div>
+        </>
+      )}
+
+      {totaisAno && (
+        <>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="medalha" className="size-3.5" /> Seu ano no mar
+          </p>
+          <Link href="/diario" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4 text-center">
+            <p className="font-mono-instr text-base font-semibold tabular-nums">
+              {totaisAno.saidas} {totaisAno.saidas === 1 ? "saída" : "saídas"} · {Math.round(totaisAno.milhasNm).toLocaleString("pt-BR")} MN · {Math.round(totaisAno.horasNoMar).toLocaleString("pt-BR")} h
+            </p>
+          </Link>
         </>
       )}
     </main>
