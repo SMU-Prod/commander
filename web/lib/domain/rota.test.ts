@@ -13,6 +13,7 @@ import {
   recortarGrade,
   RESOLUCAO_CELULA_CORREDOR_M,
   snapParaAgua,
+  raioSnapCelulas,
   suavizar,
   type ConfigCalado,
   type Coord,
@@ -569,5 +570,20 @@ describe("corredores (onda 17) — preferencia do A* por passagens reais", () =>
 
   it("RESOLUCAO_CELULA_CORREDOR_M casa com a mascara fina de agua (100 m), nao com a sondagem (15 m)", () => {
     expect(RESOLUCAO_CELULA_CORREDOR_M).toBe(100)
+  })
+})
+
+// Producao, 12/08/2026, primeiro teste real de iPhone: usuario EM CASA (terra)
+// pediu rota longa e recebeu "sem caminho" — na grade nacional (3,6 km/celula)
+// o raio de 1 km virava UMA celula de busca por agua, e ninguem calcula rota
+// da sala de estar com 3,6 km de alcance. O piso de 2 celulas da ~7 km na
+// grade grossa sem mudar nada na fina (10 celulas de 100 m, como sempre).
+describe("raioSnapCelulas", () => {
+  const base = { largura: 1, altura: 1, lngMin: 0, latMin: 0, lngMax: 1, latMax: 1, agua: new Uint8Array([1]) }
+  it("grade nacional (3600 m/celula) ganha piso de 2 celulas", () => {
+    expect(raioSnapCelulas({ ...base, metrosPorCelula: 3600 })).toBe(2)
+  })
+  it("grade fina (100 m/celula) segue com 10 celulas — 1 km, sem mudanca", () => {
+    expect(raioSnapCelulas({ ...base, metrosPorCelula: 100 })).toBe(10)
   })
 })

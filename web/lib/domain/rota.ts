@@ -40,10 +40,16 @@ const RAIO_SNAP_METROS = 1000
 /** Fallback para grades sinteticas (testes), que nao tem resolucao metrica. */
 const RAIO_SNAP_CELULAS_SEM_ESCALA = 20
 
-/** Alcance do snap em celulas, a partir da resolucao real da grade. */
-function raioSnapCelulas(g: Grade): number {
+/** Alcance do snap em celulas, a partir da resolucao real da grade.
+ *  Piso de 2 celulas (nao 1): na grade nacional (3,6 km/celula) o raio de
+ *  1 km arredondava pra UMA celula e quem pedia rota de casa (terra firme,
+ *  primeiro teste real de iPhone em producao, 12/08/2026) nunca alcancava a
+ *  agua — "sem caminho" mentiroso. Duas celulas dao ~7 km na grade grossa,
+ *  o bastante pra sair de um bairro costeiro ate o mar; a fina nao muda
+ *  (10 celulas de 100 m). Exportada pra teste. */
+export function raioSnapCelulas(g: Grade): number {
   if (!g.metrosPorCelula) return RAIO_SNAP_CELULAS_SEM_ESCALA
-  return Math.max(1, Math.round(RAIO_SNAP_METROS / g.metrosPorCelula))
+  return Math.max(2, Math.round(RAIO_SNAP_METROS / g.metrosPorCelula))
 }
 
 // custo octile: D para passo ortogonal, D2 para diagonal
