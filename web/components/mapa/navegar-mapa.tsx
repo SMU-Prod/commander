@@ -1360,7 +1360,14 @@ export function NavegarMapa({
           nada"). Em fluxo, nada se sobrepõe, com ou sem destino. */}
       <div className="pointer-events-none absolute inset-x-3 bottom-12 z-20 flex flex-col items-end gap-2">
         {/* Definir destino / Planejar viagem / Fundeei: recolhem no modo "só
-            navegação" (onda 23) — mesmo wrapper CSS-only do topo. */}
+            navegação" (onda 23) — mesmo wrapper CSS-only do topo.
+            Onda 24 (passe de arte, bloco 6) — hierarquia: dourado é SÓ pra
+            ação primária em curso (aqui, "Definir destino" ativo — as
+            outras primárias da tela, "Iniciar gravação"/"Armar alarme",
+            já eram douradas antes); toda ação secundária vira "navy-
+            fantasma" — mesma superfície translúcida dos cartões de
+            instrumento (bloco 2), só em formato de pílula. Vermelho fica
+            reservado só pro MOB (ver abaixo). */}
         <div aria-hidden={modoSoNavegacao} className={`${classeColapsavel("baixo")} items-end`}>
           {mapaPronto && (
             <button
@@ -1368,7 +1375,9 @@ export function NavegarMapa({
               onClick={() => setModoDefinirDestino((v) => !v)}
               aria-pressed={modoDefinirDestino}
               className={`sombra-2 flex h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-medium backdrop-blur ${
-                modoDefinirDestino ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel/95 text-dim"
+                modoDefinirDestino
+                  ? "border-accent bg-accent text-acao-texto"
+                  : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
               }`}
             >
               <Icone nome="mapa" className="size-4" />
@@ -1385,7 +1394,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => router.push("/navegar/viagem/nova")}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-3 text-sm font-medium text-dim backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
             >
               <Icone nome="estrela" className="size-4" />
               Planejar viagem
@@ -1396,7 +1405,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => setArmandoAncora(true)}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-3 text-sm font-medium text-dim backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
             >
               <Icone nome="ancora" className="size-4" />
               Fundeei
@@ -1454,9 +1463,12 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={desarmarAncora}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-3 text-sm font-medium backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
             >
-              <Icone nome="ancora" className="size-4 text-accent-forte" />
+              {/* text-accent (não accent-forte, que troca de tom por tema e
+                  perderia contraste aqui) sinaliza "âncora armada" mesmo
+                  dentro do chrome secundário navy-fantasma. */}
+              <Icone nome="ancora" className="size-4 text-accent" />
               Desarmar âncora
             </button>
           )}
@@ -1477,7 +1489,7 @@ export function NavegarMapa({
             onClick={() => setModoSoNavegacao((v) => !v)}
             aria-pressed={modoSoNavegacao}
             aria-label={modoSoNavegacao ? "Sair do modo só navegação" : "Modo só navegação"}
-            className="sombra-2 flex size-11 items-center justify-center rounded-full border border-line bg-panel/95 text-dim backdrop-blur"
+            className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto backdrop-blur"
           >
             <span aria-hidden="true" className="flex items-center">
               <Icone nome="chevron" className={`size-4 ${modoSoNavegacao ? "rotate-180" : ""}`} />
