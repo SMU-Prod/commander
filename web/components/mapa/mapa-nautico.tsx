@@ -536,6 +536,13 @@ export function MapaNautico({
           positionOptions: { enableHighAccuracy: true },
           trackUserLocation: true,
           showUserHeading: true,
+          // Onda 24 (passe de arte) — o ponto azul default vira o marcador
+          // de embarcação da marca (proa dourada + halo navy, rotacionada
+          // pelo rumo do GPS): desenhado por quem usa este componente (ver
+          // criarElementoBarco em navegar-mapa.tsx). Aqui só desliga o
+          // marcador NATIVO do Mapbox — o botão continua funcionando normal
+          // (pedir permissão, centralizar o mapa na posição).
+          showUserLocation: false,
           fitBoundsOptions: { maxZoom: 14 },
         }),
         "top-right",

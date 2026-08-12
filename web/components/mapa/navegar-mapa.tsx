@@ -112,6 +112,66 @@ const TRACADO_ICONE_PARCEIRO: Record<NomeIconeParceiro, string> = {
 // Mesmo esquema do MOB — cópia estática do <path> de "alerta" em icone.tsx.
 const TRACADO_MOB = '<path d="M6 16V10a6 6 0 0 1 12 0v6l2 3H4l2-3zM10 19a2 2 0 0 0 4 0"/>'
 
+// Onda 24 (passe de arte) — proa do marcador do PRÓPRIO barco: kite simples
+// (bico fino em cima, base mais larga embaixo), a mesma leitura de seta de
+// navegação dos apps sérios. Cópia estática pelo mesmo motivo do resto deste
+// arquivo — marcador do Mapbox é DOM puro via innerHTML, não React.
+const TRACADO_PROA_BARCO = '<path d="M12 3 19 19 12 15 5 19Z"/>'
+
+/** Marcador do PRÓPRIO barco — Onda 24: substitui o ponto azul default do
+ *  GeolocateControl (desligado via `showUserLocation: false` em
+ *  MapaNautico — ver comentário lá) por um marcador da marca. Com rumo do
+ *  GPS conhecido (`coords.heading`, curso sobre o fundo — só existe com o
+ *  barco em movimento e o navegador expondo o dado) mostra uma proa dourada
+ *  rotacionada; sem rumo, cai pro ponto neutro (círculo sem seta nenhuma) —
+ *  nunca finge uma direção que não existe, mesmo espírito honesto do resto
+ *  da tela (ver `destinoAproximado`). O halo navy por trás é sempre visível,
+ *  com ou sem rumo — o pulso sutil dele é onda 24 também (ver
+ *  `.marcador-barco-halo` em app/globals.css). Elemento criado uma ÚNICA vez
+ *  (ver efeitos de montagem/atualização mais abaixo) — `atualizarRumoBarco`
+ *  só alterna estilo inline a cada tick do watcher, nunca recria o DOM. */
+function criarElementoBarco(): HTMLDivElement {
+  const el = document.createElement("div")
+  el.setAttribute("aria-hidden", "true")
+  el.className = "relative flex size-8 items-center justify-center"
+
+  const halo = document.createElement("span")
+  halo.className = "marcador-barco-halo absolute -inset-2.5 rounded-full bg-[#0B1D2D]/60"
+  el.appendChild(halo)
+
+  // proa: visível com rumo conhecido, rotacionada via transform inline
+  const proa = document.createElement("div")
+  proa.dataset.papel = "proa"
+  proa.className = "relative flex size-7 items-center justify-center rounded-full bg-[#D4AF37] ring-2 ring-white shadow"
+  proa.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="#0B1D2D">${TRACADO_PROA_BARCO}</svg>`
+  el.appendChild(proa)
+
+  // ponto: visível sem rumo (parado, ou o navegador não expõe o dado) —
+  // mesma cor da marca, sem seta nenhuma pra não inventar uma direção.
+  const ponto = document.createElement("div")
+  ponto.dataset.papel = "ponto"
+  ponto.className = "relative hidden size-4 rounded-full bg-[#D4AF37] ring-2 ring-white shadow"
+  el.appendChild(ponto)
+
+  return el
+}
+
+/** Alterna entre proa (rotacionada) e ponto neutro no elemento acima, sem
+ *  recriar DOM nenhum — chamado a cada novo ponto do watcher. */
+function atualizarRumoBarco(el: HTMLDivElement, rumo: number | null) {
+  const proa = el.querySelector<HTMLElement>('[data-papel="proa"]')
+  const ponto = el.querySelector<HTMLElement>('[data-papel="ponto"]')
+  if (!proa || !ponto) return
+  if (rumo != null) {
+    proa.style.display = ""
+    proa.style.transform = `rotate(${rumo}deg)`
+    ponto.style.display = "none"
+  } else {
+    proa.style.display = "none"
+    ponto.style.display = ""
+  }
+}
+
 /** Elemento DOM do pino de um parceiro — fundo e ícone são a cor/ícone que o
  *  PRÓPRIO parceiro escolheu (onda 10, Pedido 2), nunca mais fixos por
  *  categoria. Ícone sempre branco (contraste com qualquer cor da paleta
@@ -343,6 +403,10 @@ export function NavegarMapa({
   // --- posição sempre ativa: SOG (coords.speed) + posição atual p/ rumo/âncora
   const [sogKt, setSogKt] = useState<number | null>(null)
   const [posAtual, setPosAtual] = useState<Coord | null>(null)
+  // Onda 24: rumo do GPS (curso sobre o fundo, coords.heading) — alimenta só
+  // o marcador do próprio barco (ver criarElementoBarco). Setado no MESMO
+  // watcher de sempre, não abre nenhuma escuta nova.
+  const [headingGraus, setHeadingGraus] = useState<number | null>(null)
 
   // --- alarme de âncora: declarado ANTES do watcher, que é quem o avalia ---
   // "garrando" nasce no watcher com filtro anti-jitter — matemática pura via
@@ -374,6 +438,11 @@ export function NavegarMapa({
         const atual: Coord = { la: p.coords.latitude, lo: p.coords.longitude }
         setPosAtual(atual)
         setSogKt(msParaNos(p.coords.speed))
+        // Onda 24 — rumo pelo GPS pro marcador do próprio barco: NaN (barco
+        // parado, conforme a spec do coords.heading) ou null (sem suporte)
+        // colapsam os dois pra "sem rumo conhecido" (círculo neutro, nunca
+        // seta fingindo uma direção).
+        setHeadingGraus(typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null)
 
         // Alarme de âncora com filtro anti-jitter (achado da revisão): uma
         // única leitura ruim de GPS não pode acordar ninguém a bordo.
@@ -618,6 +687,48 @@ export function NavegarMapa({
       marcadoresRef.current = []
     }
   }, [mapaPronto, parceiros, mostrarParceiros])
+
+  // Marcador do PRÓPRIO barco (onda 24, ver criarElementoBarco) — criado uma
+  // única vez quando o mapa fica pronto (o elemento é estável); o efeito
+  // seguinte só move/rotaciona a cada novo ponto do watcher, nunca recria —
+  // recriar a cada tick (poucos segundos) reiniciaria o pulso do halo e
+  // poderia piscar.
+  const barcoElRef = useRef<HTMLDivElement | null>(null)
+  const barcoMarcadorRef = useRef<MarcadorMapbox | null>(null)
+  useEffect(() => {
+    if (!mapaPronto) return
+    let cancelado = false
+    let marcadorCriado: MarcadorMapbox | null = null
+    import("mapbox-gl").then(({ default: mapboxgl }) => {
+      if (cancelado) return
+      const el = criarElementoBarco()
+      barcoElRef.current = el
+      marcadorCriado = new mapboxgl.Marker({ element: el, anchor: "center" })
+      barcoMarcadorRef.current = marcadorCriado
+    })
+    return () => {
+      cancelado = true
+      marcadorCriado?.remove()
+      barcoElRef.current = null
+      barcoMarcadorRef.current = null
+    }
+  }, [mapaPronto])
+
+  // Posição/rotação do marcador do barco — atualizado a cada tick do watcher
+  // (posAtual/headingGraus). Só entra no mapa quando há posição; some se o
+  // GPS for perdido no meio do caminho (raro, mas mantém a tela honesta).
+  useEffect(() => {
+    const marcador = barcoMarcadorRef.current
+    const el = barcoElRef.current
+    if (!marcador || !el) return
+    if (!posAtual) {
+      marcador.remove()
+      return
+    }
+    atualizarRumoBarco(el, headingGraus)
+    marcador.setLngLat([posAtual.lo, posAtual.la])
+    if (mapaPronto) marcador.addTo(mapaPronto)
+  }, [posAtual, headingGraus, mapaPronto])
 
   // Modo "definir destino": próximo toque no mapa vira o destino.
   useEffect(() => {
