@@ -91,6 +91,13 @@ export interface Evento {
   tripulacao: string[]
   mar_onda_m: number | null
   mar_vento_kt: number | null
+  /** saída criada por importação de GPX do plotter (onda 21), não gravada ao vivo. */
+  importado_do_plotter: boolean
+  /** true quando o GPX original não tinha horário em algum ponto — duração/velocidade
+   *  não são exibidas pra essa saída (seriam fabricadas), só a distância. */
+  trilha_sem_horario: boolean
+  /** fingerprint da trilha original — usado só pra detectar reimportação, nunca exibido. */
+  origem_hash: string | null
   created_at: string
 }
 
