@@ -160,8 +160,14 @@ class ControleCamadas implements IControl {
     const botao = document.createElement("button")
     botao.type = "button"
     botao.setAttribute("aria-label", "Camadas do mapa")
+    // Onda 24 (passe de arte, bloco 3) — o resto do grupo (.mapboxgl-ctrl-icon
+    // dos controles NATIVOS do Mapbox) vira claro via filter:invert em
+    // globals.css; este ícone é SVG inline nosso, não usa essa classe, então
+    // o traço muda direto pra cor clara (#e9f1f8, literal — mesmo motivo do
+    // resto deste arquivo/navegar-mapa.tsx: sem CSS var confiável dentro de
+    // um innerHTML fora do Tailwind).
     botao.innerHTML =
-      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#333" stroke-width="1.7" ' +
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e9f1f8" stroke-width="1.7" ' +
       'stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
     botao.addEventListener("click", () => this.aoClicar())
     container.appendChild(botao)
@@ -536,6 +542,13 @@ export function MapaNautico({
           positionOptions: { enableHighAccuracy: true },
           trackUserLocation: true,
           showUserHeading: true,
+          // Onda 24 (passe de arte) — o ponto azul default vira o marcador
+          // de embarcação da marca (proa dourada + halo navy, rotacionada
+          // pelo rumo do GPS): desenhado por quem usa este componente (ver
+          // criarElementoBarco em navegar-mapa.tsx). Aqui só desliga o
+          // marcador NATIVO do Mapbox — o botão continua funcionando normal
+          // (pedir permissão, centralizar o mapa na posição).
+          showUserLocation: false,
           fitBoundsOptions: { maxZoom: 14 },
         }),
         "top-right",

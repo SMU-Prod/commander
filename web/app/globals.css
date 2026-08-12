@@ -64,12 +64,33 @@
   --color-meter: var(--meter);
   --color-meter-texto: var(--meter-texto);
   --color-meter-dim: var(--meter-dim);
+  --color-mapa-instrumento: var(--mapa-instrumento);
+  --color-mapa-instrumento-borda: var(--mapa-instrumento-borda);
   --font-mono-instr: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
 }
 
-/* Dentro do horímetro (cartucho escuro nos dois temas), o semáforo usa as
-   luzes vivas do dark para manter contraste sobre o fundo de instrumento. */
-.bg-meter {
+/* Onda 24 (passe de arte, /navegar) — cartões flutuantes sobre o mapa
+   (Trilha, Sondagem, painel de rota) ganham identidade de "instrumento de
+   ponte": navy translúcido + blur, sempre a MESMA cor em cima do mapa
+   náutico claro OU do satélite escuro — não segue o tema claro/escuro do
+   APP (--superficie), porque aqui embaixo tem mapa, não a superfície de
+   sempre. Mesmo navy de --meter, alpha próprio (não reaproveita --meter
+   direto: o INTERIOR dos mostradores "cartão" já usa --meter sólido — a
+   casca precisa de uma sombra mais rasa pra dar profundidade sem competir
+   com os próprios mostradores dentro dela). .82→.88 de opacidade: precisa
+   ficar legível mesmo sobre um satélite com áreas claras (praia/areia) por
+   baixo do blur. */
+:root {
+  --mapa-instrumento: rgb(11 29 45 / .88);
+  --mapa-instrumento-borda: rgb(233 241 248 / .14);
+}
+
+/* Dentro do horímetro (cartucho escuro nos dois temas) e dos cartões de
+   instrumento acima (mesmo raciocínio, mesmo navy fixo), o semáforo usa as
+   luzes vivas do dark para manter contraste sobre o fundo escuro — sem
+   isso, o --warn/--crit do tema CLARO (calibrados pra ler sobre superfície
+   clara) ficariam escuro-sobre-escuro aqui dentro. */
+.bg-meter, .bg-mapa-instrumento {
   --ok: #2fd07a;
   --warn: #ffb020;
   --crit: #ff5c5c;
@@ -133,6 +154,66 @@ body {
 }
 [data-theme="dark"] :focus-visible { outline-color: var(--acao); }
 
+/* Onda 24 (passe de arte, bloco 3) — skin dos controles NATIVOS do Mapbox
+   (zoom, bússola, locate — e o botão "Camadas" do próprio Commander, que já
+   entra no mesmo grupo visual, ver ControleCamadas em mapa-nautico.tsx) pra
+   ficarem na mesma linguagem dos cartões flutuantes: fundo navy translúcido,
+   ícones claros, mesma elevação. O Mapbox monta esse DOM sozinho (sem hook
+   de estilo do lado de fora) — vestir via CSS global é o único jeito de
+   alcançar esse markup sem recriar os controles, exatamente o pedido da
+   task. Mesmos tokens --mapa-instrumento/--mapa-instrumento-borda dos
+   cartões — fixo, não segue o tema (os controles ficam sempre sobre o mapa,
+   nunca sobre --superficie). `!important` só onde o mapbox-gl.css importado
+   tem especificidade própria que senão venceria a cascata. */
+.mapboxgl-ctrl-group {
+  background: var(--mapa-instrumento) !important;
+  border: 1px solid var(--mapa-instrumento-borda);
+  border-radius: 10px !important;
+  box-shadow: var(--sombra-2);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.mapboxgl-ctrl-group button {
+  /* Tamanho NÃO mexido de propósito (fica nos 32px default do mapbox-gl.css)
+     — os sprites dos ícones são posicionados/dimensionados pelo próprio
+     mapbox-gl.css contra esse tamanho; sobrescrever aqui desalinharia. */
+  background: transparent !important;
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid var(--mapa-instrumento-borda);
+}
+.mapboxgl-ctrl-group button:not(:disabled):hover {
+  background-color: rgb(255 255 255 / .08) !important;
+}
+/* Ícones default do Mapbox (zoom, bússola, e o estado NEUTRO/cinza do
+   locate) são sprites escuros pensados pro fundo claro de sempre; inverter
+   é o jeito padrão de virar claro-sobre-escuro sem recriar cada ícone.
+   Os estados coloridos do botão "locate" (azul = rastreando, vermelho =
+   erro) também passam pelo filtro — mudam de matiz (não ficam
+   cinza/ilegíveis, continuam claramente diferentes um do outro), mas não
+   valeu a pena recriar os data-URIs deles só por causa disso: o essencial
+   (zoom/bússola/locate legíveis e no mesmo idioma dos cartões) já fica
+   resolvido pelo estado default, que é o que aparece 99% do tempo. */
+.mapboxgl-ctrl-icon {
+  filter: invert(1) brightness(1.7);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* Onda 24 (passe de arte, bloco 5) — pulso lento do halo no marcador do
+   próprio barco (ver criarElementoBarco em navegar-mapa.tsx): sutil, 2s,
+   sinaliza "isso é você" sem chamar mais atenção que o resto do mapa. Só a
+   opacidade/escala do halo pulsam — a proa dourada em cima fica parada, o
+   rumo dela é informação, não decoração. A regra `prefers-reduced-motion`
+   ACIMA já zera `animation-duration` de QUALQUER seletor (wildcard `*`),
+   então esta animação nova já nasce coberta — nenhuma regra extra
+   necessária aqui. */
+@keyframes pulso-halo-barco {
+  0%, 100% { transform: scale(1); opacity: .55; }
+  50% { transform: scale(1.35); opacity: .15; }
+}
+.marcador-barco-halo {
+  animation: pulso-halo-barco 2s ease-in-out infinite;
 }
