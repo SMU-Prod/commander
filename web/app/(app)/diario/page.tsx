@@ -5,6 +5,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
+import { resumoTrilha } from "@/lib/domain/geo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Contato, Evento } from "@/lib/db/types"
 
@@ -27,7 +28,7 @@ export default async function DiarioPage({
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
     supabase.from("eventos")
-      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, tem_trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt")
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt")
       .eq("embarcacao_id", painel.embarcacao.id)
       .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
     supabase.from("contatos").select("id, nome"),
@@ -114,16 +115,24 @@ export default async function DiarioPage({
                 e.custo_centavos != null ? formatarReais(e.custo_centavos) : null,
               ].filter(Boolean).join(" · ")
               const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
-              // Ficha da saida (Livro de Bordo): duracao, destino, quem estava a
-              // bordo e a condicao do mar registrada no momento — so pra navegacao.
-              const duracaoEvento = e.tipo === "navegacao" ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
+              // A saida vira feed de atividade (onda 18): cartao inteiro leva pra
+              // /diario/[id] (mapa da trilha + painel de numeros + compartilhar).
+              // Os demais tipos de registro continuam exatamente como estavam —
+              // nao e tudo que e "atividade".
+              const ehSaida = e.tipo === "navegacao"
+              const duracaoEvento = ehSaida ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
+              // Trilha ja vem selecionada na query (poucas saidas por barco —
+              // custo aceitavel pra ter distancia real no feed sem outra ida
+              // ao banco); so soma quando tem pontos suficientes de verdade.
+              const trilhaResumo = ehSaida && Array.isArray(e.trilha) && e.trilha.length >= 2
+                ? resumoTrilha(e.trilha)
+                : null
               const tripNomes = (e.tripulacao ?? [])
                 .map((id) => nomePerfil.get(id))
                 .filter((n): n is string => Boolean(n))
               const temMar = e.mar_onda_m != null || e.mar_vento_kt != null
-              const detalhesSaida = e.tipo === "navegacao"
+              const detalhesSaida = ehSaida
                 ? [
-                    duracaoEvento != null ? textoDuracao(duracaoEvento) : null,
                     e.destino,
                     tripNomes.length > 0 ? tripNomes.join(", ") : null,
                     temMar
@@ -131,14 +140,22 @@ export default async function DiarioPage({
                       : null,
                   ].filter(Boolean).join(" · ")
                 : ""
-              return (
-                <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
+              // Mini indicacao visual do feed: distancia (so com trilha) e/ou
+              // duracao — nunca inventa o que a saida nao tem.
+              const badgeAtividade = ehSaida
+                ? [
+                    trilhaResumo ? `${trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN` : null,
+                    duracaoEvento != null ? textoDuracao(duracaoEvento) : null,
+                  ].filter(Boolean).join(" · ")
+                : ""
+              const conteudo = (
+                <>
                   <div className="w-11 shrink-0 text-center font-mono-instr tabular-nums text-[11px] leading-tight text-dim">
                     <span className="block text-base text-texto">{e.data.slice(8, 10)}</span>
                     {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
                       .format(new Date(`${e.data}T00:00:00Z`)).replace(".", "")}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="titulo-card">
                       {TIPO_ROTULO[e.tipo] ?? e.tipo}
                       {eq
@@ -155,20 +172,28 @@ export default async function DiarioPage({
                     </p>
                     {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
                     {detalhesSaida && <p className="apoio mt-0.5 text-dim">{detalhesSaida}</p>}
+                    {badgeAtividade && (
+                      <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-accent-forte">
+                        <Icone nome="mapa" className="size-3" /> {badgeAtividade}
+                      </p>
+                    )}
                     {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
-                    <div className="mt-1 flex gap-3">
-                      {urlAnexo && (
-                        <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="apoio text-accent-forte">
-                          Abrir anexo
-                        </a>
-                      )}
-                      {e.tem_trilha && (
-                        <Link href={`/diario/trilha/${e.id}`} className="apoio text-accent-forte">
-                          Ver trilha na carta
-                        </Link>
-                      )}
-                    </div>
+                    {urlAnexo && (
+                      <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block apoio text-accent-forte">
+                        Abrir anexo
+                      </a>
+                    )}
                   </div>
+                  {ehSaida && <Icone nome="chevron" className="size-4 shrink-0 self-center text-dim" />}
+                </>
+              )
+              return ehSaida ? (
+                <Link key={e.id} href={`/diario/${e.id}`} className="flex gap-3 border-b border-line py-3 last:border-0">
+                  {conteudo}
+                </Link>
+              ) : (
+                <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
+                  {conteudo}
                 </div>
               )
             })}
