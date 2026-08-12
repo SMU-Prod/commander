@@ -94,3 +94,76 @@ export function textoRestante(r: ResultadoCalc): string {
   if (d != null) partes.push(`${d} dias`)
   return partes.length > 0 ? `em ${partes.join(" ou ")}` : ""
 }
+
+/** Versão de uma linha só de `textoRestante`, pro hero de /hoje e pra lista
+ *  de "Manutenção próxima" (mockup do Pedro: "37h restantes", não "em 37 h
+ *  ou 298 dias" — ali sobra espaço, aqui não). Quando os dois prazos
+ *  existem, horas manda: é o dado mais preciso pra motor (fração direta do
+ *  intervalo), dias é a margem mais grosseira de documento/data. */
+export function textoRestanteCompacto(r: ResultadoCalc): string {
+  if (r.horasRestantes != null) {
+    return r.horasRestantes < 0
+      ? `vencido há ${Math.round(-r.horasRestantes)} h`
+      : `${Math.round(r.horasRestantes)}h restantes`
+  }
+  if (r.diasRestantes != null) {
+    return r.diasRestantes < 0
+      ? `vencido há ${-r.diasRestantes} dias`
+      : `${r.diasRestantes} dias restantes`
+  }
+  return "—"
+}
+
+/** Um item só entra no cálculo do anel de completude de /hoje quando há
+ *  dado real por trás do status: motor com intervalo + último ciclo +
+ *  leitura atual, OU uma data de vencimento (fixa, ou por ciclo + meses).
+ *  Espelha os mesmos candidatos que `calcularSemaforo` avalia internamente
+ *  — exposta à parte porque quem soma o anel precisa distinguir um "ok" de
+ *  verdade de um "ok" só por ausência de dado (regra de honestidade da
+ *  onda 16: item sem informação não conta nem a favor nem contra). */
+export function temInformacaoSuficiente(item: ItemCalc, horasAtuais: number | null): boolean {
+  const temHoras = item.intervaloHoras != null && item.ultimoCicloHoras != null && horasAtuais != null
+  const temData = vencimentoPorData(item) != null
+  return temHoras || temData
+}
+
+const FAIXAS_ANEL: { minimo: number; rotulo: string }[] = [
+  { minimo: 90, rotulo: "Ótimo" },
+  { minimo: 70, rotulo: "Bom" },
+  { minimo: 40, rotulo: "Atenção" },
+  { minimo: 0, rotulo: "Crítico" },
+]
+
+/** Rótulo central do anel de status geral de /hoje — faixas definidas e
+ *  testadas (espec da onda 16): ≥90 Ótimo, ≥70 Bom, ≥40 Atenção, senão
+ *  Crítico. */
+export function rotuloAnel(percentual: number): string {
+  return (FAIXAS_ANEL.find((f) => percentual >= f.minimo) ?? FAIXAS_ANEL[FAIXAS_ANEL.length - 1]).rotulo
+}
+
+export interface ResumoStatusGeral {
+  /** null quando nenhum item tem informação suficiente — o anel não aparece: vira convite pra cadastrar, nunca um 100% mentiroso */
+  percentual: number | null
+  rotulo: string | null
+  emDia: number
+  atencao: number
+  vencido: number
+  /** itens com informação suficiente — denominador do percentual */
+  total: number
+}
+
+/** Agrega o anel de status geral de /hoje a partir dos itens já avaliados
+ *  por `calcularSemaforo`, pareados com `temInformacaoSuficiente`. Itens
+ *  sem informação suficiente são excluídos do numerador E do denominador —
+ *  nunca contam como "em dia" por omissão. */
+export function resumoStatusGeral(
+  avaliacoes: { status: StatusFarol; temInformacao: boolean }[],
+): ResumoStatusGeral {
+  const comInfo = avaliacoes.filter((a) => a.temInformacao)
+  const emDia = comInfo.filter((a) => a.status === "ok").length
+  const atencao = comInfo.filter((a) => a.status === "atencao").length
+  const vencido = comInfo.filter((a) => a.status === "vencido").length
+  const total = comInfo.length
+  const percentual = total === 0 ? null : Math.round((emDia / total) * 100)
+  return { percentual, rotulo: percentual == null ? null : rotuloAnel(percentual), emDia, atencao, vencido, total }
+}

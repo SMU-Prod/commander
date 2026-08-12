@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone } from "@/components/icone"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { grupoDoEvento, TIPO_ROTULO } from "@/lib/domain/diario"
@@ -46,7 +47,6 @@ export default async function GastosPage() {
     }),
   }))
   const r = resumoGastos(entradas, hoje)
-  const maiorMes = Math.max(1, ...r.meses.map((m) => m.totalCentavos))
 
   return (
     <main>
@@ -82,17 +82,7 @@ export default async function GastosPage() {
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="grafico" className="size-3.5" /> Últimos 6 meses
       </p>
-      <div className="sombra-1 flex items-end gap-2 rounded-[14px] border border-line bg-panel p-4" style={{ height: 132 }}>
-        {r.meses.map((m) => (
-          <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
-            <div
-              className={`w-full rounded-t ${m.mes === hoje.slice(0, 7) ? "bg-accent-forte" : "bg-panel2 border border-line"}`}
-              style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
-            />
-            <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
-          </div>
-        ))}
-      </div>
+      <GraficoMesesGastos meses={r.meses} mesAtual={hoje.slice(0, 7)} />
 
       <p className="rotulo text-dim mt-6 mb-2">Lançamentos recentes</p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">

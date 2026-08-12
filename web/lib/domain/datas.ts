@@ -28,3 +28,34 @@ export function tempoRelativo(epocaMs: number, agoraMs: number = Date.now()): st
   const diffD = Math.round(diffH / 24)
   return `há ${diffD} d`
 }
+
+function diaSP(data: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(data)
+}
+
+/** "Hoje, 08:30" / "Ontem, 08:30" / "20/08, 08:30" — carimbo da leitura mais
+ *  recente pro hero de /hoje (regra de honestidade: só chama quando existe
+ *  leitura real). Recebe `agora` explícito pra ser testável sem mockar
+ *  relógio, mesmo espírito de `tempoRelativo`. Compara datas em SP (não em
+ *  UTC): sem isso, madrugada UTC vira "ontem" mesmo sendo "hoje" na marina
+ *  (Brasil não tem horário de verão desde 2019, mas o fuso segue UTC-3). */
+export function formatarCarimbo(iso: string, agora: Date = new Date()): string {
+  const quando = new Date(iso)
+  const hora = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo",
+  }).format(quando)
+
+  const diaQuando = diaSP(quando)
+  const diaAgora = diaSP(agora)
+  if (diaQuando === diaAgora) return `Hoje, ${hora}`
+
+  const [y, m, d] = diaAgora.split("-").map(Number)
+  // Meio-dia UTC do dia anterior evita qualquer virada de fuso ao formatar de novo em SP.
+  const diaOntem = diaSP(new Date(Date.UTC(y, m - 1, d - 1, 12)))
+  if (diaQuando === diaOntem) return `Ontem, ${hora}`
+
+  const dataCurta = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo",
+  }).format(quando)
+  return `${dataCurta}, ${hora}`
+}

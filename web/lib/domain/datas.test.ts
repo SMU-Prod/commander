@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { horaSP, tempoRelativo } from "./datas"
+import { formatarCarimbo, horaSP, tempoRelativo } from "./datas"
 
 describe("horaSP", () => {
   it("converte epoch em HH:MM no fuso de Sao Paulo (UTC-3)", () => {
@@ -32,5 +32,28 @@ describe("tempoRelativo", () => {
   })
   it("instante no futuro (relógio ligeiramente dessincronizado) não vira negativo", () => {
     expect(tempoRelativo(agora + 5_000, agora)).toBe("agora mesmo")
+  })
+})
+
+describe("formatarCarimbo — carimbo do hero de /hoje ('Última atualização')", () => {
+  // agora = 2026-08-11 12:00 em SP (15:00 UTC)
+  const agora = new Date(Date.UTC(2026, 7, 11, 15, 0, 0))
+
+  it("mesmo dia em SP: 'Hoje, HH:MM'", () => {
+    const iso = new Date(Date.UTC(2026, 7, 11, 11, 30, 0)).toISOString() // 08:30 SP
+    expect(formatarCarimbo(iso, agora)).toBe("Hoje, 08:30")
+  })
+  it("dia anterior em SP: 'Ontem, HH:MM'", () => {
+    const iso = new Date(Date.UTC(2026, 7, 10, 20, 0, 0)).toISOString() // 17:00 SP do dia 10
+    expect(formatarCarimbo(iso, agora)).toBe("Ontem, 17:00")
+  })
+  it("mais de 2 dias: 'DD/MM, HH:MM'", () => {
+    const iso = new Date(Date.UTC(2026, 7, 6, 12, 0, 0)).toISOString() // 09:00 SP do dia 06
+    expect(formatarCarimbo(iso, agora)).toBe("06/08, 09:00")
+  })
+  it("virada de dia por fuso: madrugada UTC ainda é 'hoje' em SP (mesmo cuidado de horaSP)", () => {
+    const agoraDeMadrugada = new Date(Date.UTC(2026, 7, 11, 2, 0, 0)) // 23:00 SP do dia 10
+    const iso = new Date(Date.UTC(2026, 7, 11, 1, 30, 0)).toISOString() // 22:30 SP do dia 10 — mesmo dia em SP
+    expect(formatarCarimbo(iso, agoraDeMadrugada)).toBe("Hoje, 22:30")
   })
 })
