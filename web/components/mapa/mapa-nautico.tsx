@@ -313,6 +313,15 @@ export function MapaNautico({
         style: ESTILO_URL[estiloInicial],
         center: CENTRO_PADRAO,
         zoom: 10,
+        // Projecao PLANA sempre (feedback do dono, 11/08/2026): o globo
+        // padrao do GL JS v3 nao combina com navegacao costeira e custa
+        // renderizacao. Projecao de runtime vence a do estilo e sobrevive
+        // ao setStyle das trocas Nautico/Satelite/Relevo.
+        projection: "mercator",
+        // Sem crossfade de tile: zoom responde na hora em vez de esperar
+        // o fade de 300ms — a sensacao de fluidez que faltava, sobretudo
+        // com as camadas raster (batimetria + OpenSeaMap) por cima.
+        fadeDuration: 0,
         // já nasce inclinado se "relevo3d" veio do localStorage — evita um
         // salto de câmera visível logo após o primeiro paint.
         pitch: PITCH_ESTILO[estiloInicial],
