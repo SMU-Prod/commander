@@ -1141,7 +1141,9 @@ export function NavegarMapa({
   // entao nao precisa repetir a logica aqui.
   function classeColapsavel(direcaoSaida: "cima" | "baixo"): string {
     const translate = direcaoSaida === "cima" ? "-translate-y-1" : "translate-y-1"
-    return `flex flex-col gap-2 overflow-hidden transition-all duration-300 ${
+    // Onda 24 (passe de arte, bloco 5): 300ms → 200ms — "tremor zero" pedia
+    // uma transição mais seca, ainda suave o bastante pra não ser um corte.
+    return `flex flex-col gap-2 overflow-hidden transition-all duration-200 ${
       modoSoNavegacao ? `pointer-events-none max-h-0 ${translate} opacity-0` : "pointer-events-auto max-h-[999px] translate-y-0 opacity-100"
     }`
   }
@@ -1336,7 +1338,7 @@ export function NavegarMapa({
         // não teria contraste garantido sobre --superficie no tema claro.
         <div
           aria-hidden={!modoSoNavegacao}
-          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 backdrop-blur transition-all duration-300 ${
+          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 backdrop-blur transition-all duration-200 ${
             garrando ? "top-16" : "top-3"
           } ${modoSoNavegacao ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"}`}
         >
@@ -1488,7 +1490,7 @@ export function NavegarMapa({
             onClick={acionarMob}
             disabled={!posAtual}
             aria-label="Homem ao mar"
-            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full bg-crit font-bold text-white transition-all duration-300 disabled:opacity-50 ${
+            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full bg-crit font-bold text-white transition-all duration-200 disabled:opacity-50 ${
               modoSoNavegacao ? "w-11 px-0" : "px-4 text-sm"
             }`}
           >

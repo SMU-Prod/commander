@@ -201,3 +201,19 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Onda 24 (passe de arte, bloco 5) — pulso lento do halo no marcador do
+   próprio barco (ver criarElementoBarco em navegar-mapa.tsx): sutil, 2s,
+   sinaliza "isso é você" sem chamar mais atenção que o resto do mapa. Só a
+   opacidade/escala do halo pulsam — a proa dourada em cima fica parada, o
+   rumo dela é informação, não decoração. A regra `prefers-reduced-motion`
+   ACIMA já zera `animation-duration` de QUALQUER seletor (wildcard `*`),
+   então esta animação nova já nasce coberta — nenhuma regra extra
+   necessária aqui. */
+@keyframes pulso-halo-barco {
+  0%, 100% { transform: scale(1); opacity: .55; }
+  50% { transform: scale(1.35); opacity: .15; }
+}
+.marcador-barco-halo {
+  animation: pulso-halo-barco 2s ease-in-out infinite;
+}
