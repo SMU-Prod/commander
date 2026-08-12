@@ -207,11 +207,17 @@ export function SondagemPainel() {
   const totalGuardado = fila.pendentes + fila.emVoo
   const usaNativo = transporteAtivoNome() === "nativo"
 
-  const mostrador = "rounded-[10px] border border-line bg-meter px-3 py-2 font-mono-instr tabular-nums text-meter-texto"
+  // Onda 24 (passe de arte) — mesma casca "instrumento de ponte" do resto do
+  // /navegar (ver comentário grande em Mostrador, navegar-mapa.tsx): navy
+  // translúcido fixo (--mapa-instrumento), valores em dourado (text-accent —
+  // não accent-forte, que troca com o tema e perderia contraste aqui
+  // dentro), texto em meter-texto/meter-dim (não texto/dim, calibrados pra
+  // --superficie, não pra este fundo fixo).
+  const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
   const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
 
   return (
-    <div className="sombra-2 overflow-hidden rounded-[14px] border border-line bg-panel/95 backdrop-blur">
+    <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto backdrop-blur">
       <button
         type="button"
         onClick={() => setPainelAberto((v) => !v)}
@@ -219,8 +225,8 @@ export function SondagemPainel() {
         className="flex w-full items-center justify-between px-4 py-3"
       >
         <span className="flex items-center gap-2">
-          <Icone nome="sonar" className={`size-4 ${coletando ? "text-accent" : "text-dim"}`} />
-          <span className="titulo-card">
+          <Icone nome="sonar" className={`size-4 ${coletando ? "text-accent" : "text-meter-dim"}`} />
+          <span className="titulo-card uppercase tracking-[.04em]">
             {coletando
               ? `Sondando — ${qtdLeituras} leitura${qtdLeituras === 1 ? "" : "s"}`
               : totalGuardado > 0
@@ -230,13 +236,13 @@ export function SondagemPainel() {
         </span>
         <Icone
           nome="chevron"
-          className={`size-4 text-dim transition-transform ${painelAberto ? "-rotate-90" : "rotate-90"}`}
+          className={`size-4 text-meter-dim transition-transform ${painelAberto ? "-rotate-90" : "rotate-90"}`}
         />
       </button>
 
       {painelAberto && (
-        <div className="border-t border-line px-4 pb-4 pt-3">
-          <p className="apoio text-dim">
+        <div className="border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
+          <p className="apoio text-meter-dim">
             Cada leitura do seu ecobatímetro, com a posição do GPS, ajuda a completar o mapa colaborativo — como o
             SonarChart do Navionics. É dado colaborativo bruto: melhora com o tempo e nunca substitui a carta
             náutica oficial. Sem sinal de celular no mar, cada leitura fica guardada no aparelho e sobe sozinha
@@ -247,7 +253,7 @@ export function SondagemPainel() {
             <>
               {!usaNativo && (
                 <div className="mt-3">
-                  <label htmlFor="signalk-url" className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">
+                  <label htmlFor="signalk-url" className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-meter-dim">
                     Servidor Signal K
                   </label>
                   <input
@@ -255,12 +261,14 @@ export function SondagemPainel() {
                     value={urlSignalK}
                     onChange={(e) => setUrlSignalK(e.target.value)}
                     placeholder={URL_SIGNALK_PADRAO}
-                    className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
+                    // texto explícito: bg-campo segue o TEMA (branco no
+                    // claro), então a cor do texto também precisa seguir
+                    className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
                   />
                 </div>
               )}
 
-              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-dim">
+              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-meter-dim">
                 <input
                   type="checkbox"
                   checked={consentimento}
@@ -286,26 +294,26 @@ export function SondagemPainel() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <div className={mostrador}>
                   <p className={etiqueta}>Profundidade</p>
-                  <p className="text-xl">
+                  <p className="text-xl text-accent">
                     {profundidadeAtualM != null ? profundidadeAtualM.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
                     <span className="text-sm text-meter-dim"> m</span>
                   </p>
                 </div>
                 <div className={mostrador}>
                   <p className={etiqueta}>Leituras</p>
-                  <p className="text-xl">{qtdLeituras}</p>
+                  <p className="text-xl text-accent">{qtdLeituras}</p>
                 </div>
                 <div className={mostrador}>
                   <p className={etiqueta}>Conexão</p>
-                  <p className="flex items-center gap-1 text-xs">
-                    <Icone nome="sinal" className={`size-3.5 ${statusConexao === "conectado" ? "text-accent" : "text-dim"}`} />
+                  <p className="flex items-center gap-1 text-xs text-meter-texto">
+                    <Icone nome="sinal" className={`size-3.5 ${statusConexao === "conectado" ? "text-accent" : "text-meter-dim"}`} />
                     {ROTULO_STATUS[statusConexao]}
                   </p>
                 </div>
               </div>
 
               {motivoRejeicao && (
-                <p className="mt-2 text-center text-xs text-dim">Não registrando agora: {motivoRejeicao}</p>
+                <p className="mt-2 text-center text-xs text-meter-dim">Não registrando agora: {motivoRejeicao}</p>
               )}
 
               <button
@@ -322,8 +330,8 @@ export function SondagemPainel() {
               continuar guardada esperando pra subir. Ninguém deve achar que
               perdeu a saída. */}
           {(totalGuardado > 0 || fila.ultimoEnvioEm != null) && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-line bg-panel px-3 py-2.5 text-sm text-dim">
-              <Icone nome="guardado" className="mt-0.5 size-4 shrink-0 text-dim" />
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
+              <Icone nome="guardado" className="mt-0.5 size-4 shrink-0 text-meter-dim" />
               <p>
                 {totalGuardado > 0 ? (
                   <>

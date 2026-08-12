@@ -64,12 +64,33 @@
   --color-meter: var(--meter);
   --color-meter-texto: var(--meter-texto);
   --color-meter-dim: var(--meter-dim);
+  --color-mapa-instrumento: var(--mapa-instrumento);
+  --color-mapa-instrumento-borda: var(--mapa-instrumento-borda);
   --font-mono-instr: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
 }
 
-/* Dentro do horímetro (cartucho escuro nos dois temas), o semáforo usa as
-   luzes vivas do dark para manter contraste sobre o fundo de instrumento. */
-.bg-meter {
+/* Onda 24 (passe de arte, /navegar) — cartões flutuantes sobre o mapa
+   (Trilha, Sondagem, painel de rota) ganham identidade de "instrumento de
+   ponte": navy translúcido + blur, sempre a MESMA cor em cima do mapa
+   náutico claro OU do satélite escuro — não segue o tema claro/escuro do
+   APP (--superficie), porque aqui embaixo tem mapa, não a superfície de
+   sempre. Mesmo navy de --meter, alpha próprio (não reaproveita --meter
+   direto: o INTERIOR dos mostradores "cartão" já usa --meter sólido — a
+   casca precisa de uma sombra mais rasa pra dar profundidade sem competir
+   com os próprios mostradores dentro dela). .82→.88 de opacidade: precisa
+   ficar legível mesmo sobre um satélite com áreas claras (praia/areia) por
+   baixo do blur. */
+:root {
+  --mapa-instrumento: rgb(11 29 45 / .88);
+  --mapa-instrumento-borda: rgb(233 241 248 / .14);
+}
+
+/* Dentro do horímetro (cartucho escuro nos dois temas) e dos cartões de
+   instrumento acima (mesmo raciocínio, mesmo navy fixo), o semáforo usa as
+   luzes vivas do dark para manter contraste sobre o fundo escuro — sem
+   isso, o --warn/--crit do tema CLARO (calibrados pra ler sobre superfície
+   clara) ficariam escuro-sobre-escuro aqui dentro. */
+.bg-meter, .bg-mapa-instrumento {
   --ok: #2fd07a;
   --warn: #ffb020;
   --crit: #ff5c5c;
