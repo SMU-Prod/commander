@@ -83,22 +83,46 @@ async function coletarViaTcp(porta: number, quantidade: number): Promise<string[
   })
 }
 
-async function coletarViaUdp(porta: number, quantidade: number): Promise<string[]> {
-  return new Promise((resolve, reject) => {
+/** Receptor UDP ligado ANTES do simulador nascer — a ordem importa: o
+ *  simulador envia uma quantidade exata de datagramas e sai; se o bind do
+ *  receptor acontecer depois do primeiro envio, o que se perdeu no comeco
+ *  nunca mais chega e a conta nao fecha. Era exatamente a corrida da
+ *  versao anterior (bind depois do spawn): passava com a maquina ociosa e
+ *  falhava deterministicamente com emulador + dev server rodando junto
+ *  (visto em 11/08/2026). Aqui o receptor pede porta efemera ao SO,
+ *  devolve o numero, e o simulador e apontado pra ela — sem corrida. */
+async function receptorUdp(
+  quantidade: number,
+): Promise<{ porta: number; linhas: Promise<string[]> }> {
+  return new Promise((resolveReceptor) => {
     const linhas: string[] = []
     const receptor = dgram.createSocket("udp4")
-    const timeout = setTimeout(() => reject(new Error("timeout coletando via UDP")), TIMEOUT_MS)
+    let resolverLinhas!: (l: string[]) => void
+    let rejeitarLinhas!: (e: Error) => void
+    const promessaLinhas = new Promise<string[]>((res, rej) => {
+      resolverLinhas = res
+      rejeitarLinhas = rej
+    })
+    const timeout = setTimeout(() => {
+      receptor.close()
+      rejeitarLinhas(new Error("timeout coletando via UDP"))
+    }, TIMEOUT_MS)
     receptor.on("message", (msg) => {
       const { linhas: novas } = separarLinhas(msg.toString("ascii") + "\n")
       linhas.push(...novas)
       if (linhas.length >= quantidade) {
         clearTimeout(timeout)
         receptor.close()
-        resolve(linhas.slice(0, quantidade))
+        resolverLinhas(linhas.slice(0, quantidade))
       }
     })
-    receptor.on("error", reject)
-    receptor.bind(porta)
+    receptor.on("error", (e) => {
+      clearTimeout(timeout)
+      rejeitarLinhas(e)
+    })
+    receptor.bind(0, () => {
+      resolveReceptor({ porta: (receptor.address() as { port: number }).port, linhas: promessaLinhas })
+    })
   })
 }
 
@@ -140,11 +164,12 @@ describe("simular-nmea.mjs (onda 14 — app nativo)", () => {
   it(
     "UDP: mesma garantia, agora contra datagramas de verdade (nao TCP com framing de stream)",
     async () => {
-      const { porta } = await spawnSimulador([
+      const { porta, linhas: promessaLinhas } = await receptorUdp(QUANTIDADE)
+      await spawnSimulador([
         "--modo",
         "udp",
         "--porta",
-        "0",
+        String(porta),
         "--destino",
         "127.0.0.1",
         "--intervalo",
@@ -154,7 +179,7 @@ describe("simular-nmea.mjs (onda 14 — app nativo)", () => {
         "--profundidade",
         "8",
       ])
-      const linhas = await coletarViaUdp(porta, QUANTIDADE)
+      const linhas = await promessaLinhas
 
       expect(linhas).toHaveLength(QUANTIDADE)
       for (const linha of linhas) {
