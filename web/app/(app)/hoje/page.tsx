@@ -1,16 +1,27 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
+import { AnelStatus } from "@/components/anel-status"
 import { Avatar } from "@/components/avatar"
-import { Farol } from "@/components/farol"
-import { CardEmbarcacao } from "@/components/card-embarcacao"
-import { Horimetro } from "@/components/horimetro"
+import { CardEmbarcacao, type MetricaHero } from "@/components/card-embarcacao"
+import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
-import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
+import {
+  calcularSemaforo,
+  PESO,
+  resumoStatusGeral,
+  temInformacaoSuficiente,
+  textoRestante,
+  textoRestanteCompacto,
+  type StatusFarol,
+} from "@/lib/domain/semaforo"
+import { formatarCarimbo } from "@/lib/domain/datas"
+import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
+import type { Equipamento } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -39,6 +50,11 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
   )
 }
 
+const ROTULO_DOC: Record<StatusFarol, string> = { ok: "Em dia", atencao: "Atenção", vencido: "Vencido" }
+
+const iconeEquipamento = (tipo: string): NomeIcone =>
+  tipo === "motor" ? "motor" : tipo === "bateria" ? "bateria" : "raio"
+
 export default async function HojePage({
   searchParams,
 }: {
@@ -47,25 +63,62 @@ export default async function HojePage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  const { embarcacao, equipamentos, itens, permissoes } = painel
+  const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
 
   const avaliados = itens
     .map((i) => {
-      const eq = equipamentos.find((e) => e.id === i.equipamento_id)
-      const r = calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje)
+      const eq = equipamentos.find((e) => e.id === i.equipamento_id) ?? null
+      const calc = itemMonitoradoToItemCalc(i)
+      const r = calcularSemaforo(calc, eq?.horas_atuais ?? null, hoje)
+      const temInformacao = temInformacaoSuficiente(calc, eq?.horas_atuais ?? null)
       const onde = eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome
-      return { item: i, r, onde }
+      return { item: i, eq, r, onde, temInformacao }
     })
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
 
   const alertas = avaliados.filter((a) => a.r.status !== "ok")
-  const contagem = {
-    vencido: avaliados.filter((a) => a.r.status === "vencido").length,
-    atencao: avaliados.filter((a) => a.r.status === "atencao").length,
-    ok: avaliados.filter((a) => a.r.status === "ok").length,
-  }
   const motores = equipamentos.filter((e) => e.tipo === "motor")
+
+  // Anel de status geral: matemática real derivada do MESMO farol de sempre.
+  // Itens sem informação suficiente não entram no cálculo (nem a favor, nem
+  // contra) — ver `temInformacaoSuficiente`/`resumoStatusGeral` em
+  // lib/domain/semaforo.ts (regra de honestidade da onda 16).
+  const resumoAnel = resumoStatusGeral(avaliados.map((a) => ({ status: a.r.status, temInformacao: a.temInformacao })))
+
+  // Manutenção próxima: só itens ligados a um equipamento (motor/elétrica) —
+  // já vem ordenado do pior pro melhor porque filtra o array que o sort acima produziu.
+  const manutencaoProxima = avaliados
+    .filter((a): a is typeof a & { eq: Equipamento } => a.eq != null)
+    .slice(0, 4)
+
+  const itensMotorComInfo = avaliados.filter((a) => a.eq?.tipo === "motor" && a.temInformacao)
+  const motorPrioritario = itensMotorComInfo[0] ?? null
+
+  const metricaHorasMotor: MetricaHero = (() => {
+    if (motores.length === 0) return { rotulo: "Horas de motor", valor: "—" }
+    const ref = motorPrioritario?.eq ?? motores[0]
+    const valor = ref.horas_atuais != null
+      ? `${ref.horas_atuais.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h`
+      : "sem leitura"
+    const rotulo = motores.length > 1 && ref.posicao ? `Motor ${ref.posicao}` : "Horas de motor"
+    return { rotulo, valor }
+  })()
+
+  const metricaProximaRevisao: MetricaHero = motorPrioritario
+    ? { rotulo: "Próxima revisão", valor: textoRestanteCompacto(motorPrioritario.r), status: motorPrioritario.r.status }
+    : { rotulo: "Próxima revisão", valor: "—" }
+
+  const itensDocComInfo = avaliados.filter((a) => a.item.categoria === "documento" && a.temInformacao)
+  const statusDocPior = itensDocComInfo.map((a) => a.r.status).sort((x, y) => PESO[y] - PESO[x])[0]
+  const metricaDocumentos: MetricaHero = statusDocPior
+    ? { rotulo: "Documentos", valor: ROTULO_DOC[statusDocPior], status: statusDocPior }
+    : { rotulo: "Documentos", valor: "Sem dados" }
+
+  const leiturasEquipamentos = equipamentos.map((e) => e.ultima_leitura).filter((d): d is string => d != null).sort()
+  const ultimaAtualizacao = leiturasEquipamentos.length > 0
+    ? formatarCarimbo(leiturasEquipamentos[leiturasEquipamentos.length - 1])
+    : null
 
   // "Tudo em dia" só pode ser dito quando existe dado real por trás: alguma
   // leitura de horas de verdade, ou algum vencimento com data informada pelo
@@ -99,6 +152,72 @@ export default async function HojePage({
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
     .eq("visivel", true).limit(2)
 
+  // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
+  // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
+  const podeVerGastos = podeVer(permissoes, "gastos")
+  const inicioJanelaGastos = `${Number(hoje.slice(0, 4)) - 1}-01-01`
+  const { data: eventosGastos } = podeVerGastos
+    ? await supabase
+        .from("eventos").select("data, custo_centavos").eq("embarcacao_id", embarcacao.id)
+        .not("custo_centavos", "is", null).gte("data", inicioJanelaGastos)
+    : { data: [] as { data: string; custo_centavos: number | null }[] }
+  const entradasGastos = (eventosGastos ?? [])
+    .filter((e) => (e.custo_centavos ?? 0) > 0)
+    .map((e) => ({ data: e.data, custoCentavos: e.custo_centavos as number, grupo: "" }))
+  const resumoMes = resumoGastos(entradasGastos, hoje)
+  const variacaoGastos = variacaoPercentual(resumoMes.meses[5].totalCentavos, resumoMes.meses[4].totalCentavos)
+
+  // Tripulação (onda 16) — vínculos reais do barco: dono (PROP) + comandantes
+  // com acesso (CMDT). Nunca uma fileira fantasma: sozinho no barco vira convite.
+  const { data: vinculosCrew } = await supabase
+    .from("vinculos").select("usuario_id").eq("embarcacao_id", embarcacao.id)
+  const idsCrew = [...new Set((vinculosCrew ?? []).map((v) => v.usuario_id))]
+  const { data: perfisCrew } = idsCrew.length > 0
+    ? await supabase.from("profiles").select("id, nome, avatar_path").in("id", idsCrew)
+    : { data: [] as { id: string; nome: string; avatar_path: string | null }[] }
+  const tripulantes = idsCrew.map((id) => {
+    const p = (perfisCrew ?? []).find((pc) => pc.id === id)
+    return { id, nome: p?.nome?.trim() || "Comandante", avatarPath: p?.avatar_path ?? null }
+  })
+  const tripulantesVisiveis = tripulantes.slice(0, 5)
+  const tripulantesExtras = Math.max(0, tripulantes.length - tripulantesVisiveis.length)
+  const urlsTripulacao = new Map(
+    await Promise.all(
+      tripulantesVisiveis
+        .filter((t): t is typeof t & { avatarPath: string } => t.avatarPath != null)
+        .map(async (t) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(t.avatarPath, 3600)
+          return [t.id, data?.signedUrl ?? null] as const
+        }),
+    ),
+  )
+  const sozinhoNoBarco = tripulantes.length <= 1
+  const podeConvidar = papel === "PROP"
+  const conteudoTripulacao = sozinhoNoBarco ? (
+    <>
+      <p className="titulo-card">Só você tem acesso a este barco</p>
+      <p className="apoio mt-0.5 text-dim">
+        {podeConvidar ? "Convide comandantes de confiança pra dividir o controle." : "Nenhum outro comandante convidado ainda."}
+      </p>
+    </>
+  ) : (
+    <>
+      <div className="flex items-center -space-x-2">
+        {tripulantesVisiveis.map((t) => (
+          <Avatar key={t.id} url={urlsTripulacao.get(t.id) ?? null} nome={t.nome} tamanho="size-9" />
+        ))}
+        {tripulantesExtras > 0 && (
+          <span className="flex size-9 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-xs text-dim">
+            +{tripulantesExtras}
+          </span>
+        )}
+      </div>
+      <p className="apoio mt-2 text-dim">
+        {tripulantes.length} {tripulantes.length === 1 ? "pessoa tem" : "pessoas têm"} acesso a este barco
+      </p>
+    </>
+  )
+
   return (
     <main>
       <div className="mb-4 flex items-center gap-3">
@@ -116,16 +235,18 @@ export default async function HojePage({
         statusGeral={statusGeral}
         urlCapa={urlCapa}
         podeEditarFotos={podeEditar(permissoes, "fotos")}
+        ultimaAtualizacao={ultimaAtualizacao}
+        metricas={[metricaHorasMotor, metricaProximaRevisao, metricaDocumentos]}
       />
-      <div className="mt-3 flex justify-end gap-2.5 font-mono-instr text-xs tabular-nums text-dim">
-        <span className="flex items-center gap-1"><Farol status="vencido" />{contagem.vencido}</span>
-        <span className="flex items-center gap-1"><Farol status="atencao" />{contagem.atencao}</span>
-        <span className="flex items-center gap-1"><Farol status="ok" />{contagem.ok}</span>
-      </div>
 
       {erro && (
         <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>
       )}
+
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="escudo" className="size-3.5" /> Status geral
+      </p>
+      <AnelStatus resumo={resumoAnel} />
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="alerta" className="size-3.5" />
@@ -167,6 +288,7 @@ export default async function HojePage({
               }`}>
                 {textoRestante(r)}
               </span>
+              {editavelItem && <Icone nome="chevron" className="size-4 shrink-0 text-dim" />}
             </>
           )
           return editavelItem ? (
@@ -181,6 +303,85 @@ export default async function HojePage({
           )
         })}
       </div>
+
+      {manutencaoProxima.length > 0 && (
+        <>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="ferramenta" className="size-3.5" /> Manutenção próxima
+          </p>
+          <div className="space-y-2">
+            {manutencaoProxima.map(({ item, eq, r, onde }) => {
+              const editavelItem = podeEditar(permissoes, abaDoItem(item, equipamentos))
+              const conteudo = (
+                <>
+                  <Icone nome={iconeEquipamento(eq.tipo)} className="size-4 shrink-0 text-dim" />
+                  <p className="titulo-card min-w-0 flex-1 truncate">{onde}</p>
+                  <span className={`shrink-0 font-mono-instr text-sm font-semibold tabular-nums ${
+                    r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : ""
+                  }`}>
+                    {textoRestanteCompacto(r)}
+                  </span>
+                </>
+              )
+              return editavelItem ? (
+                <Link key={item.id} href={`/barco/itens/${item.id}/editar`}
+                  className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+                  {conteudo}
+                </Link>
+              ) : (
+                <div key={item.id} className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+                  {conteudo}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {podeVerGastos && (
+        <>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="cifrao" className="size-3.5" /> Gastos do mês
+          </p>
+          {resumoMes.totalMesCentavos > 0 ? (
+            <Link href="/barco/gastos" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="min-w-0 truncate font-mono-instr text-2xl font-semibold tabular-nums">{formatarReais(resumoMes.totalMesCentavos)}</p>
+                {variacaoGastos != null && (
+                  <span className={`inline-flex shrink-0 items-center gap-0.5 font-mono-instr text-xs font-semibold tabular-nums ${
+                    variacaoGastos > 0 ? "text-crit" : variacaoGastos < 0 ? "text-ok" : "text-dim"
+                  }`}>
+                    <Icone nome="chevron" className={`size-3 ${variacaoGastos >= 0 ? "-rotate-90" : "rotate-90"}`} />
+                    {Math.abs(variacaoGastos)}%
+                  </span>
+                )}
+              </div>
+              {variacaoGastos != null && <p className="apoio mt-0.5 text-dim">vs. mês anterior</p>}
+              <div className="mt-3">
+                <GraficoMesesGastos meses={resumoMes.meses} mesAtual={hoje.slice(0, 7)} altura={72} comMoldura={false} />
+              </div>
+            </Link>
+          ) : (
+            <Link href="/diario/novo" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+              <p className="titulo-card">Nenhum gasto este mês</p>
+              <p className="apoio mt-0.5 text-dim">Registre custos nos eventos do diário e eles aparecem aqui.</p>
+            </Link>
+          )}
+        </>
+      )}
+
+      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+        <Icone nome="pessoas" className="size-3.5" /> Tripulação
+      </p>
+      {podeConvidar ? (
+        <Link href="/menu/tripulacao" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+          {conteudoTripulacao}
+        </Link>
+      ) : (
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          {conteudoTripulacao}
+        </div>
+      )}
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="mapa" className="size-3.5" /> Mar agora
@@ -201,24 +402,6 @@ export default async function HojePage({
           <Icone nome="mapa" className="size-4" /> Iniciar navegação — gravar trilha
         </span>
       </Link>
-
-      {motores.length > 0 && (
-        <>
-          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-            <Icone nome="relogio" className="size-3.5" /> Horas de motor
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {motores.map((m) => {
-              const status =
-                avaliados
-                  .filter((a) => a.item.equipamento_id === m.id)
-                  .map((a) => a.r.status)
-                  .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
-              return <Horimetro key={m.id} rotulo={m.posicao ?? "Motor"} horas={m.horas_atuais} status={status} />
-            })}
-          </div>
-        </>
-      )}
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="raio" className="size-3.5" /> Acesso rápido

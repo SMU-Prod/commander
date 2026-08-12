@@ -42,3 +42,13 @@ export function resumoGastos(entradas: GastoEntrada[], hoje: string): ResumoGast
 export function formatarReais(centavos: number): string {
   return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
+
+/** Variação percentual do mês atual sobre o anterior, pro card de "Gastos do
+ *  mês" de /hoje. Só faz sentido comparar quando os DOIS meses têm gasto
+ *  real lançado — regra de honestidade da onda 16: sem os dois meses
+ *  existentes, a variação não aparece (retorna null), nunca uma comparação
+ *  contra zero que inflaria/mentiria o percentual. */
+export function variacaoPercentual(atualCentavos: number, anteriorCentavos: number): number | null {
+  if (atualCentavos <= 0 || anteriorCentavos <= 0) return null
+  return Math.round(((atualCentavos - anteriorCentavos) / anteriorCentavos) * 100)
+}
