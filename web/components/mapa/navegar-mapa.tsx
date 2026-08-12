@@ -13,7 +13,8 @@ import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/naveg
 import type { EstadoCamadas } from "@/lib/mapa/camadas"
 import { ICONE_FALLBACK, type NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 import type { Parceiro } from "@/lib/db/types"
-import type { PedidoRota, RespostaRota } from "@/components/mapa/rota.worker"
+import type { PedidoRota, Precisao, RespostaRota } from "@/components/mapa/rota.worker"
+import type { MotivoFalhaRota } from "@/lib/domain/rota"
 
 const RESUMO_VAZIO: ResumoTrilha = { distanciaNm: 0, duracaoH: 0, tempoMovimentoH: 0, velMediaKt: 0, velMaxKt: 0 }
 
@@ -34,7 +35,9 @@ type EstadoRotaResultado =
       paraDestino: Coord
       pernas: Coord[]
       distanciaNm: number
-      precisao: "fina" | "nacional"
+      /** Onda 22: ganhou `"mista"` — rota costurada (trecho costeiro na
+       *  fina, resto na nacional grosseira), ver rota.worker.ts. */
+      precisao: Precisao
       /** Calado EFETIVAMENTE aplicado pelo worker — onda 12. `null` quando
        *  nao foi aplicado (sem calado cadastrado, OU grade de profundidade
        *  indisponivel no momento). Comparar com a prop `caladoM` (o que o
@@ -44,11 +47,19 @@ type EstadoRotaResultado =
        *  barcos (onda 17). Habilita um aviso DISCRETO — nunca "validada" ou
        *  "segura", passagem historica nao garante profundidade. */
       usouCorredores: boolean
+      /** Onda 22: true = o destino so foi alcancado com o snap generoso da
+       *  grade nacional — a rota termina "na altura do" destino, nao nele
+       *  (ver rota.worker.ts). A tela nao pode fingir precisao que nao tem. */
+      destinoAproximado: boolean
     }
   | { tipo: "fora-da-area"; paraDestino: Coord }
   | {
       tipo: "sem-caminho"
       paraDestino: Coord
+      /** Onda 22: origem longe da agua / destino longe da agua / achou os
+       *  dois mas nao ha rota entre eles — cada motivo tem seu proprio texto
+       *  honesto (ver render mais abaixo). */
+      motivo: MotivoFalhaRota
       /** true = existe rota sem considerar calado, so nao com o calado
        *  pedido — troca a mensagem generica por uma que explica o motivo. */
       semCaminhoPorCalado: boolean
@@ -412,13 +423,14 @@ export function NavegarMapa({
             precisao: e.data.precisao,
             caladoM: e.data.caladoM,
             usouCorredores: e.data.usouCorredores,
+            destinoAproximado: e.data.destinoAproximado,
           })
           break
         case "fora-da-area":
           setEstadoRota({ tipo: "fora-da-area", paraDestino })
           break
         case "sem-caminho":
-          setEstadoRota({ tipo: "sem-caminho", paraDestino, semCaminhoPorCalado: e.data.semCaminhoPorCalado })
+          setEstadoRota({ tipo: "sem-caminho", paraDestino, motivo: e.data.motivo, semCaminhoPorCalado: e.data.semCaminhoPorCalado })
           break
         case "sem-mascara":
           // mascara nao carregou (rede, etc.) — nao e culpa do usuario, cai
@@ -1161,7 +1173,11 @@ export function NavegarMapa({
               <p className="apoio mt-2 border-t border-line pt-2 text-warn">
                 {estadoRotaAtual.semCaminhoPorCalado
                   ? `Não achei caminho com o calado do seu barco${caladoM != null ? ` (${caladoM.toLocaleString("pt-BR")} m)` : ""} — existe rota sem essa restrição.`
-                  : "Não achei caminho pela água até esse ponto."}
+                  : estadoRotaAtual.motivo === "origem-longe-da-agua"
+                    ? "Você está longe da água — a rota pela água nasce no mar."
+                    : estadoRotaAtual.motivo === "destino-longe-da-agua"
+                      ? "Esse ponto está longe da água — toque mais perto do mar."
+                      : "Não achei caminho pela água até esse ponto."}
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "fina" && (
@@ -1175,8 +1191,28 @@ export function NavegarMapa({
                 travessia longa; não use pra aproximação de porto.
               </p>
             )}
+            {/* Onda 22 — rota costurada: trecho costeiro (perto da origem OU
+                do destino, o que estiver na área histórica) usa a grade fina
+                de sempre; o resto do trajeto usa a nacional, mais grossa.
+                Mesmo tom de aviso da nacional pura — a parte grosseira é a
+                mesma restrição. */}
+            {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "mista" && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">
+                Rota pela água — trecho costeiro com o detalhe de sempre, restante por cobertura nacional (grade
+                mais grossa). Boa pra travessia longa; não use pra aproximação de porto.
+              </p>
+            )}
+            {/* Onda 22 — destino aproximado: o snap generoso da nacional achou
+                água longe o bastante do ponto tocado pra a rota NÃO terminar
+                nele de verdade — nunca fingir que chega no píer exato. */}
+            {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.destinoAproximado && (
+              <p className="apoio mt-2 border-t border-line pt-2 text-warn">
+                A rota chega até a altura do destino — o trecho final de aproximação até o ponto exato é por sua
+                conta.
+              </p>
+            )}
             {posAtual && estadoRotaAtual.tipo === "rota" && avisoCalado && (
-              <p className={`apoio mt-2 ${estadoRotaAtual.precisao === "nacional" ? "" : "border-t border-line pt-2"} ${avisoCalado.tom === "aviso" ? "text-warn" : "text-dim"}`}>
+              <p className={`apoio mt-2 ${estadoRotaAtual.precisao !== "fina" ? "" : "border-t border-line pt-2"} ${avisoCalado.tom === "aviso" ? "text-warn" : "text-dim"}`}>
                 {avisoCalado.texto}
                 {avisoCalado.linkCadastrar && (
                   <>

@@ -39,6 +39,28 @@
 // se a rota calculada de fato passou por alguma celula com passagem
 // conhecida, nao so "havia corredor perto" (ver navegar-mapa.tsx pro texto
 // que isso habilita, e o cuidado de NUNCA dizer "validada"/"segura").
+//
+// Onda 22 (rota costurada): `escolherGrade` ganhou um terceiro caso —
+// "costura" — quando EXATAMENTE um extremo (origem OU destino) esta dentro
+// da fina e o outro fora dela (mas dentro da nacional). Antes desta onda
+// esse caso caia direto na nacional PURA, e a dilatacao de seguranca dela
+// (~7,4 km) engole baias/estreitos inteiros (Guanabara, Sepetiba, canais de
+// Ilha Grande) — um ponto dentro da fina podia falhar o snap mesmo estando
+// em agua de verdade (caso real de producao, 12/08/2026). A costura (ver
+// `acharCaminhoCosturado` em lib/domain/rota.ts) resolve tracando UMA perna
+// pela fina (do extremo interno ate um ponto de costura — agua nas duas
+// grades) + UMA perna pela nacional recortada (do ponto de costura ate o
+// extremo externo), emendadas sem duplicar o ponto de costura. A resposta
+// marca `precisao: "mista"` nesse caso — a tela avisa que so o trecho
+// costeiro tem o detalhe da fina, o resto e grosseiro (nacional).
+//
+// Onda 22 tambem: o DESTINO (nunca a origem) ganha snap mais generoso na
+// grade nacional (`acharCaminhoNacionalComDestinoGeneroso`) — segundo print
+// de producao (pino em Vitoria/ES, "nao achei caminho"): o ponto que o
+// usuario TOCA no mapa tende a cair bem na costa, exatamente a faixa que a
+// dilatacao da nacional engole. Quando so o raio generoso resolveu,
+// `destinoAproximado: true` avisa a tela pra nao fingir que a rota chega no
+// ponto exato — "chega na altura do destino", nao nele.
 import {
   carregarGrade,
   carregarGradeNacional,
@@ -48,7 +70,9 @@ import {
 } from "@/lib/mapa/mascara"
 import { buscarCorredores } from "@/lib/mapa/corredores"
 import {
-  acharCaminho,
+  acharCaminhoCosturado,
+  acharCaminhoDetalhado,
+  acharCaminhoNacionalComDestinoGeneroso,
   bboxComFolga,
   distanciaDaRota,
   escolherGrade,
@@ -59,7 +83,8 @@ import {
   type Coord,
   type ConfigCalado,
   type CorredoresPorCelula,
-  type TipoGrade,
+  type Grade,
+  type MotivoFalhaRota,
 } from "@/lib/domain/rota"
 import { celulaId } from "@/lib/domain/sondagem"
 
@@ -73,13 +98,17 @@ export interface PedidoRota {
   caladoM?: number | null
 }
 
+/** Precisao da rota devolvida — onda 22 ganhou `"mista"` (rota costurada:
+ *  trecho costeiro na fina, resto na nacional grosseira). */
+export type Precisao = "fina" | "nacional" | "mista"
+
 export type RespostaRota =
   | {
       id: number
       tipo: "rota"
       pernas: Coord[]
       distanciaNm: number
-      precisao: TipoGrade
+      precisao: Precisao
       /** Calado EFETIVAMENTE aplicado no calculo desta rota — `null` quando
        *  NAO foi aplicado (pedido sem calado, OU grade de profundidade
        *  indisponivel: degrada pra rota sem restricao). Comparar com o
@@ -89,18 +118,51 @@ export type RespostaRota =
        *  passagem real conhecida (onda 17). Honesto: nao significa "corredor
        *  disponivel na area", significa "esta rota especifica usou um". */
       usouCorredores: boolean
+      /** Onda 22: true = o destino so foi alcancado com o snap GENEROSO da
+       *  nacional (`acharCaminhoNacionalComDestinoGeneroso`) — a rota termina
+       *  "na altura do" destino pedido, nao literalmente nele. So pode vir
+       *  `true` quando `precisao` e `"nacional"` ou `"mista"` (a fina nunca
+       *  usa o snap generoso). */
+      destinoAproximado: boolean
     }
   | { id: number; tipo: "fora-da-area" }
   | {
       id: number
       tipo: "sem-caminho"
+      /** Onda 22: POR QUE nao achou — snap da origem, snap do destino, ou
+       *  pathfinding mesmo (os dois snaps deram certo, mas nao ha rota
+       *  navegavel conectando-os). Ver `MotivoFalhaRota` em lib/domain/rota.ts. */
+      motivo: MotivoFalhaRota
       /** true = existe rota SEM considerar o calado pedido, so nao COM ele —
        *  a tela troca o texto generico por "nao achei caminho com o calado
        *  do seu barco". false = nem sem calado ha caminho (ou calado nem foi
-       *  pedido). */
+       *  pedido, ou o motivo nem tem a ver com calado — snap longe da agua). */
       semCaminhoPorCalado: boolean
     }
   | { id: number; tipo: "sem-mascara" }
+
+/** Monta o `ConfigCalado` pra UMA grade de agua (fina OU nacional), se `caladoM`
+ *  foi pedido e a grade de profundidade correspondente carregou. `null` cobre
+ *  os dois casos honestos de "nao aplicar": sem calado pedido, ou grade de
+ *  profundidade indisponivel agora (rede etc.) — quem chama decide o que
+ *  fazer (ver `RespostaRota.caladoM`). */
+async function construirConfigCalado(caladoM: number, tipoGradeAgua: "fina" | "nacional"): Promise<ConfigCalado | null> {
+  const gradeProfundidade =
+    tipoGradeAgua === "nacional" ? await carregarGradeProfundidadeNacional() : await carregarGradeProfundidade()
+  if (!gradeProfundidade) return null
+  return { caladoM, margemSegurancaM: MARGEM_SEGURANCA_PADRAO_M, profundidade: gradeProfundidade }
+}
+
+/** `usouCorredores` honesto (onda 17): checa o caminho BRUTO (pre-suavizacao)
+ *  — `suavizar` so remove pontos intermediarios pro desenho, nao muda por
+ *  onde a rota passou, mas testar no bruto e o que garante que a celula com
+ *  passagem real de fato fez parte do caminho encontrado, nao so "ficou perto". */
+function calcularUsouCorredores(caminhoBruto: Coord[], corredores: CorredoresPorCelula): boolean {
+  return (
+    corredores.porCelula.size > 0 &&
+    caminhoBruto.some((c) => corredores.porCelula.has(celulaId(c.la, c.lo, RESOLUCAO_CELULA_CORREDOR_M)))
+  )
+}
 
 self.onmessage = async (e: MessageEvent<PedidoRota>) => {
   const { id, de, para, caladoM } = e.data
@@ -111,7 +173,11 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
   const gradeFina = await carregarGrade()
 
   // Caminho rapido: se a fina ja cobre os dois pontos, nem busca a nacional —
-  // e o caso comum (navegando perto de casa) e evita fetch/decode a toa.
+  // e o caso comum (navegando perto de casa) e evita fetch/decode a toa. Se
+  // NAO cobre os dois (um dos dois fora, ou nenhum), busca a nacional — e o
+  // MESMO fetch que ja cobria a nacional pura, so que agora tambem cobre o
+  // caso de costura (onda 22): precisa das DUAS grades quando exatamente um
+  // extremo esta na fina.
   const gradeNacional =
     gradeFina && dentroDaGrade(gradeFina, de) && dentroDaGrade(gradeFina, para) ? null : await carregarGradeNacional()
 
@@ -126,48 +192,98 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     return
   }
 
-  // So recorta a nacional (grossa, cobertura nacional) — a fina ja e pequena
-  // o bastante pra rodar o A* nela inteira, e recortar mudaria a precisao/
-  // distancia de rotas que ja funcionavam (regressao que a task pediu pra
-  // provar que NAO acontece).
-  const gradeParaRota = escolha.tipo === "nacional" ? recortarGrade(escolha.grade, bboxComFolga(de, para)) : escolha.grade
-
-  // Grade de profundidade so e buscada quando ha calado pra aplicar — mesma
-  // economia de banda/memoria da nacional acima. A grade de profundidade
-  // NUNCA precisa ser recortada (diferente da de agua): `profundidadeEm`
-  // amostra por coordenada, nao por indice compartilhado com `gradeParaRota`.
-  let config: ConfigCalado | undefined
-  let caladoAplicado: number | null = null
-  if (caladoM != null && caladoM > 0) {
-    const gradeProfundidade =
-      escolha.tipo === "nacional" ? await carregarGradeProfundidadeNacional() : await carregarGradeProfundidade()
-    if (gradeProfundidade) {
-      config = { caladoM, margemSegurancaM: MARGEM_SEGURANCA_PADRAO_M, profundidade: gradeProfundidade }
-      caladoAplicado = caladoM
-    }
-    // gradeProfundidade null (rede, etc.): degrada em silencio pra rota sem
-    // calado, igual ao resto do app faz com mascara ausente — `caladoM: null`
-    // na resposta e quem avisa a tela que a restricao nao foi aplicada.
-  }
-
   const corredores: CorredoresPorCelula = await corredoresPromessa
 
-  const caminho = acharCaminho(gradeParaRota, de, para, config, corredores)
-  if (!caminho) {
+  if (escolha.tipo === "costura") {
+    // Onda 22: precisa da grade de profundidade das DUAS grades (fina e
+    // nacional) se ha calado a aplicar — filosofia "tudo ou nada" (mesma de
+    // sempre): se so UMA carregar, nao da pra proteger a rota inteira, entao
+    // nao aplica calado nenhum (melhor um `caladoM: null` honesto do que uma
+    // perna protegida e a outra nao, sem a tela conseguir explicar por que).
+    let configFina: ConfigCalado | undefined
+    let configNacional: ConfigCalado | undefined
+    let caladoAplicado: number | null = null
+    if (caladoM != null && caladoM > 0) {
+      const [cf, cn] = await Promise.all([construirConfigCalado(caladoM, "fina"), construirConfigCalado(caladoM, "nacional")])
+      if (cf && cn) {
+        configFina = cf
+        configNacional = cn
+        caladoAplicado = caladoM
+      }
+    }
+
+    const resultado = acharCaminhoCosturado({
+      fina: escolha.fina,
+      nacional: escolha.nacional,
+      de,
+      para,
+      extremoNaFina: escolha.extremoNaFina,
+      configFina,
+      configNacional,
+      corredores,
+    })
+    if (!resultado.pernas || !resultado.caminhoBruto) {
+      const semCaminhoPorCalado =
+        resultado.motivoFalha === "sem-caminho" &&
+        (configFina != null || configNacional != null) &&
+        acharCaminhoCosturado({ fina: escolha.fina, nacional: escolha.nacional, de, para, extremoNaFina: escolha.extremoNaFina, corredores })
+          .pernas != null
+      postMessage({ id, tipo: "sem-caminho", motivo: resultado.motivoFalha ?? "sem-caminho", semCaminhoPorCalado } satisfies RespostaRota)
+      return
+    }
+    postMessage({
+      id,
+      tipo: "rota",
+      pernas: resultado.pernas,
+      distanciaNm: distanciaDaRota(resultado.pernas),
+      precisao: "mista",
+      caladoM: caladoAplicado,
+      usouCorredores: calcularUsouCorredores(resultado.caminhoBruto, corredores),
+      destinoAproximado: resultado.destinoAproximado,
+    } satisfies RespostaRota)
+    return
+  }
+
+  // "fina" ou "nacional" pura — mesmo fluxo de sempre. So a nacional (grossa,
+  // cobertura nacional) e RECORTADA — a fina ja e pequena o bastante pra
+  // rodar o A* nela inteira, e recortar mudaria a precisao/distancia de
+  // rotas que ja funcionavam (regressao que a onda 11 provou que NAO acontece).
+  const gradeParaRota: Grade = escolha.tipo === "nacional" ? recortarGrade(escolha.grade, bboxComFolga(de, para)) : escolha.grade
+
+  const config: ConfigCalado | undefined =
+    caladoM != null && caladoM > 0 ? ((await construirConfigCalado(caladoM, escolha.tipo)) ?? undefined) : undefined
+  const caladoAplicado = config ? caladoM! : null
+
+  // Onda 22: so a grade NACIONAL usa o snap generoso pro destino — a fina
+  // (100 m/celula, sem dilatacao de seguranca comparavel) segue com o snap
+  // padrao de sempre (raioSnapCelulas), simetrico pra origem/destino.
+  const motivoOrigemDestino =
+    escolha.tipo === "nacional"
+      ? acharCaminhoNacionalComDestinoGeneroso(gradeParaRota, de, para, config, corredores)
+      : { ...acharCaminhoDetalhado(gradeParaRota, de, para, config, corredores), destinoAproximado: false }
+
+  if (!motivoOrigemDestino.caminho) {
     // Se havia config de calado, confere se EXISTIRIA caminho sem essa
     // restricao — e o que decide a mensagem "nao achei com o calado do seu
     // barco" (existe rota, so nao pra esse calado) vs o generico "sem
-    // caminho" (nao ha rota nem sem restricao nenhuma).
-    const semCaminhoPorCalado = config != null && acharCaminho(gradeParaRota, de, para) != null
-    postMessage({ id, tipo: "sem-caminho", semCaminhoPorCalado } satisfies RespostaRota)
+    // caminho". So faz sentido checar isso quando o motivo e "sem-caminho"
+    // (os dois snaps deram certo) — se o motivo e snap longe da agua, calado
+    // nao tem nada a ver com a falha.
+    const semCaminhoPorCalado =
+      motivoOrigemDestino.motivoFalha === "sem-caminho" &&
+      config != null &&
+      acharCaminhoDetalhado(gradeParaRota, de, para).caminho != null
+    postMessage({
+      id,
+      tipo: "sem-caminho",
+      motivo: motivoOrigemDestino.motivoFalha ?? "sem-caminho",
+      semCaminhoPorCalado,
+    } satisfies RespostaRota)
     return
   }
+
+  const caminho = motivoOrigemDestino.caminho
   const pernas = suavizar(gradeParaRota, caminho, config)
-  // Honestidade (onda 17): so afirma "usou corredores" se a rota calculada
-  // de fato passa por uma celula com passagem conhecida — checa o caminho
-  // BRUTO do A* (antes do string-pulling de `suavizar`, que so remove
-  // pontos intermediarios pra desenho, nao muda por onde a rota passou).
-  const usouCorredores = corredores.porCelula.size > 0 && caminho.some((c) => corredores.porCelula.has(celulaId(c.la, c.lo, RESOLUCAO_CELULA_CORREDOR_M)))
   postMessage({
     id,
     tipo: "rota",
@@ -175,6 +291,7 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     distanciaNm: distanciaDaRota(pernas),
     precisao: escolha.tipo,
     caladoM: caladoAplicado,
-    usouCorredores,
+    usouCorredores: calcularUsouCorredores(caminho, corredores),
+    destinoAproximado: motivoOrigemDestino.destinoAproximado,
   } satisfies RespostaRota)
 }
