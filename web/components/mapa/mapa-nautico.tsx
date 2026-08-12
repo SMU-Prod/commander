@@ -223,6 +223,13 @@ export function MapaNautico({
 
   const [camadas, setCamadas] = useState<EstadoCamadas>(() => carregarCamadas())
   const [painelAberto, setPainelAberto] = useState(false)
+  // Falha ao subir o mapa (chunk que nao baixou, WebGL recusado, estilo
+  // que nao veio) — regra da casa: NADA falha mudo. O buraco branco sem
+  // explicacao ja custou uma sessao de debug no emulador (403 silencioso,
+  // 09/08) e outra no iPhone (11/08). `tentativaMapa` re-dispara o efeito
+  // de montagem no "Tentar de novo".
+  const [falhaMapa, setFalhaMapa] = useState<string | null>(null)
+  const [tentativaMapa, setTentativaMapa] = useState(0)
 
   // `camadas` sempre atualizado, sem recriar closures — quem lê isso é
   // código assíncrono (listener de "style.load", que dispara bem depois do
@@ -290,9 +297,21 @@ export function MapaNautico({
     if (!TOKEN || !containerRef.current) return
     let cancelado = false
 
-    // .catch: falha de rede no chunk nao pode deixar um buraco mudo na tela
-    import("mapbox-gl").catch(() => null).then((mod) => {
-      if (!mod) return
+    // Falha no download do chunk NAO pode ser um buraco mudo: captura o
+    // erro real e mostra na tela (ver `falhaMapa`).
+    let erroImport: unknown = null
+    import("mapbox-gl").catch((e: unknown) => {
+      erroImport = e
+      return null
+    }).then((mod) => {
+      if (!mod) {
+        if (!cancelado) {
+          setFalhaMapa(
+            `O mapa não conseguiu carregar (${erroImport instanceof Error ? erroImport.message : "falha de rede"}). Verifique a conexão e tente de novo.`,
+          )
+        }
+        return
+      }
       const mapboxgl = mod.default
       if (cancelado || !containerRef.current) return
       // Contexto inseguro (shell nativo em dev carrega HTTP por IP): o
@@ -308,7 +327,13 @@ export function MapaNautico({
       }
       mapboxgl.accessToken = TOKEN
       const estiloInicial = camadasRef.current.estilo
-      const mapa = new mapboxgl.Map({
+      // try no construtor: e aqui que o WebGL e criado — navegador que o
+      // recuse (GPU bloqueada, WebView sem aceleracao) lancaria sincrono e
+      // viraria buraco branco mudo sem isto.
+      let mapa: MapaMapbox
+      try {
+        // eslint-disable-next-line prefer-const
+        mapa = new mapboxgl.Map({
         container: containerRef.current,
         style: ESTILO_URL[estiloInicial],
         center: CENTRO_PADRAO,
@@ -334,7 +359,14 @@ export function MapaNautico({
         // Mapbox; a supressão de POI equivalente pra eles é
         // `ocultarPoisDeTerceiros`, chamada no listener de "style.load".
         config: estiloInicial === "nautico" ? CONFIG_NAUTICO : undefined,
-      })
+        })
+      } catch (e) {
+        setFalhaMapa(
+          `O mapa não conseguiu iniciar (${e instanceof Error ? e.message : "WebGL indisponível neste navegador"}). Tente de novo — se persistir, atualize o navegador.`,
+        )
+        return
+      }
+      setFalhaMapa(null)
 
       // Reconstrói TUDO que este componente desenha no estilo (batimetria +
       // OpenSeaMap) — chamada tanto no carregamento inicial quanto depois de
@@ -519,8 +551,10 @@ export function MapaNautico({
     // vez, no mount, via ref — por isso o linter não pede pra entrar nas
     // deps); trocas depois disso são cobertas pelos efeitos de cima
     // (visibilidade) e de baixo (estilo). Colocar `camadas` nas deps
-    // recriaria o mapa inteiro a cada toggle.
-  }, [])
+    // recriaria o mapa inteiro a cada toggle. `tentativaMapa` e o unico
+    // gatilho legitimo de recriacao: o botao "Tentar de novo" da falha.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tentativaMapa])
 
   // Troca de estilo do mapa (Náutico/Satélite/Relevo 3D) depois que o mapa já
   // existe — a criação em si (estilo inicial vindo do localStorage) é feita
@@ -568,6 +602,23 @@ export function MapaNautico({
           .mapboxgl-map{position:relative}, que vence o .absolute na cascata e
           colapsava a altura para 0 (mapa branco) */}
       <div ref={containerRef} className="h-full w-full" />
+
+      {falhaMapa && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#0B1D2D]/95 p-8 text-center">
+          <Icone nome="mapa" className="size-8 text-[#D4AF37]" />
+          <p className="corpo max-w-xs text-[#e9f1f8]">{falhaMapa}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setFalhaMapa(null)
+              setTentativaMapa((t) => t + 1)
+            }}
+            className="min-h-11 rounded-[14px] bg-[#D4AF37] px-6 font-semibold text-[#0B1D2D]"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
 
       {painelAberto && (
         <div className="sombra-2 absolute right-3 top-44 z-30 w-72 rounded-[14px] border border-line bg-panel/95 p-4 backdrop-blur">

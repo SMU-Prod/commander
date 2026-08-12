@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Projetos nativos do Capacitor (onda 14): java/swift + artefatos de
+    // build do Gradle (ex.: native-bridge.js copiado pro APK) nao sao
+    // codigo lintavel nosso.
+    "android/**",
+    "ios/**",
+    "capacitor/**",
   ]),
 ]);
 
