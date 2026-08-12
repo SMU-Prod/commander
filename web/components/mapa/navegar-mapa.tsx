@@ -180,8 +180,22 @@ function colecaoVazia() {
  *  `caladoM` (onda 12): calado cadastrado da embarcação ativa (metros), vindo
  *  do servidor (`embarcacoes.calado_m`). `null` = barco sem calado cadastrado
  *  — a tela avisa e oferece o link pra cadastrar, nunca inventa um valor
- *  padrão em silêncio. */
-export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; caladoM: number | null }) {
+ *  padrão em silêncio.
+ *
+ *  `podePlanejarViagem` (onda 19): mostra ou não o botão "Planejar viagem" —
+ *  mesma checagem (`podeEditar(permissoes, "diario")`) que já vale pra
+ *  registrar no diário, calculada no servidor (`navegar/page.tsx`). Só
+ *  esconde o ATALHO; a rota `/navegar/viagem/nova` teria a mesma proteção
+ *  de qualquer forma (checa de novo lá, e a RLS protege a escrita). */
+export function NavegarMapa({
+  parceiros,
+  caladoM,
+  podePlanejarViagem,
+}: {
+  parceiros: Parceiro[]
+  caladoM: number | null
+  podePlanejarViagem: boolean
+}) {
   const router = useRouter()
 
   // --- trilha (preservado do que já existia na página, ver comentário acima) -
@@ -990,6 +1004,22 @@ export function NavegarMapa({ parceiros, caladoM }: { parceiros: Parceiro[]; cal
             >
               <Icone nome="mapa" className="size-4" />
               {modoDefinirDestino ? "Toque no mapa…" : "Definir destino"}
+            </button>
+          )}
+
+          {/* Onda 19 (Pilar Strava do Mar) — entrada pra planejar viagem com
+              paradas. Fica ao lado de "Definir destino" (mesma família de
+              atalho: os dois levam a marcar pontos no mapa), mas abre a
+              tela dedicada em vez de reusar o destino único — ver
+              PlanejarViagemMapa. */}
+          {mapaPronto && podePlanejarViagem && (
+            <button
+              type="button"
+              onClick={() => router.push("/navegar/viagem/nova")}
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-3 text-sm font-medium text-dim backdrop-blur"
+            >
+              <Icone nome="estrela" className="size-4" />
+              Planejar viagem
             </button>
           )}
 
