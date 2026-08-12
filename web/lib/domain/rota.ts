@@ -1,4 +1,5 @@
 import { haversineNm } from "@/lib/domain/geo"
+import { celulaId } from "@/lib/domain/sondagem"
 
 export interface Coord {
   la: number
@@ -143,6 +144,76 @@ function fatorPenalidadeProfundidade(profundidadeM: number, limiarBloqueioM: num
   if (acimaDoLimiar >= zonaPenalidadeM) return 1
   const t = Math.max(0, acimaDoLimiar) / zonaPenalidadeM // 0 no limiar (penalidade maxima), 1 na borda da zona
   return PENALIDADE_MAXIMA - (PENALIDADE_MAXIMA - 1) * t
+}
+
+// ---------------------------------------------------------------------------
+// Onda 17 — corredores ("Strava do Mar"): toda trilha GPS gravada
+// (web/lib/acoes/trilha.ts, salvarTrilha) ensina o mapa — onde um barco de
+// verdade passou e caminho comprovado. O A* passa a PREFERIR essas celulas
+// (fatorCorredor abaixo), nunca desbloquear: o check de agua (aguaNoIndice)
+// e de calado (config, se presente) rodam ANTES, na mesma volta do loop —
+// corredor so multiplica o custo de um movimento que JA passou nos dois.
+// Mesmo desenho de agregacao por celula da sondagem colaborativa (onda 13,
+// web/lib/domain/sondagem.ts) — reusa a MESMA funcao `celulaId`, so com
+// resolucao PROPRIA (ver RESOLUCAO_CELULA_CORREDOR_M): sondagem precisa de
+// granularidade fina (15 m) porque profundidade varia muito em poucos
+// metros; corredor e preferencia de ROTA, so importa na resolucao em que o
+// A* decide entre celulas vizinhas — a da mascara fina de agua (100 m/celula,
+// ver web/lib/mapa/mascara.ts). Ver docs/OPERACAO.md § Corredores.
+// ---------------------------------------------------------------------------
+
+/** Resolucao da celula de corredor, em metros — a MESMA da mascara fina de
+ *  agua/terra (100 m/celula, scripts/gerar-mascara-agua.mjs), NAO a da
+ *  sondagem colaborativa (15 m, RESOLUCAO_CELULA_M em sondagem.ts). Uma
+ *  celula de 15 m seria ruido puro pra decisao de rota (erro tipico de GPS
+ *  civil e maior que isso) sem ganhar precisao nenhuma — so infla a tabela e
+ *  a busca no mapa. 100 m tambem casa com o raio de snap (RAIO_SNAP_METROS,
+ *  1 km = 10 celulas) e com a resolucao que o A* de fato enxerga na grade
+ *  fina, que e a unica onde corredor faz diferenca perceptivel (a nacional,
+ *  ~3,6 km/celula, e grossa demais pra um redutor de custo por celula
+ *  importar no resultado). */
+export const RESOLUCAO_CELULA_CORREDOR_M = 100
+
+/** Corredores conhecidos, indexados pela MESMA chave de celula que a tabela
+ *  `corredores` grava (`celulaId(lat, lon, RESOLUCAO_CELULA_CORREDOR_M)`).
+ *  Intensidade normalizada [0,1] — 0 nunca deveria aparecer como valor (uma
+ *  celula sem passagem simplesmente nao entra no mapa), mas o codigo trata
+ *  ausencia da chave (`.get` devolvendo `undefined`) do mesmo jeito: sem
+ *  efeito no custo. Normalizacao (passagens brutas -> [0,1]) acontece FORA
+ *  do dominio, em quem monta este mapa a partir da resposta do endpoint
+ *  (web/lib/mapa/corredores.ts) — mesmo desenho de GradeProfundidade, que
+ *  recebe metros ja decodificados do PNG, nunca o byte cru. */
+export interface CorredoresPorCelula {
+  porCelula: Map<string, number>
+}
+
+/** Redutor de custo MAXIMO pra uma celula de corredor com intensidade
+ *  saturada (1.0) — 0.8 = o A* aceita desviar ate ~25% mais caro pra pegar
+ *  um corredor plenamente comprovado, mas o corredor nunca fica "de graca":
+ *  forte o bastante pra desempatar entre dois caminhos de custo parecido
+ *  (ver teste "vence com passagens reais"), fraco o bastante pra nunca fazer
+ *  o A* dar uma volta absurda so por causa de 1 passagem historica isolada.
+ *  Mesma ordem de grandeza (long do PENALIDADE_MAXIMA=4x da onda 12), mas
+ *  mais suave de proposito: ali o "prêmio" por evitar e sobre SEGURANCA
+ *  (calado), aqui e sobre uma PREFERENCIA estatistica — passagem historica
+ *  nao e garantia de profundidade (ver honestidade na tela, navegar-mapa.tsx). */
+const REDUTOR_CORREDOR_MAXIMO = 0.8
+
+/** Fator de custo [REDUTOR_CORREDOR_MAXIMO, 1] pra uma intensidade [0,1] —
+ *  interpolacao linear: 0 (sem corredor) devolve 1 (sem efeito no custo), 1
+ *  (corredor saturado) devolve REDUTOR_CORREDOR_MAXIMO. */
+function fatorCorredor(intensidade: number): number {
+  const i = Math.max(0, Math.min(1, intensidade))
+  return 1 - (1 - REDUTOR_CORREDOR_MAXIMO) * i
+}
+
+/** Intensidade [0,1] do corredor na coordenada `p` — 0 quando a celula (na
+ *  resolucao de corredor) nao tem passagem nenhuma conhecida. Nunca lanca:
+ *  chave ausente e o caso normal (a grande maioria da agua do planeta nunca
+ *  teve uma trilha gravada) e tem que ser barata de checar (roda por
+ *  movimento candidato do A*, potencialmente milhoes de vezes). */
+function intensidadeCorredorEm(corredores: CorredoresPorCelula, p: Coord): number {
+  return corredores.porCelula.get(celulaId(p.la, p.lo, RESOLUCAO_CELULA_CORREDOR_M)) ?? 0
 }
 
 export function ehAgua(g: Grade, c: Celula): boolean {
@@ -321,8 +392,20 @@ const VIZINHOS_DY = [0, 0, 1, -1, 1, -1, 1, -1]
  *  celula DE DESTINO do movimento (bIdx), nao as duas ortogonais do
  *  anti-corner-cutting — a grade de profundidade e tipicamente mais grossa
  *  que a de agua, entao esse refinamento extra nao muda o resultado na
- *  pratica e simplifica o codigo. */
-function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula, config?: ConfigCalado): Celula[] | null {
+ *  pratica e simplifica o codigo. `corredores` (onda 17, opcional): quando
+ *  presente, o custo de cada movimento e multiplicado por `fatorCorredor` da
+ *  intensidade na celula DE DESTINO — roda DEPOIS do check de agua/calado
+ *  (que so aceita o `continue` acima), entao um corredor nunca torna
+ *  transponivel uma celula que ja seria rejeitada por eles. Sem `corredores`
+ *  (ou com o Map vazio), o comportamento e IDENTICO ao de antes desta onda —
+ *  ver teste de regressao explicito em rota.test.ts. */
+function acharCaminhoEmCelulas(
+  g: Grade,
+  origem: Celula,
+  destino: Celula,
+  config?: ConfigCalado,
+  corredores?: CorredoresPorCelula,
+): Celula[] | null {
   const { largura, altura } = g
   const n = largura * altura
   const idxOrigem = origem.y * largura + origem.x
@@ -392,6 +475,15 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula, config
         if (profundidadeAqui < limiarBloqueioM) continue // rasa demais pro calado: intransponivel, como terra
         custoMovimento *= fatorPenalidadeProfundidade(profundidadeAqui, limiarBloqueioM, zonaPenalidadeM)
       }
+      // Corredor (onda 17): so TORCE a preferencia entre movimentos ja
+      // validos (chegou aqui = passou nos checks de agua e calado acima) —
+      // nunca desbloqueia nada. `intensidade === 0` (celula sem passagem
+      // conhecida, o caso comum) pula a multiplicacao — nao muda o valor
+      // (fatorCorredor(0) === 1), so evita o custo de chamar a funcao.
+      if (corredores) {
+        const intensidade = intensidadeCorredorEm(corredores, paraCoord(g, { x: bx, y: by }))
+        if (intensidade > 0) custoMovimento *= fatorCorredor(intensidade)
+      }
       const gTentativo = gScore[atual] + custoMovimento
       if (gTentativo < gScore[bIdx]) {
         pai[bIdx] = atual
@@ -410,14 +502,23 @@ function acharCaminhoEmCelulas(g: Grade, origem: Celula, destino: Celula, config
  *  roda o A* respeitando o calado do barco — ver `ConfigCalado` e
  *  `acharCaminhoEmCelulas`. O snap em si NAO considera profundidade: a
  *  origem/destino podem estar numa marina rasa (e e la que o barco esta/vai),
- *  a restricao vale pro CAMINHO entre eles, nao pros extremos. */
-export function acharCaminho(g: Grade, de: Coord, para: Coord, config?: ConfigCalado): Coord[] | null {
+ *  a restricao vale pro CAMINHO entre eles, nao pros extremos. `corredores`
+ *  (onda 17, opcional): preferencia por celulas com passagens reais — ver
+ *  `CorredoresPorCelula`. Omitir (ou passar um Map vazio) da a MESMA rota de
+ *  antes desta onda. */
+export function acharCaminho(
+  g: Grade,
+  de: Coord,
+  para: Coord,
+  config?: ConfigCalado,
+  corredores?: CorredoresPorCelula,
+): Coord[] | null {
   const raio = raioSnapCelulas(g)
   const origemCelula = snapParaAgua(g, de, raio)
   const destinoCelula = snapParaAgua(g, para, raio)
   if (!origemCelula || !destinoCelula) return null
 
-  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula, config)
+  const caminhoCelulas = acharCaminhoEmCelulas(g, origemCelula, destinoCelula, config, corredores)
   if (!caminhoCelulas) return null
 
   return caminhoCelulas.map((c) => paraCoord(g, c))
