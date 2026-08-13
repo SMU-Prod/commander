@@ -770,6 +770,23 @@ export function NavegarMapa({
     }
   }, [mapaPronto, modoDefinirDestino])
 
+  /** Trocar de estilo (Náutico ⇄ Satélite ⇄ Relevo 3D) faz `setStyle()`, e o
+   *  Mapbox DESTRÓI toda camada/source customizada nessa troca. O MapaNautico
+   *  reconstrói as dele (batimetria, OpenSeaMap) no "style.load", mas as
+   *  DESTA tela (rumo, rota, âncora) morriam junto e não voltavam: a rota
+   *  simplesmente sumia no satélite — bug visto em produção, 13/08/2026.
+   *  Este contador sobe a cada "style.load" e entra nas dependências dos
+   *  efeitos de criação e de desenho abaixo, que então refazem tudo. */
+  const [versaoEstilo, setVersaoEstilo] = useState(0)
+  useEffect(() => {
+    if (!mapaPronto) return
+    const aoTrocarEstilo = () => setVersaoEstilo((v) => v + 1)
+    mapaPronto.on("style.load", aoTrocarEstilo)
+    return () => {
+      mapaPronto.off("style.load", aoTrocarEstilo)
+    }
+  }, [mapaPronto])
+
   // Fontes/camadas do mapa (linha de rumo + círculo do alarme) — criadas uma
   // vez quando o mapa fica pronto; atualizadas via setData nos efeitos abaixo.
   useEffect(() => {
@@ -842,15 +859,23 @@ export function NavegarMapa({
         paint: { "line-color": COR_ALARME, "line-width": 2 },
       })
     }
-  }, [mapaPronto])
+  }, [mapaPronto, versaoEstilo])
 
   // Linha de rumo posição→destino, redesenhada a cada nova posição.
   useEffect(() => {
     if (!mapaPronto) return
     const source = mapaPronto.getSource("rumo") as GeoJSONSource | undefined
     if (!source) return
+    // Some quando existe rota pela água desenhada: a linha reta atravessa
+    // terra (foi ela que o dono viu cortando o continente entre Búzios e
+    // Maricá, 13/08/2026) e num app náutico isso confunde mais do que
+    // informa — o rumo direto continua nos NÚMEROS do painel, que é onde
+    // ele é útil. Sem rota (fora da área, sem caminho), a linha volta: aí
+    // ela é a única orientação que existe, e a tela já diz que é rumo
+    // direto, não rota.
+    const temRotaDesenhada = estadoRotaAtual.tipo === "rota"
     source.setData(
-      posAtual && destino
+      posAtual && destino && !temRotaDesenhada
         ? {
             type: "FeatureCollection",
             features: [
@@ -863,7 +888,7 @@ export function NavegarMapa({
           }
         : colecaoVazia(),
     )
-  }, [mapaPronto, posAtual, destino])
+  }, [mapaPronto, posAtual, destino, estadoRotaAtual, versaoEstilo])
 
   // Rota pela agua (linha + pontos de virada), redesenhada a cada resposta do
   // Worker; some (volta pra colecao vazia) em qualquer estado que nao seja uma
@@ -909,7 +934,7 @@ export function NavegarMapa({
       type: "FeatureCollection",
       features: viradas.map((p) => ({ type: "Feature" as const, properties: {}, geometry: { type: "Point" as const, coordinates: [p.lo, p.la] } })),
     })
-  }, [mapaPronto, estadoRotaAtual])
+  }, [mapaPronto, estadoRotaAtual, versaoEstilo])
 
   // Distância/rumo/ETA até o destino em linha reta — cálculo puro, não depende
   // do mapa. Continua existindo mesmo quando ha rota: e a base do painel
@@ -1005,7 +1030,7 @@ export function NavegarMapa({
           }
         : colecaoVazia(),
     )
-  }, [mapaPronto, ancora])
+  }, [mapaPronto, ancora, versaoEstilo])
 
   // Efeitos colaterais do alarme (vibração + notificação do sistema) — só
   // isso; `garrando` em si é decidido no watcher, com o filtro anti-jitter.
