@@ -113,12 +113,22 @@ function useBoletimTempo(posicao: { la: number; lo: number } | null) {
 
 const ROTULO_MARE: Record<EventoMare["tipo"], string> = { preamar: "Preamar", "baixa-mar": "Baixa-mar" }
 
-/** Seta que aponta pra ONDE O VENTO SOPRA (a direção crua da API, mesma
- *  convenção meteorológica de "vento de NE" = vem do NE) — rotaciona um
- *  marcador que, sem rotação, aponta pro Norte (topo). */
+/** Seta do vento — aponta pra ONDE O VENTO EMPURRA, não de onde ele vem.
+ *  As duas convenções coexistem de propósito, e é assim que todo app náutico
+ *  sério faz (Windy, PredictWind, Navionics): o TEXTO ao lado diz a origem
+ *  ("NE" = vento de nordeste, convenção meteorológica que o marinheiro fala),
+ *  e a SETA mostra o efeito — pra onde ele te leva. Por isso os 180° de
+ *  correção sobre o valor cru da API (que é a direção de ORIGEM). O traçado
+ *  sem rotação aponta pro Norte (topo). */
 function SetaVento({ graus }: { graus: number }) {
   return (
-    <svg viewBox="0 0 24 24" width="16" height="16" style={{ transform: `rotate(${graus}deg)` }} aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      style={{ transform: `rotate(${(graus + 180) % 360}deg)` }}
+      aria-hidden="true"
+    >
       <path d="M12 3 19 19 12 15 5 19Z" fill="currentColor" />
     </svg>
   )
@@ -244,10 +254,14 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
                   <p className="flex items-baseline gap-1 text-xl text-accent">
                     {estado.boletim.ventoKt != null ? Math.round(estado.boletim.ventoKt) : "—"}
                     <span className="text-sm text-meter-dim">kt</span>
+                    {/* "de NE" e nao so "NE": o marinheiro fala a ORIGEM do
+                        vento, e o "de" tira qualquer duvida de leitura ao lado
+                        de uma seta que aponta pro lado contrario (ver
+                        SetaVento). */}
                     {estado.boletim.ventoGraus != null && (
                       <span className="ml-auto flex items-center gap-1 text-xs text-meter-dim">
                         <SetaVento graus={estado.boletim.ventoGraus} />
-                        {pontoCardeal(estado.boletim.ventoGraus)}
+                        de {pontoCardeal(estado.boletim.ventoGraus)}
                       </span>
                     )}
                   </p>
