@@ -1,12 +1,9 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
 import { salvarPerfilComandante } from "@/lib/acoes/perfil-comandante"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo, CampoTextarea } from "@/components/ui/campo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function PerfilComandantePage({
   searchParams,
@@ -23,44 +20,28 @@ export default async function PerfilComandantePage({
 
   return (
     <main>
-      <Link href="/marketplace" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Comandantes
-      </Link>
-      <h1 className="titulo-pagina mt-3">Meu perfil de comandante</h1>
-      <p className="mt-1 text-sm text-dim">O que o dono do barco vê quando procura um comandante para contratar.</p>
+      <CabecalhoDetalhe
+        voltarHref="/marketplace"
+        voltarRotulo="Comandantes"
+        titulo="Meu perfil de comandante"
+        descricao="O que o dono do barco vê quando procura um comandante para contratar."
+      />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={salvarPerfilComandante} className="mt-5 space-y-4">
-        <div>
-          <label className={rotulo} htmlFor="nome_publico">Nome profissional</label>
-          <input id="nome_publico" name="nome_publico" required defaultValue={p?.nome_publico ?? ""} className={campo} />
-        </div>
+        <Campo label="Nome profissional" id="nome_publico" name="nome_publico" required defaultValue={p?.nome_publico ?? ""} />
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rotulo} htmlFor="categoria">Habilitação</label>
-            <input id="categoria" name="categoria" list="categorias" defaultValue={p?.categoria ?? ""} placeholder="Capitão Amador" className={campo} />
+          <Campo label="Habilitação" id="categoria" name="categoria" list="categorias" defaultValue={p?.categoria ?? ""} placeholder="Capitão Amador">
             <datalist id="categorias">
               <option value="Arrais Amador" /><option value="Mestre Amador" />
               <option value="Capitão Amador" /><option value="Marinheiro Profissional" />
             </datalist>
-          </div>
-          <div>
-            <label className={rotulo} htmlFor="cidade">Cidade</label>
-            <input id="cidade" name="cidade" defaultValue={p?.cidade ?? ""} placeholder="Rio de Janeiro" className={campo} />
-          </div>
+          </Campo>
+          <Campo label="Cidade" id="cidade" name="cidade" defaultValue={p?.cidade ?? ""} placeholder="Rio de Janeiro" />
         </div>
-        <div>
-          <label className={rotulo} htmlFor="disponibilidade">Disponibilidade</label>
-          <input id="disponibilidade" name="disponibilidade" defaultValue={p?.disponibilidade ?? ""} placeholder="Fins de semana e feriados" className={campo} />
-        </div>
-        <div>
-          <label className={rotulo} htmlFor="telefone">WhatsApp (com DDD)</label>
-          <input id="telefone" name="telefone" inputMode="tel" defaultValue={p?.telefone ?? ""} placeholder="21 99999-0000" className={campo} />
-        </div>
-        <div>
-          <label className={rotulo} htmlFor="bio">Apresentação</label>
-          <textarea id="bio" name="bio" rows={3} defaultValue={p?.bio ?? ""} placeholder="Experiência, embarcações que já comandou…" className={campo} />
-        </div>
+        <Campo label="Disponibilidade" id="disponibilidade" name="disponibilidade" defaultValue={p?.disponibilidade ?? ""} placeholder="Fins de semana e feriados" />
+        <Campo label="WhatsApp (com DDD)" id="telefone" name="telefone" inputMode="tel" defaultValue={p?.telefone ?? ""} placeholder="21 99999-0000" />
+        <CampoTextarea label="Apresentação" id="bio" name="bio" rows={3} defaultValue={p?.bio ?? ""} placeholder="Experiência, embarcações que já comandou…" />
         <label className="flex items-center gap-2.5 text-sm">
           <input type="checkbox" name="visivel" defaultChecked={p?.visivel ?? true} className="size-5 accent-[#d4af37]" />
           Aparecer na lista de comandantes disponíveis
