@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { assinar } from "@/lib/acoes/assinatura"
 import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS } from "@/lib/domain/planos"
-import { campo, rot } from "@/lib/ui/form"
+import { Campo } from "@/components/ui/campo"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function AssinarPage({
@@ -60,15 +60,16 @@ export default async function AssinarPage({
         </div>
 
         <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <div>
-            <label htmlFor="nome" className={rot}>Nome completo</label>
-            <input id="nome" name="nome" required minLength={5} className={campo} autoComplete="name" />
-          </div>
-          <div>
-            <label htmlFor="cpf" className={rot}>CPF</label>
-            <input id="cpf" name="cpf" required inputMode="numeric" placeholder="000.000.000-00" className={campo} />
-            <p className="apoio mt-1.5 text-dim">Exigido pelo sistema de pagamento para emitir a cobrança.</p>
-          </div>
+          <Campo label="Nome completo" id="nome" name="nome" required minLength={5} autoComplete="name" />
+          <Campo
+            label="CPF"
+            id="cpf"
+            name="cpf"
+            required
+            inputMode="numeric"
+            placeholder="000.000.000-00"
+            dica="Exigido pelo sistema de pagamento para emitir a cobrança."
+          />
         </div>
 
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
