@@ -1,12 +1,12 @@
-import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
-import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo, CampoSelect } from "@/components/ui/campo"
 import { excluirItemMonitorado, salvarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
-import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { numeroParaCampoPtBr } from "@/lib/ui/form"
 
 export default async function EditarItemPage({
   params,
@@ -42,72 +42,40 @@ export default async function EditarItemPage({
 
   return (
     <main>
-      <Link href={voltarPara} className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Voltar
-      </Link>
-      <h1 className="titulo-pagina mt-3">{ehDocumento ? "Editar vencimento" : "Editar manutenção"}</h1>
+      <CabecalhoDetalhe voltarHref={voltarPara} titulo={ehDocumento ? "Editar vencimento" : "Editar manutenção"} />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarItemMonitorado} className="mt-5 space-y-4">
         <input type="hidden" name="item_id" value={id} />
-        <div>
-          <label className={rot} htmlFor="nome">Nome</label>
-          <input id="nome" name="nome" required defaultValue={item.nome} placeholder="Ex.: Antifouling" className={campo} />
-        </div>
+        <Campo label="Nome" id="nome" name="nome" required defaultValue={item.nome} placeholder="Ex.: Antifouling" />
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rot} htmlFor="especificacao">Especificação</label>
-            <input id="especificacao" name="especificacao" defaultValue={item.especificacao ?? ""} placeholder="Ex.: 15W40" className={campo} />
-          </div>
-          <div>
-            <label className={rot} htmlFor="quantidade">Quantidade</label>
-            <input id="quantidade" name="quantidade" defaultValue={item.quantidade ?? ""} placeholder="Ex.: 4 L" className={campo} />
-          </div>
+          <Campo label="Especificação" id="especificacao" name="especificacao" defaultValue={item.especificacao ?? ""} placeholder="Ex.: 15W40" />
+          <Campo label="Quantidade" id="quantidade" name="quantidade" defaultValue={item.quantidade ?? ""} placeholder="Ex.: 4 L" />
         </div>
-        <div>
-          <label className={rot} htmlFor="alvo">Pertence a</label>
-          <select id="alvo" name="alvo" defaultValue={alvoAtual} className={campo}>
-            <option value="emb">Embarcação (geral)</option>
-            {item.categoria === "documento" && <option value="cat:documento">Documento (vencimento)</option>}
-            {painel.equipamentos.map((e) => (
-              <option key={e.id} value={`eq:${e.id}`}>
-                {(e.tipo === "motor" ? "Motor" : e.tipo === "gerador" ? "Gerador" : "Equipamento")} {e.posicao ?? ""}
-              </option>
-            ))}
-            {CATEGORIAS_CASCO.map((c) => (
-              <option key={c} value={`cat:${c}`}>Casco — {ROTULO_CASCO[c]}</option>
-            ))}
-          </select>
-        </div>
+        <CampoSelect label="Pertence a" id="alvo" name="alvo" defaultValue={alvoAtual}>
+          <option value="emb">Embarcação (geral)</option>
+          {item.categoria === "documento" && <option value="cat:documento">Documento (vencimento)</option>}
+          {painel.equipamentos.map((e) => (
+            <option key={e.id} value={`eq:${e.id}`}>
+              {(e.tipo === "motor" ? "Motor" : e.tipo === "gerador" ? "Gerador" : "Equipamento")} {e.posicao ?? ""}
+            </option>
+          ))}
+          {CATEGORIAS_CASCO.map((c) => (
+            <option key={c} value={`cat:${c}`}>Casco — {ROTULO_CASCO[c]}</option>
+          ))}
+        </CampoSelect>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rot} htmlFor="intervalo_horas">A cada X horas</label>
-            <input id="intervalo_horas" name="intervalo_horas" inputMode="decimal"
-              defaultValue={numeroParaCampoPtBr(item.intervalo_horas)} placeholder="500"
-              className={`${campo} font-mono-instr tabular-nums`} />
-          </div>
-          <div>
-            <label className={rot} htmlFor="intervalo_meses">E/ou a cada X meses</label>
-            <input id="intervalo_meses" name="intervalo_meses" inputMode="numeric"
-              defaultValue={numeroParaCampoPtBr(item.intervalo_meses)} placeholder="18"
-              className={`${campo} font-mono-instr tabular-nums`} />
-          </div>
+          <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal"
+            defaultValue={numeroParaCampoPtBr(item.intervalo_horas)} placeholder="500" className="font-mono-instr tabular-nums" />
+          <Campo label="E/ou a cada X meses" id="intervalo_meses" name="intervalo_meses" inputMode="numeric"
+            defaultValue={numeroParaCampoPtBr(item.intervalo_meses)} placeholder="18" className="font-mono-instr tabular-nums" />
         </div>
-        <div>
-          <label className={rot} htmlFor="data_fixa">Ou vencimento em data fixa</label>
-          <input id="data_fixa" name="data_fixa" type="date" defaultValue={item.data_fixa ?? ""} className={campo} />
-        </div>
+        <Campo label="Ou vencimento em data fixa" id="data_fixa" name="data_fixa" type="date" defaultValue={item.data_fixa ?? ""} />
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rot} htmlFor="ultimo_ciclo_data">Último serviço em</label>
-            <input id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date"
-              defaultValue={item.ultimo_ciclo_data ?? ""} className={campo} />
-          </div>
-          <div>
-            <label className={rot} htmlFor="ultimo_ciclo_horas">Horas no último serviço</label>
-            <input id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal"
-              defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className={`${campo} font-mono-instr tabular-nums`} />
-          </div>
+          <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date"
+            defaultValue={item.ultimo_ciclo_data ?? ""} />
+          <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal"
+            defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className="font-mono-instr tabular-nums" />
         </div>
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
           {ehDocumento ? "Salvar vencimento" : "Salvar manutenção"}

@@ -4,6 +4,9 @@ import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, carregarSelo, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
@@ -61,18 +64,16 @@ export default async function BarcoPage({
         podeEditarFotos={podeEditar(permissoes, "fotos")}
       />
 
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="motor" className="size-3.5" /> Motores
-        </p>
-        {podeEditar(permissoes, "motores") && (
-          <Link href="/barco/equipamento/novo?tipo=motor" className="corpo inline-flex items-center gap-1 text-accent-forte">
-            <Icone nome="mais" className="size-4" /> Motor
-          </Link>
-        )}
-      </div>
+      <SecaoPagina icone="motor" acao={podeEditar(permissoes, "motores") ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Motor", icone: "mais" } : undefined}>
+        Motores
+      </SecaoPagina>
       {motores.length === 0 && (
-        <p className="apoio text-dim">Nenhum motor cadastrado ainda.</p>
+        <EstadoVazio
+          icone="motor"
+          titulo="Nenhum motor cadastrado ainda"
+          descricao="Cadastre pra ganhar horímetro e checklist de manutenção automáticos."
+          className="mb-2"
+        />
       )}
       <div className="grid grid-cols-2 gap-2">
         {motores.map((m) => (
@@ -86,24 +87,22 @@ export default async function BarcoPage({
         ))}
       </div>
 
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="raio" className="size-3.5" /> Elétrica
-        </p>
-        <Link href="/barco/eletrica" className="corpo text-accent-forte">Ver tudo</Link>
-      </div>
-      <Link href="/barco/eletrica" className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5">
-        <p className="titulo-card">
-          {equipamentos.filter((e) => e.tipo !== "motor").length === 0
+      <SecaoPagina icone="raio" acao={{ href: "/barco/eletrica", rotulo: "Ver tudo" }}>
+        Elétrica
+      </SecaoPagina>
+      <LinhaLista
+        href="/barco/eletrica"
+        variant="cartao"
+        leading={<Icone nome="raio" className="size-5 shrink-0 text-dim" />}
+        titulo={
+          equipamentos.filter((e) => e.tipo !== "motor").length === 0
             ? "Cadastre gerador e baterias"
-            : `${equipamentos.filter((e) => e.tipo !== "motor").length} equipamentos`}
-        </p>
-        <p className="apoio mt-0.5 text-dim">Manutenção do gerador, troca das baterias e painel de bordo</p>
-      </Link>
+            : `${equipamentos.filter((e) => e.tipo !== "motor").length} equipamentos`
+        }
+        subtitulo="Manutenção do gerador, troca das baterias e painel de bordo"
+      />
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="escudo" className="size-3.5" /> Casco
-      </p>
+      <SecaoPagina icone="escudo">Casco</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {CATEGORIAS_CASCO.map((c) => {
           const doGrupo = itens.filter((i) => i.categoria === c)
@@ -111,96 +110,84 @@ export default async function BarcoPage({
             .map((i) => calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje).status)
             .sort((a, b) => PESO[b] - PESO[a])[0]
           return (
-            <div key={c} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              {status ? <Farol status={status} /> : <span className="size-2 rounded-full border border-line" />}
-              <span className="corpo flex-1">{ROTULO_CASCO[c]}</span>
-              {doGrupo.length === 0 ? (
-                <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`} className="text-xs text-accent-forte">
-                  Adicionar
-                </Link>
-              ) : (
-                <span className="font-mono-instr text-xs tabular-nums text-dim">{doGrupo.length} itens</span>
-              )}
-            </div>
+            <LinhaLista
+              key={c}
+              leading={status ? <Farol status={status} /> : <span className="size-2 rounded-full border border-line" />}
+              titulo={ROTULO_CASCO[c]}
+              trailing={
+                doGrupo.length === 0 ? (
+                  <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`} className="shrink-0 text-xs text-accent-forte">
+                    Adicionar
+                  </Link>
+                ) : (
+                  <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{doGrupo.length} itens</span>
+                )
+              }
+            />
           )
         })}
       </div>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="documento" className="size-3.5" /> Documentos
-      </p>
+      <SecaoPagina icone="documento">Documentos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {documentos.length === 0 && (
-          <p className="corpo py-4 text-dim">Nenhum documento com vencimento cadastrado ainda.</p>
+          <EstadoVazio
+            variant="linha"
+            icone="documento"
+            titulo="Nenhum documento com vencimento cadastrado"
+            descricao="Seguro, TIE, vistoria — cadastre a validade e o semáforo avisa antes de vencer."
+            acao={podeEditar(permissoes, "documentos") ? { href: "/barco/documentos", rotulo: "Adicionar documento" } : undefined}
+          />
         )}
         {documentos.map((i) => {
           const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
           const venc = vencimentoPorData(itemMonitoradoToItemCalc(i))
           const editavelItem = podeEditar(permissoes, abaDoItem(i, equipamentos))
+          const dias = r.diasRestantes != null
+            ? r.diasRestantes < 0 ? `vencido há ${-r.diasRestantes} d` : `${r.diasRestantes} dias`
+            : "—"
           return (
-            <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <Farol status={r.status} />
-              {editavelItem ? (
-                <Link href={`/barco/itens/${i.id}/editar`} className="corpo flex-1">{i.nome}</Link>
-              ) : (
-                <span className="corpo flex-1">{i.nome}</span>
-              )}
-              <span className="font-mono-instr text-xs tabular-nums text-dim">
-                {r.diasRestantes != null
-                  ? r.diasRestantes < 0
-                    ? `vencido há ${-r.diasRestantes} d`
-                    : `${r.diasRestantes} dias`
-                  : "—"}
-                {venc ? ` · ${formatarDataCurta(venc)}` : ""}
-              </span>
-            </div>
+            <LinhaLista
+              key={i.id}
+              href={editavelItem ? `/barco/itens/${i.id}/editar` : undefined}
+              leading={<Farol status={r.status} />}
+              titulo={i.nome}
+              valor={`${dias}${venc ? ` · ${formatarDataCurta(venc)}` : ""}`}
+              valorClassName={r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"}
+            />
           )
         })}
       </div>
 
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="ferramenta" className="size-3.5" /> Outras manutenções
-        </p>
-        {podeEditar(permissoes, "embarcacao") && (
-          <Link href="/barco/itens/novo" className="corpo inline-flex items-center gap-1 text-accent-forte">
-            <Icone nome="mais" className="size-4" /> Manutenção
-          </Link>
-        )}
-      </div>
+      <SecaoPagina icone="ferramenta" acao={podeEditar(permissoes, "embarcacao") ? { href: "/barco/itens/novo", rotulo: "Manutenção", icone: "mais" } : undefined}>
+        Outras manutenções
+      </SecaoPagina>
       <p className="apoio -mt-1 mb-2 text-dim">Vence, mas não é motor, elétrica, casco nem documento.</p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {outrasManutencoes.length === 0 && (
-          <p className="corpo py-4 text-dim">Nenhuma outra manutenção cadastrada ainda.</p>
+          <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma outra manutenção cadastrada ainda" />
         )}
         {outrasManutencoes.map((i) => {
           const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
           const venc = vencimentoPorData(itemMonitoradoToItemCalc(i))
           const editavelItem = podeEditar(permissoes, abaDoItem(i, equipamentos))
+          const dias = r.diasRestantes != null
+            ? r.diasRestantes < 0 ? `vencido há ${-r.diasRestantes} d` : `${r.diasRestantes} dias`
+            : "—"
           return (
-            <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <Farol status={r.status} />
-              {editavelItem ? (
-                <Link href={`/barco/itens/${i.id}/editar`} className="corpo flex-1">{i.nome}</Link>
-              ) : (
-                <span className="corpo flex-1">{i.nome}</span>
-              )}
-              <span className="font-mono-instr text-xs tabular-nums text-dim">
-                {r.diasRestantes != null
-                  ? r.diasRestantes < 0
-                    ? `vencido há ${-r.diasRestantes} d`
-                    : `${r.diasRestantes} dias`
-                  : "—"}
-                {venc ? ` · ${formatarDataCurta(venc)}` : ""}
-              </span>
-            </div>
+            <LinhaLista
+              key={i.id}
+              href={editavelItem ? `/barco/itens/${i.id}/editar` : undefined}
+              leading={<Farol status={r.status} />}
+              titulo={i.nome}
+              valor={`${dias}${venc ? ` · ${formatarDataCurta(venc)}` : ""}`}
+              valorClassName={r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"}
+            />
           )
         })}
       </div>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="imagem" className="size-3.5" /> Ferramentas do dia a dia
-      </p>
+      <SecaoPagina icone="imagem">Ferramentas do dia a dia</SecaoPagina>
       <div className="grid grid-cols-2 gap-2">
         {(
           [
@@ -246,14 +233,9 @@ export default async function BarcoPage({
         </Link>
       )}
 
-      <div className="mt-6 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="embarcacao" className="size-3.5" /> Dados gerais
-        </p>
-        {papel === "PROP" && (
-          <Link href="/barco/editar" className="corpo text-accent-forte">Editar</Link>
-        )}
-      </div>
+      <SecaoPagina icone="embarcacao" acao={papel === "PROP" ? { href: "/barco/editar", rotulo: "Editar" } : undefined}>
+        Dados gerais
+      </SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           {([
@@ -274,14 +256,18 @@ export default async function BarcoPage({
       </div>
 
       {papel === "PROP" && (
-        <Link href="/barco/local" className="sombra-1 mt-6 block rounded-[14px] border border-line bg-panel p-3.5">
-          <p className="titulo-card">Posição da marina</p>
-          <p className="apoio mt-0.5 text-dim">
-            {embarcacao.marina_lat != null && embarcacao.marina_lon != null
+        <LinhaLista
+          href="/barco/local"
+          variant="cartao"
+          className="mt-6"
+          leading={<Icone nome="mapa" className="size-5 shrink-0 text-dim" />}
+          titulo="Posição da marina"
+          subtitulo={
+            embarcacao.marina_lat != null && embarcacao.marina_lon != null
               ? `${embarcacao.marina_lat.toFixed(4)}, ${embarcacao.marina_lon.toFixed(4)}`
-              : "Defina para ligar o boletim do mar"}
-          </p>
-        </Link>
+              : "Defina para ligar o boletim do mar"
+          }
+        />
       )}
     </main>
   )

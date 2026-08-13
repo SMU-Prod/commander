@@ -4,6 +4,10 @@ import { DicaLeitorNativo } from "@/components/dica-leitor-nativo"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { calcularSemaforo, formatarDataCurta, PESO, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -107,9 +111,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
   return (
     <main>
-      <Link href={ehMotor ? "/barco" : "/barco/eletrica"} className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> {ehMotor ? "Embarcação" : "Elétrica"}
-      </Link>
+      <CabecalhoDetalhe voltarHref={ehMotor ? "/barco" : "/barco/eletrica"} voltarRotulo={ehMotor ? "Embarcação" : "Elétrica"} />
 
       {irmaos.length > 1 && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -171,23 +173,17 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           o manual do fabricante já guardado no acervo. Sistema com manual
           abre o PDF na página certa; sem manual, o clique leva a vincular
           um (nunca clique morto, ver docs/CONTRIBUTING.md). */}
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="motor" className="size-3.5" /> Sistemas
-        </p>
-        {editavel && (
-          <Link href={`/barco/equipamento/${id}/sistemas/novo`} className="corpo inline-flex items-center gap-1 text-accent-forte">
-            <Icone nome="mais" className="size-4" /> Sistema
-          </Link>
-        )}
-      </div>
+      <SecaoPagina icone="motor" acao={editavel ? { href: `/barco/equipamento/${id}/sistemas/novo`, rotulo: "Sistema", icone: "mais" } : undefined}>
+        Sistemas
+      </SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {sistemas.length === 0 && (
-          <p className="corpo py-4 text-dim">
-            {editavel
-              ? "Nenhum sistema cadastrado ainda — comece por Arrefecimento, Injeção, Elétrica do motor ou Transmissão."
-              : "Nenhum sistema cadastrado aqui ainda."}
-          </p>
+          <EstadoVazio
+            variant="linha"
+            icone="motor"
+            titulo="Nenhum sistema cadastrado ainda"
+            descricao={editavel ? "Comece por Arrefecimento, Injeção, Elétrica do motor ou Transmissão." : undefined}
+          />
         )}
         {sistemas.map((s) => {
           const documento = s.documento_id ? documentoPorId.get(s.documento_id) : undefined
@@ -250,62 +246,38 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         })}
       </div>
 
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="ferramenta" className="size-3.5" /> Manutenções
-        </p>
-        {editavel && (
-          <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`eq:${id}`)}`} className="corpo text-accent-forte">
-            Nova manutenção
-          </Link>
-        )}
-      </div>
+      <SecaoPagina icone="ferramenta" acao={editavel ? { href: `/barco/itens/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Nova manutenção" } : undefined}>
+        Manutenções
+      </SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {itens.length === 0 && (
-          <p className="corpo py-4 text-dim">Nenhuma manutenção cadastrada aqui ainda.</p>
+          <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma manutenção cadastrada aqui ainda" />
         )}
         {itens.map(({ item, r }) => {
           const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null
           const venc = vencimentoPorData(itemMonitoradoToItemCalc(item))
-          const nomeEItem = (
-            <>
-              <p className="titulo-card">{item.nome}</p>
-              <p className="apoio mt-0.5 text-dim">
-                {[
-                  item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
-                  item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
-                  item.especificacao,
-                  item.quantidade,
-                ].filter(Boolean).join(" · ") || "sem regra definida"}
-              </p>
-            </>
-          )
+          const regra = [
+            item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
+            item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
+            item.especificacao,
+            item.quantidade,
+          ].filter(Boolean).join(" · ") || "sem regra definida"
           return (
-            <div key={item.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <Farol status={r.status} />
-              {editavel ? (
-                <Link href={`/barco/itens/${item.id}/editar`} className="min-w-0 flex-1">{nomeEItem}</Link>
-              ) : (
-                <div className="min-w-0 flex-1">{nomeEItem}</div>
-              )}
-              <div className="shrink-0 text-right">
-                <p className={`font-mono-instr text-sm font-semibold tabular-nums ${
-                  r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"
-                }`}>
-                  {textoRestante(r)}{venc ? ` · ${formatarDataCurta(venc)}` : ""}
-                </p>
-                {dias != null && dias > 0 && r.status !== "vencido" && (
-                  <p className="apoio font-mono-instr tabular-nums text-dim">~{dias} dias</p>
-                )}
-              </div>
-            </div>
+            <LinhaLista
+              key={item.id}
+              href={editavel ? `/barco/itens/${item.id}/editar` : undefined}
+              leading={<Farol status={r.status} />}
+              titulo={item.nome}
+              subtitulo={regra}
+              valor={`${textoRestante(r)}${venc ? ` · ${formatarDataCurta(venc)}` : ""}`}
+              valorClassName={r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"}
+              valorSecundario={dias != null && dias > 0 && r.status !== "vencido" ? `~${dias} dias` : undefined}
+            />
           )
         })}
       </div>
 
-      <p className="rotulo mt-6 mb-2 flex items-center gap-1.5 text-dim">
-        <Icone nome="documento" className="size-3.5" /> Especificação
-      </p>
+      <SecaoPagina icone="documento">Especificação</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           {especificacoes.map(([nome, valor]) => (
@@ -323,17 +295,12 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         )}
       </div>
 
-      <div className="mt-6 mb-2 flex items-baseline justify-between">
-        <p className="rotulo flex items-center gap-1.5 text-dim">
-          <Icone nome="calendario" className="size-3.5" /> Histórico
-        </p>
-        <Link href={`/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`} className="corpo text-accent-forte">
-          Registrar serviço
-        </Link>
-      </div>
+      <SecaoPagina icone="calendario" acao={{ href: `/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Registrar serviço" }}>
+        Histórico
+      </SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {(eventos ?? []).length === 0 && (
-          <p className="corpo py-4 text-dim">Nenhum serviço registrado neste equipamento ainda.</p>
+          <EstadoVazio variant="linha" icone="calendario" titulo="Nenhum serviço registrado neste equipamento ainda" />
         )}
         {(eventos ?? []).map((e) => (
           <div key={e.id} className="border-b border-line py-3 last:border-0">
