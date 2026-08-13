@@ -1,8 +1,10 @@
-import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Avatar } from "@/components/avatar"
 import { Icone } from "@/components/icone"
 import { TrilhaMapa } from "@/components/mapa/trilha-mapa"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import { textoCompartilharSaida } from "@/lib/domain/compartilhar"
@@ -86,16 +88,12 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
 
   return (
     <main>
-      <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Diário
-      </Link>
-
-      <h1 className="titulo-pagina mt-3">{e.destino ? `Saída — ${e.destino}` : "Saída"}</h1>
-      <p className="mt-1 apoio text-dim">
-        {e.data.split("-").reverse().join("/")}
-        {duracaoH != null ? ` · ${textoDuracao(duracaoH)}` : ""}
-        {retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) && " · retorno no dia seguinte"}
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/diario"
+        voltarRotulo="Diário"
+        titulo={e.destino ? `Saída — ${e.destino}` : "Saída"}
+        descricao={`${e.data.split("-").reverse().join("/")}${duracaoH != null ? ` · ${textoDuracao(duracaoH)}` : ""}${retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) ? " · retorno no dia seguinte" : ""}`}
+      />
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
           vivo pelo app, e o dono precisa saber disso olhando a tela. */}
       {e.importado_do_plotter && (
@@ -109,10 +107,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
         {trilha ? (
           <TrilhaMapa pontos={trilha} className="h-56 w-full" />
         ) : (
-          <div className="rounded-[14px] border border-line bg-panel p-5 text-center">
-            <Icone nome="mapa" className="mx-auto size-7 text-dim" />
-            <p className="corpo mt-2 text-dim">Grave a trilha na próxima saída para ver o percurso aqui.</p>
-          </div>
+          <EstadoVazio icone="mapa" titulo="Grave a trilha na próxima saída para ver o percurso aqui." />
         )}
       </div>
 
@@ -169,10 +164,8 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       )}
 
       {tripulantes.length > 0 && (
-        <div className="mt-4">
-          <p className="rotulo text-dim mb-2 inline-flex items-center gap-1.5">
-            <Icone nome="pessoas" className="size-3.5" /> Tripulação da saída
-          </p>
+        <div>
+          <SecaoPagina icone="pessoas">Tripulação da saída</SecaoPagina>
           <div className="flex flex-wrap gap-3">
             {tripulantes.map((t) => (
               <div key={t.id} className="flex items-center gap-2">

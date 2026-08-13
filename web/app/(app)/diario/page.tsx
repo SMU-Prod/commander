@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
@@ -109,15 +111,18 @@ export default async function DiarioPage({
       </div>
 
       {grupos.length === 0 && (
-        <div className="sombra-1 mt-6 rounded-[14px] border border-line bg-panel p-5 text-center corpo text-dim">
-          Nenhum registro por aqui ainda. Toque em &quot;+ Registrar&quot; para criar o primeiro —
-          cada serviço registrado vira histórico e dossiê do barco.
-        </div>
+        <EstadoVazio
+          icone="calendario"
+          titulo="Nenhum registro por aqui ainda"
+          descricao="Toque em “+ Registrar” para criar o primeiro — cada serviço registrado vira histórico e dossiê do barco."
+          acao={{ href: "/diario/novo", rotulo: "Registrar" }}
+          className="mt-6"
+        />
       )}
 
       {grupos.map((g) => (
         <section key={g.rotulo}>
-          <p className="rotulo text-dim mt-6 mb-2">{g.rotulo}</p>
+          <SecaoPagina>{g.rotulo}</SecaoPagina>
           <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {g.eventos.map((e) => {
               const eq = e.equipamento_id ? porId.get(e.equipamento_id) : null
