@@ -683,6 +683,17 @@ function linhaDeVisaoLivre(g: Grade, a: Celula, b: Celula, config?: ConfigCalado
   return true
 }
 
+/** Wrapper de COORDENADAS sobre `linhaDeVisaoLivre` — pra quem so tem lat/lon,
+ *  nao celulas de grade (onda 27: a suavizacao visual Chaikin do worker,
+ *  `suavizarChaikinComAgua` em lib/mapa/suavizar-linha.ts, precisa validar um
+ *  segmento arbitrario entre dois pontos geograficos contra a mascara — reusa
+ *  a MESMA checagem Bresenham + "nao corta quina" que o A* e o string-pulling
+ *  ja usam, em vez de reinventar uma segunda forma de andar na grade). Sem
+ *  `config`: so agua/terra — a suavizacao visual nao restringe por calado. */
+export function segmentoEmAgua(g: Grade, a: Coord, b: Coord): boolean {
+  return linhaDeVisaoLivre(g, paraCelula(g, a), paraCelula(g, b))
+}
+
 /** String-pulling: do ponto atual, avanca ate o ponto mais distante com linha de visao livre,
  *  cria a perna ali, repete. Preserva o primeiro e o ultimo ponto exatamente. `config` (onda
  *  12, opcional): a linha reta tambem respeita calado, nao so agua/terra — ver `passaNoCalado`. */
