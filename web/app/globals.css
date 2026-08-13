@@ -225,6 +225,21 @@ body.fundo-tela-mapa {
   filter: invert(1) brightness(1.7);
 }
 
+/* Onda 25 (nitpick da onda 24) — a barra de escala ("3 nm", canto inferior
+   esquerdo) ficou de fora do passe de arte anterior e seguia com o cinza
+   default do mapbox-gl.css. Mesmos tokens dos outros controles nativos
+   acima (--mapa-instrumento/--mapa-instrumento-borda), texto claro —
+   `!important` no background pelo mesmo motivo do `.mapboxgl-ctrl-group`:
+   vencer a especificidade do CSS importado do mapbox-gl. Borda default do
+   Mapbox só existe nos lados esquerdo/direito/inferior (o `border-top` do
+   próprio mapbox-gl.css já nasce sem estilo, de propósito — é o desenho
+   de "régua" da barra de escala) — só a COR muda aqui, a forma fica igual. */
+.mapboxgl-ctrl-scale {
+  background-color: var(--mapa-instrumento) !important;
+  border-color: var(--mapa-instrumento-borda) !important;
+  color: var(--meter-texto) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
