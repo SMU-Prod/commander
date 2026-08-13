@@ -654,7 +654,12 @@ export function MapaNautico({
       )}
 
       {painelAberto && (
-        <div className="sombra-2 absolute right-3 top-44 z-30 w-72 rounded-[14px] border border-line bg-panel/95 p-4 backdrop-blur">
+        // Onda 25 — sem `backdrop-blur` (era /95 + blur): Safari iOS pinta um
+        // retângulo escuro sólido quando backdrop-filter fica em cima do
+        // canvas WebGL do Mapbox ("véu escuro" visto no iPhone em produção,
+        // 12/08). /97 sem blur fica quase idêntico e elimina o defeito — ver
+        // o comentário completo em --mapa-instrumento, app/globals.css.
+        <div className="sombra-2 absolute right-3 top-44 z-30 w-72 rounded-[14px] border border-line bg-panel/97 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="titulo-card">Camadas do mapa</h2>
             <button
