@@ -102,3 +102,6 @@ app/src/main/res/xml/config.xml
 
 # Gerado pelo Kotlin do AGP no build (dados de sessao, nunca versionar)
 .kotlin/
+
+# IDE do Android Studio (gerado por maquina, nunca versionar)
+.idea/
