@@ -197,7 +197,10 @@ body.fundo-tela-mapa {
   border: 1px solid var(--mapa-instrumento-borda);
   border-radius: 10px !important;
   box-shadow: var(--sombra-2);
-  backdrop-filter: blur(8px);
+  /* sem backdrop-filter: mesmo motivo da onda 25 nos flutuantes — o Safari
+     iOS pinta um retangulo opaco atras de elementos com blur empilhados
+     (veu escuro visto em producao no tema dark, 12/08); o fundo ja e
+     quase-solido, o blur nao fazia falta visual. */
   overflow: hidden;
 }
 .mapboxgl-ctrl-group button {
