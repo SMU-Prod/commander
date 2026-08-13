@@ -1,7 +1,8 @@
-import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { sair } from "@/lib/acoes/auth"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -24,41 +25,31 @@ export default async function MenuPage({
       </div>
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="pessoas" className="size-3.5" /> Conta
-      </p>
-      <Link href="/menu/perfil" className="sombra-1 flex items-center justify-between rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <div>
-          <p className="titulo-card">{user?.email ?? "—"}</p>
-          <p className="apoio mt-0.5 text-dim">Proprietário</p>
-        </div>
-        <Icone nome="chevron" className="size-4 text-dim" />
-      </Link>
-      <Link href="/menu/assinatura" className="sombra-1 mt-2 flex items-center justify-between rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <span className="inline-flex items-center gap-2.5">
-          <Icone nome="cifrao" className="size-4 text-dim" />
-          <span className="titulo-card">Assinatura</span>
-        </span>
-        <Icone nome="chevron" className="size-4 text-dim" />
-      </Link>
+      <SecaoPagina icone="pessoas">Conta</SecaoPagina>
+      <LinhaLista
+        href="/menu/perfil"
+        variant="cartao"
+        titulo={user?.email ?? "—"}
+        subtitulo="Proprietário"
+      />
+      <LinhaLista
+        href="/menu/assinatura"
+        variant="cartao"
+        className="mt-2"
+        leading={<Icone nome="cifrao" className="size-4 shrink-0 text-dim" />}
+        titulo="Assinatura"
+      />
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="embarcacao" className="size-3.5" /> Minhas embarcações
-      </p>
-      <Link href="/onboarding" className="sombra-1 flex items-center justify-between rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <span className="inline-flex items-center gap-2.5">
-          <Icone nome="mais" className="size-4 text-dim" />
-          <div>
-            <p className="titulo-card">Cadastrar outra embarcação</p>
-            <p className="apoio mt-0.5 text-dim">Troque entre elas pelo nome no topo da tela Início</p>
-          </div>
-        </span>
-        <Icone nome="chevron" className="size-4 text-dim" />
-      </Link>
+      <SecaoPagina icone="embarcacao">Minhas embarcações</SecaoPagina>
+      <LinhaLista
+        href="/onboarding"
+        variant="cartao"
+        leading={<Icone nome="mais" className="size-4 shrink-0 text-dim" />}
+        titulo="Cadastrar outra embarcação"
+        subtitulo="Troque entre elas pelo nome no topo da tela Início"
+      />
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="imagem" className="size-3.5" /> Aparência
-      </p>
+      <SecaoPagina icone="imagem">Aparência</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
         <ThemeToggle />
         <p className="apoio mt-2 text-dim">
@@ -66,35 +57,33 @@ export default async function MenuPage({
         </p>
       </div>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="alerta" className="size-3.5" /> Avisos
-      </p>
-      <Link href="/notificacoes" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="titulo-card">Configurar avisos</p>
-        <p className="apoio mt-0.5 text-dim">Ative os avisos por aparelho e veja o histórico</p>
-      </Link>
+      <SecaoPagina icone="alerta">Avisos</SecaoPagina>
+      <LinhaLista
+        href="/notificacoes"
+        variant="cartao"
+        titulo="Configurar avisos"
+        subtitulo="Ative os avisos por aparelho e veja o histórico"
+      />
 
       {painel?.papel === "PROP" && (
         <>
-          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-            <Icone nome="pessoas" className="size-3.5" /> Tripulação
-          </p>
-          <Link href="/menu/tripulacao" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-            <p className="titulo-card">Tripulação</p>
-            <p className="apoio mt-0.5 text-dim">Convide comandantes e ajuste as permissões</p>
-          </Link>
+          <SecaoPagina icone="pessoas">Tripulação</SecaoPagina>
+          <LinhaLista
+            href="/menu/tripulacao"
+            variant="cartao"
+            titulo="Tripulação"
+            subtitulo="Convide comandantes e ajuste as permissões"
+          />
         </>
       )}
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="ancora" className="size-3.5" /> Para estabelecimentos
-      </p>
-      <Link href="/parceiro" className="sombra-1 block rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <p className="titulo-card">É marina, posto, pousada ou restaurante?</p>
-        <p className="apoio mt-0.5 text-dim">
-          Publique seu perfil e apareça no mapa de quem navega perto.
-        </p>
-      </Link>
+      <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
+      <LinhaLista
+        href="/parceiro"
+        variant="cartao"
+        titulo="É marina, posto, pousada ou restaurante?"
+        subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
+      />
 
       <form action={sair} className="mt-8">
         <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">
