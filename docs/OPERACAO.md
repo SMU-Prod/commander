@@ -662,6 +662,35 @@ GPU some. Ao voltar pro primeiro plano, a visão retoma no próximo tick do GPS
   âncora ao mesmo tempo — a precisão que a câmera perseguidora precisa é a MESMA que o
   resto da tela já depende; degradar uma degradaria as duas.
 
+## Tempo no mar — vento, onda, água e maré estimada (onda 20)
+
+`web/lib/mar.ts` (`boletimDoMar`) consulta duas APIs hospedadas da **Open-Meteo** — Marine
+(`wave_height`, `wave_period`, `sea_surface_temperature`, `sea_level_height_msl`) e Forecast
+(`wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`) — usadas no boletim da Início e no
+painel "Tempo" de `/navegar` (`web/components/mapa/tempo-painel.tsx`).
+
+**PENDÊNCIA OPERACIONAL — licença comercial antes do lançamento público.** A API hospedada da
+Open-Meteo (`api.open-meteo.com` / `marine-api.open-meteo.com`) é **grátis apenas para uso
+não-comercial**. O Commander é um produto pago — no lançamento comercial é preciso **assinar o
+plano Standard** (US$ 29/mês, 1M chamadas/mês, inclui a Marine API) em open-meteo.com, ou
+fazer **self-host** do serviço (código AGPL). Enquanto o Commander não tem faturamento em
+produção, o uso da API hospedada segue como está; não adie essa assinatura além do lançamento
+comercial de fato.
+
+**Maré: estimativa por modelo, nunca a tábua oficial.** A curva de nível do mar
+(`sea_level_height_msl`) é a saída de um MODELO meteorológico, não a tábua oficial de marés do
+CHM (Centro de Hidrografia da Marinha) — a tábua do CHM tem uso liberado só para "fins
+científicos", então o Commander **nunca embute** o dado dela. Toda tela que mostra maré (o
+boletim da Início e o gráfico do painel de Tempo) rotula o dado como **estimativa** e linka
+para a tábua oficial (`LINK_TABUA_MARE_CHM`, `web/lib/domain/mar.ts` — linkar é livre, mesmo
+sem acordo comercial). Ver a ressalva completa de honestidade em `docs/CONTRIBUTING.md`.
+
+**Correnteza — fora do escopo desta onda (v2).** O Copernicus Marine Service (CMEMS) é grátis
+e de uso comercial permitido (com atribuição/DOI), mas exige um pipeline próprio de dados
+NetCDF com validade — mesmo tipo de trabalho que a batimetria/máscara de água já fazem pra
+ETOPO, só que pra um dataset diferente. Fica registrado para uma onda futura; nenhuma tela
+promete correnteza hoje.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

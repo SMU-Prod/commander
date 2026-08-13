@@ -25,7 +25,10 @@ import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { resumoAno, type EventoParaResumoAno } from "@/lib/domain/resumo-ano"
 import type { Equipamento } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
+import { LINK_TABUA_MARE_CHM, pontoCardeal } from "@/lib/domain/mar"
 import { supabaseServer } from "@/lib/supabase/server"
+
+const ROTULO_MARE: Record<"preamar" | "baixa-mar", string> = { preamar: "Preamar", "baixa-mar": "Baixa-mar" }
 
 async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
   const boletim = await boletimDoMar(lat, lon)
@@ -40,7 +43,12 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
     <div className="rounded-[14px] border border-line bg-panel p-4 sombra-1">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
         <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
-        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>{boletim.ventoKt != null ? `${Math.round(boletim.ventoKt)} kt` : "—"}</span>
+        <span>
+          <span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>
+          {boletim.ventoKt != null
+            ? `${Math.round(boletim.ventoKt)} kt${boletim.ventoGraus != null ? ` ${pontoCardeal(boletim.ventoGraus)}` : ""}`
+            : "—"}
+        </span>
         <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
         <span className={`ml-auto rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
           boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
@@ -48,6 +56,20 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
           : "border border-crit/40 text-crit"
         }`}>{boletim.selo.rotulo}</span>
       </div>
+      {/* Maré (onda 20): sempre rotulada "estimativa" + link pra tábua oficial
+          do CHM — nunca "tábua de marés" nem "preamar/baixa-mar oficial"
+          (ressalva de honestidade obrigatória, ver CONTRIBUTING.md). Uma
+          linha só, pra não virar painel meteorológico dentro do boletim de
+          5 segundos da Início. */}
+      {boletim.proximaMareEstimada && (
+        <p className="apoio mt-1.5 text-dim">
+          {ROTULO_MARE[boletim.proximaMareEstimada.tipo]} estimada às{" "}
+          {String(boletim.proximaMareEstimada.hora).padStart(2, "0")}h ·{" "}
+          <a href={LINK_TABUA_MARE_CHM} target="_blank" rel="noopener noreferrer" className="text-accent-forte">
+            tábua oficial do CHM
+          </a>
+        </p>
+      )}
     </div>
   )
 }

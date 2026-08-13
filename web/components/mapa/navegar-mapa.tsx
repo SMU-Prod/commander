@@ -6,6 +6,7 @@ import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSO
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
+import { TempoPainel } from "@/components/mapa/tempo-painel"
 import { Icone } from "@/components/icone"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
@@ -634,6 +635,29 @@ export function NavegarMapa({
   // o painel de distância/ETA reagem a este mesmo estado.
   const [destino, setDestino] = useState<{ la: number; lo: number; nome: string } | null>(destinoInicial ?? null)
   const [modoDefinirDestino, setModoDefinirDestino] = useState(false)
+
+  // Posição pro painel de Tempo (onda 20, TempoPainel): GPS (`posAtual`)
+  // quando existe; senão o CENTRO DO MAPA — a tela nunca fica sem nenhum
+  // tempo pra mostrar só por falta de sinal de GPS. `centroMapa` só atualiza
+  // em "moveend" (fim do gesto de pan/zoom), não a cada frame do arraste —
+  // a política de cache por célula do próprio painel já evita fetch
+  // repetido, isto aqui é a primeira barreira, mais barata: nem chega a
+  // AVALIAR célula nova a cada pixel de pan.
+  const [centroMapa, setCentroMapa] = useState<Coord | null>(null)
+  useEffect(() => {
+    if (!mapaPronto) return
+    const mapa = mapaPronto
+    function atualizarCentro() {
+      const c = mapa.getCenter()
+      setCentroMapa({ la: c.lat, lo: c.lng })
+    }
+    atualizarCentro()
+    mapa.on("moveend", atualizarCentro)
+    return () => {
+      mapa.off("moveend", atualizarCentro)
+    }
+  }, [mapaPronto])
+  const posParaTempo = posAtual ?? centroMapa
 
   // --- rota pela agua (Task 4, Onda 5) --------------------------------------
   // Calculo (A* + suavizacao) roda num Web Worker: medido no navegador real, a
@@ -1665,6 +1689,7 @@ export function NavegarMapa({
         </div>
 
         <SondagemPainel />
+        <TempoPainel posicao={posParaTempo} />
         </div>
       </div>
 

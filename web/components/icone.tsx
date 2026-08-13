@@ -45,6 +45,11 @@ const PATHS = {
   // Onda 18 (saída como atividade): seta saindo de uma caixa — "exportar
   // esta saída pra fora do app" (Web Share API ou clipboard).
   compartilhar: <><path d="M12 14V4M8 8l4-4 4 4" /><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" /></>,
+  // Onda 20 (tempo no mar): três linhas de vento com voltas, ícone universal
+  // de "vento" (mesmo desenho da família Feather) — usado no cabeçalho do
+  // painel de Tempo, distinto da seta rotacionada (essa é SVG à parte, não
+  // entra neste sistema de ícones fixos porque precisa girar por grau).
+  vento: <><path d="M3 8h11a3 3 0 1 0-3-3" /><path d="M3 13h15a3 3 0 1 1-3 3" /><path d="M3 18h8a2 2 0 1 0-2-2" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS
