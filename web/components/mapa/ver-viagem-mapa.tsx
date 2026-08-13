@@ -170,7 +170,7 @@ export function VerViagemMapa({
       <h1 className="sr-only">{nome}</h1>
       <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
 
-      <div className="absolute left-3 right-3 top-3 z-20">
+      <div className="absolute left-3 right-3 top-3 z-20 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => router.push("/navegar")}
@@ -179,6 +179,30 @@ export function VerViagemMapa({
           <Icone nome="voltar" className="size-4" />
           Navegar
         </button>
+        {/* Onda 26 (modo navegando) — ponte pro "carro no Waze": manda pro
+            /navegar de verdade (com GPS, câmera perseguidora, painel de
+            bordo) já com o destino FINAL desta viagem. `paradas` sempre tem
+            pelo menos 2 itens (origem + destino, ver migration 030) — sem
+            paradas seria uma viagem vazia, situação que não deveria existir,
+            mas o botão só aparece com `paradas.length > 0` por segurança. */}
+        {paradas.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              const destinoFinal = paradas[paradas.length - 1]
+              const params = new URLSearchParams({
+                destino_la: String(destinoFinal.la),
+                destino_lo: String(destinoFinal.lo),
+                destino_nome: destinoFinal.nome || nome,
+              })
+              router.push(`/navegar?${params.toString()}`)
+            }}
+            className="sombra-2 flex h-11 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+          >
+            <Icone nome="embarcacao" className="size-4" />
+            Iniciar navegação
+          </button>
+        )}
       </div>
 
       <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[18px] border-t border-line bg-panel/95 p-4 backdrop-blur">

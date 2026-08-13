@@ -614,6 +614,54 @@ DHN para venda de cartas). Enquanto esse acordo não existir, nenhum dado da
 Marinha/DHN/CHM entra no produto. Se um dia entrar, a camada já está pronta para
 receber: é trocar a fonte do tile/imagem e a atribuição.
 
+## Modo navegando — câmera perseguidora e bateria (onda 26)
+
+O "carro no Waze" do Commander: com destino definido (manual, parceiro, ou vindo de uma
+viagem planejada via `?destino_la=&destino_lo=&destino_nome=` — ver `NavegarMapa`) **e**
+a embarcação em movimento de verdade, a câmera do mapa passa a perseguir a posição do
+GPS (proa pra cima, zoom que respira com a velocidade), e um painel de bordo mostra
+próxima virada, distância restante e ETA. Matemática pura (limiares, zoom por
+velocidade, amortecimento de rumo, projeção da posição na rota) em
+`web/lib/domain/modo-navegando.ts`, com teste; a "cola" (quando entra/sai, como move o
+`map.easeTo`) vive em `web/components/mapa/navegar-mapa.tsx`.
+
+### Custo de bateria — as duas fontes
+
+1. **GPS de alta precisão contínuo** (`enableHighAccuracy: true` no `watchPosition`) —
+   já existia antes desta onda (SOG, alarme de âncora, gravação de trilha todos dependem
+   dele) e continua sendo o maior custo isolado; o modo navegando não aumenta a taxa nem
+   a precisão pedida, só passa a REAGIR mais visivelmente a cada leitura (câmera
+   animando).
+2. **Câmera animada** (`map.easeTo` a cada tick do GPS, com `duration` de ~1,2 s) —
+   GPU/compositor trabalhando continuamente enquanto a tela está visível. É o custo NOVO
+   desta onda.
+
+### Mitigação implementada: parar de animar com a aba oculta
+
+`document.visibilitychange` — quando o app vai pro segundo plano (troca de app, tela
+apagada, aba minimizada), a animação da câmera **para** (o efeito de câmera checa
+`document.visibilityState` antes de cada `easeTo`); o watcher de GPS continua rodando
+(o próprio navegador já limita a frequência dele em segundo plano), só a parte cara de
+GPU some. Ao voltar pro primeiro plano, a visão retoma no próximo tick do GPS
+(tipicamente 1-2 segundos) — tradeoff aceito por simplicidade: não há lógica extra pra
+"saltar" pra posição atual no instante exato em que a aba volta.
+
+### Considerado e descartado
+
+- **Manter a tela ligada (`navigator.wakeLock`) durante o modo navegando**: telas de
+  navegação costumam manter a tela acesa, mas isso **aumenta** o consumo de bateria — o
+  oposto do que esta seção pede. A gravação de trilha já usa wake lock (propósito
+  diferente: garantir que o registro não pare com a tela bloqueada); o modo navegando
+  não pede tela ligada por conta própria — quem navega decide se quer a tela acesa.
+- **Reduzir a taxa de `easeTo` abaixo do tick do GPS** (throttle manual): a `duration`
+  de ~1,2 s já cobre o intervalo típico entre leituras do `watchPosition` sem empilhar
+  animação nova em cima de uma ainda em voo — um throttle adicional só adiaria
+  atualizações sem reduzir de fato quantas animações rodam por minuto (a fonte real do
+  custo é o `watchPosition` de alta precisão, não a cadência do `easeTo`).
+- **Reduzir `enableHighAccuracy` durante o modo navegando**: pioraria SOG/rumo/alarme de
+  âncora ao mesmo tempo — a precisão que a câmera perseguidora precisa é a MESMA que o
+  resto da tela já depende; degradar uma degradaria as duas.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

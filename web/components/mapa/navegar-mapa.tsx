@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource } from "mapbox-gl"
+import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource, MapEventOf } from "mapbox-gl"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
@@ -10,6 +10,13 @@ import { Icone } from "@/components/icone"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
 import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/navegacao"
+import {
+  amortecerRumo,
+  chegouAoDestino,
+  emMovimento,
+  progressoNaRota,
+  zoomPorVelocidade,
+} from "@/lib/domain/modo-navegando"
 import type { EstadoCamadas } from "@/lib/mapa/camadas"
 import { ICONE_FALLBACK, type NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 import type { Parceiro } from "@/lib/db/types"
@@ -84,6 +91,25 @@ const CHAVE_CONSENTIMENTO_CORREDOR = "commander:consentimento-corredor"
 const RAIO_PADRAO_M = 40
 const COR_DOURADO = "#D4AF37"
 const COR_ALARME = "#FF5C5C"
+
+// Onda 26 (modo navegando) — parâmetros da câmera perseguidora. Constantes
+// de módulo (não dependem de props/estado): `FATOR_AMORTECIMENTO_RUMO` mais
+// alto responde mais rápido a uma virada real, mais baixo filtra mais
+// jitter do GPS (0.3 = ~3-4 leituras pra "alcançar" uma virada de 90°, bom
+// equilíbrio testado contra o jitter típico de heading em barco real);
+// `PITCH_NAVEGANDO` fica dentro dos 45-60° pedidos, mais perto do piso —
+// inclinação o bastante pra dar a perspectiva de "estrada", sem comer tanto
+// a área plana onde os números do painel e os ícones do mapa (boias,
+// parceiros) precisam continuar legíveis; `FRACAO_PADDING_TOPO` desloca o
+// centro visual pra baixo (ver o efeito de câmera, mais abaixo, pelo
+// porquê de ser `padding.top` e não `bottom`) — 55% do container deixa a
+// embarcação por volta de 77% da altura da tela, dentro do terço inferior
+// pedido; `DURACAO_EASETO_MS` cobre o intervalo típico entre ticks do
+// watchPosition sem empilhar animação nova em cima de uma ainda em voo.
+const FATOR_AMORTECIMENTO_RUMO = 0.3
+const PITCH_NAVEGANDO = 55
+const FRACAO_PADDING_TOPO = 0.55
+const DURACAO_EASETO_MS = 1200
 // Onda 23 — casing da rota: traco escuro translucido por baixo do nucleo
 // dourado, mesmo padrao dos apps de navegacao serios (legivel sobre o
 // nautico "faded" claro E sobre o satelite, que varia muito de cor). Mesmo
@@ -370,15 +396,28 @@ function Mostrador({
  *  mesma checagem (`podeEditar(permissoes, "diario")`) que já vale pra
  *  registrar no diário, calculada no servidor (`navegar/page.tsx`). Só
  *  esconde o ATALHO; a rota `/navegar/viagem/nova` teria a mesma proteção
- *  de qualquer forma (checa de novo lá, e a RLS protege a escrita). */
+ *  de qualquer forma (checa de novo lá, e a RLS protege a escrita).
+ *
+ *  `destinoInicial` (onda 26, modo navegando): ponte entre "planejar
+ *  viagem" e "navegar" — o botão "Iniciar navegação" em VerViagemMapa
+ *  (web/components/mapa/ver-viagem-mapa.tsx) manda pra cá com o destino
+ *  FINAL da viagem já planejada (`?destino_la=&destino_lo=&destino_nome=`,
+ *  lido no servidor em navegar/page.tsx). Vira só o `destino` inicial desta
+ *  tela — dali em diante é o MESMO fluxo de sempre (rota pela água, modo
+ *  navegando por movimento, tudo). Multi-parada de verdade (virar pra
+ *  próxima parada sozinho ao chegar em cada uma) fica pra uma onda futura;
+ *  o trecho até a última parada já é, na prática, uma rota com várias
+ *  pernas/viradas reais (o A* nunca traça reta). */
 export function NavegarMapa({
   parceiros,
   caladoM,
   podePlanejarViagem,
+  destinoInicial,
 }: {
   parceiros: Parceiro[]
   caladoM: number | null
   podePlanejarViagem: boolean
+  destinoInicial?: { la: number; lo: number; nome: string } | null
 }) {
   const router = useRouter()
 
@@ -431,6 +470,13 @@ export function NavegarMapa({
   // o marcador do próprio barco (ver criarElementoBarco). Setado no MESMO
   // watcher de sempre, não abre nenhuma escuta nova.
   const [headingGraus, setHeadingGraus] = useState<number | null>(null)
+  // Onda 26 (modo navegando): precisão da leitura (coords.accuracy, metros)
+  // — alimenta só o aviso honesto de "GPS impreciso agora" no painel de
+  // navegação ativa (ver seção "modo navegando" mais abaixo). O alarme de
+  // âncora já lê `p.coords.accuracy` direto no watcher pro filtro
+  // anti-jitter; isto aqui é a MESMA leitura, só que também guardada em
+  // estado pra tela renderizar.
+  const [precisaoM, setPrecisaoM] = useState<number | null>(null)
 
   // --- alarme de âncora: declarado ANTES do watcher, que é quem o avalia ---
   // "garrando" nasce no watcher com filtro anti-jitter — matemática pura via
@@ -462,6 +508,7 @@ export function NavegarMapa({
         const atual: Coord = { la: p.coords.latitude, lo: p.coords.longitude }
         setPosAtual(atual)
         setSogKt(msParaNos(p.coords.speed))
+        setPrecisaoM(p.coords.accuracy)
         // Onda 24 — rumo pelo GPS pro marcador do próprio barco: NaN (barco
         // parado, conforme a spec do coords.heading) ou null (sem suporte)
         // colapsam os dois pra "sem rumo conhecido" (círculo neutro, nunca
@@ -575,10 +622,11 @@ export function NavegarMapa({
   const [mostrarParceiros, setMostrarParceiros] = useState(true)
   const marcadoresRef = useRef<MarcadorMapbox[]>([])
   const [parceiroAberto, setParceiroAberto] = useState<Parceiro | null>(null)
-  // Destino traçado pelo card do parceiro OU pelo modo "definir destino"
-  // (toque no mapa). A linha de rumo e o painel de distância/ETA reagem a
-  // este mesmo estado.
-  const [destino, setDestino] = useState<{ la: number; lo: number; nome: string } | null>(null)
+  // Destino traçado pelo card do parceiro, pelo modo "definir destino"
+  // (toque no mapa) OU já trazido de uma viagem planejada (`destinoInicial`,
+  // onda 26 — ver comentário grande acima do componente). A linha de rumo e
+  // o painel de distância/ETA reagem a este mesmo estado.
+  const [destino, setDestino] = useState<{ la: number; lo: number; nome: string } | null>(destinoInicial ?? null)
   const [modoDefinirDestino, setModoDefinirDestino] = useState(false)
 
   // --- rota pela agua (Task 4, Onda 5) --------------------------------------
@@ -998,6 +1046,248 @@ export function NavegarMapa({
     }
   }, [estadoRotaAtual, caladoM])
 
+  // ---------------------------------------------------------------------------
+  // Modo navegando (onda 26) — a câmera passa a perseguir a embarcação (proa
+  // pra cima, zoom que respira com a velocidade) e o mapa vira um painel de
+  // bordo com próxima virada/distância restante/ETA — o "carro no Waze"
+  // pedido pelo dono. Matemática pura em web/lib/domain/modo-navegando.ts
+  // (limiares de entrada/chegada, zoom por velocidade, amortecimento de
+  // rumo, projeção da posição na rota); aqui só a COLA — quando entra/sai,
+  // como move a câmera de verdade.
+  // ---------------------------------------------------------------------------
+
+  // Estado "bruto" do toggle — a saída por destino cancelado (task 1) é
+  // DERIVADA a partir dele + `destino`, não outro setState num efeito (ver
+  // `modoNavegando` logo abaixo): sem destino, não existe modo navegando,
+  // ponto, no MESMO render em que o destino sumiu, sem esperar um efeito.
+  const [modoNavegandoBruto, setModoNavegandoBruto] = useState(false)
+  const modoNavegando = modoNavegandoBruto && destino != null
+  // Pausa a perseguição quando o usuário mexe no mapa por conta própria
+  // (arrastar/zoom/girar/inclinar) — padrão de todo app de navegação: o
+  // toque do usuário sempre vence a câmera automática, e o botão "Voltar ao
+  // barco" (ver JSX) retoma.
+  const [perseguicaoPausada, setPerseguicaoPausada] = useState(false)
+
+  // Progresso na rota atual — pela água quando existe (`estadoRotaAtual`,
+  // já calculada pelo Worker acima), senão o fallback de rumo direto
+  // `[posAtual, destino]` (uma perna só). `progressoNaRota` trata os dois
+  // casos igual (ver comentário no domínio) — alimenta o painel de
+  // navegação ativa E a checagem de chegada (saída automática, abaixo).
+  const progressoRotaAtual = useMemo(() => {
+    if (!posAtual || !destino) return null
+    const pernasRota = estadoRotaAtual.tipo === "rota" ? estadoRotaAtual.pernas : [posAtual, destino]
+    return progressoNaRota(pernasRota, posAtual)
+  }, [posAtual, destino, estadoRotaAtual])
+
+  const etaNavegandoMin = useMemo(() => {
+    if (!progressoRotaAtual || sogKt == null) return null
+    return etaMinutos(progressoRotaAtual.distanciaRestanteNm, sogKt)
+  }, [progressoRotaAtual, sogKt])
+
+  // O listener de gesto do usuário (registrado uma vez por instância do
+  // mapa, deps `[mapaPronto]`, ver efeito mais abaixo) precisa ver o valor
+  // MAIS RECENTE de `modoNavegando` sem recriar o listener a cada
+  // entrada/saída do modo — mesmo padrão de `ancoraRef`/`camadasRef` já
+  // usado no resto do arquivo pra esse exato problema (closure presa numa
+  // dependência estável).
+  const modoNavegandoRef = useRef(modoNavegando)
+  useEffect(() => {
+    modoNavegandoRef.current = modoNavegando
+  }, [modoNavegando])
+
+  // "Saída manual" — quando o usuário toca em sair do modo navegando, ele
+  // NÃO pode reentrar sozinho no próximo tick do GPS só porque destino e
+  // velocidade continuam batendo a condição de entrada (senão o botão de
+  // sair não sairia de verdade — "o usuário manda, sempre"). Zera quando o
+  // destino muda ou é cancelado: aí é uma decisão nova, não a mesma que o
+  // usuário recusou.
+  const saidaManualRef = useRef(false)
+  useEffect(() => {
+    saidaManualRef.current = false
+  }, [destino])
+
+  // Entrada automática: há destino E a embarcação está em movimento de
+  // verdade (`emMovimento` — limiar em nós, atracado balançando não
+  // ativa). A SAÍDA não espelha isto (ver `emMovimento` no domínio): uma
+  // vez dentro, parar de andar (farol vermelho, espera numa poita) não
+  // expulsa ninguém — só chegada, toque manual ou destino cancelado saem
+  // (o cancelamento é derivado, ver `modoNavegando` acima — não precisa de
+  // efeito próprio). Depende de condições externas (velocidade do GPS) e
+  // decide uma transição de estado com histórico (`saidaManualRef`) — não
+  // dá pra virar valor derivado puro, é sync de verdade com o mundo real.
+  useEffect(() => {
+    if (modoNavegando || saidaManualRef.current) return
+    if (!destino || !emMovimento(sogKt)) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- transicao stateful disparada por leitura de GPS, nao ha valor pra derivar
+    setModoNavegandoBruto(true)
+  }, [modoNavegando, destino, sogKt])
+
+  // Saída automática por chegada — raio definido em RAIO_CHEGADA_DESTINO_M
+  // (lib/domain/modo-navegando.ts). Chegar não é "saída manual": se a
+  // pessoa marcar um destino novo no mesmo lugar (ex.: reabasteceu e vai de
+  // novo), o modo pode entrar sozinho outra vez. Mesmo motivo do efeito
+  // acima pro disable: transição stateful por leitura de GPS.
+  useEffect(() => {
+    if (!modoNavegando || !progressoRotaAtual) return
+    if (chegouAoDestino(progressoRotaAtual.distanciaRestanteNm)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- transicao stateful disparada por leitura de GPS (chegada), nao ha valor pra derivar
+      setModoNavegandoBruto(false)
+      saidaManualRef.current = false
+    }
+  }, [modoNavegando, progressoRotaAtual])
+
+  // Entrar no modo navegando (automático ou pelo botão) recolhe os cartões
+  // flutuantes igual ao modo "só navegação" da onda 23 — "a tela mostra o
+  // essencial em tamanho de ponte" é literalmente essa tela, e o painel
+  // novo (ver JSX) substitui o cartão de rota que se recolhe junto. Sair
+  // devolve os cartões. Acoplamento de um sentido só: a pessoa ainda pode
+  // reabrir os cartões manualmente enquanto navega (o botão de baixo
+  // continua obedecendo o toque dela) — só a TRANSIÇÃO do modo navegando
+  // decide o estado inicial de "só navegação", nunca briga com um toque
+  // manual depois; por isso não dá pra virar `modoSoNavegacao` derivado
+  // (ele PRECISA continuar divergindo livremente depois do toque).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reseta um estado INDEPENDENTE na transicao; precisa continuar divergindo livre depois (nao e derivavel)
+    setModoSoNavegacao(modoNavegando)
+  }, [modoNavegando])
+
+  // Entrar sempre retoma a perseguição — nunca nasce já pausado, mesmo
+  // depois de uma saída pausada anterior. Mesmo motivo do efeito acima:
+  // `perseguicaoPausada` precisa continuar divergindo livre depois (o
+  // gesto do usuário liga; só a ENTRADA no modo desliga), não é derivável.
+  useEffect(() => {
+    if (modoNavegando) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reseta um estado INDEPENDENTE na transicao; precisa continuar divergindo livre depois (nao e derivavel)
+      setPerseguicaoPausada(false)
+    }
+  }, [modoNavegando])
+
+  // Botão explícito de entrar/sair (onda 26, "o usuário manda, sempre") —
+  // só aparece com destino definido (ver JSX): navegar sem destino não tem
+  // pra onde apontar a câmera nem o que mostrar no painel. Com destino,
+  // funciona a qualquer momento, movimento ou não.
+  function alternarModoNavegando() {
+    if (modoNavegando) {
+      saidaManualRef.current = true
+      setModoNavegandoBruto(false)
+    } else {
+      saidaManualRef.current = false
+      setModoNavegandoBruto(true)
+    }
+  }
+
+  // Gesto do usuário no mapa (arrastar/zoom/girar/inclinar) pausa a
+  // perseguição — igual a qualquer app de navegação sério.
+  // `e.originalEvent` só existe em interações de VERDADE (mouse/toque/roda
+  // do usuário); os nossos próprios `map.easeTo` programáticos (ver efeito
+  // de câmera abaixo) NÃO o têm — é a forma padrão do Mapbox GL de
+  // distinguir as duas coisas, sem precisar de uma flag "sou eu mexendo"
+  // manual e frágil.
+  useEffect(() => {
+    if (!mapaPronto) return
+    // Um handler por evento (não um só compartilhado): os TIPOS do Mapbox GL
+    // JS pra "zoomstart"/"pitchstart" declaram `void` como possibilidade
+    // (podem disparar sem objeto de evento — ex.: `easeTo` interno sem
+    // gesto associado), o que colapsa `originalEvent` pra fora do tipo
+    // inferido; "dragstart"/"rotatestart" não têm esse colapso. Em
+    // RUNTIME o Mapbox sempre manda `originalEvent` quando é gesto de
+    // verdade, nos quatro eventos — daí o cast pontual só onde o tipo não
+    // acompanha. `marcarGestoSeReal` concentra a lógica; cada wrapper só
+    // extrai o `originalEvent` da forma que seu evento permite.
+    function marcarGestoSeReal(ehGestoReal: boolean) {
+      if (!ehGestoReal || !modoNavegandoRef.current) return
+      setPerseguicaoPausada(true)
+    }
+    const aoArrastar = (e: MapEventOf<"dragstart">) => marcarGestoSeReal(!!e.originalEvent)
+    const aoZoom = (e: MapEventOf<"zoomstart">) =>
+      marcarGestoSeReal(!!(e as unknown as { originalEvent?: unknown }).originalEvent)
+    const aoRotacionar = (e: MapEventOf<"rotatestart">) => marcarGestoSeReal(!!e.originalEvent)
+    const aoInclinar = (e: MapEventOf<"pitchstart">) =>
+      marcarGestoSeReal(!!(e as unknown as { originalEvent?: unknown }).originalEvent)
+    mapaPronto.on("dragstart", aoArrastar)
+    mapaPronto.on("zoomstart", aoZoom)
+    mapaPronto.on("rotatestart", aoRotacionar)
+    mapaPronto.on("pitchstart", aoInclinar)
+    return () => {
+      mapaPronto.off("dragstart", aoArrastar)
+      mapaPronto.off("zoomstart", aoZoom)
+      mapaPronto.off("rotatestart", aoRotacionar)
+      mapaPronto.off("pitchstart", aoInclinar)
+    }
+  }, [mapaPronto])
+
+  // `prefers-reduced-motion`: por padrão só cobre CSS (ver "fundo-tela-mapa"
+  // e as `transition-duration` deste arquivo, zeradas globalmente em
+  // app/globals.css); a câmera do Mapbox é animação de JS
+  // (`map.easeTo({ duration })`), então precisa ser checada aqui também.
+  // `matchMedia` com listener (não só o valor no mount) — o SO pode mudar a
+  // preferência com a tela já aberta.
+  const reduzMovimentoRef = useRef(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    reduzMovimentoRef.current = mq.matches
+    function aoMudarPreferencia(e: MediaQueryListEvent) {
+      reduzMovimentoRef.current = e.matches
+    }
+    mq.addEventListener("change", aoMudarPreferencia)
+    return () => mq.removeEventListener("change", aoMudarPreferencia)
+  }, [])
+
+  // Bateria (onda 26): com a aba/app em segundo plano o mapa não é visto
+  // por ninguém — anima-lo só gasta GPU e bateria à toa. O watcher de GPS
+  // continua rodando (o navegador já lida com o throttle dele sozinho); só
+  // a ANIMAÇÃO DA CÂMERA para. Ao voltar pro primeiro plano, a visão retoma
+  // no próximo tick do GPS (poucos segundos) — ver docs/OPERACAO.md.
+  const abaVisivelRef = useRef(true)
+  useEffect(() => {
+    function aoMudarVisibilidade() {
+      abaVisivelRef.current = document.visibilityState === "visible"
+    }
+    document.addEventListener("visibilitychange", aoMudarVisibilidade)
+    return () => document.removeEventListener("visibilitychange", aoMudarVisibilidade)
+  }, [])
+
+  // A câmera perseguidora — o coração do modo navegando. `easeTo` com
+  // `bearing` = rumo suavizado (proa pra cima), `padding.top` desloca o
+  // CENTRO VISUAL pra baixo (a embarcação fica no terço inferior da tela —
+  // é `padding`, não `center`, que muda: o Mapbox centraliza `center`
+  // dentro da área que SOBRA depois do padding; reservar espaço no TOPO
+  // empurra essa área — e o ponto centralizado nela — pra baixo na tela;
+  // testado visualmente com `FRACAO_PADDING_TOPO` = 55% do container, que
+  // deixa a embarcação por volta de 77% da altura da tela) e zoom que
+  // respira com a velocidade (`zoomPorVelocidade`). Roda a cada tick do GPS
+  // (posAtual muda) ou do rumo (headingGraus muda) — a suavização do rumo
+  // em si (`amortecerRumo`, wrap 359°→0° tratado no domínio) acontece aqui
+  // dentro, guardada em `rumoSuavizadoRef` entre chamadas.
+  const rumoSuavizadoRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!modoNavegando || !mapaPronto || !posAtual) return
+    if (perseguicaoPausada) return
+    if (!abaVisivelRef.current) return
+
+    // sem rumo novo (parado, ou o navegador não expõe o dado): mantém o
+    // último valor suavizado — nunca gira a câmera pra uma direção
+    // inventada (mesma honestidade do marcador do próprio barco, ver
+    // `atualizarRumoBarco` no topo do arquivo).
+    if (headingGraus != null) {
+      rumoSuavizadoRef.current =
+        rumoSuavizadoRef.current == null
+          ? headingGraus
+          : amortecerRumo(rumoSuavizadoRef.current, headingGraus, FATOR_AMORTECIMENTO_RUMO)
+    }
+
+    const alturaMapa = mapaPronto.getContainer().clientHeight
+    mapaPronto.easeTo({
+      center: [posAtual.lo, posAtual.la],
+      zoom: zoomPorVelocidade(sogKt),
+      bearing: rumoSuavizadoRef.current ?? 0,
+      pitch: PITCH_NAVEGANDO,
+      padding: { top: alturaMapa * FRACAO_PADDING_TOPO, bottom: 0, left: 0, right: 0 },
+      duration: reduzMovimentoRef.current ? 0 : DURACAO_EASETO_MS,
+      essential: true,
+    })
+  }, [modoNavegando, mapaPronto, posAtual, headingGraus, sogKt, perseguicaoPausada])
+
   // --- alarme de âncora (estado principal declarado antes do watcher) -----
   const garrandoAnteriorRef = useRef(false)
 
@@ -1372,13 +1662,17 @@ export function NavegarMapa({
           a transição de entrada/saída ser de verdade uma animação, não um
           corte seco. Mesmos números do cartão de destino mais abaixo
           (`navExibido`) — nunca dois valores diferentes pro mesmo dado. */}
-      {sogKt != null && (
+      {sogKt != null && !modoNavegando && (
         // Onda 24 — mesma casca "instrumento de ponte" dos 3 cartões
         // (Trilha/Sondagem/painel de rota): esta barra é o MESMO tipo de
         // leitura compacta, só muda o agrupamento (ver comentário do
         // Mostrador acima) — ficaria destoante como único sobrevivente do
         // visual antigo (bg-panel/95 claro), e o texto dourado do Mostrador
         // não teria contraste garantido sobre --superficie no tema claro.
+        // Onda 26 — some de vez (não só opacidade/translate) quando o modo
+        // navegando está ativo: o painel novo abaixo (`progressoRotaAtual`)
+        // ocupa o mesmo papel com números mais completos (próxima
+        // virada/restante), mostrar os dois juntos duplicaria a leitura.
         <div
           aria-hidden={!modoSoNavegacao}
           className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 transition-all duration-200 ${
@@ -1393,6 +1687,75 @@ export function NavegarMapa({
               <span aria-hidden="true" className="h-6 w-px bg-mapa-instrumento-borda" />
               <Mostrador rotulo="ETA" valor={navExibido.eta != null ? String(navExibido.eta) : "—"} unidade={navExibido.eta != null ? "min" : undefined} />
             </>
+          )}
+        </div>
+      )}
+
+      {/* Onda 26 — painel de navegação ativa + "Voltar ao barco": os dois
+          empilhados num único wrapper posicionado uma vez (flex-col, gap)
+          em vez de dois absolutos com offsets calculados à mão — assim
+          nenhum dos dois precisa saber a altura do outro pra não se
+          sobrepor. `pointer-events-none` no wrapper + `auto` em cada filho,
+          mesmo padrão do resto da tela (ex.: a coluna do alarme+trilha lá
+          em cima). */}
+      {modoNavegando && (
+        <div
+          className={`pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 transition-all duration-200 ${
+            garrando ? "top-16" : "top-3"
+          }`}
+        >
+          {progressoRotaAtual && (
+            <div className="sombra-2 pointer-events-auto w-64 rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
+              <div className="flex items-center justify-between gap-2">
+                <span className="titulo-card flex items-center gap-1.5 uppercase tracking-[.04em]">
+                  <Icone nome="embarcacao" className="size-3.5 text-accent" />
+                  Navegando
+                </span>
+                {/* Honestidade de GPS (task 4): mesmo limiar de 60 m já usado
+                    no filtro anti-jitter do alarme de âncora — acima disso a
+                    leitura já não conta lá, e aqui não pode fingir que a
+                    posição na tela é exata. */}
+                {precisaoM != null && precisaoM > 60 && (
+                  <span className="apoio shrink-0 text-warn">GPS impreciso (~{Math.round(precisaoM)} m)</span>
+                )}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Mostrador
+                  variante="cartao"
+                  rotulo={progressoRotaAtual.ultimoSegmento ? "Chegando em" : "Próxima virada"}
+                  valor={progressoRotaAtual.proximaViradaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                  unidade="MN"
+                />
+                <Mostrador
+                  variante="cartao"
+                  rotulo="Restante"
+                  valor={progressoRotaAtual.distanciaRestanteNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                  unidade="MN"
+                />
+                <Mostrador
+                  variante="cartao"
+                  rotulo="ETA"
+                  valor={etaNavegandoMin != null ? String(etaNavegandoMin) : "—"}
+                  unidade={etaNavegandoMin != null ? "min" : undefined}
+                />
+                <Mostrador
+                  variante="cartao"
+                  rotulo="Velocidade"
+                  valor={sogKt != null ? sogKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                  unidade={sogKt != null ? "kt" : undefined}
+                />
+              </div>
+            </div>
+          )}
+          {perseguicaoPausada && (
+            <button
+              type="button"
+              onClick={() => setPerseguicaoPausada(false)}
+              className="sombra-2 pointer-events-auto flex h-11 items-center gap-1.5 rounded-full border border-accent bg-accent px-4 text-sm font-semibold text-acao-texto"
+            >
+              <Icone nome="embarcacao" className="size-4" />
+              Voltar ao barco
+            </button>
           )}
         </div>
       )}
@@ -1527,6 +1890,28 @@ export function NavegarMapa({
             também sumisse no modo que ele mesmo liga, não teria como
             desligar. */}
         <div className="pointer-events-auto flex flex-col items-end gap-2">
+          {/* Onda 26 — botão explícito de entrar/sair do modo navegando:
+              "o usuário manda, sempre" (task). Só aparece com destino
+              definido — sem destino não há pra onde apontar a câmera nem o
+              que mostrar no painel novo. Mesmo padrão de encolher pro
+              ícone sozinho em "só navegação" que o MOB logo abaixo já usa. */}
+          {destino && (
+            <button
+              type="button"
+              onClick={alternarModoNavegando}
+              aria-pressed={modoNavegando}
+              aria-label={modoNavegando ? "Sair do modo navegando" : "Modo navegando"}
+              className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full border transition-all duration-200 ${
+                modoNavegando
+                  ? "border-accent bg-accent text-acao-texto"
+                  : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+              } ${modoSoNavegacao ? "w-11 px-0" : "px-4 text-sm font-medium"}`}
+            >
+              <Icone nome="embarcacao" className="size-4 shrink-0" />
+              {!modoSoNavegacao && (modoNavegando ? "Navegando" : "Modo navegando")}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setModoSoNavegacao((v) => !v)}
