@@ -382,6 +382,18 @@ export function NavegarMapa({
 }) {
   const router = useRouter()
 
+  // Onda 25 (bug de produção, iPhone tema escuro, 12/08) — véu escuro atrás
+  // dos cartões flutuantes. Suspeito A: o body pinta --fundo (navy escuro)
+  // por baixo do mapa; nesta tela específica isso deve ficar transparente
+  // (ver regra completa em app/globals.css, "fundo-tela-mapa"). Toggle por
+  // classe (não CSS Module/inline) porque o alvo é o <body>, fora da árvore
+  // React deste componente — remove no unmount pra não vazar pras outras
+  // telas do app, que continuam precisando do fundo normal.
+  useEffect(() => {
+    document.body.classList.add("fundo-tela-mapa")
+    return () => document.body.classList.remove("fundo-tela-mapa")
+  }, [])
+
   // --- trilha (preservado do que já existia na página, ver comentário acima) -
   const [estado, setEstado] = useState<"pronto" | "gravando" | "parado" | "salvando">("pronto")
   const [msg, setMsg] = useState<string | null>(null)
@@ -1184,8 +1196,14 @@ export function NavegarMapa({
             tema claro/escuro do app — ver comentário em globals.css),
             recolhido vira pílula fina, expandido vira instrumento. Texto
             interno usa meter-texto/meter-dim (não texto/dim, que seguem o
-            TEMA e leriam mal aqui). */}
-        <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto backdrop-blur">
+            TEMA e leriam mal aqui).
+            Onda 25 — SEM `backdrop-blur` de propósito (bug real, não
+            esquecimento): todos os flutuantes desta tela trocaram blur por
+            fundo mais opaco (ver o "porquê" completo no comentário de
+            --mapa-instrumento em globals.css — resumo: Safari iOS pinta um
+            retângulo escuro sólido quando backdrop-filter fica sobre o
+            canvas WebGL do Mapbox). */}
+        <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto">
           <button
             type="button"
             onClick={() => setPainelAberto((v) => !v)}
@@ -1338,7 +1356,7 @@ export function NavegarMapa({
         // não teria contraste garantido sobre --superficie no tema claro.
         <div
           aria-hidden={!modoSoNavegacao}
-          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 backdrop-blur transition-all duration-200 ${
+          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 transition-all duration-200 ${
             garrando ? "top-16" : "top-3"
           } ${modoSoNavegacao ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"}`}
         >
@@ -1374,7 +1392,7 @@ export function NavegarMapa({
               type="button"
               onClick={() => setModoDefinirDestino((v) => !v)}
               aria-pressed={modoDefinirDestino}
-              className={`sombra-2 flex h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-medium backdrop-blur ${
+              className={`sombra-2 flex h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-medium ${
                 modoDefinirDestino
                   ? "border-accent bg-accent text-acao-texto"
                   : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
@@ -1394,7 +1412,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => router.push("/navegar/viagem/nova")}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
             >
               <Icone nome="estrela" className="size-4" />
               Planejar viagem
@@ -1405,14 +1423,14 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => setArmandoAncora(true)}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
             >
               <Icone nome="ancora" className="size-4" />
               Fundeei
             </button>
           )}
           {!ancora && armandoAncora && (
-            <div className="sombra-2 w-56 rounded-[12px] border border-line bg-panel/95 p-3 backdrop-blur">
+            <div className="sombra-2 w-56 rounded-[12px] border border-line bg-panel/97 p-3">
               <label htmlFor="raio-ancora" className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[.14em] text-dim">
                 Raio do alarme
                 <span className="font-mono-instr tabular-nums text-dim">{raioM} m</span>
@@ -1463,7 +1481,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={desarmarAncora}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto backdrop-blur"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
             >
               {/* text-accent (não accent-forte, que troca de tom por tema e
                   perderia contraste aqui) sinaliza "âncora armada" mesmo
@@ -1489,7 +1507,7 @@ export function NavegarMapa({
             onClick={() => setModoSoNavegacao((v) => !v)}
             aria-pressed={modoSoNavegacao}
             aria-label={modoSoNavegacao ? "Sair do modo só navegação" : "Modo só navegação"}
-            className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto backdrop-blur"
+            className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
           >
             <span aria-hidden="true" className="flex items-center">
               <Icone nome="chevron" className={`size-4 ${modoSoNavegacao ? "rotate-180" : ""}`} />
@@ -1520,7 +1538,7 @@ export function NavegarMapa({
           // TEMA do app, não o fundo fixo daqui); text-warn continua
           // text-warn — o cartão herda o override de --warn/--crit "seguro
           // pra navy" via .bg-mapa-instrumento em globals.css.
-          <div className="sombra-2 pointer-events-auto w-full rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto backdrop-blur">
+          <div className="sombra-2 pointer-events-auto w-full rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
             <div className="flex items-center justify-between gap-2">
               <span className="corpo flex min-w-0 items-center gap-2">
                 <Icone nome="mapa" className="size-4 shrink-0 text-accent" />

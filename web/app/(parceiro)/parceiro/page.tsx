@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { Confirmar } from "@/components/confirmar"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { EscolherPonto } from "@/components/mapa/escolher-ponto"
@@ -43,7 +44,12 @@ export default async function ParceiroPage({
 
   return (
     <main>
-      <h1 className="titulo-pagina">Seu perfil no mapa</h1>
+      {/* Onda 25 — link de volta pra página pública de vendas (/parceiros),
+          pro parceiro que caiu direto aqui (ex.: link salvo, favorito). */}
+      <Link href="/parceiros" className="apoio inline-flex items-center gap-1 text-dim hover:text-texto">
+        <Icone nome="voltar" className="size-3.5" /> Ver a página pública de apresentação
+      </Link>
+      <h1 className="titulo-pagina mt-3">Seu perfil no mapa</h1>
       <p className="apoio mt-1 text-dim">
         O que estiver aqui aparece pra quem navega perto — vocês mesmos atualizam, sem chamar ninguém.
       </p>

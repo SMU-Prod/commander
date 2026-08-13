@@ -213,11 +213,15 @@ export function SondagemPainel() {
   // não accent-forte, que troca com o tema e perderia contraste aqui
   // dentro), texto em meter-texto/meter-dim (não texto/dim, calibrados pra
   // --superficie, não pra este fundo fixo).
+  // Onda 25 — SEM `backdrop-blur` de propósito: Safari iOS pinta um véu
+  // escuro sólido quando backdrop-filter fica sobre o canvas WebGL do
+  // Mapbox (bug real em produção, iPhone, 12/08) — ver o "porquê" completo
+  // em --mapa-instrumento, app/globals.css.
   const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
   const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
 
   return (
-    <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto backdrop-blur">
+    <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto">
       <button
         type="button"
         onClick={() => setPainelAberto((v) => !v)}

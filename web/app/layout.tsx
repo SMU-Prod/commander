@@ -17,11 +17,23 @@ export const metadata: Metadata = {
   title: "Commander — o dossiê do seu barco",
   description: DESCRICAO,
   openGraph: {
+    siteName: "Commander",
     title: "Commander — o dossiê do seu barco",
     description: DESCRICAO,
     locale: "pt_BR",
     type: "website",
     url: "/",
+    // A imagem em si vem da convenção de arquivo (app/opengraph-image.tsx,
+    // ImageResponse) — o Next já injeta og:image/og:image:width/height
+    // automaticamente; não duplicar aqui.
+  },
+  // Onda 25 (auditoria CMO P0) — card do Twitter/X explícito. A imagem vem
+  // da convenção de arquivo (app/twitter-image.tsx); "summary_large_image"
+  // é o card retangular grande, coerente com o og:image 1200×630.
+  twitter: {
+    card: "summary_large_image",
+    title: "Commander — o dossiê do seu barco",
+    description: DESCRICAO,
   },
   icons: { apple: "/apple-touch-icon.png" },
 }

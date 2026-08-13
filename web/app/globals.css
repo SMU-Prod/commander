@@ -71,17 +71,24 @@
 
 /* Onda 24 (passe de arte, /navegar) — cartões flutuantes sobre o mapa
    (Trilha, Sondagem, painel de rota) ganham identidade de "instrumento de
-   ponte": navy translúcido + blur, sempre a MESMA cor em cima do mapa
-   náutico claro OU do satélite escuro — não segue o tema claro/escuro do
-   APP (--superficie), porque aqui embaixo tem mapa, não a superfície de
+   ponte": navy translúcido, sempre a MESMA cor em cima do mapa náutico
+   claro OU do satélite escuro — não segue o tema claro/escuro do APP
+   (--superficie), porque aqui embaixo tem mapa, não a superfície de
    sempre. Mesmo navy de --meter, alpha próprio (não reaproveita --meter
    direto: o INTERIOR dos mostradores "cartão" já usa --meter sólido — a
    casca precisa de uma sombra mais rasa pra dar profundidade sem competir
-   com os próprios mostradores dentro dela). .82→.88 de opacidade: precisa
-   ficar legível mesmo sobre um satélite com áreas claras (praia/areia) por
-   baixo do blur. */
+   com os próprios mostradores dentro dela).
+   Onda 25 (bug de produção, print do dono 12/08, iPhone/Safari tema
+   escuro): esta casca usava `backdrop-blur` — Safari iOS tem um artefato
+   conhecido de retângulo opaco/escuro quando `backdrop-filter` fica
+   empilhado sobre um <canvas> WebGL (o mapa do Mapbox é canvas, não DOM),
+   lido no dispositivo como um "véu escuro" atrás dos cartões flutuantes.
+   Tirado o blur de TODOS os flutuantes de navegar-mapa/mapa-nautico/
+   sondagem-painel (ver comentários lá) — pra continuar lendo como
+   "instrumento" (não vidro liso) sem o blur, a opacidade subiu de .88
+   pra .95: quase idêntico visualmente, elimina a classe do defeito. */
 :root {
-  --mapa-instrumento: rgb(11 29 45 / .88);
+  --mapa-instrumento: rgb(11 29 45 / .95);
   --mapa-instrumento-borda: rgb(233 241 248 / .14);
 }
 
@@ -100,6 +107,26 @@ body {
   background: var(--fundo);
   color: var(--texto);
   font-family: var(--font-urbanist), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Onda 25 (bug de produção, print do dono 12/08, iPhone tema escuro,
+   suspeito A) — em /navegar o mapa é a TELA inteira (ver comentário "Tela
+   cheia" em navegar-mapa.tsx): o <main> escapa do padding do layout via
+   margens negativas pra cobrir até a faixa da área segura (notch/status
+   bar). Mas o body embaixo continua pintando --fundo (navy escuro) o
+   tempo todo — em qualquer instabilidade de altura (dvh muda quando a
+   barra de endereço do Safari esconde/aparece, bounce de overscroll no
+   topo), essa cor aparece atrás dos cartões flutuantes por uma fração de
+   segundo, como um véu extra por cima do mapa. Nada deve pintar por cima
+   do mapa — então SÓ nesta tela (classe alternada por navegar-mapa.tsx no
+   mount/unmount) o body fica transparente; o <html> vira o piso, com o
+   MESMO navy fixo dos instrumentos, pra nunca sobrar branco no lugar do
+   véu escuro. */
+html:has(body.fundo-tela-mapa) {
+  background: #0b1d2d;
+}
+body.fundo-tela-mapa {
+  background: transparent;
 }
 
 /* Elevação — sombra tingida de navy, não preto puro */
@@ -196,6 +223,21 @@ body {
    resolvido pelo estado default, que é o que aparece 99% do tempo. */
 .mapboxgl-ctrl-icon {
   filter: invert(1) brightness(1.7);
+}
+
+/* Onda 25 (nitpick da onda 24) — a barra de escala ("3 nm", canto inferior
+   esquerdo) ficou de fora do passe de arte anterior e seguia com o cinza
+   default do mapbox-gl.css. Mesmos tokens dos outros controles nativos
+   acima (--mapa-instrumento/--mapa-instrumento-borda), texto claro —
+   `!important` no background pelo mesmo motivo do `.mapboxgl-ctrl-group`:
+   vencer a especificidade do CSS importado do mapbox-gl. Borda default do
+   Mapbox só existe nos lados esquerdo/direito/inferior (o `border-top` do
+   próprio mapbox-gl.css já nasce sem estilo, de propósito — é o desenho
+   de "régua" da barra de escala) — só a COR muda aqui, a forma fica igual. */
+.mapboxgl-ctrl-scale {
+  background-color: var(--mapa-instrumento) !important;
+  border-color: var(--mapa-instrumento-borda) !important;
+  color: var(--meter-texto) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
