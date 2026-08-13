@@ -32,6 +32,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | mapa de profundidade (sem qualificar) | **camada Profundidade** (grade estática ETOPO, `lib/mapa/camadas.ts`, onda 6/12) — não confundir com **sondagem colaborativa** (onda 13, pontos gravados por barcos) |
 | dado de sonar cru · leitura de NMEA | **sondagem colaborativa** (a funcionalidade) · **leitura** (um ponto) |
 | buffer · cache local · enviar sondagem | **fila** (leituras guardadas no aparelho esperando conexão pra enviar, `web/lib/nmea/fila.ts`, onda 14) — nunca "enviar" sozinho: sondagem sempre entra na fila primeiro, o envio é automático e em segundo plano |
+| tábua de marés · preamar/baixa-mar oficial | **maré estimada** / **curva de maré estimada por modelo** (onda 20, `web/lib/domain/mar.ts`) — a tábua oficial é a do CHM, o Commander não a embute, só linka pra ela |
 
 A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"*,
 *"Agora não"*, *"Essa saída durou 3 h 30 — atualizar as horas dos motores?"*.
@@ -57,6 +58,23 @@ carta náutica oficial** — mesma régua que já vale para a camada de
 profundidade ETOPO (onda 6/12) e para a rota por calado (onda 12). Todo texto
 novo que mencionar profundidade medida por usuário repete essa ressalva, não
 assume que quem lê já sabe.
+
+### Tempo no mar — vento, onda, água e maré (onda 20) — honestidade obrigatória
+
+O Commander **não tem** e **não embute** a tábua oficial de marés do CHM (uso restrito a
+"fins científicos" — ver `docs/OPERACAO.md`). Toda maré mostrada no app (boletim da Início,
+gráfico do painel "Tempo" em `/navegar`) é a curva de nível do mar de um MODELO
+meteorológico (Open-Meteo Marine, `sea_level_height_msl`) — **sempre rotulada como
+estimativa**, nunca "tábua de marés" nem "preamar/baixa-mar oficial" (ver glossário acima).
+Link para a tábua oficial do CHM é livre e obrigatório em toda tela que mostra maré
+(`LINK_TABUA_MARE_CHM`, `web/lib/domain/mar.ts` — fonte única do link, nunca duplicada).
+
+O mesmo vale pro resto do painel de tempo: vento/onda/água são previsão de modelo, não
+garantia — o selo de condição (`avaliarMar`, reaproveitado do boletim já existente) diz o
+que o MODELO indica pro momento, nunca "pode sair com segurança". E sem dado (API fora do
+ar, timeout), a tela **diz que está indisponível e oferece tentar de novo** — nunca mantém
+um número antigo na tela como se fosse a leitura atual (`TempoPainel`,
+`web/components/mapa/tempo-painel.tsx`, estado `"indisponivel"`).
 
 ### Fila persistente (onda 14) — honestidade obrigatória
 

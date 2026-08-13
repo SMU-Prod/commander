@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { haversineNm, resumoTrilha } from "./geo"
+import { celulaGeografica, haversineNm, resumoTrilha } from "./geo"
 
 describe("haversineNm", () => {
   it("1 minuto de latitude ≈ 1 milha náutica", () => {
@@ -35,5 +35,24 @@ describe("resumoTrilha", () => {
     ])
     expect(r.velMaxKt).toBeCloseTo(12, 1)
     expect(r.velMediaKt).toBeCloseTo(9, 1)
+  })
+})
+
+describe("celulaGeografica", () => {
+  it("dois pontos dentro da mesma célula caem na mesma chave", () => {
+    const a = celulaGeografica(-22.91, -43.17, 0.05)
+    const b = celulaGeografica(-22.93, -43.19, 0.05)
+    expect(a).toBe(b)
+  })
+  it("pontos em células vizinhas caem em chaves diferentes", () => {
+    const a = celulaGeografica(-22.91, -43.17, 0.05)
+    const b = celulaGeografica(-22.97, -43.17, 0.05) // ~6,7 km ao sul, célula de 0.05° (~5,5 km)
+    expect(a).not.toBe(b)
+  })
+  it("célula maior agrupa pontos que uma célula menor separaria", () => {
+    const fina = celulaGeografica(-22.91, -43.17, 0.01) !== celulaGeografica(-22.94, -43.17, 0.01)
+    const grossa = celulaGeografica(-22.91, -43.17, 0.2) === celulaGeografica(-22.94, -43.17, 0.2)
+    expect(fina).toBe(true)
+    expect(grossa).toBe(true)
   })
 })

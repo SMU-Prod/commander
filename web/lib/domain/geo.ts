@@ -48,3 +48,15 @@ export function resumoTrilha(pontos: PontoTrilha[]): ResumoTrilha {
   const velMediaKt = tempoMovimentoH > 0 ? distanciaNm / tempoMovimentoH : 0
   return { distanciaNm, duracaoH, tempoMovimentoH, velMediaKt, velMaxKt }
 }
+
+/** Chave de uma grade de células geográficas de `tamanhoGraus`° de lado —
+ *  usada pra política de cache do painel de tempo (onda 20, ver
+ *  web/components/mapa/tempo-painel.tsx): duas posições na MESMA célula
+ *  reaproveitam o último boletim buscado, em vez de bater na API a cada tick
+ *  do GPS. `Math.floor` (não arredondamento) garante que a mesma célula
+ *  sempre produz a mesma chave, sem depender de onde dentro dela o ponto cai. */
+export function celulaGeografica(la: number, lo: number, tamanhoGraus: number): string {
+  const cLa = Math.floor(la / tamanhoGraus)
+  const cLo = Math.floor(lo / tamanhoGraus)
+  return `${cLa}:${cLo}`
+}
