@@ -1,15 +1,15 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
 import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas, textoDuracao } from "@/lib/domain/bordo"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento } from "@/lib/db/types"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 function erroHoras(msg: string): never {
   redirect(`/diario?erro=${encodeURIComponent(msg)}`)
@@ -40,9 +40,7 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
 
   return (
     <main>
-      <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Diário
-      </Link>
+      <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" />
 
       <div className="mt-5 flex items-center gap-3">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
@@ -57,32 +55,28 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
       </div>
 
       {motores.length === 0 ? (
-        <div className="mt-6 rounded-[14px] border border-line bg-panel p-4 text-sm text-dim">
-          Nenhum motor cadastrado nesta embarcação ainda.
-        </div>
+        <EstadoVazio icone="motor" titulo="Nenhum motor cadastrado nesta embarcação ainda" className="mt-6" />
       ) : (
         <form action={registrarVoltaAoMar} className="mt-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             {motores.map((m) => {
               const padrao = sugestao != null && m.horas_atuais != null ? m.horas_atuais + sugestao : undefined
               return (
-                <div key={m.id}>
-                  <label className={rotulo} htmlFor={`equipamento_${m.id}`}>
-                    Horas {m.posicao ?? "Motor"}
-                  </label>
-                  <input
-                    id={`equipamento_${m.id}`}
-                    name={`equipamento_${m.id}`}
-                    inputMode="decimal"
-                    defaultValue={padrao}
-                    className={campo}
-                  />
+                <Campo
+                  key={m.id}
+                  label={`Horas ${m.posicao ?? "Motor"}`}
+                  id={`equipamento_${m.id}`}
+                  name={`equipamento_${m.id}`}
+                  inputMode="decimal"
+                  defaultValue={padrao}
+                  className="font-mono-instr tabular-nums"
+                >
                   {m.horas_atuais != null && (
                     <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">
                       atual: {m.horas_atuais.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
                     </p>
                   )}
-                </div>
+                </Campo>
               )
             })}
           </div>

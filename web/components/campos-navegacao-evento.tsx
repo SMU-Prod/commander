@@ -2,11 +2,11 @@
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { Campo, CampoSelect } from "@/components/ui/campo"
 import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import { CATEGORIAS_CASCO, nomeDoEquipamento, ROTULO_CASCO } from "@/lib/domain/diario"
 
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 const TIPOS: { valor: string; rotulo: string; icone: NomeIcone }[] = [
@@ -40,10 +40,14 @@ const DESCRICAO_POR_TIPO: Record<string, { rotulo: string; placeholder: string }
 }
 
 const campoAnexo = (
-  <div>
-    <label className={rotulo} htmlFor="anexo">Anexo (NF, relatório, foto) — opcional, até 10 MB</label>
-    <input id="anexo" name="anexo" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className={`${campo} py-2.5 text-sm`} />
-  </div>
+  <Campo
+    label="Anexo (NF, relatório, foto) — opcional, até 10 MB"
+    id="anexo"
+    name="anexo"
+    type="file"
+    accept="application/pdf,image/jpeg,image/png,image/webp"
+    className="py-2.5 text-sm"
+  />
 )
 
 /** O formulário inteiro de "Novo registro" — client porque tudo, a partir do
@@ -159,36 +163,29 @@ export function FormularioNovoEvento({
         <>
           <input type="hidden" name="tipo" value={tipo} />
 
-          <div>
-            <label className={rotulo} htmlFor="data">Data</label>
-            <input id="data" name="data" type="date" defaultValue={dataInicial} className={campo} />
-          </div>
+          <Campo label="Data" id="data" name="data" type="date" defaultValue={dataInicial} />
 
           {tipo === "navegacao" && (
             <div className="space-y-4 rounded-[14px] border border-line bg-panel2 p-4">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={rotulo} htmlFor="hora_saida">Hora de saída</label>
-                  <input
-                    id="hora_saida"
-                    name="hora_saida"
-                    type="time"
-                    value={horaSaida}
-                    onChange={(e) => setHoraSaida(e.target.value)}
-                    className={`${campo} font-mono-instr tabular-nums`}
-                  />
-                </div>
-                <div>
-                  <label className={rotulo} htmlFor="hora_retorno">Hora de retorno</label>
-                  <input
-                    id="hora_retorno"
-                    name="hora_retorno"
-                    type="time"
-                    value={horaRetorno}
-                    onChange={(e) => setHoraRetorno(e.target.value)}
-                    className={`${campo} font-mono-instr tabular-nums`}
-                  />
-                </div>
+                <Campo
+                  label="Hora de saída"
+                  id="hora_saida"
+                  name="hora_saida"
+                  type="time"
+                  value={horaSaida}
+                  onChange={(e) => setHoraSaida(e.target.value)}
+                  className="font-mono-instr tabular-nums"
+                />
+                <Campo
+                  label="Hora de retorno"
+                  id="hora_retorno"
+                  name="hora_retorno"
+                  type="time"
+                  value={horaRetorno}
+                  onChange={(e) => setHoraRetorno(e.target.value)}
+                  className="font-mono-instr tabular-nums"
+                />
               </div>
 
               {duracao != null && (
@@ -203,10 +200,7 @@ export function FormularioNovoEvento({
                 </p>
               )}
 
-              <div>
-                <label className={rotulo} htmlFor="destino">Destino</label>
-                <input id="destino" name="destino" placeholder="Ex.: Ilha de Búzios" className={campo} />
-              </div>
+              <Campo label="Destino" id="destino" name="destino" placeholder="Ex.: Ilha de Búzios" />
 
               {tripulacao.length > 0 && (
                 <div>
@@ -228,96 +222,78 @@ export function FormularioNovoEvento({
               {/* a saída também merece um campo livre: "mar grosso na volta",
                   "parei em Angra pra almoçar". Sem isso, navegação era o único
                   tipo sem nenhum lugar para escrever o que aconteceu. */}
-              <div>
-                <label className={rotulo} htmlFor="descricao-nav">Observações — opcional</label>
-                <input id="descricao-nav" name="descricao" placeholder="Ex.: mar grosso na volta" className={campo} />
-              </div>
+              <Campo label="Observações — opcional" id="descricao-nav" name="descricao" placeholder="Ex.: mar grosso na volta" />
             </div>
           )}
 
           {mostraOnde && (
-            <div>
-              <label className={rotulo} htmlFor="alvo">Onde no barco?</label>
-              <select id="alvo" name="alvo" defaultValue={alvoInicial} className={campo}>
-                <optgroup label="Embarcação">
-                  <option value="">Embarcação (geral)</option>
-                </optgroup>
-                {/* separa de verdade: o barco pode ter gerador e baterias
-                    (fluxo real em /barco/eletrica), e listá-los sob "Motores"
-                    era rótulo errado */}
-                {equipamentos.some((e) => e.tipo === "motor") && (
-                  <optgroup label="Motores">
-                    {equipamentos.filter((e) => e.tipo === "motor").map((e) => (
-                      <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
-                    ))}
-                  </optgroup>
-                )}
-                {equipamentos.some((e) => e.tipo !== "motor") && (
-                  <optgroup label="Elétrica">
-                    {equipamentos.filter((e) => e.tipo !== "motor").map((e) => (
-                      <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
-                    ))}
-                  </optgroup>
-                )}
-                <optgroup label="Casco">
-                  {CATEGORIAS_CASCO.map((c) => (
-                    <option key={c} value={`cat:${c}`}>{ROTULO_CASCO[c]}</option>
+            <CampoSelect label="Onde no barco?" id="alvo" name="alvo" defaultValue={alvoInicial}>
+              <optgroup label="Embarcação">
+                <option value="">Embarcação (geral)</option>
+              </optgroup>
+              {/* separa de verdade: o barco pode ter gerador e baterias
+                  (fluxo real em /barco/eletrica), e listá-los sob "Motores"
+                  era rótulo errado */}
+              {equipamentos.some((e) => e.tipo === "motor") && (
+                <optgroup label="Motores">
+                  {equipamentos.filter((e) => e.tipo === "motor").map((e) => (
+                    <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
                   ))}
                 </optgroup>
-                <optgroup label="Documentos">
-                  <option value="cat:documento">Documentos</option>
+              )}
+              {equipamentos.some((e) => e.tipo !== "motor") && (
+                <optgroup label="Elétrica">
+                  {equipamentos.filter((e) => e.tipo !== "motor").map((e) => (
+                    <option key={e.id} value={`eq:${e.id}`}>{nomeDoEquipamento(e)}</option>
+                  ))}
                 </optgroup>
-              </select>
-            </div>
+              )}
+              <optgroup label="Casco">
+                {CATEGORIAS_CASCO.map((c) => (
+                  <option key={c} value={`cat:${c}`}>{ROTULO_CASCO[c]}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Documentos">
+                <option value="cat:documento">Documentos</option>
+              </optgroup>
+            </CampoSelect>
           )}
 
           {mostraDescricao && (
-            <div>
-              <label className={rotulo} htmlFor="descricao">{DESCRICAO_POR_TIPO[tipo]?.rotulo ?? "Descrição"}</label>
-              <input
-                id="descricao"
-                name="descricao"
-                defaultValue={descricaoInicial}
-                placeholder={DESCRICAO_POR_TIPO[tipo]?.placeholder}
-                className={campo}
-              />
-            </div>
+            <Campo
+              label={DESCRICAO_POR_TIPO[tipo]?.rotulo ?? "Descrição"}
+              id="descricao"
+              name="descricao"
+              defaultValue={descricaoInicial}
+              placeholder={DESCRICAO_POR_TIPO[tipo]?.placeholder}
+            />
           )}
 
           {TIPOS_COM_RENOVACAO.has(tipo) && itens.length > 0 && (
-            <div>
-              <label className={rotulo} htmlFor="item_id">Isso renova alguma manutenção? (opcional)</label>
-              <p className="mb-1.5 apoio text-dim">
-                Escolha a manutenção que passa a valer a partir de hoje — ex.: a troca de óleo.
-              </p>
-              <select id="item_id" name="item_id" defaultValue={itemInicial} className={campo}>
-                <option value="">Nenhuma</option>
-                {itens.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.nome}{i.equipamento_id ? ` — ${nomeDoAlvo(i.equipamento_id)}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CampoSelect
+              label="Isso renova alguma manutenção? (opcional)"
+              id="item_id"
+              name="item_id"
+              defaultValue={itemInicial}
+              dica="Escolha a manutenção que passa a valer a partir de hoje — ex.: a troca de óleo."
+            >
+              <option value="">Nenhuma</option>
+              {itens.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.nome}{i.equipamento_id ? ` — ${nomeDoAlvo(i.equipamento_id)}` : ""}
+                </option>
+              ))}
+            </CampoSelect>
           )}
 
           {mostraCustoAnexo && (
             TIPOS_COM_HORAS.has(tipo) && temMotor ? (
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={rotulo} htmlFor="custo">Custo (R$) — opcional</label>
-                  <input id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className={`${campo} font-mono-instr tabular-nums`} />
-                </div>
-                <div>
-                  <label className={rotulo} htmlFor="horas">Horas do motor agora — opcional</label>
-                  <input id="horas" name="horas" inputMode="decimal" defaultValue={horasInicial} className={`${campo} font-mono-instr tabular-nums`} />
-                </div>
+                <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="font-mono-instr tabular-nums" />
+                <Campo label="Horas do motor agora — opcional" id="horas" name="horas" inputMode="decimal" defaultValue={horasInicial} className="font-mono-instr tabular-nums" />
               </div>
             ) : (
-              <div>
-                <label className={rotulo} htmlFor="custo">Custo (R$) — opcional</label>
-                <input id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className={`${campo} font-mono-instr tabular-nums`} />
-              </div>
+              <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="font-mono-instr tabular-nums" />
             )
           )}
 
@@ -331,23 +307,25 @@ export function FormularioNovoEvento({
               </summary>
               <div className="space-y-4 border-t border-line p-4">
                 <div>
-                  <label className={rotulo} htmlFor="contato_id">Prestador (opcional)</label>
                   {contatos.length > 0 ? (
                     <>
-                      <select id="contato_id" name="contato_id" defaultValue={contatoInicial} className={campo}>
+                      <CampoSelect label="Prestador (opcional)" id="contato_id" name="contato_id" defaultValue={contatoInicial}>
                         <option value="">Nenhum</option>
                         {contatos.map((c) => (
                           <option key={c.id} value={c.id}>{c.nome}{c.especialidade ? ` — ${c.especialidade}` : ""}</option>
                         ))}
-                      </select>
+                      </CampoSelect>
                       <p className="mt-1.5 apoio text-dim">
                         Não achou quem procurava? <a href="/barco/contatos" onClick={irCadastrarContato} className="text-accent-forte">Cadastrar</a>
                       </p>
                     </>
                   ) : (
-                    <p className="corpo text-dim">
-                      Nenhum prestador cadastrado ainda. <a href="/barco/contatos" onClick={irCadastrarContato} className="text-accent-forte">Cadastrar</a>
-                    </p>
+                    <>
+                      <p className={rotulo}>Prestador (opcional)</p>
+                      <p className="corpo mt-1.5 text-dim">
+                        Nenhum prestador cadastrado ainda. <a href="/barco/contatos" onClick={irCadastrarContato} className="text-accent-forte">Cadastrar</a>
+                      </p>
+                    </>
                   )}
                 </div>
                 {campoAnexo}

@@ -1,10 +1,8 @@
 "use client"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { Campo } from "@/components/ui/campo"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export function RegistroRapido({
   motores,
@@ -48,26 +46,19 @@ export function RegistroRapido({
             <form action={enviar} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 {motores.map((m) => (
-                  <div key={m.id}>
-                    <label className={rotulo} htmlFor={`equipamento_${m.id}`}>Horas {m.rotulo}</label>
-                    <input
-                      id={`equipamento_${m.id}`}
-                      name={`equipamento_${m.id}`}
-                      inputMode="decimal"
-                      defaultValue={m.horas ?? undefined}
-                      className={campo}
-                    />
-                  </div>
+                  <Campo
+                    key={m.id}
+                    label={`Horas ${m.rotulo}`}
+                    id={`equipamento_${m.id}`}
+                    name={`equipamento_${m.id}`}
+                    inputMode="decimal"
+                    defaultValue={m.horas ?? undefined}
+                    className="font-mono-instr tabular-nums"
+                  />
                 ))}
               </div>
-              <div>
-                <label className={rotulo} htmlFor="litros">Combustível abastecido (L) — opcional</label>
-                <input id="litros" name="litros" inputMode="numeric" className={campo} />
-              </div>
-              <div>
-                <label className={rotulo} htmlFor="obs">Observação — opcional</label>
-                <input id="obs" name="obs" placeholder="Ex.: saída às Cagarras" className={campo} />
-              </div>
+              <Campo label="Combustível abastecido (L) — opcional" id="litros" name="litros" inputMode="numeric" className="font-mono-instr tabular-nums" />
+              <Campo label="Observação — opcional" id="obs" name="obs" placeholder="Ex.: saída às Cagarras" className="font-mono-instr tabular-nums" />
               <button disabled={enviando} className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto disabled:opacity-60">
                 Registrar no diário
               </button>
