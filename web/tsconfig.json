@@ -36,7 +36,7 @@
     "**/*.mts",
     ".next/dev/types/**/*.ts"
   ],
-  "//": "'.next/dev/types' saiu do include de proposito: sao tipos que o `next dev` gera e que ficam TRUNCADOS quando o servidor de dev e morto no meio da escrita — dai `tsc --noEmit` (e o hook de pre-commit) acusa erro de sintaxe em arquivo gerado, culpando codigo nosso que esta certo. Mordeu duas vezes em 13/08/2026. O build de producao gera '.next/types', que segue no include.",
+  "//": "O `exclude: ['.next']` e proposital e e o que resolve: os tipos que o `next dev` gera em '.next/dev/types' ficam TRUNCADOS quando o servidor de dev e morto no meio da escrita, e dai `tsc --noEmit` (e o hook de pre-commit) acusa erro de sintaxe em arquivo gerado, culpando codigo nosso que esta certo — mordeu duas vezes em 13/08/2026. Nao adianta so tirar a entrada do 'include': o proprio Next a recoloca a cada build. O exclude vence o include e mata o problema na raiz; o build de producao segue verde porque gera seus proprios tipos de rota.",
   "exclude": [
     "node_modules",
     ".next"
