@@ -79,6 +79,7 @@ import {
   MARGEM_SEGURANCA_PADRAO_M,
   RESOLUCAO_CELULA_CORREDOR_M,
   recortarGrade,
+  segmentoEmAgua,
   suavizar,
   type Coord,
   type ConfigCalado,
@@ -87,6 +88,7 @@ import {
   type MotivoFalhaRota,
 } from "@/lib/domain/rota"
 import { celulaId } from "@/lib/domain/sondagem"
+import { suavizarChaikinComAgua, type Ponto } from "@/lib/mapa/suavizar-linha"
 
 export interface PedidoRota {
   id: number
@@ -124,6 +126,17 @@ export type RespostaRota =
        *  `true` quando `precisao` e `"nacional"` ou `"mista"` (a fina nunca
        *  usa o snap generoso). */
       destinoAproximado: boolean
+      /** Onda 27: coordenadas PRONTAS pra desenhar a linha da rota — `pernas`
+       *  (acima) ja passou pela suavizacao visual Chaikin (`suavizarChaikin-
+       *  ComAgua`, lib/mapa/suavizar-linha.ts) com verificacao de agua contra
+       *  a(s) grade(s) usada(s) nesta rota. Calculado AQUI (worker), nao no
+       *  componente, porque e aqui que a grade ja esta carregada — caso real
+       *  de producao (13/08/2026): a suavizacao Chaikin sem essa checagem
+       *  podia desenhar um atalho por cima de terra numa curva fechada perto
+       *  da costa, mesmo com `pernas` (o caminho cru) inteiramente na agua. A
+       *  tela deve desenhar ISSO, nao chamar `suavizarChaikin` de novo sobre
+       *  `pernas`. */
+      linhaSuave: Coord[]
     }
   | { id: number; tipo: "fora-da-area" }
   | {
@@ -162,6 +175,33 @@ function calcularUsouCorredores(caminhoBruto: Coord[], corredores: CorredoresPor
     corredores.porCelula.size > 0 &&
     caminhoBruto.some((c) => corredores.porCelula.has(celulaId(c.la, c.lo, RESOLUCAO_CELULA_CORREDOR_M)))
   )
+}
+
+/** Water-check pra `calcularLinhaSuave` (onda 27) — SO pro redesenho VISUAL
+ *  da linha, nunca pro A-estrela/string-pulling (esses ja sao sempre
+ *  validados). A fina e a autoridade quando os DOIS extremos do segmento
+ *  cabem nela (mais precisa, 100 m/celula); senao cai pra nacional se os
+ *  dois cabem nela; fora das duas (segmento cruzando a fronteira de
+ *  cobertura, ou mar aberto sem mascara nenhuma), nao bloqueia — sem dado
+ *  nao e terra, mesma filosofia honesta de `profundidadeEm` em
+ *  lib/domain/rota.ts. */
+function segmentoSeguroParaLinha(fina: Grade | null, nacional: Grade | null, a: Coord, b: Coord): boolean {
+  if (fina && dentroDaGrade(fina, a) && dentroDaGrade(fina, b)) return segmentoEmAgua(fina, a, b)
+  if (nacional && dentroDaGrade(nacional, a) && dentroDaGrade(nacional, b)) return segmentoEmAgua(nacional, a, b)
+  return true
+}
+
+/** Suavizacao Chaikin (visual) de `pernas` com verificacao de agua — onda
+ *  27, ver a docstring de `linhaSuave` em `RespostaRota`. Roda AQUI (no
+ *  worker), nao no componente React: e aqui que `fina`/`nacional` ja estao
+ *  carregadas, sem precisar buscar/decodificar a mascara de novo no thread
+ *  principal so pra essa checagem. */
+function calcularLinhaSuave(pernas: Coord[], fina: Grade | null, nacional: Grade | null): Coord[] {
+  const suave = suavizarChaikinComAgua(
+    pernas.map((p): Ponto => [p.lo, p.la]),
+    ([loA, laA], [loB, laB]) => segmentoSeguroParaLinha(fina, nacional, { la: laA, lo: loA }, { la: laB, lo: loB }),
+  )
+  return suave.map(([lo, la]) => ({ la, lo }))
 }
 
 self.onmessage = async (e: MessageEvent<PedidoRota>) => {
@@ -240,6 +280,7 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
       caladoM: caladoAplicado,
       usouCorredores: calcularUsouCorredores(resultado.caminhoBruto, corredores),
       destinoAproximado: resultado.destinoAproximado,
+      linhaSuave: calcularLinhaSuave(resultado.pernas, gradeFina, gradeNacional),
     } satisfies RespostaRota)
     return
   }
@@ -293,5 +334,6 @@ self.onmessage = async (e: MessageEvent<PedidoRota>) => {
     caladoM: caladoAplicado,
     usouCorredores: calcularUsouCorredores(caminho, corredores),
     destinoAproximado: motivoOrigemDestino.destinoAproximado,
+    linhaSuave: calcularLinhaSuave(pernas, gradeFina, gradeNacional),
   } satisfies RespostaRota)
 }

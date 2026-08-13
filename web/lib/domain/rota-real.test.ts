@@ -7,18 +7,21 @@ import {
   acharCaminhoCosturado,
   acharCaminhoDetalhado,
   bboxComFolga,
+  dentroDaGrade,
   distanciaDaRota,
   ehAgua,
   escolherGrade,
   MARGEM_SEGURANCA_PADRAO_M,
   paraCelula,
   recortarGrade,
+  segmentoEmAgua,
   suavizar,
   type ConfigCalado,
   type Coord,
   type Grade,
   type GradeProfundidade,
 } from "./rota"
+import { suavizarChaikinComAgua, type Ponto } from "../mapa/suavizar-linha"
 
 /**
  * O GATE da onda 5: prova, com a mascara real da costa do Rio gerada por
@@ -661,6 +664,126 @@ describe("rota costurada na costa real (gate da onda 22)", () => {
       // de km, nunca do outro lado do estado.
       const ultimoPonto = resultado.pernas![resultado.pernas!.length - 1]
       expect(distanciaDaRota([ultimoPonto, VITORIA_ES])).toBeLessThan(30)
+    },
+  )
+})
+
+// ---------------------------------------------------------------------------
+// Onda 27 — gate: a LINHA DESENHADA (suavizacao Chaikin visual, onda 23) nao
+// pode encostar em terra. Print de producao (13/08/2026, ~23:32): rota longa
+// terminando perto de Mangaratiba/baia de Ilha Grande — a linha dourada
+// aparecia cruzando a costa na tela, com o SOG em 0 kt (origem fora do
+// enquadramento, a NE). Investigado com a mascara real: o caminho CRU (A* +
+// string-pulling de rota.ts, intocados por esta onda) NUNCA tem ponto em
+// terra — o culpado e geometrico e especifico do Chaikin (lib/mapa/suavizar-
+// linha.ts): cortar a quina EXATAMENTE onde a rota faz uma curva fechada pra
+// contornar uma ponta de terra pode desenhar um atalho que raspa a propria
+// ponta que a rota estava contornando. Medido com as coordenadas abaixo,
+// ANTES da correcao: 105 pontos do traco amostrado em terra (de ~600
+// amostras) so na suavizacao, zero no caminho cru. A correcao
+// (`suavizarChaikinComAgua`) valida esse atalho contra a mascara (reusando
+// `linhaDeVisaoLivre` do A*, via `segmentoEmAgua`) e volta pra quina original
+// quando o corte nao e seguro — este teste e o GATE que impede a regressao.
+// ---------------------------------------------------------------------------
+
+describe("suavizacao visual da rota (gate da onda 27) — a linha desenhada nunca cruza terra", () => {
+  // Beira da costa da baia de Ilha Grande/Mangaratiba — bem "colado" na
+  // costa, como o pino que o usuario tocou no print original. Combinado com
+  // VITORIA_ES (origem real, fora da fina a NE — mesma constante do gate da
+  // onda 22 acima) reproduz a rota costurada do caso de producao.
+  const MANGARATIBA_COSTA: Coord = { la: -22.955, lo: -44.045 }
+
+  /** Amostra densamente cada SEGMENTO da linha (nao so os vertices) — o que
+   *  o olho ve na tela e o traco entre os pontos, nao os pontos isolados
+   *  (mesmo raciocinio de `pernaInteiramenteNaAgua` acima, adaptado pra uma
+   *  polilinha [lon,lat] generica em vez de passos de celula). */
+  function amostrarLinha(pontos: Coord[], passos = 60): Coord[] {
+    const saida: Coord[] = []
+    for (let i = 0; i < pontos.length - 1; i++) {
+      const a = pontos[i]
+      const b = pontos[i + 1]
+      for (let k = 0; k < passos; k++) {
+        const t = k / passos
+        saida.push({ la: a.la + (b.la - a.la) * t, lo: a.lo + (b.lo - a.lo) * t })
+      }
+    }
+    if (pontos.length > 0) saida.push(pontos[pontos.length - 1])
+    return saida
+  }
+
+  /** Quantos pontos do traco caem em celula de TERRA na mascara FINA — a
+   *  autoridade perto da costa. Pontos fora do bbox da fina (a perna
+   *  nacional, mar aberto) nao contam: a fina nao tem opiniao la. */
+  function terraNaFina(pontos: Coord[]): number {
+    return pontos.filter((p) => dentroDaGrade(grade, p) && !ehAgua(grade, paraCelula(grade, p))).length
+  }
+
+  /** Mesma politica de `segmentoSeguroParaLinha` do worker (rota.worker.ts,
+   *  onda 27): a fina e a autoridade quando os DOIS extremos do segmento
+   *  cabem nela; senao cai pra nacional se os dois cabem nela; fora das
+   *  duas, nao bloqueia (mar aberto sem mascara). Reimplementada aqui de
+   *  proposito — o worker nem pode ser importado fora de um Worker de
+   *  verdade (`self.onmessage` explode em Node) — mesmo espirito de
+   *  `pernaInteiramenteNaAgua`: o teste nao pode validar usando o MESMO
+   *  codigo que produziu o resultado. */
+  function segmentoSeguro(a: Coord, b: Coord): boolean {
+    if (dentroDaGrade(grade, a) && dentroDaGrade(grade, b)) return segmentoEmAgua(grade, a, b)
+    if (dentroDaGrade(gradeNacional, a) && dentroDaGrade(gradeNacional, b)) return segmentoEmAgua(gradeNacional, a, b)
+    return true
+  }
+
+  it(
+    "caso real de producao — Vitoria/ES -> Mangaratiba (costa colada): o TRACO desenhado (Chaikin com verificacao de agua) nao tem nenhum ponto em terra",
+    { timeout: 30000 },
+    () => {
+      const escolha = escolherGrade(grade, gradeNacional, VITORIA_ES, MANGARATIBA_COSTA)
+      expect(escolha).not.toBeNull()
+      expect(escolha!.tipo).toBe("costura")
+      if (escolha!.tipo !== "costura") throw new Error("unreachable")
+      expect(escolha!.extremoNaFina).toBe("destino") // Mangaratiba e quem esta na fina desta vez (Vitoria fica de fora)
+
+      const inicioCostura = performance.now()
+      const resultado = acharCaminhoCosturado({
+        fina: escolha!.fina,
+        nacional: escolha!.nacional,
+        de: VITORIA_ES,
+        para: MANGARATIBA_COSTA,
+        extremoNaFina: escolha!.extremoNaFina,
+      })
+      const msCostura = performance.now() - inicioCostura
+      expect(resultado.motivoFalha).toBeNull()
+      expect(resultado.pernas).not.toBeNull()
+      const pernas = resultado.pernas!
+
+      // Regressao: o caminho CRU (A* + string-pulling, intocados por esta
+      // onda) continua sem nenhum ponto em terra — a onda 27 nao mexeu nisso,
+      // so no REDESENHO visual. Ver hipoteses descartadas no relatorio da onda.
+      expect(terraNaFina(amostrarLinha(pernas))).toBe(0)
+
+      // O GATE de verdade: a linha DESENHADA (suavizacao Chaikin visual +
+      // verificacao de agua) tambem nao pode ter nenhum ponto em terra — SEM
+      // a verificacao (suavizarChaikin puro), este mesmo caso media 105
+      // pontos em terra no traco amostrado (ver relatorio da onda 27).
+      const inicioSuave = performance.now()
+      const linhaSuave = suavizarChaikinComAgua(
+        pernas.map((p): Ponto => [p.lo, p.la]),
+        ([loA, laA], [loB, laB]) => segmentoSeguro({ la: laA, lo: loA }, { la: laB, lo: loB }),
+      ).map(([lo, la]): Coord => ({ la, lo }))
+      const msSuavizacao = performance.now() - inicioSuave
+
+      expect(terraNaFina(amostrarLinha(linhaSuave))).toBe(0)
+      // extremos preservados exatamente — mesma regra de `suavizarChaikin`
+      // sem checagem, a onda 27 nao mudou essa garantia.
+      expect(linhaSuave[0]).toEqual(pernas[0])
+      expect(linhaSuave[linhaSuave.length - 1]).toEqual(pernas[pernas.length - 1])
+
+      console.log(
+        `[rota-suave] Vitoria/ES -> Mangaratiba costa: costura=${msCostura.toFixed(1)}ms, ` +
+          `chaikin+agua=${msSuavizacao.toFixed(1)}ms, ${pernas.length} vertices brutos -> ${linhaSuave.length} pontos na linha`,
+      )
+      // orcamento combinado (costura + suavizacao visual) segue dentro do
+      // mesmo teto do gate da onda 22 acima.
+      expect(msCostura + msSuavizacao).toBeLessThan(2000)
     },
   )
 })

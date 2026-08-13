@@ -22,7 +22,6 @@ import { ICONE_FALLBACK, type NomeIconeParceiro } from "@/lib/mapa/pino-parceiro
 import type { Parceiro } from "@/lib/db/types"
 import type { PedidoRota, Precisao, RespostaRota } from "@/components/mapa/rota.worker"
 import type { MotivoFalhaRota } from "@/lib/domain/rota"
-import { suavizarChaikin } from "@/lib/mapa/suavizar-linha"
 
 const RESUMO_VAZIO: ResumoTrilha = { distanciaNm: 0, duracaoH: 0, tempoMovimentoH: 0, velMediaKt: 0, velMaxKt: 0 }
 
@@ -59,6 +58,13 @@ type EstadoRotaResultado =
        *  grade nacional — a rota termina "na altura do" destino, nao nele
        *  (ver rota.worker.ts). A tela nao pode fingir precisao que nao tem. */
       destinoAproximado: boolean
+      /** Onda 27: coordenadas ja suavizadas (Chaikin) e verificadas contra a
+       *  agua, prontas pra desenhar — calculadas no worker, que e quem tem a
+       *  grade carregada (ver rota.worker.ts). NUNCA suavizar `pernas` de
+       *  novo aqui: sem a grade, essa suavizacao local nao teria como saber
+       *  se o corte de uma quina fechada perto da costa cai em terra (caso
+       *  real de producao, 13/08/2026). */
+      linhaSuave: Coord[]
     }
   | { tipo: "fora-da-area"; paraDestino: Coord }
   | {
@@ -678,6 +684,7 @@ export function NavegarMapa({
             caladoM: e.data.caladoM,
             usouCorredores: e.data.usouCorredores,
             destinoAproximado: e.data.destinoAproximado,
+            linhaSuave: e.data.linhaSuave,
           })
           break
         case "fora-da-area":
@@ -954,7 +961,7 @@ export function NavegarMapa({
       return
     }
 
-    const { pernas } = estadoRotaAtual
+    const { pernas, linhaSuave } = estadoRotaAtual
     // Onda 23 — suavizacao APENAS VISUAL (web/lib/mapa/suavizar-linha.ts,
     // Chaikin corner-cutting): o corredor navegavel continua sendo
     // EXATAMENTE o que o A* + `suavizar` (string-pulling, lib/domain/rota.ts,
@@ -965,7 +972,13 @@ export function NavegarMapa({
     // proposito — sao waypoints reais, referencia de navegacao, nao
     // decoracao: suavizar o desenho da linha e uma coisa, mentir sobre onde
     // a rota vira e outra.
-    const coordenadasSuaves = suavizarChaikin(pernas.map((p): [number, number] => [p.lo, p.la]))
+    //
+    // Onda 27 — `linhaSuave` (nao `suavizarChaikin(pernas)` local) vem PRONTA
+    // do worker, ja verificada contra a agua: suavizar aqui, sem a grade,
+    // podia desenhar um atalho por cima de terra numa curva fechada perto da
+    // costa mesmo com `pernas` inteiramente na agua (caso real de producao,
+    // 13/08/2026) — ver rota.worker.ts § calcularLinhaSuave.
+    const coordenadasSuaves: [number, number][] = linhaSuave.map((p) => [p.lo, p.la])
     sourceLinha.setData({
       type: "FeatureCollection",
       features: [
