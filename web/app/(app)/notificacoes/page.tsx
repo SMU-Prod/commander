@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { AtivarAlertas } from "@/components/ativar-alertas"
-import { Icone } from "@/components/icone"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { calcularSemaforo, textoRestante, PESO } from "@/lib/domain/semaforo"
 import { nomeDoEquipamento } from "@/lib/domain/diario"
@@ -30,6 +32,13 @@ export default async function NotificacoesPage() {
     .filter((a) => a.r.status !== "ok")
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
 
+  // Agrupado por severidade (vencido primeiro, sempre) — a mesma convenção
+  // de cor de status do resto do app (Farol/AnelStatus), só que aqui como
+  // dois grupos nomeados em vez de uma lista só, pra urgência ficar legível
+  // de relance em vez de precisar ler linha por linha.
+  const vencidos = ativos.filter((a) => a.r.status === "vencido")
+  const naMargem = ativos.filter((a) => a.r.status === "atencao")
+
   return (
     <main>
       <h1 className="titulo-pagina">Avisos</h1>
@@ -38,33 +47,57 @@ export default async function NotificacoesPage() {
         <AtivarAlertas />
       </div>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="alerta" className="size-3.5" /> O que está vencendo
-      </p>
       {ativos.length === 0 ? (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
-          Nada vencido nem na margem. Bom vento e mar calmo.
-        </div>
+        <>
+          <SecaoPagina icone="alerta">O que está vencendo</SecaoPagina>
+          <EstadoVazio icone="escudo" titulo="Nada vencido nem na margem" descricao="Bom vento e mar calmo." />
+        </>
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-          {ativos.map(({ i, r, onde }) => (
-            <div key={i.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <Farol status={r.status} />
-              <p className="titulo-card min-w-0 flex-1">{onde}</p>
-              <span className="font-mono-instr text-xs tabular-nums text-dim">{textoRestante(r)}</span>
-            </div>
-          ))}
-        </div>
+        <>
+          {vencidos.length > 0 && (
+            <>
+              <SecaoPagina icone="alerta">Vencido — {vencidos.length}</SecaoPagina>
+              <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+                {vencidos.map(({ i, r, onde }) => (
+                  <LinhaLista
+                    key={i.id}
+                    leading={<Farol status={r.status} />}
+                    titulo={onde}
+                    valor={textoRestante(r)}
+                    valorClassName="text-crit"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {naMargem.length > 0 && (
+            <>
+              <SecaoPagina icone="relogio">Na margem — {naMargem.length}</SecaoPagina>
+              <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+                {naMargem.map(({ i, r, onde }) => (
+                  <LinhaLista
+                    key={i.id}
+                    leading={<Farol status={r.status} />}
+                    titulo={onde}
+                    valor={textoRestante(r)}
+                    valorClassName="text-warn"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="calendario" className="size-3.5" /> Histórico de avisos
-      </p>
+      <SecaoPagina icone="calendario">Histórico de avisos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {(enviados ?? []).length === 0 && (
-          <p className="corpo py-4 text-dim">
-            Nenhum aviso enviado ainda. Quando algo entrar na margem, você recebe aqui e no aparelho.
-          </p>
+          <EstadoVazio
+            variant="linha"
+            icone="calendario"
+            titulo="Nenhum aviso enviado ainda"
+            descricao="Quando algo entrar na margem, você recebe aqui e no aparelho."
+          />
         )}
         {((enviados ?? []) as Pick<AlertaEnviado, "id" | "titulo" | "janela" | "enviado_em">[]).map((a) => (
           <div key={a.id} className="border-b border-line py-3 last:border-0">
