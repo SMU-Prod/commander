@@ -16,3 +16,5 @@ jobs:
             "${{ secrets.COMMANDER_URL }}/api/alertas/disparar")
           echo "HTTP $resposta"; cat corpo.json
           test "$resposta" = "200"
+
+# Registrado no GitHub em 13/08/2026 (repo novo: SMU-Prod/commander).
