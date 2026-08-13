@@ -205,3 +205,16 @@ oficial Garmin/Raymarine/Navionics). Entao: o Commander importa GPX (rotas e tri
 fundador chega com o historico dele em dois toques, e com consentimento as trilhas
 importadas semeiam os corredores da onda 17. Dado do dono, formato universal, zero
 dependencia de concorrente. Depende da onda 17 (corredores) mergeada.
+
+### Carta para depois dos 100 fundadores — Garmin OneHelm
+Pergunta do Erick (13/08/2026): "o Garmin tem uma rede, conseguimos conectar?" Verificado:
+sao TRES coisas distintas. (1) **Garmin Marine Network**: proprietaria, cabo, radar/sonar entre
+aparelhos Garmin — fechada, e nao precisamos dela. (2) **NMEA 2000**: padrao aberto que TODO
+barco com Garmin tambem tem — e por onde o gateway WiFi entrega os dados pro nosso app; ja
+implementado (onda 13/14). (3) **OneHelm** (garmin.com/onehelm): programa de parceiros da
+Garmin onde terceiros rodam o PROPRIO app dentro da tela do plotter — plataforma **HTML5**,
+exatamente a tecnologia do Commander. Dezenas de empresas ja participam (iluminacao,
+monitoramento, cameras). Oportunidade real: o dossie do barco na tela do helm, onde nenhum
+concorrente de gestao nautica brasileiro esta. **Bloqueio:** exige aplicacao e acordo comercial
+formal; com zero usuarios a resposta provavel e "voltem com tracao". Jogar essa carta DEPOIS
+dos 100 fundadores, com numero de barcos ativos no Rio como argumento.
