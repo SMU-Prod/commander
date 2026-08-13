@@ -2,6 +2,8 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { LinhaLista } from "@/components/ui/linha-lista"
 import { cancelarAssinatura } from "@/lib/acoes/assinatura"
 import { listarCobrancas, proximaCobrancaAsaas, type CobrancaAsaas } from "@/lib/asaas"
 import { formatarPreco, PLANOS } from "@/lib/domain/planos"
@@ -73,10 +75,7 @@ export default async function AssinaturaPage({
 
   return (
     <main>
-      <Link href="/menu" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Menu
-      </Link>
-      <h1 className="titulo-pagina mt-3">Assinatura</h1>
+      <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Assinatura" />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {!assinatura || assinatura.status === "cancelada" ? (
@@ -124,22 +123,21 @@ export default async function AssinaturaPage({
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
           <p className="rotulo pt-4 text-dim">Faturas</p>
           {cobrancas.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{formatarPreco(c.valorCentavos)}</p>
-                <p className="apoio mt-0.5 text-dim">
-                  {/* fallback: status desconhecido nunca aparece cru — a pessoa
-                      é mandada pra quem sabe responder */}
-                  {dataBr(c.dataVencimento)} · {ROTULO_COBRANCA[c.status] ?? "Fale com a equipe sobre esta fatura"}
-                </p>
-              </div>
-              {c.invoiceUrl && (
-                <a href={c.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-accent-forte">
-                  <Icone nome="documento" className="size-4" /> Ver
-                </a>
-              )}
-            </div>
+            <LinhaLista
+              key={c.id}
+              titulo={formatarPreco(c.valorCentavos)}
+              // fallback: status desconhecido nunca aparece cru — a pessoa
+              // é mandada pra quem sabe responder
+              subtitulo={`${dataBr(c.dataVencimento)} · ${ROTULO_COBRANCA[c.status] ?? "Fale com a equipe sobre esta fatura"}`}
+              trailing={
+                c.invoiceUrl ? (
+                  <a href={c.invoiceUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-accent-forte">
+                    <Icone nome="documento" className="size-4" /> Ver
+                  </a>
+                ) : undefined
+              }
+            />
           ))}
         </div>
       )}

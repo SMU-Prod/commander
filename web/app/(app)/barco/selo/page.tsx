@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { LinhaLista } from "@/components/ui/linha-lista"
 import { solicitarAvaliacao } from "@/lib/acoes/selo"
 import { carregarPainel, carregarSelo } from "@/lib/consultas"
 
@@ -17,9 +19,7 @@ export default async function SeloPage({
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
+      <CabecalhoDetalhe voltarHref="/barco" voltarRotulo="Barco" />
       <h1 className="titulo-pagina mt-3 inline-flex items-center gap-2">
         <Icone nome="selo" className="size-5" /> Selo Ouro
       </h1>
@@ -48,25 +48,28 @@ export default async function SeloPage({
 
       <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
         {selo.itens.map((item) => (
-          <div key={item.chave} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-            <span
-              className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                item.ok ? "border-ok bg-ok/15" : "border-line"
-              }`}
-              aria-hidden="true"
-            >
-              {item.ok && <span className="size-2 rounded-full bg-ok" />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className={`corpo ${item.ok ? "" : "text-dim"}`}>{item.rotulo}</p>
-              {!item.ok && <p className="apoio mt-0.5 text-dim">{item.dica}</p>}
-            </div>
-            {!item.ok && (
-              <Link href={item.href} className="shrink-0 text-sm text-accent-forte">
-                Resolver
-              </Link>
-            )}
-          </div>
+          <LinhaLista
+            key={item.chave}
+            leading={
+              <span
+                className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+                  item.ok ? "border-ok bg-ok/15" : "border-line"
+                }`}
+                aria-hidden="true"
+              >
+                {item.ok && <span className="size-2 rounded-full bg-ok" />}
+              </span>
+            }
+            titulo={<span className={item.ok ? "" : "text-dim"}>{item.rotulo}</span>}
+            subtitulo={!item.ok ? item.dica : undefined}
+            trailing={
+              !item.ok ? (
+                <Link href={item.href} className="shrink-0 text-sm text-accent-forte">
+                  Resolver
+                </Link>
+              ) : undefined
+            }
+          />
         ))}
       </div>
 

@@ -1,7 +1,6 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
 import { ImportarGpxCliente } from "@/components/diario/importar-gpx-cliente"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel } from "@/lib/consultas"
 
 /**
@@ -16,13 +15,12 @@ export default async function ImportarGpxPage() {
 
   return (
     <main>
-      <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Diário
-      </Link>
-      <h1 className="titulo-pagina mt-3">Importar do plotter</h1>
-      <p className="mt-1 apoio text-dim">
-        Cada trilha do arquivo vira uma saída no Livro de Bordo — o dado é seu, não da Garmin.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/diario"
+        voltarRotulo="Diário"
+        titulo="Importar do plotter"
+        descricao="Cada trilha do arquivo vira uma saída no Livro de Bordo — o dado é seu, não da Garmin."
+      />
       <ImportarGpxCliente />
     </main>
   )

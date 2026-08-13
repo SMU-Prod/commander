@@ -1,7 +1,6 @@
-import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
 import { aplicarPreset, removerCmdt, salvarMatriz } from "@/lib/acoes/vinculos"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel } from "@/lib/consultas"
 import { ABAS, ROTULO_ABA, normalizarPermissoes } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -36,11 +35,12 @@ export default async function MatrizPage({
 
   return (
     <main>
-      <Link href="/menu/tripulacao" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Tripulação
-      </Link>
-      <h1 className="titulo-pagina mt-3">{nome}</h1>
-      <p className="mt-1 text-sm text-dim">Defina, área por área, o que este comandante vê e edita.</p>
+      <CabecalhoDetalhe
+        voltarHref="/menu/tripulacao"
+        voltarRotulo="Tripulação"
+        titulo={nome}
+        descricao="Defina, área por área, o que este comandante vê e edita."
+      />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
       {salvo && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 text-sm">Permissões salvas.</p>}
 

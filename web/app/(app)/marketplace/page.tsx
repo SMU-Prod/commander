@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
@@ -16,9 +17,12 @@ export default async function MarketplacePage() {
 
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {((perfis ?? []) as PerfilComandante[]).length === 0 && (
-          <p className="corpo py-5 text-dim">
-            Ainda não há comandantes cadastrados na sua região. Assim que houver, eles aparecem aqui.
-          </p>
+          <EstadoVazio
+            variant="linha"
+            icone="pessoas"
+            titulo="Ainda não há comandantes cadastrados na sua região"
+            descricao="Assim que houver, eles aparecem aqui."
+          />
         )}
         {((perfis ?? []) as PerfilComandante[]).map((p) => (
           <div key={p.usuario_id} className="border-b border-line py-3.5 last:border-0">

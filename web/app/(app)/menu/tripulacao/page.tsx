@@ -1,10 +1,13 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { CampoSelect } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
 export default async function TripulacaoPage({
@@ -30,10 +33,7 @@ export default async function TripulacaoPage({
 
   return (
     <main>
-      <Link href="/menu" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Menu
-      </Link>
-      <h1 className="titulo-pagina mt-3">Tripulação</h1>
+      <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Tripulação" />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       {criado && (
@@ -50,59 +50,60 @@ export default async function TripulacaoPage({
         </div>
       )}
 
-      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Comandantes com acesso</p>
+      <SecaoPagina>Comandantes com acesso</SecaoPagina>
       <div className="rounded-[14px] border border-line bg-panel px-4">
         {((vinculos ?? []) as Vinculo[]).length === 0 && (
-          <p className="py-4 text-sm text-dim">Ninguém além de você ainda. Crie um convite abaixo.</p>
+          <EstadoVazio
+            variant="linha"
+            icone="pessoas"
+            titulo="Ninguém além de você ainda"
+            descricao="Crie um convite abaixo."
+          />
         )}
         {((vinculos ?? []) as Vinculo[]).map((v) => (
-          <Link key={v.id} href={`/menu/tripulacao/${v.id}`}
-            className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{nomePorId.get(v.usuario_id) || "Comandante"}</p>
-              <p className="mt-0.5 text-xs text-dim">
-                {v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"}
-              </p>
-            </div>
-            <Icone nome="chevron" className="size-4 text-dim" />
-          </Link>
+          <LinhaLista
+            key={v.id}
+            href={`/menu/tripulacao/${v.id}`}
+            titulo={nomePorId.get(v.usuario_id) || "Comandante"}
+            subtitulo={
+              v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"
+            }
+          />
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Convites pendentes</p>
+      <SecaoPagina>Convites pendentes</SecaoPagina>
       <div className="rounded-[14px] border border-line bg-panel px-4">
         {((convites ?? []) as Convite[]).length === 0 && (
-          <p className="py-4 text-sm text-dim">Nenhum convite aguardando.</p>
+          <EstadoVazio variant="linha" icone="pessoas" titulo="Nenhum convite aguardando" />
         )}
         {((convites ?? []) as Convite[]).map((c) => (
-          <div key={c.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-            <div className="min-w-0 flex-1">
-              <p className="font-mono-instr text-sm tabular-nums">{c.codigo}</p>
-              <p className="mt-0.5 text-xs text-dim">
-                {c.nivel === "completo" ? "Completo" : "Operacional"} · expira {new Date(c.expira_em).toLocaleDateString("pt-BR")}
-              </p>
-            </div>
-            <form action={revogarConvite}>
-              <input type="hidden" name="convite_id" value={c.id} />
-              <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-xs text-crit" />
-            </form>
-          </div>
+          <LinhaLista
+            key={c.id}
+            titulo={<span className="font-mono-instr tabular-nums">{c.codigo}</span>}
+            subtitulo={`${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
+            trailing={
+              <form action={revogarConvite}>
+                <input type="hidden" name="convite_id" value={c.id} />
+                <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-xs text-crit" />
+              </form>
+            }
+          />
         ))}
       </div>
 
-      <p className="mt-6 mb-2 font-mono-instr text-[11px] uppercase tracking-[.16em] text-dim">Novo convite</p>
+      <SecaoPagina>Novo convite</SecaoPagina>
       <form action={criarConvite} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
-        <div>
-          <label className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim" htmlFor="nivel">
-            Acesso inicial
-          </label>
-          <select id="nivel" name="nivel" defaultValue="operacional"
-            className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base">
-            <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
-            <option value="completo">Completo — vê e edita tudo</option>
-          </select>
-        </div>
-        <p className="text-xs text-dim">Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar.</p>
+        <CampoSelect
+          label="Acesso inicial"
+          id="nivel"
+          name="nivel"
+          defaultValue="operacional"
+          dica="Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar."
+        >
+          <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
+          <option value="completo">Completo — vê e edita tudo</option>
+        </CampoSelect>
         <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar convite</button>
       </form>
     </main>

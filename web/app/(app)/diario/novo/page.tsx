@@ -1,7 +1,6 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { FormularioNovoEvento } from "@/components/campos-navegacao-evento"
-import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { criarEvento } from "@/lib/acoes/eventos"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -45,10 +44,7 @@ export default async function NovoEventoPage({
 
   return (
     <main>
-      <Link href="/diario" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Diário
-      </Link>
-      <h1 className="titulo-pagina mt-3">Novo registro</h1>
+      <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo="Novo registro" />
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarEvento} className="mt-5 space-y-4">

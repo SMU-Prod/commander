@@ -3,6 +3,8 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { Campo } from "@/components/ui/campo"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { hashesJaImportados, importarTrilhas, type ResultadoImportacao, type TrilhaParaImportar } from "@/lib/acoes/importar-gpx"
 import { dataSP, horaSP } from "@/lib/domain/datas"
 import { resumoTrilha } from "@/lib/domain/geo"
@@ -12,8 +14,6 @@ import { parseGpx, paraPontosArmazenaveis, type TrilhaGpx } from "@/lib/domain/g
 // o consentimento de corredores e UM SO, nao um por tela. Mudar aqui tambem
 // vale pra proxima trilha gravada ao vivo, e vice-versa.
 const CHAVE_CONSENTIMENTO_CORREDOR = "commander:consentimento-corredor"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-2.5 text-sm"
 
 interface Candidata extends TrilhaGpx {
   id: string
@@ -254,9 +254,9 @@ export function ImportarGpxCliente() {
             </p>
           )}
 
-          <p className="rotulo text-dim mb-2">
+          <SecaoPagina>
             {candidatas.length} trilha{candidatas.length > 1 ? "s" : ""} encontrada{candidatas.length > 1 ? "s" : ""}
-          </p>
+          </SecaoPagina>
 
           <div className="space-y-2">
             {candidatas.map((c) => (
@@ -290,15 +290,12 @@ export function ImportarGpxCliente() {
                 </label>
                 {c.selecionada && c.semHorario && (
                   <div className="mt-3 pl-8">
-                    <label className="mb-1 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim" htmlFor={`data-${c.id}`}>
-                      Essa trilha não tem data no arquivo — informe uma
-                    </label>
-                    <input
+                    <Campo
+                      label="Essa trilha não tem data no arquivo — informe uma"
                       id={`data-${c.id}`}
                       type="date"
                       value={c.dataManual}
                       onChange={(e) => definirDataManual(c.id, e.target.value)}
-                      className={campo}
                     />
                   </div>
                 )}

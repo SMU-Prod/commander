@@ -2,6 +2,10 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { grupoDoEvento, TIPO_ROTULO } from "@/lib/domain/diario"
 import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
@@ -50,17 +54,18 @@ export default async function GastosPage() {
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
-      <div className="mt-3 flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Gastos</h1>
-        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-          <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Registrar
-          </span>
-        </Link>
-      </div>
+      <CabecalhoDetalhe
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        titulo="Gastos"
+        acao={
+          <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
+            <span className="inline-flex items-center gap-1">
+              <Icone nome="mais" className="size-4" /> Registrar
+            </span>
+          </Link>
+        }
+      />
 
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
         <p className="rotulo text-dim inline-flex items-center gap-1.5">
@@ -79,35 +84,37 @@ export default async function GastosPage() {
         )}
       </div>
 
-      <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-        <Icone nome="grafico" className="size-3.5" /> Últimos 6 meses
-      </p>
+      <SecaoPagina icone="grafico">Últimos 6 meses</SecaoPagina>
       <GraficoMesesGastos meses={r.meses} mesAtual={hoje.slice(0, 7)} />
 
-      <p className="rotulo text-dim mt-6 mb-2">Lançamentos recentes</p>
+      <SecaoPagina>Lançamentos recentes</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {comCusto.length === 0 && (
-          <p className="corpo py-4 text-dim">
-            Nenhum gasto registrado. Registre custos nos eventos do diário e eles aparecem aqui.
-          </p>
+          <EstadoVazio
+            variant="linha"
+            icone="cifrao"
+            titulo="Nenhum gasto registrado"
+            descricao="Registre custos nos eventos do diário e eles aparecem aqui."
+          />
         )}
         {recentes.map((e) => {
           const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
           return (
-            <div key={e.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}</p>
-                <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
-                  {e.data.split("-").reverse().join("/")}
-                </p>
-                {urlAnexo && (
-                  <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="apoio mt-0.5 inline-block text-accent-forte">
-                    Abrir anexo
-                  </a>
-                )}
-              </div>
-              <span className="font-mono-instr text-sm tabular-nums">{formatarReais(e.custo_centavos as number)}</span>
-            </div>
+            <LinhaLista
+              key={e.id}
+              titulo={e.descricao ?? TIPO_ROTULO[e.tipo] ?? e.tipo}
+              subtitulo={
+                <>
+                  <span className="font-mono-instr text-[11px] tabular-nums">{e.data.split("-").reverse().join("/")}</span>
+                  {urlAnexo && (
+                    <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="ml-2 text-accent-forte">
+                      Abrir anexo
+                    </a>
+                  )}
+                </>
+              }
+              valor={formatarReais(e.custo_centavos as number)}
+            />
           )
         })}
       </div>

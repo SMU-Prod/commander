@@ -1,6 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { definirCapa, excluirFoto, subirFoto } from "@/lib/acoes/fotos"
 import { carregarPainel } from "@/lib/consultas"
 import { formatarBytes, usoDaCota } from "@/lib/domain/cota"
@@ -39,11 +43,12 @@ export default async function FotosPage({
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
-      <h1 className="titulo-pagina mt-3">Fotos</h1>
-      <p className="apoio mt-1 text-dim">O álbum do barco — e o dossiê que vale na hora de vender.</p>
+      <CabecalhoDetalhe
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        titulo="Fotos"
+        descricao="O álbum do barco — e o dossiê que vale na hora de vender."
+      />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="mt-4 rounded-[14px] border border-line bg-panel p-4 sombra-1">
@@ -78,11 +83,12 @@ export default async function FotosPage({
       </div>
 
       {doAlbum.length === 0 ? (
-        <div className="mt-4 rounded-[14px] border border-line bg-panel p-6 text-center sombra-1">
-          <Icone nome="camera" className="mx-auto size-7 text-dim" />
-          <p className="corpo mt-2 font-medium">Nenhuma foto em {ROTULO_ALBUM[albumAtivo]}</p>
-          <p className="apoio mt-1 text-dim">Fotos boas valorizam o barco e contam a história dele.</p>
-        </div>
+        <EstadoVazio
+          icone="camera"
+          titulo={`Nenhuma foto em ${ROTULO_ALBUM[albumAtivo]}`}
+          descricao="Fotos boas valorizam o barco e contam a história dele."
+          className="mt-4"
+        />
       ) : (
         <div className="mt-4 grid grid-cols-3 gap-2">
           {doAlbum.map((f) => {
@@ -124,21 +130,18 @@ export default async function FotosPage({
 
       {editavel && (
         <>
-          <p className="rotulo mt-6 mb-2 text-dim">Adicionar foto</p>
+          <SecaoPagina>Adicionar foto</SecaoPagina>
           <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
             <input type="hidden" name="album" value={albumAtivo} />
-            <div>
-              <label htmlFor="arquivo" className="rotulo mb-1.5 block text-dim">
-                Foto para {ROTULO_ALBUM[albumAtivo]} — JPG, PNG ou WebP, até 10 MB
-              </label>
-              <input id="arquivo" name="arquivo" type="file" accept="image/jpeg,image/png,image/webp"
-                className="w-full rounded-[10px] border border-line bg-campo px-3 py-2.5 corpo" />
-            </div>
-            <div>
-              <label htmlFor="legenda" className="rotulo mb-1.5 block text-dim">Legenda — opcional</label>
-              <input id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem"
-                className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 corpo" />
-            </div>
+            <Campo
+              label={`Foto para ${ROTULO_ALBUM[albumAtivo]} — JPG, PNG ou WebP, até 10 MB`}
+              id="arquivo"
+              name="arquivo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="py-2.5 text-sm"
+            />
+            <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
             <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
           </form>
         </>
