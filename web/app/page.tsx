@@ -44,8 +44,11 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect("/hoje")
 
-  // RPC anon (grant em vagas_fundador_restantes) — se falhar por qualquer
-  // motivo, a seção de fundadores segue de pé, só sem o contador.
+  // RPC anon (grant em vagas_fundador_restantes) — segue sendo buscada a
+  // cada request (fica pronta pra voltar a aparecer), mas a UI só MOSTRA o
+  // número abaixo de um gatilho (ver comentário perto do JSX). Se a RPC
+  // falhar por qualquer motivo, a seção de fundadores segue de pé, só sem
+  // o contador.
   let restantes: number | null = null
   try {
     const { data } = await supabase.rpc("vagas_fundador_restantes")
@@ -53,6 +56,15 @@ export default async function LandingPage() {
   } catch {
     restantes = null
   }
+  // Auditoria CMO P0 (2026-08-12): "Restam 100 de 100 vagas" em 100% da
+  // capacidade lê como zero tração, não urgência — pior que não mostrar
+  // número nenhum. Regra do produto: nenhum número inventado, então a
+  // saída não é fabricar prova social, é só não expor a contagem enquanto
+  // ela não ajuda a vender. Gatilho pra religar (mover pra 100, ou trocar
+  // por outro limiar combinado com o dono, quando os primeiros fundadores
+  // reais entrarem): reativar quando restarem menos de 80 de VAGAS_FUNDADOR.
+  const LIMIAR_MOSTRAR_CONTADOR = 80
+  const mostrarContador = restantes !== null && restantes < LIMIAR_MOSTRAR_CONTADOR
 
   return (
     <div data-theme="dark" className="bg-ink text-texto">
@@ -124,13 +136,17 @@ export default async function LandingPage() {
       {/* Fundador */}
       <section id="fundador" className="mx-auto max-w-4xl px-6 py-14 sm:py-20">
         <div className="text-center">
-          <p className="rotulo text-accent">Fundadores — {VAGAS_FUNDADOR} vagas</p>
-          <h2 className="titulo-pagina mt-2">Preço travado para quem entra agora.</h2>
+          <p className="rotulo text-accent">Turma fundadora</p>
+          <h2 className="titulo-pagina mt-2">
+            {VAGAS_FUNDADOR} assinaturas com {formatarPreco(PLANOS.fundador_mensal.valorCentavos)}/mês pra sempre.
+          </h2>
           <p className="corpo mx-auto mt-3 max-w-md text-dim">
-            {VAGAS_FUNDADOR} assinaturas com o valor de lançamento — depois disso o Commander passa a
+            Preço travado enquanto durar a assinatura — depois desta turma, o Commander passa a
             valer {formatarPreco(ANCORA_MENSAL_CENTAVOS)}/mês.
           </p>
-          {restantes !== null && (
+          {/* Só aparece perto do fim da turma (ver LIMIAR_MOSTRAR_CONTADOR acima) —
+              antes disso, "restam 100 de 100" leria como zero tração. */}
+          {mostrarContador && (
             <p className="apoio mt-4 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3 py-1.5 text-dim">
               <Icone nome="estrela" className="size-3.5 text-accent" /> Restam {restantes} de {VAGAS_FUNDADOR} vagas
             </p>
