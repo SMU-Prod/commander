@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
-import { Icone } from "@/components/icone"
 import { excluirSistema, salvarSistema } from "@/lib/acoes/sistemas"
 import { carregarPainel } from "@/lib/consultas"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
-import { campo, rot } from "@/lib/ui/form"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo, CampoSelect } from "@/components/ui/campo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Documento, EquipamentoSistema } from "@/lib/db/types"
 
@@ -38,42 +38,34 @@ export default async function EditarSistemaPage({
 
   return (
     <main>
-      <Link href={`/barco/equipamento/${id}`} className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Voltar
-      </Link>
-      <h1 className="titulo-pagina mt-3">Editar sistema</h1>
+      <CabecalhoDetalhe voltarHref={`/barco/equipamento/${id}`} titulo="Editar sistema" />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarSistema} className="mt-5 space-y-4">
         <input type="hidden" name="equipamento_id" value={id} />
         <input type="hidden" name="sistema_id" value={sistemaId} />
-        <div>
-          <label className={rot} htmlFor="nome">Nome do sistema</label>
-          <input id="nome" name="nome" required defaultValue={s.nome} className={campo} />
-        </div>
+        <Campo label="Nome do sistema" id="nome" name="nome" required defaultValue={s.nome} />
         {(documentos ?? []).length === 0 ? (
           <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
             Sem documentos no acervo ainda. <Link href="/barco/documentos" className="text-accent-forte">Adicione o manual em Documentos</Link> e volte aqui pra vincular.
           </p>
         ) : (
-          <div>
-            <label className={rot} htmlFor="documento_id">Manual do acervo — opcional</label>
-            <select id="documento_id" name="documento_id" defaultValue={s.documento_id ?? ""} className={campo}>
-              <option value="">Sem manual vinculado</option>
-              {(documentos as Pick<Documento, "id" | "nome">[]).map((d) => (
-                <option key={d.id} value={d.id}>{d.nome}</option>
-              ))}
-            </select>
-          </div>
+          <CampoSelect label="Manual do acervo — opcional" id="documento_id" name="documento_id" defaultValue={s.documento_id ?? ""}>
+            <option value="">Sem manual vinculado</option>
+            {(documentos as Pick<Documento, "id" | "nome">[]).map((d) => (
+              <option key={d.id} value={d.id}>{d.nome}</option>
+            ))}
+          </CampoSelect>
         )}
-        <div>
-          <label className={rot} htmlFor="pagina">Página do manual — opcional</label>
-          <input id="pagina" name="pagina" inputMode="numeric" defaultValue={s.pagina ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
-        </div>
-        <div>
-          <label className={rot} htmlFor="observacao">Observação — opcional</label>
-          <input id="observacao" name="observacao" defaultValue={s.observacao ?? ""} className={campo} />
-        </div>
+        <Campo
+          label="Página do manual — opcional"
+          id="pagina"
+          name="pagina"
+          inputMode="numeric"
+          defaultValue={s.pagina ?? ""}
+          className="font-mono-instr tabular-nums"
+        />
+        <Campo label="Observação — opcional" id="observacao" name="observacao" defaultValue={s.observacao ?? ""} />
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar sistema</button>
       </form>
 

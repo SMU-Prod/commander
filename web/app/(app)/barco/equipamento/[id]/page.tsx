@@ -303,19 +303,24 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           <EstadoVazio variant="linha" icone="calendario" titulo="Nenhum serviço registrado neste equipamento ainda" />
         )}
         {(eventos ?? []).map((e) => (
-          <div key={e.id} className="border-b border-line py-3 last:border-0">
-            <p className="titulo-card">{e.descricao ?? e.tipo}</p>
-            <p className="apoio mt-0.5 font-mono-instr tabular-nums text-dim">
-              {e.data.split("-").reverse().join("/")}
-              {e.horas_no_momento != null ? ` · ${e.horas_no_momento.toLocaleString("pt-BR")} h` : ""}
-              {e.custo_centavos != null ? ` · ${formatarReais(e.custo_centavos)}` : ""}
-            </p>
-            {e.anexo_path && urlsAnexo.get(e.id) && (
-              <a href={urlsAnexo.get(e.id)!} target="_blank" rel="noopener noreferrer" className="apoio mt-0.5 inline-block text-accent-forte">
-                Abrir anexo
-              </a>
-            )}
-          </div>
+          <LinhaLista
+            key={e.id}
+            titulo={e.descricao ?? e.tipo}
+            subtitulo={
+              <>
+                <span className="font-mono-instr tabular-nums">
+                  {e.data.split("-").reverse().join("/")}
+                  {e.horas_no_momento != null ? ` · ${e.horas_no_momento.toLocaleString("pt-BR")} h` : ""}
+                  {e.custo_centavos != null ? ` · ${formatarReais(e.custo_centavos)}` : ""}
+                </span>
+                {e.anexo_path && urlsAnexo.get(e.id) && (
+                  <a href={urlsAnexo.get(e.id)!} target="_blank" rel="noopener noreferrer" className="ml-2 text-accent-forte">
+                    Abrir anexo
+                  </a>
+                )}
+              </>
+            }
+          />
         ))}
       </div>
     </main>
