@@ -726,6 +726,25 @@ navegação e documento de embarcação. Configuração (`instrumentation-client
 do próprio `app/layout.tsx`, caso raro) chamam `Sentry.captureException` — sem DSN, isso é
 no-op, sem custo.
 
+## Rate limiting (onda 31)
+
+Mitigação simples contra abuso/custo em rotas que custam dinheiro (push, e-mail, chamada de
+API de tempo) ou expõem dado: `web/lib/seguranca/limitador.ts` — janela fixa em memória,
+sem dependência nova. Aplicado em:
+- `POST /api/alertas/disparar` — por IP, 5 chamadas/5min, checado ANTES do Bearer (mitiga
+  também força-bruta no segredo, não só custo).
+- `GET /api/corredores` — por usuário autenticado, 60 chamadas/min.
+- `gravarSondagens` (server action de escrita em lote da sondagem de profundidade) — por
+  usuário, 20 chamadas/min.
+
+**Limitação conhecida, documentada no código:** em ambiente serverless (Vercel), cada
+instância da função tem sua PRÓPRIA memória — não é um contador compartilhado entre
+instâncias/regiões. Isso é **mitigação, não muralha**: reduz abuso vindo de uma única
+instância "quente", mas não impede um ataque distribuído que acerte instâncias diferentes.
+Se o volume real de abuso justificar uma barreira de verdade, a recomendação é um rate
+limiter compartilhado (Redis/Upstash) — não implementado nesta onda por não ser dependência
+leve.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

@@ -1,6 +1,7 @@
 "use server"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
+import { checarLimite } from "@/lib/seguranca/limitador"
 import type { TransporteSondagem } from "@/lib/db/types"
 
 /** Leitura ja passada por validacao + reducao por celula no cliente (ver
@@ -21,6 +22,17 @@ export interface LeituraParaGravar {
  *  do cliente ja limitando o volume na pratica, uma saida absurdamente longa
  *  (ou um bug no cliente) nao pode virar um payload sem teto. */
 const LIMITE_LEITURAS_POR_ENVIO = 2000
+
+// Onda 31 (robustez) — server action de escrita mais quente do app (a fila
+// persistente reenvia lote em intervalo curto enquanto houver rede, ver
+// `web/lib/nmea/fila.ts`). Por USUÁRIO (não IP: server action não tem
+// acesso trivial ao IP do cliente sem ler headers manualmente, e o usuário
+// já é a unidade certa aqui — é dado dele que está sendo escrito). Teto
+// generoso pra não atrapalhar reenvio legítimo de fila, só cortar loop.
+// Mitigação em memória por instância, não muralha — ver
+// `lib/seguranca/limitador.ts`.
+const JANELA_SONDAGEM_MS = 60_000
+const LIMITE_SONDAGEM_POR_JANELA = 20
 
 export type ResultadoGravarSondagens = { ok: true; gravadas: number } | { ok: false; erro: string }
 
@@ -54,6 +66,12 @@ export async function gravarSondagens(
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, erro: "Sessão expirada — entre de novo." }
+
+  const limite = checarLimite(`sondagem:${user.id}`, JANELA_SONDAGEM_MS, LIMITE_SONDAGEM_POR_JANELA)
+  if (!limite.permitido) {
+    return { ok: false, erro: "Muitos envios em pouco tempo — a leitura continua na fila, tente de novo em instantes." }
+  }
+
   const painel = await carregarPainel()
   if (!painel) return { ok: false, erro: "Cadastre a embarcação primeiro." }
 
