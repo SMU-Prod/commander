@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
+import { SeloGold } from "@/components/selos/selo-gold"
+import { SeloVerified } from "@/components/selos/selo-verified"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { carregarPainel, carregarVerified } from "@/lib/consultas"
@@ -26,7 +27,7 @@ export default async function VerifiedPage() {
     <main>
       <CabecalhoDetalhe voltarHref="/barco/selos" voltarRotulo="Selos Commander" />
       <h1 className="titulo-pagina mt-3 inline-flex items-center gap-2">
-        <Icone nome="escudo" className="size-5 text-dim" /> Commander Verified
+        <SeloVerified size={32} /> Commander Verified
       </h1>
       <p className="apoio mt-1 text-dim">
         Verificação digital: reconhece documentação e histórico completos no app. Não é vistoria
@@ -80,7 +81,7 @@ export default async function VerifiedPage() {
         className="sombra-1 mt-6 block rounded-[14px] border border-line bg-panel p-3.5"
       >
         <p className="titulo-card inline-flex items-center gap-1.5">
-          <Icone nome="ancora" className="size-4 text-accent-forte" /> Quer avaliação presencial?
+          <SeloGold size={18} variant="convite" /> Quer avaliação presencial?
         </p>
         <p className="apoio mt-0.5 text-dim">
           Conheça o Commander Gold — não depende de completar o Verified.

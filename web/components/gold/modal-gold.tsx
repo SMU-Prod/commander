@@ -1,6 +1,7 @@
 "use client"
 import { useState, type ReactNode } from "react"
 import { Icone } from "@/components/icone"
+import { SeloGold } from "@/components/selos/selo-gold"
 
 /**
  * Modal do Commander Gold (Correção 12 do PRD de Correções) — abre ao tocar
@@ -27,7 +28,7 @@ export function ModalGold({ trigger, children }: { trigger: ReactNode; children:
           >
             <div className="flex items-center justify-between">
               <p className="titulo-card inline-flex items-center gap-1.5">
-                <Icone nome="medalha" className="size-4 text-accent-forte" /> Commander Gold
+                <SeloGold size={18} variant="ativo" /> Commander Gold
               </p>
               <button type="button" onClick={() => setAberto(false)} aria-label="Fechar" className="p-1 text-dim">
                 <Icone nome="mais" className="size-5 rotate-45" />

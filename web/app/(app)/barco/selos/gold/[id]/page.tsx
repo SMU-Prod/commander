@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { SeloGold } from "@/components/selos/selo-gold"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { asaasConfigurado } from "@/lib/asaas"
@@ -138,7 +139,9 @@ export default async function DetalheSolicitacaoGoldPage({
 
       {avaliacao && (
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo mb-2 text-dim">Commander Gold</p>
+          <p className="rotulo mb-2 inline-flex items-center gap-1.5 text-dim">
+            <SeloGold size={18} variant={avaliacao.resultado === "aprovado" ? "ativo" : "convite"} /> Commander Gold
+          </p>
           <p className="apoio text-dim">{TEXTO_MODAL_GOLD}</p>
           <div className="mt-3 divide-y divide-line">
             {HUBS_PROTOCOLO_GOLD.map((hub) => {
