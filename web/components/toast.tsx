@@ -23,7 +23,7 @@ export function Toast() {
   if (!mensagem) return null
   return (
     <div role="status" aria-live="polite"
-      className="sombra-2 fixed inset-x-4 top-4 z-40 mx-auto flex max-w-[400px] items-center gap-2 rounded-[12px] border border-ok/40 bg-panel px-3.5 py-3">
+      className="no-imprimir sombra-2 fixed inset-x-4 top-4 z-40 mx-auto flex max-w-[400px] items-center gap-2 rounded-[12px] border border-ok/40 bg-panel px-3.5 py-3">
       <Icone nome="escudo" className="size-4 text-ok" />
       <p className="corpo">{mensagem}</p>
     </div>

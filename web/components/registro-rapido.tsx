@@ -31,13 +31,13 @@ export function RegistroRapido({
     <>
       <button
         onClick={() => setAberto(true)}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+        className="no-imprimir fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
       >
         + Registrar
       </button>
       {aberto && (
         <div
-          className="fixed inset-0 z-30 flex items-end bg-black/60"
+          className="no-imprimir fixed inset-0 z-30 flex items-end bg-black/60"
           onClick={(e) => e.target === e.currentTarget && setAberto(false)}
         >
           <div className="w-full rounded-t-[20px] border-t border-line bg-panel px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5">

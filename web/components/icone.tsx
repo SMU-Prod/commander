@@ -57,6 +57,14 @@ const PATHS = {
   // Onda 32 (hub Segurança): escudo com check — distingue de "escudo" liso
   // (já usado pro Casco) porque aqui é "verificado/em dia", não estrutura.
   seguranca: <><path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z" /><path d="m9 12 2 2 4-4" /></>,
+  // Onda 37 (Resumos): folha de documento (mesma linguagem de "documento")
+  // com 3 barras crescentes no rodapé — reforça "relatório com números",
+  // distinto de "grafico" (barras soltas, sem moldura de página).
+  relatorio: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /><path d="M9 17v-3M12 17v-5M15 17v-2" /></>,
+  // Onda 37 (Transferência de propriedade): duas setas em sentidos opostos —
+  // "troca de posse", nunca confundir com "compartilhar" (uma seta só, saindo
+  // de uma caixa) porque aqui o barco muda de dono, não ganha um segundo dono.
+  transferir: <><path d="M4 8h13M13 4l4 4-4 4" /><path d="M20 16H7M11 12l-4 4 4 4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

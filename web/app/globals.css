@@ -262,3 +262,41 @@ body.fundo-tela-mapa {
 .marcador-barco-halo {
   animation: pulso-halo-barco 2s ease-in-out infinite;
 }
+
+/* Onda 37 (Resumos, exportação em PDF) — impressão nativa do navegador em
+   vez de lib de PDF no bundle (justificativa completa em
+   BotaoExportarPdf). Duas coisas resolvidas aqui:
+   1) `.no-imprimir` esconde a casca do app (bottom nav, FAB de registro,
+      toast, o link "Voltar") — sem isso o PDF sairia com navegação que não
+      faz sentido fora do app.
+   2) O relatório força o tema CLARO mesmo se o dono estiver no escuro: PDF é
+      pra imprimir ou anexar num e-mail — dark mode em impressora é tinta
+      gasta à toa e ilegível em papel. Reescreve os MESMOS tokens de :root
+      (não um tema novo), então todo componente que já usa var(--cor) some a
+      surpresa de graça, sem precisar de classe print: em cada um. */
+@media print {
+  .no-imprimir, .no-imprimir * {
+    display: none !important;
+  }
+  @page {
+    margin: 14mm 12mm;
+  }
+  html, body {
+    background: #fff !important;
+  }
+  :root {
+    --fundo: #ffffff;
+    --superficie: #ffffff;
+    --superficie-2: #f5f7fa;
+    --linha: #d7dee6;
+    --texto: #0b1d2d;
+    --texto-dim: #46545f;
+    --texto-dim-chip: #46545f;
+    --ok: #15803d;
+    --warn: #b45309;
+    --crit: #d2373c;
+  }
+  .sombra-1, .sombra-2 {
+    box-shadow: none !important;
+  }
+}
