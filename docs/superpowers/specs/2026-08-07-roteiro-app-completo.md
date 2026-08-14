@@ -218,3 +218,28 @@ monitoramento, cameras). Oportunidade real: o dossie do barco na tela do helm, o
 concorrente de gestao nautica brasileiro esta. **Bloqueio:** exige aplicacao e acordo comercial
 formal; com zero usuarios a resposta provavel e "voltem com tracao". Jogar essa carta DEPOIS
 dos 100 fundadores, com numero de barcos ativos no Rio como argumento.
+
+## Concorrente direto mapeado: OnSailing (onsailing.app) — 14/08/2026
+
+Brasileiro, mesma praça (telas mostram Rio, Buzios, Angra), mesmo publico. Mapeado pelas 5
+telas oficiais da landing (o site e SPA; busca e fetch simples voltam vazios — usar navegador).
+
+**O que eles tem:** modulos de gestao (Embarcacoes, Manutencao, Abastecimento, Checklist,
+Financeiro com saldo/receitas/despesas, Registrar despesa); **marketplace de prestadores com
+nota 5/5, tags de servico e busca por cidade/tipo**; mapa com filtros (Mecanicos,
+Eletricistas, Pintores) + cartao de clima + botao SOS; **Cotas** (valor da embarcacao, socios
+cotistas, % e dias/mes, agenda de reservas); Cuidador; Agenda publica; Cursos.
+
+**O que NAO achei neles (procurado no site inteiro):** nenhuma mencao a NMEA, SeaTalk,
+plotter ou instrumentos de bordo. O mapa parece mapa de rua com pinos, nao carta nautica.
+(O Erick mencionou que teriam integracao NMEA/SeaTalk — nao confirmado; pedir a fonte.)
+
+**Lacunas nossas que eles cobrem (candidatas a backlog):**
+1. **Cotas/socios** — barco compartilhado e comum no Rio; eles tem agenda de reserva por cota.
+2. **Cuidador** — papel dedicado de quem cuida do barco.
+3. **Prestadores com avaliacao e busca** — nosso "Comandantes" e vitrine, o deles e mercado
+   com nota. Casa com a frente de parceiros do Pedro.
+
+**Nossa vantagem (nao replicavel em semanas):** carta com profundidade, rota tracada pela
+agua contornando a costa, rota por calado, navegacao estilo Waze, tempo no mar com mare, e a
+base colaborativa (corredores + sondagem) que melhora sozinha a cada saida.
