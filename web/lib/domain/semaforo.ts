@@ -142,60 +142,10 @@ export function temInformacaoSuficiente(item: ItemCalc, horasAtuais: number | nu
   return temHoras || temData
 }
 
-/* ⚠️ PROVISÓRIO — DECISÃO DE PRODUTO PENDENTE (registrado em 14/08/2026)
- *
- * O PRD Master do Upgrade 2 (§10, `docs/prd/upgrade2-master.txt`) diz
- * textualmente que a fórmula da Saúde da Embarcação NÃO está fechada e que
- * "o programador pode preparar arquitetura/componentes, mas não deve
- * inventar pesos ou algoritmo".
- *
- * As faixas abaixo e a conta de `resumoStatusGeral` (% = itens em dia com
- * informação / itens com informação) foram criadas na onda 16, ANTES do PRD
- * chegar, e estão EM PRODUÇÃO. Ou seja: engenharia decidiu o que era decisão
- * de produto. A auditoria de 14/08 pegou isso
- * (`docs/auditoria/2026-08-14-prd-upgrade2-parte1.md`).
- *
- * O que está aqui é honesto no que mostra (nunca inventa dado; item sem
- * informação não entra na conta) — mas os NÚMEROS são arbitrários. Antes de
- * qualquer onda mexer nisso, o dono precisa validar as faixas atuais ou
- * definir a fórmula oficial. Enquanto isso: NÃO "melhore" estes valores. */
-const FAIXAS_ANEL: { minimo: number; rotulo: string }[] = [
-  { minimo: 90, rotulo: "Ótimo" },
-  { minimo: 70, rotulo: "Bom" },
-  { minimo: 40, rotulo: "Atenção" },
-  { minimo: 0, rotulo: "Crítico" },
-]
-
-/** Rótulo central do anel de status geral de /hoje — faixas definidas e
- *  testadas (espec da onda 16): ≥90 Ótimo, ≥70 Bom, ≥40 Atenção, senão
- *  Crítico. */
-export function rotuloAnel(percentual: number): string {
-  return (FAIXAS_ANEL.find((f) => percentual >= f.minimo) ?? FAIXAS_ANEL[FAIXAS_ANEL.length - 1]).rotulo
-}
-
-export interface ResumoStatusGeral {
-  /** null quando nenhum item tem informação suficiente — o anel não aparece: vira convite pra cadastrar, nunca um 100% mentiroso */
-  percentual: number | null
-  rotulo: string | null
-  emDia: number
-  atencao: number
-  vencido: number
-  /** itens com informação suficiente — denominador do percentual */
-  total: number
-}
-
-/** Agrega o anel de status geral de /hoje a partir dos itens já avaliados
- *  por `calcularSemaforo`, pareados com `temInformacaoSuficiente`. Itens
- *  sem informação suficiente são excluídos do numerador E do denominador —
- *  nunca contam como "em dia" por omissão. */
-export function resumoStatusGeral(
-  avaliacoes: { status: StatusFarol; temInformacao: boolean }[],
-): ResumoStatusGeral {
-  const comInfo = avaliacoes.filter((a) => a.temInformacao)
-  const emDia = comInfo.filter((a) => a.status === "ok").length
-  const atencao = comInfo.filter((a) => a.status === "atencao").length
-  const vencido = comInfo.filter((a) => a.status === "vencido").length
-  const total = comInfo.length
-  const percentual = total === 0 ? null : Math.round((emDia / total) * 100)
-  return { percentual, rotulo: percentual == null ? null : rotuloAnel(percentual), emDia, atencao, vencido, total }
-}
+/* A fórmula da nota de Saúde da Embarcação (o anel de /hoje) NÃO mora mais
+ * aqui — decisão de produto fechada em 14/08/2026 (dono delegou depois do
+ * achado da auditoria, `docs/auditoria/2026-08-14-prd-upgrade2-parte1.md`
+ * §10). Ver `lib/domain/saude.ts` (`calcularSaudeEmbarcacao`) para os pesos,
+ * a justificativa de cada um e os testes. `temInformacaoSuficiente` acima
+ * continua sendo o insumo — cada item avaliado por `calcularSemaforo` entra
+ * na saúde só quando este helper diz que há dado real por trás. */
