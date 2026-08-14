@@ -246,6 +246,130 @@ export interface Perfil {
   telefone: string | null
   avatar_path: string | null
   created_at: string
+  /** Admin Commander (onda 35) — concedido manualmente via SQL, nunca autoatendido. */
+  is_admin: boolean
+}
+
+// Commander Gold (onda 35) — fluxo completo: SOLICITAR → PAGAMENTO →
+// AGENDAMENTO → AVALIAÇÃO PRESENCIAL → PROTOCOLO COMMANDER → ANÁLISE →
+// APROVAÇÃO → COMMANDER GOLD. Ver web/lib/domain/gold.ts e migration 033.
+export type FaixaPorteGold = "ate_30" | "31_40" | "41_50" | "51_60" | "61_80" | "81_mais"
+
+export interface GoldPreco {
+  faixa: FaixaPorteGold
+  rotulo: string
+  limite_pes: number | null
+  valor_centavos: number | null
+  atualizado_por: string | null
+  atualizado_em: string
+}
+
+export interface GoldConsultor {
+  id: string
+  usuario_id: string | null
+  nome: string
+  email: string | null
+  telefone: string | null
+  regiao: string | null
+  ativo: boolean
+  criado_em: string
+}
+
+export type EstadoSolicitacaoGold =
+  | "solicitado" | "aguardando_pagamento" | "pago" | "aguardando_agendamento" | "agendado"
+  | "avaliacao_realizada" | "em_analise" | "aprovado" | "reprovado" | "cancelado"
+
+export interface GoldSolicitacao {
+  id: string
+  embarcacao_id: string | null
+  embarcacao_externa_nome: string | null
+  embarcacao_externa_local: string | null
+  embarcacao_externa_obs: string | null
+  faixa_porte: FaixaPorteGold
+  solicitante_id: string
+  papel_solicitante: "proprietario" | "interessado"
+  quem_paga: "proprio" | "interessado"
+  estado: EstadoSolicitacaoGold
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface GoldPagamento {
+  id: string
+  solicitacao_id: string
+  quem_paga: "proprio" | "interessado"
+  valor_centavos: number
+  status: "pendente" | "pago" | "falhou" | "cancelado"
+  asaas_customer_id: string | null
+  asaas_payment_id: string | null
+  link_pagamento: string | null
+  metodo: string | null
+  pago_em: string | null
+  criado_em: string
+}
+
+export interface GoldAgendamento {
+  id: string
+  solicitacao_id: string
+  consultor_id: string | null
+  data_hora: string
+  local: string | null
+  status: "agendado" | "confirmado" | "realizado" | "cancelado" | "reagendado"
+  observacoes: string | null
+  criado_em: string
+}
+
+export const HUBS_PROTOCOLO_GOLD = [
+  "motores", "casco", "eletrica", "hidraulica", "seguranca", "equipamentos", "documentacao", "historico",
+] as const
+export type HubProtocoloGold = (typeof HUBS_PROTOCOLO_GOLD)[number]
+export type EstadoItemProtocolo = "avaliado" | "atencao" | "na"
+
+export interface GoldAvaliacao {
+  id: string
+  solicitacao_id: string
+  consultor_id: string | null
+  agendamento_id: string | null
+  data_avaliacao: string | null
+  versao_protocolo: string
+  status: "em_andamento" | "concluida"
+  resultado: "aprovado" | "reprovado" | null
+  validade_meses: 6 | 12 | null
+  observacoes_gerais: string | null
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface GoldProtocoloItem {
+  id: string
+  avaliacao_id: string
+  hub: HubProtocoloGold
+  estado: EstadoItemProtocolo
+  observacao: string | null
+  atualizado_em: string
+}
+
+export interface GoldSelo {
+  id: string
+  embarcacao_id: string
+  solicitacao_id: string
+  avaliacao_id: string
+  consultor_id: string | null
+  data_avaliacao: string
+  validade_meses: 6 | 12
+  validade_ate: string
+  versao_protocolo: string
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface PremiumConcessao {
+  id: string
+  usuario_id: string
+  origem: "gold"
+  origem_id: string | null
+  valido_ate: string
+  criado_em: string
 }
 
 export type StatusAssinatura = "pendente" | "ativa" | "inadimplente" | "cancelada"
