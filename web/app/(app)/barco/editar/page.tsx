@@ -24,7 +24,7 @@ export default async function EditarEmbarcacaoPage({
         <Icone nome="voltar" className="size-4" /> Barco
       </Link>
       <h1 className="titulo-pagina mt-3">Dados da embarcação</h1>
-      <p className="apoio mt-1 text-dim">O que estiver aqui aparece no dossiê e no Selo Ouro.</p>
+      <p className="apoio mt-1 text-dim">O que estiver aqui aparece no dossiê e no Commander Verified.</p>
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarDadosGerais} className="mt-5 space-y-5">

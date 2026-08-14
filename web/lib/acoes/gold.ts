@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { MARCADOR_SOLICITACAO_SELO } from "@/lib/domain/selo"
+import { MARCADOR_SOLICITACAO_GOLD } from "@/lib/domain/gold"
 import { supabaseServer } from "@/lib/supabase/server"
 
 // mesmo contato do rodapé da landing (app/page.tsx) e do mailto do push —
@@ -10,23 +10,28 @@ import { supabaseServer } from "@/lib/supabase/server"
 const EMAIL_EQUIPE = "atendimento.smu@gmail.com"
 
 function volta(msg: string, tipo: "ok" | "erro" = "ok"): never {
-  redirect(`/barco/selo?${tipo}=${encodeURIComponent(msg)}`)
+  redirect(`/barco/selos/gold?${tipo}=${encodeURIComponent(msg)}`)
 }
 
 /**
- * Grava a intenção (um evento no diário — não existe tabela dedicada pra
- * isso) e tenta avisar a equipe por e-mail. Sem RESEND_API_KEY, ou se o
- * envio falhar, a tela NUNCA finge que despachou: mostra o e-mail de contato
- * como alternativa. A avaliação em si é operação humana — este botão só
- * dispara o pedido.
+ * Manifestação de interesse no Commander Gold — primeiro passo do fluxo
+ * (Correção 02 do PRD de Correções: SOLICITAR → pagamento → agendamento →
+ * avaliação presencial → Protocolo Commander → análise → aprovação → Gold).
+ * Esta onda constrói só a vitrine + este primeiro passo: grava a intenção
+ * (um evento no diário — não existe tabela dedicada pra isso ainda, ver
+ * `lib/domain/gold.ts`) e tenta avisar a equipe por e-mail. Sem
+ * RESEND_API_KEY, ou se o envio falhar, a tela NUNCA finge que despachou:
+ * mostra o e-mail de contato como alternativa. Pagamento, agendamento e
+ * avaliação em si são operação humana/comercial que ainda não existe —
+ * este botão só dispara o pedido.
  */
-export async function solicitarAvaliacao() {
+export async function solicitarCommanderGold() {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  if (painel.papel !== "PROP") volta("Só o proprietário solicita a avaliação presencial.", "erro")
+  if (painel.papel !== "PROP") volta("Só o proprietário solicita o Commander Gold.", "erro")
 
   // trava contra clique repetido: um pedido em aberto nos ultimos 30 dias ja
   // basta. Sem isso, cada toque grava outra linha e dispara outro e-mail pra
@@ -36,7 +41,7 @@ export async function solicitarAvaliacao() {
     .from("eventos")
     .select("id")
     .eq("embarcacao_id", painel.embarcacao.id)
-    .eq("descricao", MARCADOR_SOLICITACAO_SELO)
+    .eq("descricao", MARCADOR_SOLICITACAO_GOLD)
     .gte("data", trintaDiasAtras)
     .limit(1)
   if (pedidoAberto?.length) {
@@ -49,7 +54,7 @@ export async function solicitarAvaliacao() {
       embarcacao_id: painel.embarcacao.id,
       tipo: "outro",
       data: hojeISO(),
-      descricao: MARCADOR_SOLICITACAO_SELO,
+      descricao: MARCADOR_SOLICITACAO_GOLD,
       criado_por: user.id,
     })
     .select("id")
@@ -67,10 +72,11 @@ export async function solicitarAvaliacao() {
         body: JSON.stringify({
           from: "Commander <onboarding@resend.dev>",
           to: EMAIL_EQUIPE,
-          subject: `Avaliação presencial solicitada — ${painel.embarcacao.nome}`,
+          subject: `Commander Gold solicitado — ${painel.embarcacao.nome}`,
           text:
-            `${user.email ?? "Um proprietário"} pediu a avaliação presencial do Selo Ouro ` +
-            `para "${painel.embarcacao.nome}".\n\nEntre em contato para agendar a visita.`,
+            `${user.email ?? "Um proprietário"} solicitou o Commander Gold ` +
+            `para "${painel.embarcacao.nome}".\n\nEntre em contato para explicar o fluxo (pagamento da ` +
+            `avaliação, agendamento e avaliação presencial).`,
         }),
       })
       emailEnviado = resposta.ok
@@ -79,12 +85,13 @@ export async function solicitarAvaliacao() {
     }
   }
 
-  revalidatePath("/barco/selo")
+  revalidatePath("/barco/selos/gold")
+  revalidatePath("/barco/selos")
   revalidatePath("/barco")
 
   volta(
     emailEnviado
-      ? "Pedido enviado! A equipe Commander entra em contato para agendar a avaliação."
+      ? "Pedido enviado! A equipe Commander entra em contato para explicar os próximos passos."
       : `Pedido registrado. O aviso automático está indisponível agora — fale direto com a equipe: ${EMAIL_EQUIPE}`,
   )
 }

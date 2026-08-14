@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest"
-import { avaliarSelo, type DadosSelo } from "./selo"
+import { avaliarVerified, type DadosVerified } from "./verified"
 import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
 
 const HOJE = "2026-08-08"
 
-const embarcacaoVazia: DadosSelo["embarcacao"] = {
+const embarcacaoVazia: DadosVerified["embarcacao"] = {
   nome: "Veleiro Teste", estaleiro: null, modelo: null, ano: null, comprimento_m: null,
 }
 
-const embarcacaoCompleta: DadosSelo["embarcacao"] = {
+const embarcacaoCompleta: DadosVerified["embarcacao"] = {
   nome: "Veleiro Teste", estaleiro: "Schaefer", modelo: "510", ano: 2018, comprimento_m: 15.5,
 }
 
@@ -47,7 +47,7 @@ function itemFuturoOutraCategoria(id: string): ItemMonitorado {
   return { ...itemOk(id), categoria: "deck", data_fixa: "2027-01-01" }
 }
 
-const baseVazia: DadosSelo = {
+const baseVazia: DadosVerified = {
   embarcacao: embarcacaoVazia,
   equipamentos: [],
   itens: [],
@@ -57,7 +57,7 @@ const baseVazia: DadosSelo = {
   totalContatos: 0,
 }
 
-const baseCompleta: DadosSelo = {
+const baseCompleta: DadosVerified = {
   embarcacao: embarcacaoCompleta,
   equipamentos: [motor(120)],
   itens: [documentoFuturo("d1"), documentoFuturo("d2"), documentoFuturo("d3")],
@@ -67,40 +67,40 @@ const baseCompleta: DadosSelo = {
   totalContatos: 1,
 }
 
-describe("avaliarSelo", () => {
+describe("avaliarVerified", () => {
   it("barco vazio: 0%, nenhum item completo", () => {
-    const r = avaliarSelo(baseVazia)
+    const r = avaliarVerified(baseVazia)
     expect(r.completos).toBe(0)
     expect(r.percentual).toBe(0)
     expect(r.itens.every((i) => !i.ok)).toBe(true)
   })
 
   it("barco completo: 100%, todos os itens completos", () => {
-    const r = avaliarSelo(baseCompleta)
+    const r = avaliarVerified(baseCompleta)
     expect(r.completos).toBe(r.total)
     expect(r.percentual).toBe(100)
     expect(r.itens.every((i) => i.ok)).toBe(true)
   })
 
   it("dados gerais completos conta isoladamente", () => {
-    const r = avaliarSelo({ ...baseVazia, embarcacao: embarcacaoCompleta })
+    const r = avaliarVerified({ ...baseVazia, embarcacao: embarcacaoCompleta })
     expect(r.itens.find((i) => i.chave === "dados_gerais")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("motor com horas conta isoladamente", () => {
-    const r = avaliarSelo({ ...baseVazia, equipamentos: [motor(50)] })
+    const r = avaliarVerified({ ...baseVazia, equipamentos: [motor(50)] })
     expect(r.itens.find((i) => i.chave === "motor_horas")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("motor cadastrado sem leitura de horas não conta", () => {
-    const r = avaliarSelo({ ...baseVazia, equipamentos: [motor(null)] })
+    const r = avaliarVerified({ ...baseVazia, equipamentos: [motor(null)] })
     expect(r.itens.find((i) => i.chave === "motor_horas")!.ok).toBe(false)
   })
 
   it("3+ documentos com validade futura conta (e também zera vencidos, já que nenhum desses 3 venceu)", () => {
-    const r = avaliarSelo({
+    const r = avaliarVerified({
       ...baseVazia,
       itens: [documentoFuturo("d1"), documentoFuturo("d2"), documentoFuturo("d3")],
     })
@@ -110,12 +110,12 @@ describe("avaliarSelo", () => {
   })
 
   it("2 documentos com validade futura não bastam", () => {
-    const r = avaliarSelo({ ...baseVazia, itens: [documentoFuturo("d1"), documentoFuturo("d2")] })
+    const r = avaliarVerified({ ...baseVazia, itens: [documentoFuturo("d1"), documentoFuturo("d2")] })
     expect(r.itens.find((i) => i.chave === "documentos")!.ok).toBe(false)
   })
 
   it("documento vencido não conta como validade futura nem soma pro item de vencidos", () => {
-    const r = avaliarSelo({
+    const r = avaliarVerified({
       ...baseVazia,
       itens: [documentoFuturo("d1"), documentoFuturo("d2"), documentoVencido("d3")],
     })
@@ -124,7 +124,7 @@ describe("avaliarSelo", () => {
   })
 
   it("documentos com validade só conta itens categoria \"documento\" (data futura em outra categoria não entra)", () => {
-    const r = avaliarSelo({
+    const r = avaliarVerified({
       ...baseVazia,
       itens: [itemFuturoOutraCategoria("c1"), itemFuturoOutraCategoria("c2"), itemFuturoOutraCategoria("c3")],
     })
@@ -132,18 +132,18 @@ describe("avaliarSelo", () => {
   })
 
   it("nenhum item vencido conta isoladamente quando há itens em dia", () => {
-    const r = avaliarSelo({ ...baseVazia, itens: [itemOk("i1"), itemOk("i2")] })
+    const r = avaliarVerified({ ...baseVazia, itens: [itemOk("i1"), itemOk("i2")] })
     expect(r.itens.find((i) => i.chave === "nenhum_vencido")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("sem nenhum item cadastrado, o critério de vencidos não conta (nada para verificar)", () => {
-    const r = avaliarSelo(baseVazia)
+    const r = avaliarVerified(baseVazia)
     expect(r.itens.find((i) => i.chave === "nenhum_vencido")!.ok).toBe(false)
   })
 
   it("um item vencido derruba o critério", () => {
-    const r = avaliarSelo({ ...baseVazia, itens: [itemOk("i1"), itemVencido("i2")] })
+    const r = avaliarVerified({ ...baseVazia, itens: [itemOk("i1"), itemVencido("i2")] })
     expect(r.itens.find((i) => i.chave === "nenhum_vencido")!.ok).toBe(false)
   })
 
@@ -152,35 +152,35 @@ describe("avaliarSelo", () => {
     const item: ItemMonitorado = {
       ...itemOk("i1"), equipamento_id: eq.id, intervalo_horas: 500, ultimo_ciclo_horas: 400,
     }
-    const r = avaliarSelo({ ...baseVazia, equipamentos: [eq], itens: [item] })
+    const r = avaliarVerified({ ...baseVazia, equipamentos: [eq], itens: [item] })
     expect(r.itens.find((i) => i.chave === "nenhum_vencido")!.ok).toBe(false)
   })
 
   it("ao menos 1 foto conta isoladamente", () => {
-    const r = avaliarSelo({ ...baseVazia, totalFotos: 1 })
+    const r = avaliarVerified({ ...baseVazia, totalFotos: 1 })
     expect(r.itens.find((i) => i.chave === "fotos")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("6+ eventos no diário conta isoladamente", () => {
-    const r = avaliarSelo({ ...baseVazia, totalEventosDiario: 6 })
+    const r = avaliarVerified({ ...baseVazia, totalEventosDiario: 6 })
     expect(r.itens.find((i) => i.chave === "diario")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("5 eventos não bastam", () => {
-    const r = avaliarSelo({ ...baseVazia, totalEventosDiario: 5 })
+    const r = avaliarVerified({ ...baseVazia, totalEventosDiario: 5 })
     expect(r.itens.find((i) => i.chave === "diario")!.ok).toBe(false)
   })
 
   it("contato cadastrado conta isoladamente", () => {
-    const r = avaliarSelo({ ...baseVazia, totalContatos: 1 })
+    const r = avaliarVerified({ ...baseVazia, totalContatos: 1 })
     expect(r.itens.find((i) => i.chave === "contatos")!.ok).toBe(true)
     expect(r.completos).toBe(1)
   })
 
   it("toda pendência traz dica e um link (interno) que resolve", () => {
-    const r = avaliarSelo(baseVazia)
+    const r = avaliarVerified(baseVazia)
     for (const item of r.itens) {
       expect(item.dica.length).toBeGreaterThan(0)
       expect(item.href.startsWith("/")).toBe(true)
@@ -189,7 +189,7 @@ describe("avaliarSelo", () => {
 
   it("percentual arredonda para o inteiro mais próximo", () => {
     // 1 de 7 = 14,28...% -> 14%
-    const r = avaliarSelo({ ...baseVazia, totalFotos: 1 })
+    const r = avaliarVerified({ ...baseVazia, totalFotos: 1 })
     expect(r.percentual).toBe(14)
   })
 })

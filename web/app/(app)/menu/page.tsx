@@ -48,6 +48,14 @@ export default async function MenuPage({
         titulo="Cadastrar outra embarcação"
         subtitulo="Troque entre elas pelo nome no topo da tela Início"
       />
+      <LinhaLista
+        href="/barco/connect"
+        variant="cartao"
+        className="mt-2"
+        leading={<Icone nome="sinal" className="size-4 shrink-0 text-dim" />}
+        titulo="Commander Connect"
+        subtitulo="Em breve — conectividade NMEA 2000"
+      />
 
       <SecaoPagina icone="imagem">Aparência</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">

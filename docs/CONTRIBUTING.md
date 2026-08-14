@@ -26,6 +26,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | Notificações · Alertas (como nome de tela) | **Avisos** |
 | + Evento · + Lançamento · Salvar no diário | **+ Registrar** · **Registrar no diário** |
 | Marketplace | **Comandantes** |
+| Selo Ouro · Commander Review · Review | **Commander Verified** (digital, checklist do app) · **Commander Gold** (presencial, avaliação com o Protocolo Commander) — aposentados na onda 33 (`docs/prd/upgrade2-correcoes.txt`, Correções 01–20): não existe um terceiro selo entre os dois, e "Review" nunca é nome de produto/serviço, só a avaliação presencial que já é etapa do fluxo do Gold |
 | matriz de permissões | **o que ele pode ver e editar** |
 | cota de nuvem | **espaço de fotos** |
 | "confira seu acesso a esta aba" | o nome da área: **"Seu acesso não permite editar Motores"** |
@@ -107,7 +108,9 @@ saída sem sinal — é o oposto: nada se perde, só demora pra subir.
      com motivo: rotas de API e webhook; `/convite/[codigo]` (chega por link externo);
      `/diario/[id]/horas` (tela de sinergia pós-ação — aparece por `redirect` logo
      depois de registrar uma saída, não faz sentido revisitar depois); `/rede` (alias
-     de compatibilidade que redireciona para Comandantes, fora do robots.txt).
+     de compatibilidade que redireciona para Comandantes, fora do robots.txt); `/barco/selo`
+     (mesmo padrão do `/rede` — alias de compatibilidade pro antigo "Selo Ouro", redireciona
+     para `/barco/selos`, onda 33).
      Rota nova fora dessa lista precisa de link ou vira exceção documentada aqui;
    - **todo dado que a interface grava aparece em algum lugar** (o contrário também:
      nada exibido que ninguém consiga preencher);

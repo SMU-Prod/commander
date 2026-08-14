@@ -9,7 +9,7 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
-import { carregarPainel, carregarSelo, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -23,7 +23,7 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const selo = await carregarSelo()
+  const verified = await carregarVerified()
 
   const statusDoEquipamento = (eqId: string): StatusFarol =>
     itens
@@ -207,31 +207,50 @@ export default async function BarcoPage({
           ))}
       </div>
 
-      {selo && (
-        <Link
-          href="/barco/selo"
-          className="sombra-1 mt-6 block rounded-[14px] border border-line bg-panel p-3.5"
-        >
-          <div className="flex items-center justify-between">
-            <p className="titulo-card inline-flex items-center gap-1.5">
-              <Icone nome="selo" className="size-4" /> Selo Ouro
-            </p>
-            <span className="font-mono-instr text-xs tabular-nums text-dim">
-              {selo.completos} de {selo.total}
-            </span>
-          </div>
-          <p className="apoio mt-0.5 text-dim">
-            {selo.percentual}% do checklist de completude — quanto mais completo, mais o
-            histórico vale na hora de vender.
+      <SecaoPagina icone="escudo" acao={{ href: "/barco/selos", rotulo: "Ver tudo" }}>
+        Selos Commander
+      </SecaoPagina>
+      <Link
+        href="/barco/selos"
+        className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5"
+      >
+        <div className="flex items-center justify-between">
+          <p className="titulo-card inline-flex items-center gap-1.5">
+            <Icone nome="escudo" className="size-4 text-dim" /> Commander Verified
           </p>
+          {verified && (
+            <span className="font-mono-instr text-xs tabular-nums text-dim">
+              {verified.completos} de {verified.total}
+            </span>
+          )}
+        </div>
+        {verified && (
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
             <div
-              className="h-full rounded-full bg-accent-forte"
-              style={{ width: `${Math.max(2, selo.percentual)}%` }}
+              className="h-full rounded-full bg-dim"
+              style={{ width: `${Math.max(2, verified.percentual)}%` }}
             />
           </div>
-        </Link>
-      )}
+        )}
+        <p className="apoio mt-2 text-dim">
+          + Commander Gold — avaliação presencial, não depende do Verified.
+        </p>
+      </Link>
+
+      <Link
+        href="/barco/connect"
+        className="sombra-1 mt-2 block rounded-[14px] border border-line bg-panel p-3.5"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="titulo-card inline-flex items-center gap-1.5">
+            <Icone nome="sinal" className="size-4 text-dim" /> Commander Connect
+          </p>
+          <span className="shrink-0 rounded-full border border-line bg-panel2 px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] text-dim-chip">
+            Em breve
+          </span>
+        </div>
+        <p className="apoio mt-0.5 text-dim">Conectividade NMEA 2000 pro diário automático.</p>
+      </Link>
 
       <SecaoPagina icone="embarcacao" acao={papel === "PROP" ? { href: "/barco/editar", rotulo: "Editar" } : undefined}>
         Dados gerais

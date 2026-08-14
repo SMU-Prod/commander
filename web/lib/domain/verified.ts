@@ -1,20 +1,12 @@
-/** Marcador do pedido de avaliacao presencial, gravado como evento no diario
- *  (nao existe tabela dedicada). Vive aqui, no dominio, porque DOIS lados
- *  precisam dele: a action que grava e a contagem do proprio checklist, que
- *  tem de EXCLUIR esses eventos — senao pedir avaliacao aumentaria o
- *  percentual do criterio "eventos no diario", que e justamente o que o
- *  pedido deveria ser consequencia, nao causa. */
-export const MARCADOR_SOLICITACAO_SELO = "Selo Ouro — avaliação presencial solicitada"
-
 import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
 import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
 
 /**
- * Entrada do Selo Ouro — funcao pura, no espirito de `semaforo.ts`: quem
- * chama busca os dados (painel + contagens que `carregarPainel` nao traz:
- * fotos, eventos do diario, contatos) e so entao chama `avaliarSelo`. O
- * dominio NUNCA consulta o banco.
+ * Entrada do Commander Verified — funcao pura, no espirito de `semaforo.ts`:
+ * quem chama busca os dados (painel + contagens que `carregarPainel` nao
+ * traz: fotos, eventos do diario, contatos) e so entao chama `avaliarVerified`.
+ * O dominio NUNCA consulta o banco.
  *
  * "Documentos com validade" NAO e uma contagem a parte: o onboarding grava
  * o vencimento do documento em `itens_monitorados` (categoria "documento"),
@@ -23,7 +15,7 @@ import type { Embarcacao, Equipamento, ItemMonitorado } from "@/lib/db/types"
  * que so passou pelo onboarding. Por isso o criterio usa `itens` + a MESMA
  * `vencimentoPorData` do farol.
  */
-export interface DadosSelo {
+export interface DadosVerified {
   embarcacao: Pick<Embarcacao, "nome" | "estaleiro" | "modelo" | "ano" | "comprimento_m">
   equipamentos: Equipamento[]
   itens: ItemMonitorado[]
@@ -33,7 +25,7 @@ export interface DadosSelo {
   totalContatos: number
 }
 
-export interface ItemSelo {
+export interface ItemVerified {
   chave: string
   rotulo: string
   ok: boolean
@@ -43,8 +35,8 @@ export interface ItemSelo {
   href: string
 }
 
-export interface ResultadoSelo {
-  itens: ItemSelo[]
+export interface ResultadoVerified {
+  itens: ItemVerified[]
   completos: number
   total: number
   percentual: number
@@ -52,11 +44,16 @@ export interface ResultadoSelo {
 
 /**
  * Checklist de completude de documentação e histórico — NUNCA de vistoria
- * física. O texto de cada item precisa deixar isso claro na tela: o selo
- * reconhece o que está registrado no app; quem qualifica de fato é a
- * avaliação presencial da equipe Commander (ver `lib/acoes/selo.ts`).
+ * física. É a verificação DIGITAL do Commander (cadastro + histórico +
+ * dados atualizados), distinta do Commander Gold (presencial, ver
+ * `lib/domain/gold.ts`). Correção 05 do PRD de Correções: Verified "não
+ * implica inspeção presencial". O texto de cada item na tela precisa deixar
+ * isso claro: o selo reconhece o que está registrado no app.
+ *
+ * Correção 14: Gold NÃO depende de Verified — este checklist é só sobre o
+ * próprio Verified, nunca um pré-requisito consultado pelo fluxo do Gold.
  */
-export function avaliarSelo(dados: DadosSelo): ResultadoSelo {
+export function avaliarVerified(dados: DadosVerified): ResultadoVerified {
   const { embarcacao, equipamentos, itens, hoje } = dados
 
   const dadosGeraisOk = Boolean(
@@ -91,7 +88,7 @@ export function avaliarSelo(dados: DadosSelo): ResultadoSelo {
   const diarioOk = dados.totalEventosDiario >= 6
   const contatosOk = dados.totalContatos >= 1
 
-  const itensSelo: ItemSelo[] = [
+  const itensVerified: ItemVerified[] = [
     {
       chave: "dados_gerais",
       rotulo: "Dados gerais completos",
@@ -143,9 +140,9 @@ export function avaliarSelo(dados: DadosSelo): ResultadoSelo {
     },
   ]
 
-  const completos = itensSelo.filter((i) => i.ok).length
-  const total = itensSelo.length
+  const completos = itensVerified.filter((i) => i.ok).length
+  const total = itensVerified.length
   const percentual = Math.round((completos / total) * 100)
 
-  return { itens: itensSelo, completos, total, percentual }
+  return { itens: itensVerified, completos, total, percentual }
 }
