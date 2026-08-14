@@ -61,6 +61,14 @@ const PATHS = {
   // bloqueio (`BloqueioPremium`), nunca pra "erro" nem "proibido" (ícones
   // diferentes já cobrem isso) — é especificamente "isto é Premium".
   cadeado: <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
+  // Onda 37 (Resumos): folha de documento (mesma linguagem de "documento")
+  // com 3 barras crescentes no rodapé — reforça "relatório com números",
+  // distinto de "grafico" (barras soltas, sem moldura de página).
+  relatorio: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /><path d="M9 17v-3M12 17v-5M15 17v-2" /></>,
+  // Onda 37 (Transferência de propriedade): duas setas em sentidos opostos —
+  // "troca de posse", nunca confundir com "compartilhar" (uma seta só, saindo
+  // de uma caixa) porque aqui o barco muda de dono, não ganha um segundo dono.
+  transferir: <><path d="M4 8h13M13 4l4 4-4 4" /><path d="M20 16H7M11 12l-4 4 4 4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

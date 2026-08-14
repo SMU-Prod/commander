@@ -37,7 +37,7 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
 export function BottomNav() {
   const pathname = usePathname()
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur">
+    <nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)

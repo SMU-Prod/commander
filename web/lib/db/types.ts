@@ -200,6 +200,24 @@ export interface Convite {
 // web/lib/domain/prestadores.ts pras sugestões de especialidade.
 export type TipoPerfilComandante = "comandante" | "prestador"
 
+// Transferência de propriedade (onda 37, PRD §27) — ver
+// web/lib/acoes/transferencia.ts e migration 038_transferencia_embarcacao.
+export type StatusTransferencia = "pendente" | "aceita" | "cancelada"
+
+export interface Transferencia {
+  id: string
+  embarcacao_id: string
+  de_usuario_id: string
+  codigo: string
+  destinatario_email: string
+  status: StatusTransferencia
+  para_usuario_id: string | null
+  expira_em: string
+  aceita_em: string | null
+  cancelada_em: string | null
+  criado_em: string
+}
+
 export interface PerfilComandante {
   usuario_id: string
   tipo: TipoPerfilComandante

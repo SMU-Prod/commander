@@ -118,6 +118,18 @@ export default async function EditarEmbarcacaoPage({
 
         <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar dados</button>
       </form>
+
+      <Link
+        href="/barco/transferir"
+        className="mt-5 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-4"
+      >
+        <Icone nome="transferir" className="size-5 shrink-0 text-dim" />
+        <span className="min-w-0 flex-1">
+          <span className="titulo-card block">Transferir propriedade</span>
+          <span className="apoio block text-dim">Passe o barco pra outro dono — o histórico técnico fica com ele.</span>
+        </span>
+        <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+      </Link>
     </main>
   )
 }

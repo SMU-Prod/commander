@@ -217,6 +217,7 @@ export default async function BarcoPage({
             { href: "/diario", rotulo: "Diário de Bordo", desc: "registrar saídas e serviços" },
             { href: "/barco/ocorrencias", rotulo: "Ocorrências", desc: "abertas, em curso, resolvidas" },
             { href: "/barco/historico", rotulo: "Histórico", desc: "tudo, num lugar só", aba: "historico" },
+            { href: "/barco/resumos", rotulo: "Resumos", desc: "relatório do período, em PDF", aba: "historico" },
             { href: "/barco/fotos", rotulo: "Fotos", desc: "álbuns do barco", aba: "fotos" },
             { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco", aba: "contatos" },
           ] as { href: string; rotulo: string; desc: string; aba?: Aba }[]
