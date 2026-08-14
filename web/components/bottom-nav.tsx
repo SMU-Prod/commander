@@ -15,7 +15,10 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
     icone: "embarcacao",
   },
   {
-    href: "/marketplace",
+    // Onda 39 — renomeada de /marketplace pra /comandantes; o rótulo já
+    // tinha trocado numa auditoria de usabilidade anterior, só a URL
+    // continuava desatualizada (ver docs/CONTRIBUTING.md, Glossário).
+    href: "/comandantes",
     rotulo: "Comandantes",
     icone: "marketplace",
   },

@@ -85,6 +85,16 @@ export default async function MenuPage({
         </>
       )}
 
+      {/* Onda 39 — segundo caminho até as 5 telas da rede profissional
+          (RedeNav já cruza entre elas, mas o Menu é a lista de tudo que o
+          app tem — gate de descoberta pede que nada fique só dependendo de
+          um único link, ver CONTRIBUTING.md). */}
+      <SecaoPagina icone="pessoas">Rede profissional</SecaoPagina>
+      <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Mecânico, eletricista, fibra e outros profissionais" />
+      <LinhaLista href="/servicos" variant="cartao" className="mt-2" titulo="Serviços" subtitulo="Encontre quem resolve um problema no barco" />
+      <LinhaLista href="/oportunidades" variant="cartao" className="mt-2" titulo="Oportunidades" subtitulo="Publique uma vaga, diária ou peça — prestadores respondem" />
+      <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas e restaurantes parceiros" />
+
       <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
       <LinhaLista
         href="/parceiro"

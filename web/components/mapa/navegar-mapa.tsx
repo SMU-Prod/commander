@@ -19,7 +19,7 @@ import {
   zoomPorVelocidade,
 } from "@/lib/domain/modo-navegando"
 import type { EstadoCamadas } from "@/lib/mapa/camadas"
-import { ICONE_FALLBACK, type NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
+import { criarElementoMarcadorParceiro } from "@/lib/mapa/pino-parceiro"
 import type { Parceiro } from "@/lib/db/types"
 import type { PedidoRota, Precisao, RespostaRota } from "@/components/mapa/rota.worker"
 import type { MotivoFalhaRota } from "@/lib/domain/rota"
@@ -126,22 +126,10 @@ const DURACAO_EASETO_MS = 1200
 // acima, os anveis dos marcadores abaixo).
 const COR_CASING = "#0B1D2D"
 
-// Traçados dos ícones do PAINEL DO PARCEIRO (não mais por categoria — onda
-// 10, Pedido 2: cada parceiro escolhe o próprio ícone, ver migration 024 e
-// web/lib/mapa/pino-parceiro.ts) — cópia estática dos mesmos <path> de
-// components/icone.tsx. Os marcadores do Mapbox são DOM puro, não React, e
-// esse markup é 100% nosso (nunca dado de parceiro) — por isso pode ir via
-// innerHTML.
-const TRACADO_ICONE_PARCEIRO: Record<NomeIconeParceiro, string> = {
-  ancora: '<circle cx="12" cy="5" r="2"/><path d="M12 7v13M5 13a7 7 0 0 0 14 0M8 10H5m14 0h-3"/>',
-  oleo: '<path d="M12 3s6 6.5 6 10.5A6 6 0 0 1 6 13.5C6 9.5 12 3 12 3z"/>',
-  inicio: '<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8z"/>',
-  estrela: '<path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9L9.6 9z"/>',
-  embarcacao: '<path d="M3 15h18l-3 5H6l-3-5zM6 15V9h12v6M12 9V4"/>',
-  ferramenta: '<path d="M15 3a5 5 0 0 0-4.6 7L3 17.4 6.6 21l7.4-7.4A5 5 0 1 0 15 3z"/>',
-  escudo: '<path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z"/>',
-  pessoas: '<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.6 15c2.5.3 4.4 2.2 4.4 4.6"/>',
-}
+// Ícones/cores do pino do parceiro (onda 10, Pedido 2) — extraídos pra
+// web/lib/mapa/pino-parceiro.ts na onda 39 (ExplorarMapa passou a
+// precisar do mesmo desenho de pino). `criarElementoMarcadorParceiro`
+// importado no topo do arquivo é quem monta o marcador agora.
 // Mesmo esquema do MOB — cópia estática do <path> de "alerta" em icone.tsx.
 const TRACADO_MOB = '<path d="M6 16V10a6 6 0 0 1 12 0v6l2 3H4l2-3zM10 19a2 2 0 0 0 4 0"/>'
 
@@ -203,35 +191,6 @@ function atualizarRumoBarco(el: HTMLDivElement, rumo: number | null) {
     proa.style.display = "none"
     ponto.style.display = ""
   }
-}
-
-/** Elemento DOM do pino de um parceiro — fundo e ícone são a cor/ícone que o
- *  PRÓPRIO parceiro escolheu (onda 10, Pedido 2), nunca mais fixos por
- *  categoria. Ícone sempre branco (contraste com qualquer cor da paleta
- *  curada) + anel branco opaco (destaca de água/satélite por trás) — plano
- *  "destaque" troca o anel pro dourado da marca e sobe de camada;
- *  "tem_poita" ganha um ponto dourado no canto. */
-function criarElementoMarcador(p: Parceiro): HTMLDivElement {
-  const destaque = p.plano === "destaque"
-  const el = document.createElement("div")
-  el.style.cursor = "pointer"
-  el.style.zIndex = destaque ? "10" : "1"
-
-  const corpo = document.createElement("div")
-  corpo.className = destaque
-    ? "relative flex size-9 items-center justify-center rounded-full ring-2 ring-[#D4AF37]"
-    : "relative flex size-9 items-center justify-center rounded-full ring-2 ring-white"
-  corpo.style.backgroundColor = p.cor
-  const tracado = TRACADO_ICONE_PARCEIRO[p.icone] ?? TRACADO_ICONE_PARCEIRO[ICONE_FALLBACK]
-  corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${tracado}</svg>`
-  el.appendChild(corpo)
-
-  if (p.tem_poita) {
-    const ponto = document.createElement("span")
-    ponto.className = "absolute -right-0.5 -top-0.5 block size-2.5 rounded-full bg-[#D4AF37] ring-2 ring-[#0B1D2D]"
-    corpo.appendChild(ponto)
-  }
-  return el
 }
 
 /** Marcador do "homem ao mar" — vermelho pra contrastar com os pinos navy
@@ -774,7 +733,7 @@ export function NavegarMapa({
       if (cancelado) return
       marcadoresRef.current.forEach((m) => m.remove())
       marcadoresRef.current = parceiros.map((p) => {
-        const el = criarElementoMarcador(p)
+        const el = criarElementoMarcadorParceiro(p)
         el.addEventListener("click", (e) => {
           // sem isso, o clique no pino também dispararia o "click" do mapa
           // (modo "definir destino" abriria o parceiro E marcaria destino)

@@ -1,27 +1,40 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { RedeNav } from "@/components/ui/rede-nav"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
-export default async function MarketplacePage() {
+/** Onda 39 (PRD upgrade2-master §50) — vitrine de Prestadores: mecânico,
+ *  eletricista, fibra, estofamento, eletrônica, hidráulica e outros
+ *  serviços náuticos. Reaproveita `perfis_comandante` com `tipo='prestador'`
+ *  (migration 037) — mesma tabela/RLS/trigger anti-autoverificação de
+ *  Comandantes (§47), não uma arquitetura nova.
+ *
+ *  Diferença pra /servicos: aqui é o DIRETÓRIO completo (like /comandantes);
+ *  /servicos é a busca orientada por categoria/problema. As duas telas
+ *  mostram o mesmo dado, ângulos diferentes — ver RedeNav no topo das duas. */
+export default async function PrestadoresPage() {
   const supabase = await supabaseServer()
   const { data: perfis, error } = await supabase
-    .from("perfis_comandante").select("*").eq("visivel", true).order("created_at")
-  if (error) throw new Error("Não foi possível carregar o marketplace. Recarregue a página.")
+    .from("perfis_comandante").select("*").eq("tipo", "prestador").eq("visivel", true).order("created_at")
+  if (error) throw new Error("Não foi possível carregar os prestadores. Recarregue a página.")
 
   return (
     <main>
-      <h1 className="titulo-pagina">Comandantes</h1>
-      <p className="apoio mt-1 text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
+      <h1 className="titulo-pagina">Prestadores</h1>
+      <p className="apoio mt-1 text-dim">
+        Mecânico, eletricista, fibra e outros profissionais náuticos disponíveis para contratar direto pelo WhatsApp.
+      </p>
+      <RedeNav atual="prestadores" className="mt-4" />
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
         {((perfis ?? []) as PerfilComandante[]).length === 0 && (
           <EstadoVazio
             variant="linha"
-            icone="pessoas"
-            titulo="Ainda não há comandantes cadastrados na sua região"
-            descricao="Assim que houver, eles aparecem aqui."
+            icone="ferramenta"
+            titulo="Ainda não há prestadores cadastrados na sua região"
+            descricao="Assim que houver, eles aparecem aqui. Enquanto isso, publique o que precisa em Oportunidades."
           />
         )}
         {((perfis ?? []) as PerfilComandante[]).map((p) => (
@@ -52,14 +65,8 @@ export default async function MarketplacePage() {
         ))}
       </div>
 
-      <p className="apoio mt-4 leading-relaxed text-dim">
-        O selo &quot;Verificado&quot; será emitido quando a validação documental entrar em operação.
-        Até lá, os dados são declarados pelo próprio profissional e a contratação é combinada
-        diretamente entre as partes.
-      </p>
-
-      <Link href="/marketplace/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
-        <Icone nome="pessoas" className="size-3.5" /> É comandante? Toque aqui para criar seu perfil.
+      <Link href="/prestadores/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
+        <Icone nome="ferramenta" className="size-3.5" /> É prestador de serviço? Toque aqui para criar seu perfil.
       </Link>
     </main>
   )

@@ -25,7 +25,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | item monitorado | **manutenção** (motor/elétrica/casco) · **documento** (documentos) |
 | Notificações · Alertas (como nome de tela) | **Avisos** |
 | + Evento · + Lançamento · Salvar no diário | **+ Registrar** · **Registrar no diário** |
-| Marketplace | **Comandantes** |
+| Marketplace (pra vitrine de perfis) | **Comandantes** |
 | Selo Ouro · Commander Review · Review | **Commander Verified** (digital, checklist do app) · **Commander Gold** (presencial, avaliação com o Protocolo Commander) — aposentados na onda 33 (`docs/prd/upgrade2-correcoes.txt`, Correções 01–20): não existe um terceiro selo entre os dois, e "Review" nunca é nome de produto/serviço, só a avaliação presencial que já é etapa do fluxo do Gold |
 | matriz de permissões | **o que ele pode ver e editar** |
 | cota de nuvem | **espaço de fotos** |
@@ -34,6 +34,34 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | dado de sonar cru · leitura de NMEA | **sondagem colaborativa** (a funcionalidade) · **leitura** (um ponto) |
 | buffer · cache local · enviar sondagem | **fila** (leituras guardadas no aparelho esperando conexão pra enviar, `web/lib/nmea/fila.ts`, onda 14) — nunca "enviar" sozinho: sondagem sempre entra na fila primeiro, o envio é automático e em segundo plano |
 | tábua de marés · preamar/baixa-mar oficial | **maré estimada** / **curva de maré estimada por modelo** (onda 20, `web/lib/domain/mar.ts`) — a tábua oficial é a do CHM, o Commander não a embute, só linka pra ela |
+| Marketplace (pro mural de vagas/diárias/"COMPRO X") | **Oportunidades** (onda 39, ver abaixo) |
+
+### Comandantes · Prestadores · Serviços · Oportunidades · Explorar (onda 39) — cinco conceitos, cinco nomes
+
+O PRD (`docs/prd/upgrade2-master.txt` §47–54) usa "Marketplace" pra DUAS coisas diferentes, e a
+auditoria de 14/08 (`docs/auditoria/2026-08-14-prd-upgrade2-parte2.md`, seção 1.3) flagrou a
+divergência: nosso `/marketplace` (rota antiga) já era a vitrine de perfis de Comandante —
+a auditoria de usabilidade de 08/08 já tinha decidido chamar isso de "Comandantes" na UI, só a
+URL não tinha acompanhado. O "Marketplace" do PRD §49/§53–54 (vagas, diárias, "COMPRO — Rádio
+VHF", prestador respondendo) é um conceito diferente e não existia em lugar nenhum do código.
+
+Decisão da onda 39: **nunca reintroduzir "Marketplace" como nome visível** — ele já causou
+confusão suficiente pra virar pauta de duas auditorias. Um conceito, um nome, os cinco:
+
+| Nome final | Rota | O que é | PRD |
+|---|---|---|---|
+| **Comandantes** | `/comandantes` (renomeada de `/marketplace`) | Vitrine de perfis de comandante pra contratar via WhatsApp | §47 |
+| **Prestadores** | `/prestadores` | Perfil profissional por especialidade (mecânico, eletricista, fibra…) — reaproveita `perfis_comandante` com `tipo='prestador'` (migration 037), mesma tabela/RLS/trigger anti-autoverificação de Comandantes | §50 |
+| **Serviços** | `/servicos` | Achar quem resolve um problema — categoria primeiro, prestador depois. Mesmo dado de Prestadores, ângulo de busca diferente | §51 |
+| **Oportunidades** | `/oportunidades` | O Marketplace de verdade do PRD: mural de vagas/diárias/peça-ou-serviço ("COMPRO — Rádio VHF"), prestadores/comandantes respondem. Tabelas `oportunidades`/`respostas_oportunidade` (migration 037/038). Sem comissão nem preço-piso — PRD §49 marca R$350/10% como "estudados, não fechados", decisão comercial do dono | §49, §53–54 |
+| **Explorar** | `/explorar` | Mapa de parceiros (marina, posto, pousada, restaurante) — descoberta, não navegação. Reaproveita `MapaNautico`/`CardParceiro`/os dados de `parceiros` que `/navegar` já usa | §52 |
+
+Serviços e Explorar são o par mais fácil de confundir — o próprio PRD avisa ("não deve ser
+confundido com Explorar", §51): Serviços mostra PESSOAS (prestadores), Explorar mostra LUGARES
+(parceiros no mapa). A tela de Serviços diz isso explicitamente no texto de apoio, não só aqui.
+
+Todas as cinco telas têm a mesma faixa de navegação no topo (`RedeNav`,
+`web/components/ui/rede-nav.tsx`) — a distinção fica visível na interface, não só documentada.
 
 A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"*,
 *"Agora não"*, *"Essa saída durou 3 h 30 — atualizar as horas dos motores?"*.

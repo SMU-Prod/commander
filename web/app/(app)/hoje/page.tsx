@@ -171,7 +171,7 @@ export default async function HojePage({
     : null
   const { data: comandantes } = await supabase
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
-    .eq("visivel", true).limit(2)
+    .eq("tipo", "comandante").eq("visivel", true).limit(2)
 
   // Seu ano no mar (onda 18, Pilar Strava do Mar) — totais pessoais a partir
   // das saídas já registradas no diário, sem coleta nova nenhuma.
@@ -530,7 +530,7 @@ export default async function HojePage({
                   <p className="titulo-card">{c.nome_publico}</p>
                   <p className="apoio mt-0.5 text-dim">{[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}</p>
                 </div>
-                <Link href="/marketplace" className="text-xs text-accent-forte">Ver</Link>
+                <Link href="/comandantes" className="text-xs text-accent-forte">Ver</Link>
               </div>
             ))}
           </div>
