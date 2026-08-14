@@ -1,7 +1,8 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
-import { avaliarSelo, MARCADOR_SOLICITACAO_SELO, type ResultadoSelo } from "@/lib/domain/selo"
+import { avaliarVerified, type ResultadoVerified } from "@/lib/domain/verified"
+import { MARCADOR_SOLICITACAO_GOLD } from "@/lib/domain/gold"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado, Viagem } from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
@@ -61,7 +62,7 @@ export const carregarPainel = cache(async (): Promise<{
  *  `null` sem nenhuma viagem com `data_prevista` a partir de hoje: quem usa
  *  isto não mostra cartão nenhum (regra de honestidade — nada de porta pra
  *  sala vazia). `cache()` evita repetir a consulta na mesma renderização,
- *  mesmo padrão de `carregarPainel`/`carregarSelo`. */
+ *  mesmo padrão de `carregarPainel`/`carregarVerified`. */
 export const carregarProximaViagem = cache(async (): Promise<Viagem | null> => {
   const painel = await carregarPainel()
   if (!painel) return null
@@ -77,12 +78,12 @@ export const carregarProximaViagem = cache(async (): Promise<Viagem | null> => {
   return (data as Viagem | null) ?? null
 })
 
-/** Selo Ouro: busca o que `carregarPainel` não traz (fotos, eventos do
- *  diário, contatos — documentos com validade já vêm no `painel.itens`) e
- *  entrega pronto ao domínio puro — `avaliarSelo` nunca consulta o banco.
- *  Usado pelo card em `/barco` e pela tela `/barco/selo`; o `cache()` evita
- *  repetir a consulta na mesma renderização. */
-export const carregarSelo = cache(async (): Promise<ResultadoSelo | null> => {
+/** Commander Verified: busca o que `carregarPainel` não traz (fotos, eventos
+ *  do diário, contatos — documentos com validade já vêm no `painel.itens`) e
+ *  entrega pronto ao domínio puro — `avaliarVerified` nunca consulta o
+ *  banco. Usado pelo card em `/barco` e pela tela `/barco/selos/verified`;
+ *  o `cache()` evita repetir a consulta na mesma renderização. */
+export const carregarVerified = cache(async (): Promise<ResultadoVerified | null> => {
   const painel = await carregarPainel()
   if (!painel) return null
   const supabase = await supabaseServer()
@@ -91,17 +92,20 @@ export const carregarSelo = cache(async (): Promise<ResultadoSelo | null> => {
   const [{ count: totalFotos }, { count: totalEventosDiario }, { count: totalContatos }] = await Promise.all([
     supabase.from("fotos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
-    // exclui o marcador do pedido de avaliacao: ele e um evento de verdade na
-    // tabela, mas contar como "historico do barco" faria o proprio pedido
-    // inflar o criterio de que ele depende
+    // exclui o marcador do pedido de Commander Gold: ele e um evento de
+    // verdade na tabela, mas contar como "historico do barco" faria o
+    // proprio pedido inflar o criterio do Verified de que ele depende
+    // (Correcao 14 do PRD de Correcoes: Gold nao depende de Verified — e
+    // essa exclusao existe justamente pra manter essa independencia limpa
+    // dos dois lados).
     supabase.from("eventos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id)
-      .neq("descricao", MARCADOR_SOLICITACAO_SELO),
+      .neq("descricao", MARCADOR_SOLICITACAO_GOLD),
     supabase.from("contatos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
   ])
 
-  return avaliarSelo({
+  return avaliarVerified({
     embarcacao,
     equipamentos: painel.equipamentos,
     itens: painel.itens,
