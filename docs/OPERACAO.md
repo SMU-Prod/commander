@@ -98,6 +98,61 @@ dois — a exclusão só é possível desabilitando o Boleto na conta:
 Fontes: [Forma de pagamento — Asaas Docs](https://docs.asaas.com/docs/forma-de-pagamento),
 [Quais as formas de pagamento disponíveis para cobranças — Central de Ajuda Asaas](https://central.ajuda.asaas.com/hc/pt-br/articles/31689121385627-Quais-as-formas-de-pagamento-dispon%C3%ADveis-para-cobran%C3%A7as).
 
+## Commander Gold (onda 35)
+
+Fluxo completo do PRD de Correções: SOLICITAR GOLD → PAGAMENTO → AGENDAMENTO → AVALIAÇÃO
+PRESENCIAL → PROTOCOLO COMMANDER → ANÁLISE → APROVAÇÃO → COMMANDER GOLD. Migration
+`033_gold.sql` (+ `034`/`035`/`036` de ajuste) cria `gold_solicitacoes`, `gold_pagamentos`,
+`gold_agendamentos`, `gold_consultores`, `gold_avaliacoes`, `gold_protocolo_itens`, `gold_selos`
+(o selo persistido na embarcação — antes desta onda não existia) e `premium_concessoes`. Preços
+por porte vivem em `gold_precos` (dado semeado, editável em `/admin/gold/precos` — nunca
+constante de código, PRD §39).
+
+### Pagamento da avaliação — mesma flag dormente do Asaas
+
+O pagamento da avaliação (`iniciarPagamentoGold`, `lib/acoes/gold.ts`) atrás do MESMO gate
+dormente que a assinatura já usa: **presença de `ASAAS_API_KEY`**. Sem a chave, o pedido é
+registrado normalmente (fica em `aguardando_pagamento`) e a tela avisa honestamente que "a
+contratação abre em breve" — nunca finge que uma cobrança foi criada. Com a chave, o fluxo
+completo roda: cobrança avulsa (`criarCobrancaAvulsaAsaas`, pagamento único — não é assinatura),
+`invoiceUrl` hospedada do Asaas (mesma página mostra Pix com QR Code quando habilitado, sem
+precisar buscar a imagem à parte) e o webhook (`/api/asaas/webhook`, mesma rota da assinatura,
+diferenciada por payment sem `subscription`) confirma o pagamento e avança a solicitação sozinha.
+
+**Caminho do INTERESSADO (Correção 08)** — quando outra pessoa paga (ex.: o vendedor do barco,
+ou um comprador que não usa o Commander), o solicitante gera o link/QR na própria tela
+(`/barco/selos/gold/[id]`) e compartilha por WhatsApp ou copiando o link — não há emissão de QR
+Code como imagem separada, a própria página do Asaas já mostra o QR do Pix.
+
+### Admin — concessão manual, nunca autoatendida
+
+`profiles.is_admin` não tem UI de autopromoção — é ligado direto no banco pelo dono:
+
+    update public.profiles set is_admin = true where id = '<uuid do usuario>';
+
+Ache o uuid em Supabase Studio > Authentication > Users. Depois disso, `/admin/gold` fica
+acessível pra essa conta (Preços, Consultores, Solicitações/Pagamentos/Agendamentos/Avaliações/
+Aprovados/Reprovados/Ativos/Expirados).
+
+### Consultores — cadastro pelo admin, vínculo pelo próprio consultor
+
+O admin cadastra nome + e-mail em `/admin/gold/consultores` (não precisa saber o uuid do
+usuário — a Admin API do Supabase não é chamada daqui). No primeiro acesso, o consultor loga
+normalmente no Commander e abre `/consultor` — o botão "Confirmar acesso de consultor" chama a
+RPC `gold_reivindicar_consultor()`, que vincula o cadastro ao login comparando o e-mail do JWT
+(nunca uma busca cross-user). Sem consultor cadastrado com aquele e-mail, a tela diz isso
+honestamente em vez de fingir uma agenda vazia.
+
+### O que falta pra operação real
+
+- Chave Asaas em produção (pendência já listada acima, mesma conta usada pela assinatura).
+- Critérios mínimos de aprovação do Protocolo Commander ainda não têm régua fechada pelo dono
+  (PRD §41 já marca isso como pendente) — hoje a aprovação é decisão humana do admin na tela de
+  Análise, sem checagem automática de "quantos hubs em atenção reprovam".
+- Concessão de 6/12 meses de Premium (`premium_concessoes`) é registrada ao aprovar, mas nenhuma
+  tela ainda lê essa tabela pra liberar algo — o Premium em si não bloqueia nada hoje (mesmo
+  estado descrito na auditoria de 14/08/2026).
+
 ## Alertas automáticos
 O motor de alertas é a rota `POST /api/alertas/disparar`, protegida por
 `Authorization: Bearer $ALERTAS_SEGREDO`. Ela varre todos os barcos, calcula o semáforo

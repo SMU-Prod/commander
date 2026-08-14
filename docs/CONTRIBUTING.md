@@ -110,7 +110,9 @@ saída sem sinal — é o oposto: nada se perde, só demora pra subir.
      depois de registrar uma saída, não faz sentido revisitar depois); `/rede` (alias
      de compatibilidade que redireciona para Comandantes, fora do robots.txt); `/barco/selo`
      (mesmo padrão do `/rede` — alias de compatibilidade pro antigo "Selo Ouro", redireciona
-     para `/barco/selos`, onda 33).
+     para `/barco/selos`, onda 33); `/admin/*` e `/consultor/*` (onda 35 — mesma família de
+     `/parceiro`: persona diferente do tripulante, sem link no bottom-nav por design, atrás de
+     `exigirAdmin()`/vínculo em `gold_consultores` além da sessão, fora do robots.txt).
      Rota nova fora dessa lista precisa de link ou vira exceção documentada aqui;
    - **todo dado que a interface grava aparece em algum lugar** (o contrário também:
      nada exibido que ninguém consiga preencher);
