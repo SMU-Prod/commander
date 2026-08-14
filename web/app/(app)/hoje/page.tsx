@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { AnelStatus } from "@/components/anel-status"
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao, type MetricaHero } from "@/components/card-embarcacao"
+import { Farol } from "@/components/farol"
 import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
@@ -21,9 +22,10 @@ import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
 import { carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
+import { faroDoEstado, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { resumoAno, type EventoParaResumoAno } from "@/lib/domain/resumo-ano"
-import type { Equipamento } from "@/lib/db/types"
+import type { Equipamento, Ocorrencia } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
 import { LINK_TABUA_MARE_CHM, pontoCardeal } from "@/lib/domain/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -196,6 +198,15 @@ export default async function HojePage({
   // honestidade — nada de porta pra sala vazia).
   const proximaViagem = podeVerDiario ? await carregarProximaViagem() : null
 
+  // Ocorrências abertas (onda 32) — gate de descoberta: precisa aparecer na
+  // Início, não só dentro de cada hub. Sem filtro de aba na query: a RLS já
+  // devolve só as ocorrências dos setores que esta pessoa pode ver, então
+  // "sozinho no barco" ou "acesso restrito" nunca vazam linha nenhuma.
+  const { data: ocorrenciasAbertasBrutas } = await supabase
+    .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
+    .neq("estado", "resolvida").order("created_at", { ascending: false }).limit(4)
+  const ocorrenciasAbertas = (ocorrenciasAbertasBrutas ?? []) as Ocorrencia[]
+
   // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
   // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
   const podeVerGastos = podeVer(permissoes, "gastos")
@@ -351,6 +362,29 @@ export default async function HojePage({
           )
         })}
       </div>
+
+      {/* Ocorrências abertas (onda 32) — só aparece com dado real (regra de
+          honestidade de sempre): nada de cartão convidando pra uma lista
+          vazia. */}
+      {ocorrenciasAbertas.length > 0 && (
+        <>
+          <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
+            <Icone nome="alerta" className="size-3.5" /> Ocorrências abertas
+          </p>
+          <div className="space-y-2">
+            {ocorrenciasAbertas.map((o) => (
+              <Link key={o.id} href={`/barco/ocorrencias/${o.id}`}
+                className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
+                <Farol status={faroDoEstado(o.estado)} />
+                <p className="titulo-card min-w-0 flex-1 truncate">{o.titulo}</p>
+                <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{ROTULO_ESTADO[o.estado]}</span>
+                <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+              </Link>
+            ))}
+          </div>
+          <Link href="/barco/ocorrencias" className="apoio mt-2 inline-block text-accent-forte">Ver todas</Link>
+        </>
+      )}
 
       {manutencaoProxima.length > 0 && (
         <>

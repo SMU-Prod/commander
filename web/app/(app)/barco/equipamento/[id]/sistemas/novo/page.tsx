@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { criarSistema } from "@/lib/acoes/sistemas"
 import { carregarPainel } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
@@ -21,7 +22,7 @@ export default async function NovoSistemaPage({
   if (!painel) redirect("/onboarding")
   const equipamento = painel.equipamentos.find((e) => e.id === id)
   if (!equipamento) notFound()
-  const aba = equipamento.tipo === "motor" ? "motores" : "eletrica"
+  const aba = abaDoEquipamento(equipamento.tipo)
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco/equipamento/${id}?erro=${encodeURIComponent(`Seu acesso não permite editar ${ROTULO_ABA[aba]}.`)}`)
   }

@@ -3,11 +3,14 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
+import { inserirOcorrenciaDoDiario } from "@/lib/acoes/ocorrencias"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
 import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
+import type { Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -144,6 +147,33 @@ export async function criarEvento(formData: FormData) {
       if (erroLeitura || !atualizado?.length) {
         revalidatePath("/diario")
         redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas a leitura do motor não foi atualizada. Confira em Embarcação.")}`)
+      }
+    }
+  }
+
+  // "Apontar problema" na saída (onda 32, CLAUDE.md §1): a ocorrência nasce
+  // já vinculada ao setor certo ao finalizar o registro — PRD §22/§23,
+  // "REGRA FUNDAMENTAL: uma ocorrência registrada no Diário deve ser
+  // encaminhada automaticamente ao hub correspondente". Só se aplica a
+  // navegacao (a saída), e só quando a pessoa de fato marcou um setor +
+  // título — sem isso, toda saída normal ganharia uma pergunta que não
+  // pediu. Falha aqui não desfaz a saída já salva (mesmo padrão do item
+  // monitorado e da leitura acima: avisa, não perde o que já foi gravado).
+  if (tipo === "navegacao") {
+    const setorOcorrencia = texto("ocorrencia_setor")
+    const tituloOcorrencia = texto("ocorrencia_titulo")
+    if (setorOcorrencia && tituloOcorrencia && (ABAS_OCORRENCIA as readonly string[]).includes(setorOcorrencia)) {
+      const r = await inserirOcorrenciaDoDiario({
+        embarcacaoId: painel.embarcacao.id,
+        aba: setorOcorrencia as Aba,
+        titulo: tituloOcorrencia,
+        descricao: texto("ocorrencia_descricao"),
+        eventoId: inserido!.id,
+        criadoPor: user.id,
+      })
+      if (!r.ok) {
+        revalidatePath("/diario")
+        redirect(`/diario?erro=${encodeURIComponent("Saída registrada, mas a ocorrência não foi criada. Abra manualmente em Ocorrências.")}`)
       }
     }
   }

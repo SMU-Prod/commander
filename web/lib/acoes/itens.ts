@@ -20,10 +20,14 @@ function nomeDoTipo(categoria: string | null): string {
   return categoria === "documento" ? "esse documento" : "essa manutenção"
 }
 
+const CATEGORIAS_HIDRAULICA_SET = new Set(["hidraulica_agua_doce", "hidraulica_grey_water", "hidraulica_black_water"])
+
 /** Para onde voltar depois de salvar/excluir — onde o item aparece hoje. */
 function destinoDoItem(equipamentoId: string | null, categoria: string | null): string {
   if (equipamentoId) return `/barco/equipamento/${equipamentoId}`
   if (categoria === "documento") return "/barco/documentos"
+  if (categoria != null && CATEGORIAS_HIDRAULICA_SET.has(categoria)) return "/barco/hidraulica"
+  if (categoria === "seguranca") return "/barco/seguranca"
   return "/barco"
 }
 
@@ -31,6 +35,9 @@ function revalidarTudo(equipamentoIds: (string | null)[]) {
   revalidatePath("/barco")
   revalidatePath("/barco/eletrica")
   revalidatePath("/barco/documentos")
+  revalidatePath("/barco/hidraulica")
+  revalidatePath("/barco/seguranca")
+  revalidatePath("/barco/historico")
   revalidatePath("/hoje")
   for (const id of equipamentoIds) {
     if (id) revalidatePath(`/barco/equipamento/${id}`)

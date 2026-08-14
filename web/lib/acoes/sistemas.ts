@@ -2,15 +2,10 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { proximaOrdemSistema } from "@/lib/domain/sistemas"
 import { supabaseServer } from "@/lib/supabase/server"
-
-/** "motores" ou "eletrica" — mesma regra de `barco/equipamento/[id]/page.tsx`
- *  e `lib/acoes/equipamentos.ts`. */
-function abaDoTipo(tipo: string): "motores" | "eletrica" {
-  return tipo === "motor" ? "motores" : "eletrica"
-}
 
 function erroNovo(equipamentoId: string, msg: string): never {
   redirect(`/barco/equipamento/${equipamentoId}/sistemas/novo?erro=${encodeURIComponent(msg)}`)
@@ -24,7 +19,7 @@ async function contextoDoEquipamento(equipamentoId: string) {
   if (!painel) redirect("/onboarding")
   const equipamento = painel.equipamentos.find((e) => e.id === equipamentoId)
   if (!equipamento) redirect("/barco")
-  const aba = abaDoTipo(equipamento.tipo)
+  const aba = abaDoEquipamento(equipamento.tipo)
   // guard pela área — sem isso o único controle seria a RLS, que barra em
   // silêncio, e a tela diria "salvo" à toa (mesmo padrão de itens/equipamentos)
   if (!podeEditar(painel.permissoes, aba)) {

@@ -102,6 +102,27 @@ export default async function BarcoPage({
         subtitulo="Manutenção do gerador, troca das baterias e painel de bordo"
       />
 
+      {podeVer(permissoes, "hidraulica") && (
+        <LinhaLista
+          href="/barco/hidraulica"
+          variant="cartao"
+          className="mt-2"
+          leading={<Icone nome="hidraulica" className="size-5 shrink-0 text-dim" />}
+          titulo="Hidráulica"
+          subtitulo="Água doce, Grey Water e Black Water"
+        />
+      )}
+      {podeVer(permissoes, "seguranca") && (
+        <LinhaLista
+          href="/barco/seguranca"
+          variant="cartao"
+          className="mt-2"
+          leading={<Icone nome="seguranca" className="size-5 shrink-0 text-dim" />}
+          titulo="Segurança"
+          subtitulo="Coletes, extintores, balsa — validade e último teste"
+        />
+      )}
+
       <SecaoPagina icone="escudo">Casco</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {CATEGORIAS_CASCO.map((c) => {
@@ -193,7 +214,9 @@ export default async function BarcoPage({
           [
             { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos", aba: "documentos" },
             { href: "/barco/gastos", rotulo: "Gastos", desc: "custos por mês", aba: "gastos" },
-            { href: "/diario", rotulo: "Diário de Bordo", desc: "todo o histórico" },
+            { href: "/diario", rotulo: "Diário de Bordo", desc: "registrar saídas e serviços" },
+            { href: "/barco/ocorrencias", rotulo: "Ocorrências", desc: "abertas, em curso, resolvidas" },
+            { href: "/barco/historico", rotulo: "Histórico", desc: "tudo, num lugar só", aba: "historico" },
             { href: "/barco/fotos", rotulo: "Fotos", desc: "álbuns do barco", aba: "fotos" },
             { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco", aba: "contatos" },
           ] as { href: string; rotulo: string; desc: string; aba?: Aba }[]

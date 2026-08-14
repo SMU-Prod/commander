@@ -3,6 +3,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { criarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
 
 export default async function NovoEquipamentoPage({
@@ -14,7 +15,7 @@ export default async function NovoEquipamentoPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const tipoInicial = ["motor", "gerador", "bateria", "outro"].includes(tipo ?? "") ? tipo! : "gerador"
-  const aba = tipoInicial === "motor" ? "motores" : "eletrica"
+  const aba = abaDoEquipamento(tipoInicial)
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite cadastrar este equipamento.")}`)
   }

@@ -3,14 +3,10 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
-
-/** "motores" ou "eletrica" — a mesma regra de `barco/equipamento/[id]/page.tsx`. */
-function abaDoTipo(tipo: string): "motores" | "eletrica" {
-  return tipo === "motor" ? "motores" : "eletrica"
-}
 
 const TIPOS = ["motor", "gerador", "bateria", "outro"]
 const POSICOES = ["BB", "BE", "central"]
@@ -91,7 +87,7 @@ export async function criarEquipamento(formData: FormData) {
   if (error || !data) {
     if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
     erroNovo(
-      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(dados.tipo)]} — senão, tente de novo.`,
+      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoEquipamento(dados.tipo)]} — senão, tente de novo.`,
     )
   }
 
@@ -123,7 +119,7 @@ export async function salvarEquipamento(formData: FormData) {
     if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])
     erroEditar(
       id,
-      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(dados.tipo)]} — senão, tente de novo.`,
+      `Não deu para salvar. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoEquipamento(dados.tipo)]} — senão, tente de novo.`,
     )
   }
 
@@ -153,7 +149,7 @@ export async function excluirEquipamento(formData: FormData) {
   if (error || !apagado?.length) {
     erroEditar(
       id,
-      `Não deu para excluir. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoTipo(equipamento.tipo)]} — senão, tente de novo.`,
+      `Não deu para excluir. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoEquipamento(equipamento.tipo)]} — senão, tente de novo.`,
     )
   }
 
