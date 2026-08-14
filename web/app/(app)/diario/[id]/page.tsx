@@ -2,13 +2,15 @@ import { notFound, redirect } from "next/navigation"
 import { Avatar } from "@/components/avatar"
 import { Icone } from "@/components/icone"
 import { TrilhaMapa } from "@/components/mapa/trilha-mapa"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import { textoCompartilharSaida } from "@/lib/domain/compartilhar"
 import { resumoTrilha } from "@/lib/domain/geo"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento } from "@/lib/db/types"
 import { CompartilharBotao } from "./compartilhar-botao"
@@ -32,6 +34,15 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
   const { id } = await params
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  // Gate do plano Free (onda 38) pra "Compartilhar" — recurso tudo-ou-nada
+  // (`recursoLiberado("compartilhar_saida", ...)`, sem contagem). Diferente
+  // do Diário/Fotos, aqui NÃO existe uma segunda checagem "no servidor": o
+  // botão só dispara a Web Share API do navegador (`compartilhar-botao.tsx`)
+  // sem chamar nenhuma action — não há mutação nem rota pra proteger. A
+  // decisão deste Server Component É o ponto de aplicação: ele decide se o
+  // botão que funciona chega ao cliente, ou se só o cadeado chega.
+  const nivel = await carregarNivelPlano()
+  const compartilharLiberado = recursoLiberado("compartilhar_saida", nivel)
 
   const supabase = await supabaseServer()
   const { data: evento } = await supabase.from("eventos").select("*").eq("id", id).maybeSingle()
@@ -178,7 +189,11 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       )}
 
       <div className="mt-6">
-        <CompartilharBotao texto={texto} />
+        {compartilharLiberado ? (
+          <CompartilharBotao texto={texto} />
+        ) : (
+          <BloqueioPremium {...mensagemBloqueio("compartilhar_saida")} />
+        )}
       </div>
     </main>
   )

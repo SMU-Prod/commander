@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
 import { FormularioNovoEvento } from "@/components/campos-navegacao-evento"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { criarEvento } from "@/lib/acoes/eventos"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "@/lib/consultas"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function NovoEventoPage({
@@ -23,6 +25,20 @@ export default async function NovoEventoPage({
   const { erro, alvo, item, custo, tipo, data, descricao, horas, contato } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+
+  const [nivel, usoDiario] = await Promise.all([carregarNivelPlano(), carregarUsoDiario()])
+  const liberado = recursoLiberado("diario_registros", nivel, usoDiario)
+  // Sem liberar, nem busca o resto (contatos/tripulação) — a tela vai
+  // mostrar só o bloqueio, o formulário nunca aparece.
+  if (!liberado) {
+    return (
+      <main>
+        <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo="Novo registro" />
+        <BloqueioPremium {...mensagemBloqueio("diario_registros", usoDiario)} className="mt-5" />
+      </main>
+    )
+  }
+
   const supabase = await supabaseServer()
   const [{ data: contatos }, { data: vinculos }] = await Promise.all([
     supabase.from("contatos").select("id, nome, especialidade").order("nome"),

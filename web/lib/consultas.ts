@@ -1,6 +1,7 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
+import { nivelPlano, type NivelPlano } from "@/lib/domain/plano-acesso"
 import { avaliarVerified, type ResultadoVerified } from "@/lib/domain/verified"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado, Viagem } from "@/lib/db/types"
@@ -111,6 +112,67 @@ export const carregarVerified = cache(async (): Promise<ResultadoVerified | null
     totalEventosDiario: totalEventosDiario ?? 0,
     totalContatos: totalContatos ?? 0,
   })
+})
+
+/**
+ * Free ou Premium (onda 38, `web/lib/domain/plano-acesso.ts`) — a decisão é
+ * sobre a ASSINATURA DO PROPRIETÁRIO, e `assinaturas`/`premium_concessoes`
+ * (migrations 017/033) só deixam cada dono ler a PRÓPRIA linha via RLS.
+ *
+ * Em vez de abrir uma trinca nova nessas tabelas só pra um CMDT/tripulação
+ * conseguir contar o limite do barco, esta função aplica a MESMA isenção que
+ * já existe pro gate de cobrança (`web/app/(app)/layout.tsx`: "só o PROP
+ * paga; CMDT/tripulação nunca vê paywall") — quem não é PROP nunca é
+ * bloqueado por causa do plano. Isso não amplia poder nenhum: um CMDT já tem
+ * `editar:true` em Diário/Fotos nos presets de permissão
+ * (`lib/domain/permissoes.ts`) independente do plano; a única coisa que essa
+ * função decide aqui é se o LIMITE do Free se aplica a ele — e a resposta,
+ * por design, é não.
+ */
+export const carregarNivelPlano = cache(async (): Promise<NivelPlano> => {
+  const painel = await carregarPainel()
+  if (!painel) return "free"
+  if (painel.papel !== "PROP") return "premium"
+
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return "free"
+
+  const [{ data: assinatura }, { data: concessoes }] = await Promise.all([
+    supabase.from("assinaturas").select("status")
+      .eq("usuario_id", user.id).in("status", ["ativa", "inadimplente"]).limit(1).maybeSingle(),
+    supabase.from("premium_concessoes").select("valido_ate").eq("usuario_id", user.id),
+  ])
+  const concessaoValidoAte = (concessoes ?? []).reduce<string | null>(
+    (maisRecente, c: { valido_ate: string }) => (maisRecente === null || c.valido_ate > maisRecente ? c.valido_ate : maisRecente),
+    null,
+  )
+  return nivelPlano({ assinaturaAtiva: Boolean(assinatura), concessaoValidoAte }, hojeISO())
+})
+
+/** Total de registros já criados no Diário de Bordo desta embarcação — o
+ *  contador que `recursoLiberado("diario_registros", ...)` compara contra
+ *  `LIMITES_FREE.diarioRegistros`. */
+export const carregarUsoDiario = cache(async (): Promise<number> => {
+  const painel = await carregarPainel()
+  if (!painel) return 0
+  const supabase = await supabaseServer()
+  const { count } = await supabase.from("eventos")
+    .select("id", { count: "exact", head: true }).eq("embarcacao_id", painel.embarcacao.id)
+  return count ?? 0
+})
+
+/** Total de fotos já enviadas ao acervo desta embarcação — o contador que
+ *  `recursoLiberado("fotos", ...)` compara contra `LIMITES_FREE.fotos`.
+ *  Independente da cota de ESPAÇO em MB (`lib/domain/cota.ts`, que vale
+ *  igual pra todo mundo): este é o teto de QUANTIDADE só do Free. */
+export const carregarUsoFotos = cache(async (): Promise<number> => {
+  const painel = await carregarPainel()
+  if (!painel) return 0
+  const supabase = await supabaseServer()
+  const { count } = await supabase.from("fotos")
+    .select("id", { count: "exact", head: true }).eq("embarcacao_id", painel.embarcacao.id)
+  return count ?? 0
 })
 
 export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"

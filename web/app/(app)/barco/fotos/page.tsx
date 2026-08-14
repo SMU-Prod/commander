@@ -1,14 +1,16 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { definirCapa, excluirFoto, subirFoto } from "@/lib/acoes/fotos"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { formatarBytes, usoDaCota } from "@/lib/domain/cota"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Foto } from "@/lib/db/types"
 import { ALBUNS, ROTULO_ALBUM } from "./albuns"
@@ -28,12 +30,18 @@ export default async function FotosPage({
   const albumAtivo = ALBUNS.find((a) => a === albumBruto) ?? "exterior"
 
   const supabase = await supabaseServer()
-  const { data: fotos, error } = await supabase
-    .from("fotos").select("*").eq("embarcacao_id", painel.embarcacao.id)
-    .order("created_at", { ascending: false })
+  const [{ data: fotos, error }, nivel] = await Promise.all([
+    supabase.from("fotos").select("*").eq("embarcacao_id", painel.embarcacao.id)
+      .order("created_at", { ascending: false }),
+    carregarNivelPlano(),
+  ])
   if (error) throw new Error("Não foi possível carregar as fotos. Recarregue a página.")
 
   const todas = (fotos ?? []) as Foto[]
+  // Contagem do gate do plano Free (onda 38) — total real do barco, não só
+  // do álbum aberto: o limite é da embarcação inteira, cruzando álbuns.
+  const usoFotos = todas.length
+  const liberadoParaSubir = recursoLiberado("fotos", nivel, usoFotos)
   const uso = usoDaCota(todas.reduce((s, f) => s + f.bytes, 0))
   const doAlbum = todas.filter((f) => f.album === albumAtivo)
   const urls = doAlbum.length
@@ -131,19 +139,23 @@ export default async function FotosPage({
       {editavel && (
         <>
           <SecaoPagina>Adicionar foto</SecaoPagina>
-          <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
-            <input type="hidden" name="album" value={albumAtivo} />
-            <Campo
-              label={`Foto para ${ROTULO_ALBUM[albumAtivo]} — JPG, PNG ou WebP, até 10 MB`}
-              id="arquivo"
-              name="arquivo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="py-2.5 text-sm"
-            />
-            <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
-            <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
-          </form>
+          {liberadoParaSubir ? (
+            <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
+              <input type="hidden" name="album" value={albumAtivo} />
+              <Campo
+                label={`Foto para ${ROTULO_ALBUM[albumAtivo]} — JPG, PNG ou WebP, até 10 MB`}
+                id="arquivo"
+                name="arquivo"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="py-2.5 text-sm"
+              />
+              <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
+              <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
+            </form>
+          ) : (
+            <BloqueioPremium {...mensagemBloqueio("fotos", usoFotos)} />
+          )}
         </>
       )}
     </main>

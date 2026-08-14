@@ -57,6 +57,10 @@ const PATHS = {
   // Onda 32 (hub Segurança): escudo com check — distingue de "escudo" liso
   // (já usado pro Casco) porque aqui é "verificado/em dia", não estrutura.
   seguranca: <><path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z" /><path d="m9 12 2 2 4-4" /></>,
+  // Onda 38 (Free/Premium): cadeado fechado — usado só pelo componente de
+  // bloqueio (`BloqueioPremium`), nunca pra "erro" nem "proibido" (ícones
+  // diferentes já cobrem isso) — é especificamente "isto é Premium".
+  cadeado: <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS
