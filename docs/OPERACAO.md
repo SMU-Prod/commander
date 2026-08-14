@@ -691,6 +691,42 @@ NetCDF com validade — mesmo tipo de trabalho que a batimetria/máscara de águ
 ETOPO, só que pra um dataset diferente. Fica registrado para uma onda futura; nenhuma tela
 promete correnteza hoje.
 
+## Testes ponta a ponta (Playwright, onda 31)
+
+Todos os bugs reais desta semana (mapa branco no emulador, rota cruzando terra, sessão
+caindo, chunk 403) foram achados pelos OLHOS DO DONO, não pela suíte de vitest — ela testa
+domínio/lógica isolada, nunca sobe um navegador de verdade. `web/e2e/*.spec.ts` cobre os
+caminhos onde isso apareceu: landing pública, `/login` (renderiza + valida campo vazio),
+redirect de rota protegida sem sessão, `/parceiros` público, e **o mapa monta de verdade**
+em `/navegar`.
+
+**Rodar local:** `cd web && npm run test:e2e` (builda/sobe o `next dev` sozinho na porta
+3010, via `webServer` do `playwright.config.ts`).
+
+### A sessão de teste do mapa
+`/navegar` é rota protegida — testar que o mapa monta precisa de uma sessão real. Em vez de
+pedir credencial ou cadastrar conta na mão, `e2e/global-setup.ts` cria um usuário de teste
+**efêmero** pela Admin API do Supabase (precisa de `SUPABASE_SERVICE_ROLE_KEY` no ambiente),
+loga de verdade pela tela `/login` (fluxo real, não cookie fabricado) e salva a sessão.
+`e2e/global-teardown.ts` apaga esse usuário no final da rodada — o Commander não tem banco
+de staging separado (mesmo projeto Supabase de produção), então não deixar rastro é o
+mínimo.
+
+Local, com `web/.env.local` preenchido (é o caso hoje), isso roda de ponta a ponta sozinho.
+**Sem essas variáveis** (é o caso do CI hoje, que builda com credenciais fake — ver abaixo),
+`global-setup` não tenta nada e `e2e/navegar-mapa.spec.ts` pula sozinho, com o motivo
+explícito no relatório — nunca um "vermelho" confuso.
+
+### No CI (`.github/workflows/ci.yml`)
+Job `e2e` separado do `verificar`, com `continue-on-error: true` — roda e reporta (inclusive
+sobe o relatório HTML do Playwright como artefato do run), mas não bloqueia merge se ficar
+flaky no início. Hoje ele builda com as MESMAS credenciais fake do job `verificar`, então só
+os 4 testes públicos rodam de verdade; o do mapa pula (mesma lógica acima). **Pra ligar o
+teste do mapa também no CI**, cadastre em **Settings → Secrets and variables → Actions**:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (os mesmos valores já
+usados na Vercel) e, opcional, `MAPBOX_TOKEN` — sem isso o job continua rodando os outros 4
+testes normalmente, só sem ligar o quinto.
+
 ## Observabilidade de erro (Sentry, onda 31)
 
 O dono só descobria bug quando via com os PRÓPRIOS olhos (mapa branco no emulador, sessão

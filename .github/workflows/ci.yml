@@ -18,10 +18,55 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npx tsc --noEmit
-      - run: npx eslint app components lib
+      - run: npx eslint app components lib e2e playwright.config.ts
       - run: npm test
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://exemplo.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: chave-de-build
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: chave-vapid-de-build
+
+  # Onda 31 (robustez) — testes que clicam no app de verdade (Playwright),
+  # cobrindo os caminhos onde os bugs REAIS apareceram (mapa branco, sessão
+  # caindo). Job SEPARADO e `continue-on-error: true` de propósito: no
+  # começo é normal ter flakiness de timing/rede — isso não pode travar
+  # merge, mas PRECISA rodar e aparecer no Checks do PR (nunca silencioso).
+  #
+  # Sem os secrets abaixo cadastrados no repositório, os testes públicos
+  # (landing, /login, redirect, /parceiros) rodam contra credenciais fake
+  # (mesmo padrão do job "verificar") e o teste autenticado do mapa
+  # (e2e/navegar-mapa.spec.ts) pula sozinho — ver e2e/global-setup.ts. Pra
+  # esse teste rodar de verdade no CI, cadastre em Settings → Secrets →
+  # Actions: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+  # (os mesmos valores já usados na Vercel) e, opcional, MAPBOX_TOKEN.
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: verificar
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: web
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://exemplo.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'chave-de-build' }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: chave-vapid-de-build
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Publica relatório do Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
