@@ -142,6 +142,23 @@ export function temInformacaoSuficiente(item: ItemCalc, horasAtuais: number | nu
   return temHoras || temData
 }
 
+/* ⚠️ PROVISÓRIO — DECISÃO DE PRODUTO PENDENTE (registrado em 14/08/2026)
+ *
+ * O PRD Master do Upgrade 2 (§10, `docs/prd/upgrade2-master.txt`) diz
+ * textualmente que a fórmula da Saúde da Embarcação NÃO está fechada e que
+ * "o programador pode preparar arquitetura/componentes, mas não deve
+ * inventar pesos ou algoritmo".
+ *
+ * As faixas abaixo e a conta de `resumoStatusGeral` (% = itens em dia com
+ * informação / itens com informação) foram criadas na onda 16, ANTES do PRD
+ * chegar, e estão EM PRODUÇÃO. Ou seja: engenharia decidiu o que era decisão
+ * de produto. A auditoria de 14/08 pegou isso
+ * (`docs/auditoria/2026-08-14-prd-upgrade2-parte1.md`).
+ *
+ * O que está aqui é honesto no que mostra (nunca inventa dado; item sem
+ * informação não entra na conta) — mas os NÚMEROS são arbitrários. Antes de
+ * qualquer onda mexer nisso, o dono precisa validar as faixas atuais ou
+ * definir a fórmula oficial. Enquanto isso: NÃO "melhore" estes valores. */
 const FAIXAS_ANEL: { minimo: number; rotulo: string }[] = [
   { minimo: 90, rotulo: "Ótimo" },
   { minimo: 70, rotulo: "Bom" },

@@ -243,3 +243,37 @@ plotter ou instrumentos de bordo. O mapa parece mapa de rua com pinos, nao carta
 **Nossa vantagem (nao replicavel em semanas):** carta com profundidade, rota tracada pela
 agua contornando a costa, rota por calado, navegacao estilo Waze, tempo no mar com mare, e a
 base colaborativa (corredores + sondagem) que melhora sozinha a cada saida.
+
+---
+
+## Reconciliacao com o PRD Upgrade 2 (14/08/2026)
+
+Os tres documentos do dono viraram texto em `docs/prd/` e foram auditados item a item
+contra o codigo em `docs/auditoria/2026-08-14-prd-upgrade2-parte{1,2}.md` (~165 requisitos).
+O PRD Master passa a ser a fonte principal de PRODUTO. Duas ressalvas registradas aqui:
+
+### 1. Navegacao NAO aparece no PRD — e continua sendo pilar
+O PRD Upgrade 2 foi escrito olhando GESTAO. Ele cita "Explorar" (mapa de parceiros) e uma
+linha sobre "condicoes para navegacao", e nao menciona: rota tracada pela agua (A* com
+mascara de costa), profundidade/batimetria, rota por calado, modo navegando estilo Waze,
+corredores colaborativos, sondagem colaborativa, tempo no mar. Isso NAO significa remover —
+significa que o documento nao cobriu. **E o nosso fosso competitivo**: o concorrente direto
+mapeado (OnSailing) tem gestao + marketplace de prestadores e NAO tem nada de navegacao real.
+Copiar cotas e prestadores avaliados leva semanas pra nos; copiar rota maritima e sondagem
+colaborativa leva anos pra eles. Navegacao continua como pilar do roteiro, ao lado da gestao.
+
+### 2. Fórmula da Saude — decisao de produto PENDENTE
+O PRD §10 diz que a formula nao esta fechada e que o programador nao deve inventar pesos. A
+onda 16 inventou (faixas >=90/>=70/>=40 e % = em dia / com informacao) e esta em producao.
+Marcado no codigo (`lib/domain/semaforo.ts`) como provisorio. **Nenhuma onda mexe nisso ate o
+dono validar as faixas atuais ou definir a formula oficial.**
+
+### Ordem de ataque acordada (o que nao depende de decisao pendente vem primeiro)
+- **Onda 32** — Ocorrencias (entidade + estados + nascer do Diario + hub), hubs faltantes
+  (Hidraulica, Seguranca), matriz de permissoes de 9 -> 13 areas, historico central.
+- **Onda 33** — separar Commander Verified (digital, e o que hoje se chama "Selo Ouro") de
+  Commander Gold (presencial, so vitrine honesta nesta fase), + aba Commander Connect "Em breve".
+- **Depois, dependendo de decisao do dono:** Gold como operacao de campo (pagamento,
+  agendamento, Protocolo, consultores, admin), Free/Premium com paywall, Resumos completos
+  (tela + PDF + semestral/anual), Transferencia de embarcacao, Marketplace de oportunidades
+  (vagas/diarias/"COMPRO"), Explorar como tela propria.
