@@ -28,7 +28,14 @@ export async function middleware(request: NextRequest) {
   // comercial — sem login, é ela que o Pedro abre na marina pra fechar em
   // 10 minutos. Diferente de /parceiro (singular, formulário autoatendido,
   // continua atrás do gate normal).
-  const rotaPublica = caminho === "/" || caminho === "/parceiros" || caminho.startsWith("/login")
+  // /termos e /privacidade (onda 30) precisam ser lidas por qualquer
+  // visitante ANTES de criar conta — sem login, como /parceiros.
+  const rotaPublica =
+    caminho === "/" ||
+    caminho === "/parceiros" ||
+    caminho === "/termos" ||
+    caminho === "/privacidade" ||
+    caminho.startsWith("/login")
   if (!user && !rotaPublica) {
     const destino = new URL("/login", request.url)
     destino.searchParams.set("volta", request.nextUrl.pathname)

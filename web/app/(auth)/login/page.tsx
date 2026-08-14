@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { cadastrar, entrar } from "@/lib/acoes/auth"
 
@@ -49,6 +50,19 @@ export default async function LoginPage({
         <button className="sombra-2 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
           {cadastro ? "Criar conta" : "Entrar"}
         </button>
+        {cadastro && (
+          <p className="apoio text-center text-dim">
+            Ao criar a conta você concorda com os{" "}
+            <Link href="/termos" className="text-accent-forte underline underline-offset-2">
+              Termos de Uso
+            </Link>{" "}
+            e a{" "}
+            <Link href="/privacidade" className="text-accent-forte underline underline-offset-2">
+              Política de Privacidade
+            </Link>
+            .
+          </p>
+        )}
       </form>
       <a
         href={cadastro ? `/login${volta ? `?volta=${encodeURIComponent(volta)}` : ""}` : `/login?modo=cadastro${volta ? `&volta=${encodeURIComponent(volta)}` : ""}`}

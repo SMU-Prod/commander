@@ -208,6 +208,15 @@ export default async function LandingPage() {
             atendimento.smu@gmail.com
           </a>
         </div>
+        <div className="mx-auto mt-6 flex max-w-6xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-center sm:gap-4">
+          <Link href="/termos" className="apoio text-dim hover:text-texto">
+            Termos de Uso
+          </Link>
+          <span className="apoio text-dim/50" aria-hidden="true">·</span>
+          <Link href="/privacidade" className="apoio text-dim hover:text-texto">
+            Política de Privacidade
+          </Link>
+        </div>
         <p className="apoio mt-6 text-center text-dim/70">© {new Date().getFullYear()} Commander</p>
       </footer>
     </div>
