@@ -92,6 +92,20 @@ export async function cancelarAssinaturaAsaas(subscriptionId: string) {
   await asaas(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: "DELETE" })
 }
 
+/** Upgrade (PRD §44) — troca valor/ciclo da assinatura JÁ existente no Asaas
+ *  (PUT, não cria assinatura nova). Usada só pra mensal→anual (a única
+ *  direção que `proximoUpgrade`, `lib/domain/planos.ts`, permite) — o Asaas
+ *  aplica o novo ciclo a partir da próxima cobrança, sem cobrar diferença
+ *  retroativa. */
+export async function atualizarAssinaturaAsaas(
+  subscriptionId: string, dados: { valorCentavos: number; ciclo: "MONTHLY" | "YEARLY" },
+) {
+  await asaas(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    method: "PUT",
+    body: JSON.stringify({ value: dados.valorCentavos / 100, cycle: dados.ciclo }),
+  })
+}
+
 /** `true` só quando ASAAS_API_KEY existe — mesma flag dormente que já
  *  protege a assinatura (`NEXT_PUBLIC_COBRANCA_ATIVA` decide se o gate
  *  REDIRECIONA pra /assinar; esta aqui decide se o BOTÃO de pagamento da
@@ -149,6 +163,10 @@ export interface CobrancaAsaas {
   valorCentavos: number
   status: string
   invoiceUrl: string | null
+  /** Meio de pagamento desta fatura específica ("CREDIT_CARD"/"PIX"/"BOLETO"/
+   *  "UNDEFINED" quando ainda não escolhido) — cru do Asaas, quem exibe
+   *  traduz (`ROTULO_FORMA_PAGAMENTO`, tela de assinatura). */
+  billingType: string
 }
 
 /** Historico de faturas da assinatura, pra tela mostrar valor/data/status/comprovante.
@@ -158,7 +176,7 @@ export interface CobrancaAsaas {
 export async function listarCobrancas(subscriptionId: string): Promise<CobrancaAsaas[]> {
   try {
     const r = await asaas<{
-      data: Array<{ id: string; dueDate: string; value: number; status: string; invoiceUrl?: string }>
+      data: Array<{ id: string; dueDate: string; value: number; status: string; invoiceUrl?: string; billingType?: string }>
     }>(`/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=20`)
     return r.data.map((p) => ({
       id: p.id,
@@ -166,6 +184,7 @@ export async function listarCobrancas(subscriptionId: string): Promise<CobrancaA
       valorCentavos: Math.round(p.value * 100),
       status: p.status,
       invoiceUrl: p.invoiceUrl ?? null,
+      billingType: p.billingType ?? "UNDEFINED",
     }))
   } catch {
     return []
@@ -179,6 +198,24 @@ export async function proximaCobrancaAsaas(subscriptionId: string): Promise<stri
   try {
     const a = await asaas<{ nextDueDate?: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
     return a.nextDueDate ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Valor e ciclo AO VIVO da assinatura no Asaas — pra tela de assinatura
+ *  nunca mostrar um valor/ciclo desatualizado depois de um `trocarPlano`
+ *  (que só atualiza o Asaas, nunca a coluna local — ver comentário em
+ *  `lib/acoes/assinatura.ts`). Mesma regra defensiva das outras leituras:
+ *  `null` sem chave, com erro, ou campo ausente — quem chama cai pro dado
+ *  local nesse caso. */
+export async function detalhesAssinaturaAsaas(
+  subscriptionId: string,
+): Promise<{ valorCentavos: number; ciclo: "MONTHLY" | "YEARLY" } | null> {
+  try {
+    const a = await asaas<{ value?: number; cycle?: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+    if (a.value == null || (a.cycle !== "MONTHLY" && a.cycle !== "YEARLY")) return null
+    return { valorCentavos: Math.round(a.value * 100), ciclo: a.cycle }
   } catch {
     return null
   }

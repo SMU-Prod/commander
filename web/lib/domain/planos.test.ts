@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS, VAGAS_FUNDADOR, vagasRestantes } from "./planos"
+import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS, proximoUpgrade, VAGAS_FUNDADOR, vagasRestantes } from "./planos"
 
 describe("planos", () => {
   it("fundador mensal custa R$ 69,99 e o anual 10x isso (2 meses gratis)", () => {
@@ -24,5 +24,14 @@ describe("planos", () => {
     expect(formatarPreco(6999)).toBe("R$ 69,99")
     expect(formatarPreco(69990)).toBe("R$ 699,90")
     expect(formatarPreco(11990)).toBe("R$ 119,90")
+  })
+})
+
+describe("proximoUpgrade", () => {
+  it("mensal pode subir para anual", () => {
+    expect(proximoUpgrade("fundador_mensal")).toBe("fundador_anual")
+  })
+  it("anual ja esta no melhor ciclo, sem upgrade", () => {
+    expect(proximoUpgrade("fundador_anual")).toBeNull()
   })
 })

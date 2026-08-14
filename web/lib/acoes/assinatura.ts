@@ -1,8 +1,11 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { AsaasRecusa, cancelarAssinaturaAsaas, criarAssinaturaAsaas, criarClienteAsaas, urlPrimeiraCobranca } from "@/lib/asaas"
-import { PLANOS, type PlanoId } from "@/lib/domain/planos"
+import {
+  AsaasRecusa, atualizarAssinaturaAsaas, cancelarAssinaturaAsaas, criarAssinaturaAsaas, criarClienteAsaas,
+  urlPrimeiraCobranca,
+} from "@/lib/asaas"
+import { PLANOS, proximoUpgrade, type PlanoId } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Assinatura } from "@/lib/db/types"
 
@@ -123,4 +126,49 @@ export async function cancelarAssinatura() {
 
   revalidatePath("/menu/assinatura")
   redirect("/menu/assinatura?ok=" + encodeURIComponent("Assinatura cancelada"))
+}
+
+/**
+ * Upgrade (PRD §44) — troca o ciclo da assinatura viva pro próximo definido
+ * em `proximoUpgrade` (hoje só mensal→anual).
+ *
+ * Só atualiza o Asaas (fonte de verdade da cobrança) — de propósito NÃO
+ * escreve `plano`/`valor_centavos` na linha local de `assinaturas`: a
+ * policy de UPDATE dessa tabela (migration 017) só deixa o dono mudar pra
+ * `status = 'cancelada'`, nada mais — abrir uma segunda policy pra permitir
+ * troca de ciclo é mudança de banco (RLS) fora do que esta onda pode aplicar
+ * sozinha (aplicar migration em produção passa por revisão à parte). Por
+ * isso a tela de assinatura (`menu/assinatura/page.tsx`) NUNCA confia cegamente
+ * na coluna local pra mostrar valor/ciclo — sempre tenta ler o valor/ciclo
+ * AO VIVO do Asaas primeiro (`detalhesAssinaturaAsaas`) e só cai pro dado
+ * local se o Asaas não responder. `nivelPlano`/o gate de Premium não usam
+ * `plano` nem `valor_centavos` em nenhum momento (só `status`), então esse
+ * descompasso não afeta liberar/bloquear recurso nenhum — é só cosmético.
+ */
+export async function trocarPlano() {
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data: viva } = await supabase
+    .from("assinaturas").select("*")
+    .eq("usuario_id", user.id).in("status", ["ativa", "inadimplente"])
+    .maybeSingle()
+  if (!viva) redirect("/menu/assinatura")
+  const assinatura = viva as Assinatura
+
+  const proximo = proximoUpgrade(assinatura.plano)
+  if (!proximo) redirect("/menu/assinatura")
+
+  try {
+    await atualizarAssinaturaAsaas(assinatura.asaas_subscription_id, {
+      valorCentavos: PLANOS[proximo].valorCentavos,
+      ciclo: PLANOS[proximo].ciclo,
+    })
+  } catch {
+    redirect("/menu/assinatura?erro=" + encodeURIComponent("Não foi possível trocar o plano agora. Tente de novo."))
+  }
+
+  revalidatePath("/menu/assinatura")
+  redirect("/menu/assinatura?ok=" + encodeURIComponent(`Você passou para ${PLANOS[proximo].rotulo}`))
 }
