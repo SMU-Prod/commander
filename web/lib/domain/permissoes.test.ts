@@ -18,6 +18,46 @@ describe("presets", () => {
     expect(PRESETS.operacional.contatos).toEqual({ ver: false, editar: false })
     expect(PRESETS.operacional.gastos).toEqual({ ver: false, editar: false })
   })
+  it("operacional cobre as 4 areas novas da onda 32 (hidraulica/seguranca/equipamentos/historico)", () => {
+    expect(PRESETS.operacional.hidraulica).toEqual({ ver: true, editar: true })
+    expect(PRESETS.operacional.seguranca).toEqual({ ver: true, editar: false })
+    expect(PRESETS.operacional.equipamentos).toEqual({ ver: true, editar: true })
+    expect(PRESETS.operacional.historico).toEqual({ ver: true, editar: false })
+  })
+})
+
+describe("matriz de 13 areas (onda 32)", () => {
+  it("tem exatamente as 13 areas do PRD, nem mais nem menos", () => {
+    expect(ABAS).toHaveLength(13)
+    expect([...ABAS].sort()).toEqual([
+      "casco", "contatos", "diario", "documentos", "eletrica", "embarcacao",
+      "equipamentos", "fotos", "gastos", "hidraulica", "historico", "motores", "seguranca",
+    ])
+  })
+  it("vinculo CMDT antigo (sem as 4 chaves novas) nao ganha acesso indevido — vira tudo falso nas areas novas", () => {
+    // Simula um vinculo salvo ANTES da onda 32: so as 9 chaves de entao.
+    const permissoesAntigas = {
+      embarcacao: { ver: true, editar: false },
+      motores: { ver: true, editar: true },
+      eletrica: { ver: true, editar: true },
+      casco: { ver: true, editar: true },
+      documentos: { ver: true, editar: true },
+      fotos: { ver: true, editar: true },
+      contatos: { ver: true, editar: true },
+      gastos: { ver: true, editar: true },
+      diario: { ver: true, editar: true },
+    }
+    const p = normalizarPermissoes(permissoesAntigas)
+    // areas de sempre: acesso preservado, identico ao que ja era
+    expect(p.motores).toEqual({ ver: true, editar: true })
+    expect(p.eletrica).toEqual({ ver: true, editar: true })
+    expect(p.casco).toEqual({ ver: true, editar: true })
+    // areas novas: sem chave no jsonb antigo -> nada (nunca acesso de graca)
+    expect(p.hidraulica).toEqual({ ver: false, editar: false })
+    expect(p.seguranca).toEqual({ ver: false, editar: false })
+    expect(p.equipamentos).toEqual({ ver: false, editar: false })
+    expect(p.historico).toEqual({ ver: false, editar: false })
+  })
 })
 
 describe("normalizarPermissoes", () => {

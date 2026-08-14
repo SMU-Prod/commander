@@ -4,6 +4,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { excluirEquipamento, salvarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { numeroParaCampoPtBr } from "@/lib/ui/form"
 
@@ -20,7 +21,7 @@ export default async function EditarEquipamentoPage({
   if (!painel) redirect("/onboarding")
   const eq = painel.equipamentos.find((e) => e.id === id)
   if (!eq) notFound()
-  const aba = eq.tipo === "motor" ? "motores" : "eletrica"
+  const aba = abaDoEquipamento(eq.tipo)
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite editar este equipamento.")}`)
   }

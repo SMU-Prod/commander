@@ -1,13 +1,22 @@
+// 13 áreas (onda 32 — antes eram 9; faltavam Hidráulica, Segurança,
+// Equipamentos e Histórico, ver docs/auditoria/2026-08-14-prd-upgrade2-parte1.md
+// §5). Adicionar uma aba aqui é seguro por construção: `normalizarPermissoes`
+// preenche o que falta com `{ver:false, editar:false}` e `permissao()` no
+// banco (jsonb path) faz o mesmo — vínculo existente nunca GANHA acesso a
+// uma aba nova sem migração explícita, e PROP (permissoes = null) sempre
+// tem tudo (`podeVer`/`podeEditar` abaixo, e `papel = 'PROP'` no banco).
 export const ABAS = [
-  "embarcacao", "motores", "eletrica", "casco",
-  "documentos", "fotos", "contatos", "gastos", "diario",
+  "embarcacao", "motores", "eletrica", "casco", "hidraulica", "seguranca", "equipamentos",
+  "documentos", "fotos", "contatos", "gastos", "diario", "historico",
 ] as const
 
 export type Aba = (typeof ABAS)[number]
 
 export const ROTULO_ABA: Record<Aba, string> = {
   embarcacao: "Embarcação", motores: "Motores", eletrica: "Elétrica", casco: "Casco",
+  hidraulica: "Hidráulica", seguranca: "Segurança", equipamentos: "Equipamentos",
   documentos: "Documentos", fotos: "Fotos", contatos: "Contatos", gastos: "Gastos", diario: "Diário",
+  historico: "Histórico",
 }
 
 export interface PermissaoAba {
@@ -34,8 +43,18 @@ export const PRESETS: Record<"completo" | "operacional", Permissoes> = {
     motores: { ver: true, editar: true },
     eletrica: { ver: true, editar: true },
     casco: { ver: true, editar: false },
+    // Hidráulica segue o mesmo critério de Elétrica (manutenção do dia a dia,
+    // ex.: nível de água/esgoto) — Segurança fica como Casco (área crítica,
+    // tripulação vê mas só o PROP edita validade/estado de itens de
+    // segurança). Equipamentos (hub genérico) segue Fotos, risco baixo.
+    hidraulica: { ver: true, editar: true },
+    seguranca: { ver: true, editar: false },
+    equipamentos: { ver: true, editar: true },
     fotos: { ver: true, editar: true },
     diario: { ver: true, editar: true },
+    // Histórico central espelha Diário: quem já via o feed do diário
+    // continua vendo o mesmo tanto de informação consolidada.
+    historico: { ver: true, editar: false },
   }),
 }
 

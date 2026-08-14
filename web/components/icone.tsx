@@ -50,6 +50,13 @@ const PATHS = {
   // painel de Tempo, distinto da seta rotacionada (essa é SVG à parte, não
   // entra neste sistema de ícones fixos porque precisa girar por grau).
   vento: <><path d="M3 8h11a3 3 0 1 0-3-3" /><path d="M3 13h15a3 3 0 1 1-3 3" /><path d="M3 18h8a2 2 0 1 0-2-2" /></>,
+  // Onda 32 (hub Hidráulica): torneira/válvula — distingue de "oleo" (gota,
+  // já usado pra combustível/abastecimento) porque aqui é água doce/esgoto,
+  // não combustível.
+  hidraulica: <><path d="M6 3v5a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V3" /><path d="M9 11v4" /><path d="M4 19c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0" /></>,
+  // Onda 32 (hub Segurança): escudo com check — distingue de "escudo" liso
+  // (já usado pro Casco) porque aqui é "verificado/em dia", não estrutura.
+  seguranca: <><path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z" /><path d="m9 12 2 2 4-4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

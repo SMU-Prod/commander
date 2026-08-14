@@ -43,6 +43,7 @@ export interface Equipamento {
 
 export type CategoriaItem =
   | "documento" | "deck" | "fibra" | "inox" | "vidros" | "estofados" | "casco_outros"
+  | "hidraulica_agua_doce" | "hidraulica_grey_water" | "hidraulica_black_water" | "seguranca"
 
 export interface ItemMonitorado {
   id: string
@@ -98,6 +99,39 @@ export interface Evento {
   trilha_sem_horario: boolean
   /** fingerprint da trilha original — usado só pra detectar reimportação, nunca exibido. */
   origem_hash: string | null
+  created_at: string
+}
+
+// Ocorrências (onda 32) — entidade com estado, ver web/lib/domain/ocorrencias.ts.
+export type EstadoOcorrenciaDb = "aberta" | "em_acompanhamento" | "resolvida"
+export type AbaOcorrenciaDb =
+  | "embarcacao" | "motores" | "eletrica" | "casco" | "hidraulica" | "seguranca" | "equipamentos" | "documentos"
+export type GravidadeOcorrenciaDb = "baixa" | "media" | "alta"
+
+export interface Ocorrencia {
+  id: string
+  embarcacao_id: string
+  aba: AbaOcorrenciaDb
+  equipamento_id: string | null
+  item_monitorado_id: string | null
+  evento_id: string | null
+  titulo: string
+  descricao: string | null
+  estado: EstadoOcorrenciaDb
+  gravidade: GravidadeOcorrenciaDb | null
+  anexo_path: string | null
+  criado_por: string | null
+  resolvida_em: string | null
+  created_at: string
+}
+
+export interface OcorrenciaTransicao {
+  id: string
+  ocorrencia_id: string
+  estado_anterior: EstadoOcorrenciaDb | null
+  estado_novo: EstadoOcorrenciaDb
+  observacao: string | null
+  criado_por: string | null
   created_at: string
 }
 

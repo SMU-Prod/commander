@@ -10,6 +10,7 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { calcularSemaforo, formatarDataCurta, PESO, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { iconeDoSistema, ordenarSistemas, urlManualNaPagina } from "@/lib/domain/sistemas"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
@@ -25,7 +26,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
   if (!equipamento) notFound()
 
   const ehMotor = equipamento.tipo === "motor"
-  const aba = ehMotor ? "motores" : "eletrica"
+  const aba = abaDoEquipamento(equipamento.tipo)
   const editavel = podeEditar(painel.permissoes, aba)
   const hoje = hojeISO()
 

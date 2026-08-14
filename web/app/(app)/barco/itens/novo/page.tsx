@@ -3,7 +3,10 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
+import {
+  CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
+  ROTULO_CASCO, ROTULO_HIDRAULICA,
+} from "@/lib/domain/diario"
 
 export default async function NovoItemPage({
   searchParams,
@@ -51,6 +54,10 @@ export default async function NovoItemPage({
           {CATEGORIAS_CASCO.map((c) => (
             <option key={c} value={`cat:${c}`}>Casco — {ROTULO_CASCO[c]}</option>
           ))}
+          {CATEGORIAS_HIDRAULICA.map((c) => (
+            <option key={c} value={`cat:${c}`}>Hidráulica — {ROTULO_HIDRAULICA[c]}</option>
+          ))}
+          <option value={`cat:${CATEGORIA_SEGURANCA}`}>Segurança</option>
         </CampoSelect>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal" placeholder="500" className="font-mono-instr tabular-nums" />
