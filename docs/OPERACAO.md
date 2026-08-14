@@ -726,6 +726,62 @@ navegação e documento de embarcação. Configuração (`instrumentation-client
 do próprio `app/layout.tsx`, caso raro) chamam `Sentry.captureException` — sem DSN, isso é
 no-op, sem custo.
 
+## Ambiente de teste — preview deployments (onda 31)
+
+Hoje `git push` não deploya sozinho (não há integração Git↔Vercel configurada neste
+projeto — cada deploy é manual pelo CLI). A regra da casa: **NUNCA `--prod` direto.**
+Sempre preview → conferir → só depois promover.
+
+### 1. Gerar um preview
+Dentro de `web/`:
+```
+vercel deploy
+```
+(sem `--prod`) — builda e publica numa URL única de preview
+(`commander-<hash>-smu-prods-projects.vercel.app`), sem tocar no domínio de produção. A
+Vercel imprime a URL ao final do comando.
+
+### 2. O que conferir no preview antes de promover
+- Abrir a URL de preview e passar pelo fluxo crítico: `/login` → entrar → `/hoje` →
+  `/navegar` (o mapa monta? nunca tela branca) → uma tela que grava dado (ex.: registrar
+  manutenção no diário).
+- Console do navegador sem erro vermelho novo (F12).
+- Se a mudança mexeu em rota de API ou variável de ambiente nova, testar essa rota
+  específica no preview.
+- Preview usa o MESMO banco Supabase de produção (não existe banco de staging separado —
+  ver "Verificação de backup" abaixo) — dado gravado num teste de preview é dado real.
+  Prefira testar com uma conta de teste, não a conta pessoal do dono.
+
+### 3. Só depois, promover
+```
+vercel deploy --prod
+```
+Ou, pra promover EXATAMENTE o build já testado no preview (sem rebuildar):
+`vercel promote <url-do-preview>`.
+
+### 4. Preview é privado por padrão (SSO da Vercel)
+Testado nesta onda (`vercel deploy` de dentro de `web/`, 14/08): o deploy completa e devolve
+uma URL tipo `commander-<hash>-smu-prods-projects.vercel.app`. Abrir essa URL sem estar
+logado na conta/time da Vercel devolve **302 para `vercel.com/sso-api`** — é a proteção
+padrão de preview deployment de projeto em time (não é bug; a URL não é indexada — header
+`X-Robots-Tag: noindex`). Pra conferir o preview: abra a URL logado na mesma conta Vercel
+do time, ou use `vercel inspect <url>` / os logs do próprio deploy pelo terminal.
+
+### 5. Se aparecer bloqueio de deploy por metadata de git
+O projeto Vercel (`smu-prods-projects/commander`) não está conectado a um repositório Git
+(deploys são só por CLI) — nessas condições, em alguns cenários (ex.: `vercel deploy` sem
+sessão de terminal interativa, ou metadata de commit que a Vercel não reconhece) o comando
+pode recusar citando autoria/branch do commit local. **Não reproduzido no teste desta
+onda** (o deploy funcionou direto, sem precisar disso) — mas caso apareça, o contorno
+conhecido é:
+```
+git remote remove origin
+vercel deploy            # ou --prod, conforme o caso
+git remote add origin <url-do-repositorio>
+```
+Sempre restaure o `origin` logo depois — não deixar o repositório local sem remote
+configurado por mais tempo que o necessário.
+
 ## Rate limiting (onda 31)
 
 Mitigação simples contra abuso/custo em rotas que custam dinheiro (push, e-mail, chamada de
