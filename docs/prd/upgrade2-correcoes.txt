@@ -1,0 +1,378 @@
+COMMANDER
+PRD DE CORREÇÕES — UPGRADE 2
+Correções sobre o PRD Master
+Este documento não substitui o PRD Master.
+Ele registra apenas correções que devem ser aplicadas ao documento e ao desenvolvimento.
+CORREÇÃO 01 — REMOVER “COMMANDER
+REVIEW” COMO PRODUTO
+❌ ERRADO
+O PRD anterior apresentou:
+Commander Verified
+Commander Review
+Commander Gold
+Isso cria a impressão de três produtos/selos diferentes.
+Não é essa a estrutura definida.
+✅ CORRETO
+Existem apenas:
+COMMANDER VERIFIED
+Verificação digital da embarcação.
+e
+COMMANDER GOLD
+Selo obtido através de avaliação presencial.
+• 
+• 
+• 
+1
+CORREÇÃO 02 — A AVALIAÇÃO PRESENCIAL NÃO
+SE CHAMA “COMMANDER REVIEW”
+A avaliação física é simplesmente o processo necessário para obtenção do Commander Gold.
+Fluxo correto:
+SOLICITAR COMMANDER GOLD
+↓
+PAGAMENTO
+↓
+AGENDAMENTO
+↓
+AVALIAÇÃO PRESENCIAL
+↓
+PROTOCOLO COMMANDER
+↓
+ANÁLISE
+↓
+APROVADO
+↓
+COMMANDER GOLD
+Não criar no produto:
+Commander Review
+como nome de serviço separado.
+2
+CORREÇÃO 03 — ESTRUTURA PRINCIPAL DO APP
+❌ REMOVER
+Da estrutura anterior:
+Selos & Review
+Também remover qualquer menu chamado:
+Commander Review
+Review
+Solicitar Review
+✅ NOVA ESTRUTURA
+Dentro da área da embarcação:
+EMBARCAÇÃO
+├── Visão Geral
+├── Motores
+├── Casco
+├── Elétrica
+├── Hidráulica
+├── Segurança
+├── Equipamentos
+├── Documentação
+├── Fotos
+├── Contatos
+├── Diário de Bordo
+├── Histórico / Ocorrências
+├── Resumos
+├── Commander Verified
+├── Commander Gold
+├── Gastos
+└── Transferir Embarcação
+A disposição visual final dessas opções ainda poderá ser refinada.
+3
+CORREÇÃO 04 — HUB DE CONFIANÇA
+Caso exista uma tela conjunta explicando os dois selos, ela não deve se chamar:
+❌ Selos & Review
+Pode ser algo como:
+Selos Commander
+ou simplesmente apresentar:
+COMMANDER VERIFIED
+COMMANDER GOLD
+O nome definitivo da tela conjunta pode ser decidido no UX final.
+O importante é:
+não existir “Review” como terceiro elemento.
+CORREÇÃO 05 — COMMANDER VERIFIED
+Permanece:
+COMMANDER VERIFIED
+É uma verificação digital.
+Baseada no cadastro, acompanhamento e histórico mantido dentro do Commander .
+Não implica inspeção presencial.
+Fluxo conceitual:
+CADASTRO
++
+HISTÓRICO
++
+DADOS ATUALIZADOS
+4
+↓
+COMMANDER VERIFIED
+CORREÇÃO 06 — COMMANDER GOLD
+Permanece:
+COMMANDER GOLD
+É o nível de confiança presencial.
+Fluxo:
+SOLICITAR GOLD
+↓
+AVALIAÇÃO PRESENCIAL
+↓
+PROTOCOLO COMMANDER
+↓
+APROVAÇÃO
+↓
+COMMANDER GOLD
+O cliente não compra um “Review”.
+Ele solicita/contrata o processo para obtenção do:
+COMMANDER GOLD
+5
+CORREÇÃO 07 — BOTÕES E CTAs
+❌ NÃO USAR
+Solicitar Commander Review
+Comprar Review
+Agendar Review
+Ver Review
+Relatório do Review
+✅ USAR
+Solicitar Commander Gold
+Quero o Commander Gold
+Solicitar avaliação
+Agendar avaliação
+Ver avaliação
+Ver relatório
+Ver relatório Commander Gold
+CORREÇÃO 08 — PAGAMENTO
+O pagamento anteriormente associado ao “Review” passa a ser entendido como pagamento da 
+avaliação presencial para o Commander Gold.
+Fluxo:
+SOLICITAR COMMANDER GOLD
+↓
+Quem realizará o pagamento?
+EU
+ou
+INTERESSADO
+EU
+EU
+↓
+Continuar para pagamento
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+6
+↓
+Pix / cartão
+↓
+Pagamento confirmado
+↓
+Agendamento da avaliação
+INTERESSADO
+INTERESSADO
+↓
+Gerar link / QR Code
+↓
+Interessado paga
+↓
+Pagamento confirmado
+↓
+Agendamento da avaliação
+CORREÇÃO 09 — BARCO AINDA NÃO
+CADASTRADO
+Essa funcionalidade permanece.
+Um comprador/interessado pode querer solicitar o Commander Gold / avaliação presencial de uma
+embarcação que ainda não possui cadastro Commander .
+Portanto:
+SOLICITAR COMMANDER GOLD
+├── Minha embarcação
+└── Outra embarcação
+Em Outra embarcação, coletar os dados necessários para localizar e avaliar o barco.
+CORREÇÃO 10 — PROTOCOLO COMMANDER
+O nome:
+7
+PROTOCOLO COMMANDER
+permanece correto.
+Ele é a metodologia interna/padronizada utilizada durante a avaliação presencial para determinar se a
+embarcação atende aos requisitos do Gold.
+Portanto:
+Commander Gold = selo
+Protocolo Commander = método de avaliação
+Não existe um terceiro produto entre os dois.
+CORREÇÃO 11 — RELATÓRIO
+❌ ERRADO
+“Relatório do Commander Review”
+✅ CORRETO
+Pode ser:
+Relatório da avaliação Commander Gold
+ou simplesmente:
+Relatório Commander Gold
+O relatório registra a avaliação que originou o selo.
+CORREÇÃO 12 — MODAL DO GOLD
+Ao tocar no selo:
+COMMANDER GOLD
+Texto sugerido:
+Esta embarcação passou por avaliação presencial realizada por um consultor náutico
+autorizado, seguindo o Protocolo Commander .
+8
+Mostrar:
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos aplicáveis
+Documentação
+Histórico
+Estados:
+✓ Avaliado
+■ Atenção
+N/A
+Dados:
+Data da avaliação
+Validade
+Consultor
+Versão do Protocolo Commander
+CTA:
+VER RELATÓRIO
+CORREÇÃO 13 — NOMENCLATURA DE STATUS
+O sistema de confiança da embarcação deve ser entendido assim:
+COMMANDER
+├── VERIFIED
+│   └── verificação digital
+│
+└── GOLD
+    └── avaliação presencial
+Nada entre os dois.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+9
+CORREÇÃO 14 — GOLD NÃO DEPENDE DO
+VERIFIED
+Essa regra permanece.
+Uma embarcação pode solicitar Gold mesmo sem possuir Verified.
+Portanto:
+VERIFIED ────── opcional ──────┐
+                               │
+                               ▼
+                         COMMANDER GOLD
+                               ▲
+                               │
+AVALIAÇÃO PRESENCIAL ──────────┘
+O Gold depende da avaliação presencial e aprovação.
+Não depende de ter conquistado Verified antes.
+CORREÇÃO 15 — PREÇOS
+Os valores que estavam associados ao “Commander Review” passam a ser considerados preços da 
+avaliação para obtenção do Commander Gold.
+Referência atual:
+Porte Avaliação Commander Gold
+Até 30 pés R$ 1.990
+31–40 pés R$ 2.490
+41–50 pés R$ 3.490
+51–60 pés R$ 4.490
+61–80 pés R$ 5.990
+81+ pés Sob consulta
+Não apresentar ao cliente como:
+Preço do Review
+Apresentar como:
+10
+Commander Gold
+ou:
+Avaliação Commander Gold
+CORREÇÃO 16 — GOLD + PREMIUM
+A decisão permanece:
+Se a embarcação for aprovada:
+COMMANDER GOLD ATIVO
++
+6 MESES DE COMMANDER PREMIUM
+CORREÇÃO 17 — EXPANSÃO INTERNACIONAL
+A lógica internacional também deve utilizar Gold, nunca Review.
+❌ ERRADO
+Commander Review — Baleares
+✅ CORRETO
+COMMANDER GOLD — BALEARES
+Exemplo:
+3/10 embarcações confirmadas
+↓
+10/10
+↓
+11
+Avaliações presenciais são realizadas na região
+↓
+Embarcações aprovadas recebem COMMANDER GOLD
+CORREÇÃO 18 — BACKEND
+O backend pode tecnicamente possuir uma entidade interna como:
+GoldInspection
+GoldEvaluation
+Inspection
+para controlar o processo presencial.
+Mas isso é implementação interna.
+Não expor ao cliente como:
+Commander Review
+Uma arquitetura possível:
+Vessel
+↓
+GoldApplication
+↓
+GoldEvaluation
+↓
+ProtocolEvaluation
+↓
+GoldStatus
+12
+Os nomes das entidades ficam a critério do desenvolvimento.
+CORREÇÃO 19 — ADMIN
+No Admin Commander:
+COMMANDER GOLD
+├── Solicitações
+├── Pagamentos
+├── Avaliações
+├── Agendamentos
+├── Consultores
+├── Protocolos
+├── Aprovados
+├── Reprovados
+├── Ativos
+└── Expirados
+Não há necessidade de um módulo independente chamado:
+Commander Review
+CORREÇÃO 20 — REGRA MESTRE
+A partir desta correção, qualquer ocorrência de:
+Commander Review
+no PRD Master , mockups ou especificações deverá ser interpretada/substituída conforme o contexto
+por:
+Commander Gold
+ou
+Avaliação presencial para Commander Gold
+ESTRUTURA OFICIAL DE CONFIANÇA
+A estrutura oficial passa a ser:
+13
+COMMANDER VERIFIED
+Digital
+Cadastro + histórico + acompanhamento dentro da plataforma.
+COMMANDER GOLD
+Presencial
+Avaliação presencial + Protocolo Commander + aprovação.
+REGRA FINAL
+NÃO EXISTE UM TERCEIRO PRODUTO CHAMADO COMMANDER
+REVIEW.
+Existem apenas:
+VERIFIED
+e
+GOLD.
+A avaliação presencial é parte do processo do Commander Gold, e não uma marca/produto
+independente.
+14

@@ -1,0 +1,112 @@
+COMMANDER CONNECT
+ Conceito do produto conectado + proposta para a aba "Em breve" do aplicativo
+ O Commander continua funcionando sem hardware.
+ 
+O Connect entra como uma camada opcional para
+automatizar dados que hoje são registrados manualmente.
+1. O que e o Commander Connect
+Commander Connect e a futura camada de conectividade do Commander. A primeira versao deve ser simples:
+conectar-se a uma rede NMEA 2000 ja existente e consumir os dados compativeis que ja circulam no barco,
+sem tentar substituir Garmin, Raymarine, Furuno ou os paineis dos motores.
+Principio: o Commander nao precisa conversar diretamente com cada chartplotter/MFD. Sempre que possivel,
+ele le a mesma rede padronizada que esses equipamentos utilizam.
+Motores /
+sensores
+->
+Gateway existente
+quando necessario
+->
+NMEA 2000
+->
+COMMANDER
+CONNECT
+->
+Nuvem / App
+2. Como seria o produto fisico
+A ideia inicial e uma pequena caixa instalada preferencialmente proxima ao painel/rede eletronica da
+embarcacao. Ela entra como mais um dispositivo da rede NMEA 2000. A versao final pode ser hardware proprio
+ou, no inicio, um gateway de terceiro com protocolo/SDK adequado e identidade Commander.
+COMMANDER CONNECT
+ Entrada NMEA 2000
+ Processamento dos dados recebidos
+ Memoria local para eventos/viagens
+ Wi-Fi e/ou Bluetooth para configuracao local
+ 4G/LTE/eSIM opcional para envio remoto a
+nuvem
+ LEDs: Power / NMEA / Cloud
+Onde instalar: normalmente atras do helm/painel ou em outro ponto protegido onde exista acesso ao backbone
+NMEA 2000 e alimentacao adequada. Nao ha necessidade de instalar a caixa no motor quando os dados ja
+estao disponiveis na rede.
+
+3. Regra comercial de compatibilidade
+CONNECT READY
+Rede NMEA 2000 existente + dados de motor compativeis ja disponiveis.
+Instala-se o Commander Connect, configura-se e pronto.
+CONNECT
+COMPATIBLE
+Motor/sistema digital compativel, mas os dados ainda nao chegam ao
+NMEA 2000. Pode exigir gateway/interface oficial adicional. Instalacao
+mediante orcamento.
+CONSULTAR
+COMPATIBILIDADE
+Sistema diferente ou instalacao desconhecida. Cliente envia
+marca/modelo/ano, fotos do painel e equipamentos. A Commander
+analisa e oferece solucao quando viavel.
+Importante: a lista publica de compatibilidade deve ser conservadora. O mesmo modelo de motor pode estar
+instalado com arquiteturas eletronicas diferentes. Portanto, "Connect Ready" deve significar que os dados
+desejados efetivamente estao disponiveis na rede NMEA 2000.
+4. Mercury e Yamaha - estrategia inicial
+Mercury: SmartCraft nao e automaticamente NMEA 2000. Em instalacoes onde um gateway SmartCraft
+compativel ja entrega dados ao NMEA 2000, o Commander Connect pode simplesmente entrar nessa rede.
+Sistemas que tenham SmartCraft mas nao exponham os dados na rede entram como "Connect Compatible" e
+podem exigir interface adicional.
+Yamaha: a mesma regra vale para Command Link/Command Link Plus e suas diferentes instalacoes. Quando
+a instalacao ja disponibiliza os dados no NMEA 2000, ela e candidata a Connect Ready. Quando precisa de
+gateway/conversao adicional, entra em Connect Compatible.
+A estrategia evita criar uma versao do Commander Connect para cada fabricante. A V1 do produto fala NMEA
+2000; a adaptacao entre motor e NMEA, quando necessaria, e tratada como kit/interface de instalacao.
+5. O que o Connect pode alimentar no Commander
+Dependendo dos dados realmente presentes na rede, o Commander pode automatizar horas de motor, RPM,
+temperatura, tensao, consumo/fluxo de combustivel, alguns estados/alarmes e outros parametros
+padronizados. Nem toda embarcacao disponibilizara todos esses dados.
+A aplicacao mais importante e o Diario de Bordo: o Connect pode reduzir preenchimento manual, registrar uso
+real dos motores e gerar ocorrencias automaticas quando houver dados confiaveis. Casco, tripulacao,
+passageiros e observacoes continuam dependendo do usuario.
+
+6. Nova aba no aplicativo: COMMANDER CONNECT
+Como a funcao ainda nao esta disponivel, a tela deve vender a visao sem prometer compatibilidade ou
+integracoes que ainda nao foram homologadas.
+ COMMANDER CONNECT
+ EM BREVE
+ Sua embarcacao, conectada ao Commander.
+Estamos preparando uma nova camada de conectividade para integrar o Commander aos dados
+ digitais da embarcacao.
+ NMEA 2000  Motores  Chartplotters/MFDs  Sensores de bordo
+ Menos preenchimento. Mais historico. Mais controle.
+Texto recomendado para a tela
+Em breve: Commander Connect
+Estamos preparando a conexao do Commander com os sistemas digitais da sua embarcacao. A proposta e
+integrar redes e equipamentos compativeis para transformar dados de bordo em historico automatico dentro do
+Commander.
+Planejado para o ecossistema Connect:
+ integracao com rede NMEA 2000;
+ leitura de dados de motores quando disponiveis na rede;
+ conexao com a infraestrutura usada por chartplotters/MFDs compativeis;
+ registro automatico de horas e dados no Diario de Bordo;
+ historico de temperatura e eventos do motor;
+ alertas e ocorrencias baseados em dados reais da embarcacao.
+Seu sistema nao aparece como compativel?
+A Commander podera analisar a instalacao e indicar interfaces adicionais quando houver uma solucao viavel.
+O que NAO escrever por enquanto
+Evitar anunciar "SeaTalk" ou "CAN bus" como conexoes diretas do produto antes de definir e homologar
+tecnicamente essas interfaces. SeaTalk/SeaTalkNG e CAN podem aparecer futuramente se houver suporte
+real. Para a tela de lancamento, NMEA 2000 e a promessa tecnica mais limpa para a V1 que estamos
+desenhando.
+Tambem evitar "compativel com Garmin, Raymarine e Furuno" de forma absoluta. Melhor dizer que o Connect
+foi pensado para coexistir com a infraestrutura NMEA 2000 utilizada por equipamentos maritimos compativeis.
+A homologacao por marca/modelo pode ser publicada depois.
+7. Proxima etapa tecnica
+
+Antes do lancamento: selecionar gateways NMEA 2000 -> Wi-Fi/Bluetooth/Internet com protocolo ou SDK
+documentado; testar leitura de PGNs necessarios; definir armazenamento local e envio a nuvem; testar em
+instalacoes Mercury e Yamaha reais; e so entao publicar uma matriz oficial de sistemas Connect Ready.

@@ -1,0 +1,2142 @@
+COMMANDER
+PRD MASTER — UPGRADE 2
+Product Requirements Document para desenvolvimento
+Status: Consolidação do produto após Upgrade 2
+Objetivo: servir como fonte principal para produto, design e desenvolvimento.
+IMPORTANTE: Jet Ski, embarcações em cota, cotistas e seus fluxos foram
+deliberadamente removidos deste PRD. Serão tratados no Upgrade 3.
+1. VISÃO DO COMMANDER
+O Commander é uma plataforma de gestão e ecossistema náutico.
+Não deve ser desenvolvido como simplesmente um cadastro de embarcações.
+O núcleo é criar uma identidade digital contínua da embarcação, permitindo que proprietário e pessoas
+autorizadas acompanhem:
+Estado da embarcação
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+Manutenções
+Ocorrências
+Diário de Bordo
+Histórico técnico
+Gastos
+Relatórios
+Commander Verified
+Commander Review
+Commander Gold
+Ao redor desse núcleo existe o ecossistema:
+Comandantes
+Prestadores
+Serviços
+Parceiros
+Marinas
+Postos
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1
+Restaurantes
+Pousadas/hotéis
+Lojas náuticas
+Explorar/Mapa
+Marketplace
+Vagas e oportunidades
+A arquitetura deve ser preparada para futuramente receber o Commander Connected, sem que
+Connected seja necessário para o funcionamento do Commander atual.
+2. PRINCÍPIO CENTRAL
+A embarcação deve ser tratada como uma entidade própria.
+Não é simplesmente:
+Usuário → dados
+É:
+Usuário → acesso/permissão → Embarcação → histórico
+Isso é fundamental porque o proprietário pode mudar , enquanto a embarcação e parte de sua memória
+técnica continuam existindo.
+Princípio
+Seu barco tem memória agora.
+3. PERFIS DO SISTEMA
+3.1 Proprietário — PROP
+É o responsável principal pela embarcação.
+Pode, conforme seu plano:
+Criar embarcação
+Editar embarcação
+Cadastrar motores
+Atualizar horas
+Registrar manutenções
+Registrar ocorrências
+Gerenciar documentação
+Gerenciar segurança
+Gerenciar equipamentos
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+2
+Registrar Diário de Bordo
+Consultar histórico
+Consultar gastos
+Gerar resumos
+Solicitar Commander Review
+Consultar Verified/Gold
+Transferir embarcação
+Convidar Comandante
+Gerenciar permissões
+Utilizar Serviços
+Utilizar Explorar
+Utilizar Marketplace
+Gerenciar assinatura
+4. COMANDANTE — CMDT
+O Comandante possui conta própria vinculada ao seu e-mail.
+Pode ter:
+Acesso operacional a embarcações
+Perfil profissional no Marketplace
+Esses dois conceitos são independentes.
+Um comandante pode trabalhar em determinada embarcação e também possuir perfil público para
+receber outras oportunidades.
+5. PERMISSÕES DO COMANDANTE
+O proprietário controla as permissões por embarcação.
+A implementação deve permitir uma matriz semelhante a:
+Área Visualizar Editar
+Visão Geral ✓ ✓/—
+Motores ✓ ✓/—
+Casco ✓ ✓/—
+Elétrica ✓ ✓/—
+Hidráulica ✓ ✓/—
+Segurança ✓ ✓/—
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1. 
+2. 
+3
+Área Visualizar Editar
+Equipamentos✓ ✓/—
+Documentos ✓ ✓/—
+Fotos ✓ ✓/—
+Contatos ✓ ✓/—
+Diário de Bordo✓ ✓/—
+Histórico ✓ ✓/—
+Gastos ✓/— ✓/—
+O proprietário define o acesso.
+Áreas financeiras e administrativas podem permanecer exclusivamente com o proprietário.
+6. TRIPULAÇÃO AUTORIZADA
+Não devemos transformar o Commander em sistema de RH completo da tripulação.
+O proprietário/comandante poderá autorizar usuários específicos quando necessário.
+A interface deverá informar que:
+Não é recomendado conceder permissão de alteração dos dados da embarcação
+para toda a tripulação.
+A lógica comercial de quantidade exata de acessos depende do plano.
+7. IDENTIDADE VISUAL
+Logo
+Símbolo Commander baseado nos dois M espelhados, remetendo a:
+Proa
+Brasão
+Controle
+Autoridade
+Confiança
+Paleta
+Navy profundo
+Dourado
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+4
+Branco/off-white
+Temas
+Light Mode — padrão
+Prioridade para legibilidade sob luz forte, marina e convés.
+Dark Mode — opcional
+Visual premium/yacht club.
+Os dois modos utilizam os mesmos componentes.
+Estados visuais
+🟢 OK
+🟡 ATENÇÃO
+🔴 CRÍTICO / VENCIDO
+O vermelho deve ser reservado para problemas reais.
+Ícones de informação não podem parecer alertas críticos.
+8. ESTRUTURA PRINCIPAL
+Estrutura conceitual:
+COMMANDER
+CONTA
+├── Dashboard
+├── Minha Conta
+└── Gerenciar acessos
+EMBARCAÇÃO
+├── Visão Geral
+├── Motores
+├── Casco
+├── Elétrica
+├── Hidráulica
+├── Segurança
+├── Equipamentos
+├── Documentação
+├── Fotos
+• 
+5
+├── Contatos
+├── Diário de Bordo
+├── Histórico / Ocorrências
+├── Resumos
+├── Selos & Review
+├── Gastos
+└── Transferir Embarcação
+ECOSSISTEMA
+├── Serviços
+├── Explorar
+├── Marketplace
+└── Parceiros
+CONTA
+├── Assinatura
+├── Pagamentos
+└── Configurações
+9. VISÃO GERAL DA EMBARCAÇÃO
+Dados básicos:
+Nome
+Foto principal
+Ano
+Estaleiro
+Modelo
+Comprimento
+Boca
+Calado
+Material do casco
+Número do casco
+TIE
+Capitania
+Propulsão
+Marina/base
+A tela deve funcionar como porta de entrada da embarcação.
+10. DASHBOARD / SAÚDE DA EMBARCAÇÃO
+🟡 STATUS: PARCIALMENTE DEFINIDO
+Essa será uma das telas mais importantes do Commander .
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+6
+O usuário deve abrir o app e responder imediatamente:
+"Meu barco está bem?"
+O Dashboard deve consolidar informações dos diferentes hubs.
+Exemplos:
+Estado geral
+Manutenções vencidas
+Próximas manutenções
+Documentos vencidos
+Próximos vencimentos
+Segurança
+Ocorrências abertas
+Horas dos motores
+Última utilização
+Últimas atividades
+Pendências
+Verified
+Gold
+Atalhos
+Saúde da Embarcação
+Deverá existir um indicador visual de saúde.
+Entretanto:
+A fórmula definitiva de cálculo NÃO está fechada.
+O programador pode preparar arquitetura/componentes, mas não deve inventar pesos ou algoritmo.
+11. MOTORES
+✅ FECHADO
+Cada motor é uma entidade independente.
+Exemplo:
+BB
+BE
+Cada um possui horas, manutenção e histórico próprios.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+7
+Identificação
+Marca
+Modelo
+Número de série
+Identificação interna
+Ano
+Potência HP
+Combustível
+Posição
+Horas
+Horas atuais
+Data da leitura
+Histórico de horas
+Última atualização
+Média de utilização quando houver dados suficientes
+Manutenção
+Registrar:
+Última revisão
+Data
+Horas
+Serviços executados
+Próxima revisão possui:
+Data
+E
+Horas
+São critérios independentes.
+REGRA
+A manutenção vence quando qualquer um dos dois limites for atingido primeiro.
+Exemplo:
+Revisão:
+500h OU 10/12/2026
+Se chegar a 500h em novembro:
+VENCIDA.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+8
+Não esperar dezembro.
+Óleo
+Especificação
+Quantidade
+Última troca
+Horas da troca
+Próxima troca
+Filtros
+Permitir:
+Óleo
+Combustível
+Ar
+Outros
+Cada item pode possuir manutenção/status próprio.
+Histórico
+Cada evento:
+Data
+Horas
+Serviço
+Prestador
+Valor opcional
+Observação
+Anexo
+Anexos
+Nota fiscal
+Relatório
+Manual
+Garantia
+Fotos
+12. ALERTAS DE MOTOR
+✅ FECHADO CONCEITUALMENTE
+O Commander deve avisar:
+Revisão próxima
+Revisão vencida
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+9
+Troca próxima
+Troca vencida
+Exemplo:
+Faltam 37 horas para a próxima revisão do Motor BB.
+Os limites exatos de antecedência das notificações poderão ser parametrizados posteriormente.
+13. CASCO
+✅ FECHADO
+Categorias:
+Deck
+Fibra
+Inox
+Vidros
+Estofados
+Outros
+Cada categoria possui:
+Estado
+Última intervenção
+Avarias
+Manutenções
+Ocorrências
+Fotos
+Anexos
+Histórico
+Não criar apenas campos soltos.
+Cada registro deve alimentar o histórico daquele componente.
+14. ELÉTRICA
+✅ FECHADO
+Área própria.
+Baterias
+Tipo
+Quantidade
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+10
+Data da última troca
+Observações
+Histórico
+Gerador
+Marca
+Modelo
+Serial
+Horas
+Última manutenção
+Próxima manutenção
+Utilizar , quando aplicável, a mesma lógica:
+horas OU data — o que ocorrer primeiro.
+Sistema/painel de bordo
+Cadastro das informações pertinentes.
+Histórico
+Toda intervenção elétrica relevante deve permanecer registrada.
+15. HIDRÁULICA
+✅ FECHADO
+Hub separado.
+Categorias principais:
+Água doce
+Grey Water
+Black Water
+Componentes hidráulicos cadastráveis
+O usuário poderá acompanhar componentes pertinentes da embarcação.
+Cada componente pode possuir:
+Estado
+Manutenção
+Ocorrência
+Observação
+Fotos/anexos
+Histórico
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+11
+O ícone de informação da área deve explicar a diferença entre os sistemas.
+16. SEGURANÇA
+✅ FECHADO
+Área crítica.
+Deve permitir cadastrar e acompanhar equipamentos/itens de segurança.
+Cada item poderá possuir , quando aplicável:
+Quantidade
+Validade
+Último teste
+Última manutenção
+Próxima manutenção
+Estado
+Observação
+Anexo
+Ocorrência
+REGRA DE UX
+O ! vermelho é reservado para alerta crítico.
+Não utilizar o mesmo símbolo vermelho simplesmente para explicar uma funcionalidade.
+Informações explicativas usam ícone neutro.
+17. EQUIPAMENTOS
+✅ FECHADO
+Área flexível.
+O usuário poderá cadastrar equipamentos existentes a bordo que queira acompanhar .
+Exemplos podem variar conforme embarcação.
+Cada equipamento poderá possuir:
+Nome
+Categoria
+Marca
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+12
+Modelo
+Serial
+Data de instalação
+Estado
+Última manutenção
+Próxima manutenção
+Prestador
+Observações
+Fotos
+Documentos
+Histórico
+Itens não aplicáveis simplesmente não precisam existir .
+18. DOCUMENTAÇÃO
+✅ FECHADO
+Central documental.
+Exemplos:
+TIE
+Seguro
+Vistoria
+Licença
+Certificados
+Documento de propriedade
+Outros documentos cadastráveis
+Campos:
+Tipo
+Número
+Emissor
+Data de emissão
+Validade
+Arquivo
+Observação
+Status
+Alertas
+Estrutura prevista:
+30 dias
+15 dias
+5 dias
+Vencido
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+13
+A interface deve destacar o estado.
+Nada vence sem você saber.
+19. FOTOS
+✅ DEFINIDO
+Álbuns:
+Exterior
+Interior
+Convés
+Documentação visual
+Outros
+Possibilidade futura/comercial de limite de armazenamento por plano.
+Caso exista limite, mostrar:
+Espaço utilizado
+Espaço disponível
+Upgrade
+20. CONTATOS
+✅ DEFINIDO
+Lista pessoal de contatos de confiança.
+Campos:
+Nome
+Empresa
+Especialidade
+Telefone
+E-mail
+Observações
+Avaliação pessoal
+Histórico de serviços vinculados
+Esses contatos não precisam necessariamente possuir conta pública no Commander .
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+14
+21. MANUTENÇÃO — REGRA TRANSVERSAL
+✅ FECHADO
+Manutenção não deve virar informação isolada.
+Uma manutenção registrada em Motor deve aparecer:
+No Motor
+No histórico
+Nos relatórios
+Nos gastos, quando possuir custo registrado
+O mesmo vale para outros hubs.
+Arquitetura:
+COMPONENTE → MANUTENÇÃO → HISTÓRICO → GASTO → RESUMO
+quando os respectivos dados existirem.
+22. OCORRÊNCIAS — REGRA TRANSVERSAL
+✅ CONCEITO FECHADO
+Uma ocorrência deve nascer ligada a um setor .
+Exemplo:
+Durante Diário de Bordo:
+Elétrica → luz de navegação BE falhou.
+Ao finalizar:
+O sistema cria ocorrência vinculada automaticamente ao Hub Elétrica.
+Possíveis estados:
+Aberta
+Em acompanhamento
+Resolvida
+Quando resolvida, o evento permanece no histórico.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+15
+23. DIÁRIO DE BORDO
+🟡 ESTRUTURA DEFINIDA / TELA FINAL PENDENTE
+O Diário registra utilização/operação da embarcação.
+Abertura
+Data
+Hora de saída
+Local de saída
+Destino/rota
+Comandante
+Tripulação/ajudante
+Passageiros
+Durante/final da viagem
+Registrar:
+Hora de chegada
+Duração
+Observações
+Abastecimento
+Ocorrências
+Fotos/anexos
+Checklist rápido
+O Diário deve conversar com:
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Exemplo:
+Motores — ✓ OK / observação
+Casco — ✓ OK / avaria/foto
+Elétrica — ✓ OK / observação
+Hidráulica — ✓ OK / observação
+Segurança — ✓ OK / ocorrência
+Pode existir:
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+16
+✓ OK GERAL
+para evitar obrigar o comandante a tocar individualmente em tudo quando não aconteceu nada.
+REGRA FUNDAMENTAL
+Uma ocorrência registrada no Diário deve ser encaminhada automaticamente ao hub correspondente
+com:
+Data
+Diário de origem
+Descrição
+Fotos/anexos
+24. DIÁRIO → HORAS DOS MOTORES
+✅ CONCEITO DEFINIDO
+Ao finalizar uma saída, o Commander pode sugerir atualização das horas.
+Exemplo:
+Saída registrada: 4h12min. Deseja atualizar as horas dos motores?
+A atualização não deve ser silenciosa se não houver telemetria confiável.
+O usuário confirma.
+Futuramente o Commander Connected poderá automatizar esse processo.
+25. HISTÓRICO / OCORRÊNCIAS CENTRAL
+🟡 PENDENTE DE TELA FINAL
+Precisamos de uma visão central capaz de consolidar eventos da embarcação.
+Deverá receber informações de:
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+17
+Diário
+Commander Review
+Filtros poderão incluir:
+Data
+Categoria
+Tipo
+Status
+A estrutura conceitual está definida.
+A interface definitiva ainda precisa ser fechada.
+26. MEMÓRIA TÉCNICA
+✅ FECHADO
+Um dos princípios mais importantes do Commander .
+O sistema constrói progressivamente uma memória técnica da embarcação.
+Inclui informações transferíveis pertinentes como:
+Motores
+Horas
+Manutenções
+Ocorrências técnicas
+Relatórios
+Commander Review
+Commander Gold
+Documentos técnicos compartilháveis
+Não é apenas "histórico da conta do Pedro".
+É:
+histórico da embarcação.
+27. TRANSFERÊNCIA DE PROPRIEDADE
+✅ FECHADO CONCEITUALMENTE
+Caminho:
+Gerenciar embarcação → Transferir propriedade
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+18
+O proprietário poderá iniciar processo de transferência.
+Pode acompanhar o barco
+Quando autorizado:
+Dados técnicos
+Motores
+Horas
+Manutenções
+Ocorrências técnicas
+Relatórios
+Histórico técnico
+Gold
+Documentos técnicos compartilháveis
+NÃO transferir automaticamente
+Dados pessoais
+Informações privadas
+Passageiros
+Custos privados
+Informações financeiras pessoais
+Dados sensíveis do proprietário anterior
+28. RESUMOS
+✅ FECHADO
+Criar área:
+RESUMOS
+Períodos:
+Mensal
+Semestral
+Anual
+Inicialmente haverá um único modelo de relatório excelente.
+Não criar "executivo", "completo", "premium", etc. nesta fase.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+19
+29. CONTEÚDO DOS RESUMOS
+O PDF/relatório deve utilizar dados existentes no Commander .
+Pode incluir:
+Utilização
+Diários
+Horas dos motores
+Manutenções
+Ocorrências abertas
+Ocorrências resolvidas
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+Abastecimentos
+Gastos disponíveis
+Semestral e anual podem também apresentar:
+Evolução
+Comparativos
+Totais do período
+Não inventar informação ausente.
+30. HUB — SELOS & REVIEW
+✅ FECHADO
+A embarcação possui dois conceitos distintos:
+COMMANDER VERIFIED
+Verificação digital.
+COMMANDER GOLD
+Avaliação presencial.
+A diferença precisa ficar extremamente clara.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+20
+31. COMMANDER VERIFIED
+🟡 CONCEITO FECHADO / CRITÉRIOS NUMÉRICOS PENDENTES
+O Verified é conquistado pelo uso/completude digital.
+Não envolve visita presencial.
+Conceitualmente considera:
+Motores cadastrados
+Manutenções acompanhadas
+Segurança cadastrada
+Documentação acompanhada
+Histórico ativo
+Dados relevantes atualizados
+IMPORTANTE
+Verified NÃO significa que a Commander inspecionou fisicamente a embarcação.
+Essa mensagem precisa aparecer na interface.
+32. VISUAL DO VERIFIED
+✅ DEFINIDO
+Direção:
+Navy/preto
+Prata
+Sem dourado
+Escudo
+✓
+Símbolo Commander
+Ao tocar , abre modal.
+Modal
+Explica:
+COMMANDER VERIFIED
+Verificação digital baseada no cadastro e histórico mantidos na plataforma.
+Mostrar critérios atingidos.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+21
+Ao final:
+CTA para conhecer o Commander Gold.
+33. COMMANDER GOLD
+✅ CONCEITO FECHADO
+O Gold é presencial.
+Não é simplesmente uma versão paga do Verified.
+Para receber Gold:
+SOLICITAR REVIEW
+↓
+VISITA PRESENCIAL
+↓
+PROTOCOLO COMMANDER
+↓
+AVALIAÇÃO
+↓
+APROVAÇÃO
+↓
+COMMANDER GOLD
+O Gold pode ser solicitado mesmo que a embarcação não possua Verified.
+22
+34. VISUAL DO GOLD
+✅ DEFINIDO
+Direção:
+Medalhão navy
+Dourado
+Âncora dourada
+Símbolo Commander
+Data
+Validade
+O Gold deve parecer significativamente mais premium que o Verified.
+35. MODAL COMMANDER GOLD
+✅ FECHADO
+Ao tocar no Gold:
+COMMANDER GOLD
+Esta embarcação passou por avaliação presencial realizada por um de nossos consultores
+náuticos, seguindo o Protocolo Commander .
+Mostrar:
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos aplicáveis
+Documentação
+Histórico
+Estados:
+✓ Avaliado
+■ Atenção
+N/A
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+23
+Também mostrar:
+Data da visita
+Validade
+Consultor
+Identificação/versão do protocolo
+CTA:
+VER RELATÓRIO DO REVIEW
+36. COMMANDER REVIEW
+✅ FECHADO
+Commander Review é o nome do serviço presencial.
+Protocolo Commander é a metodologia/checklist utilizada.
+Comunicação ao cliente:
+Avaliação presencial realizada por nossos consultores náuticos seguindo o Protocolo
+Commander.
+Evitar linguagem excessivamente burocrática.
+37. QUEM PODE SOLICITAR REVIEW
+✅ FECHADO
+Pode solicitar:
+Proprietário
+Vendedor
+Interessado/comprador
+REGRA IMPORTANTE
+A embarcação não precisa estar cadastrada no Commander.
+Isso permite ao interessado avaliar uma embarcação antes da compra.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+24
+38. PAGAMENTO DO REVIEW
+✅ FECHADO
+Pergunta:
+QUEM PAGARÁ?
+EU
+Fluxo:
+EU → pagamento → Pix/cartão → confirmação → autorização/agendamento
+INTERESSADO
+Fluxo:
+INTERESSADO → gerar link/QR Code → enviar → pagamento → confirmação → 
+autorização/agendamento
+Na interface final não utilizar linguagem técnica como:
+"gerar checkout"
+Utilizar linguagem de cliente:
+Continuar para pagamento
+Pagar
+Enviar link de pagamento
+39. PREÇOS INICIAIS DO COMMANDER REVIEW
+✅ REFERÊNCIA COMERCIAL ATUAL
+Porte Valor
+Até 30 pés R$ 1.990
+31–40 pés R$ 2.490
+41–50 pés R$ 3.490
+51–60 pés R$ 4.490
+61–80 pés R$ 5.990
+• 
+• 
+• 
+25
+Porte Valor
+81+ pés Sob consulta
+Deslocamentos extraordinários podem ser cobrados separadamente.
+Os valores devem ser configuráveis pelo sistema/admin, não hardcoded de forma irreversível.
+40. GOLD + PREMIUM
+✅ DECISÃO ATUAL
+Review aprovado:
+→ recebe Commander Gold
+→ inclui 6 meses de acesso Premium
+O Gold é independente do plano anterior do usuário.
+Um usuário Free pode comprar Review.
+41. PROTOCOLO COMMANDER
+🟡 CONCEITO FECHADO / CHECKLIST TÉCNICO FINAL PENDENTE
+É a metodologia oficial utilizada durante a visita.
+Deve verificar os hubs pertinentes:
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+Histórico
+Nem tudo é aplicável a toda embarcação.
+Por isso o protocolo precisa aceitar:
+N/A — não aplicável
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+26
+Os critérios mínimos finais para aprovação Gold ainda serão definidos.
+42. EXPANSÃO INTERNACIONAL DO GOLD
+🔵 ARQUITETURA COMERCIAL DEFINIDA / IMPLEMENTAÇÃO
+POSTERIOR
+Modelo de lote regional.
+Exemplo:
+COMMANDER GOLD — BALEARES
+1/10
+2/10
+3/10
+...
+10/10
+A expedição ocorre quando existir número suficiente de Reviews confirmados/pagos para tornar a rota
+economicamente viável.
+REGRA
+Trabalhar por região/rota, não simplesmente país.
+Exemplos:
+Lisboa/Cascais
+Algarve
+Baleares
+Primeira operação de determinada região pode ser realizada diretamente pela equipe central
+Commander .
+Posteriormente:
+→ consultor local treinado
+→ aplicação do mesmo Protocolo Commander
+→ expansão escalável.
+• 
+• 
+• 
+27
+43. FREE → PREMIUM → VERIFIED → GOLD
+✅ ESTRATÉGIA DEFINIDA
+FREE
+Permite experimentar o Commander .
+A embarcação deve poder parecer visualmente completa.
+Recursos Premium aparecem, porém bloqueados.
+Pode existir limite de uso, por exemplo:
+até 2 Diários
+Objetivo:
+Mostrar o valor do produto antes do paywall.
+PREMIUM
+Libera gestão completa conforme plano.
+VERIFIED
+Não é comprado.
+É conquistado digitalmente.
+GOLD
+Não depende da assinatura.
+O cliente compra o Commander Review.
+Se aprovado:
+→ Gold.
+44. ASSINATURA
+A tela deve mostrar:
+Plano• 
+28
+Valor
+Benefícios
+Próxima cobrança
+Forma de pagamento
+Histórico de cobranças
+Cancelamento
+Upgrade
+Formas inicialmente previstas:
+Cartão
+Pix/solução recorrente compatível
+Gateway ainda precisa ser escolhido definitivamente.
+45. GASTOS
+✅ CONCEITO DEFINIDO
+Não é banco.
+Não é carteira.
+Não é conta de pagamento.
+É:
+CONTROLE FINANCEIRO DA EMBARCAÇÃO
+Mostrar:
+Total do mês
+Gastos por categoria
+Histórico
+Evolução
+Lançamentos recentes
+46. INTEGRAÇÃO GASTO ↔ MANUTENÇÃO
+Se uma manutenção possuir custo:
+Exemplo:
+Troca de óleo Motor BB — R$ 2.300
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+29
+ela pode alimentar automaticamente Gastos.
+Custos também podem ser lançados manualmente.
+Categorias podem incluir:
+Motor
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Marina
+Combustível
+Comandante
+Prestadores
+Outros
+47. PERFIL PROFISSIONAL DO COMANDANTE
+✅ CONCEITO DEFINIDO
+O Comandante pode possuir perfil público separado do acesso operacional.
+Perfil:
+Foto
+Nome
+Localização
+Certificações
+Especialidades
+Avaliação
+Experiência
+Disponibilidade
+Pode mostrar:
+Vagas
+Diárias
+Histórico de trabalhos
+Avaliações
+48. VERIFICAÇÃO DO COMANDANTE
+A Commander poderá verificar documentação profissional antes de conceder selo profissional.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+30
+IMPORTANTE:
+Esse selo é diferente de:
+Commander Verified da embarcação.
+São sistemas de confiança diferentes.
+A responsabilidade jurídica dessa verificação deverá ser validada antes do lançamento.
+49. VAGAS E DIÁRIAS
+O Marketplace pode conter:
+VAGAS
+Trabalho fixo/temporada.
+DIÁRIAS
+Trabalho pontual.
+Modelo inicial discutido:
+Primeiro fechamento do CMDT pode utilizar preço inicial padronizado pela plataforma.
+Referência estudada:
+R$ 350
+Após primeiro fechamento concluído, possibilidade de preço próprio.
+Comissão estudada:
+10%
+Essas regras comerciais devem ser configuráveis.
+50. PRESTADORES
+Perfil profissional para:
+Mecânico
+Eletricista
+Fibra
+• 
+• 
+• 
+31
+Estofamento
+Eletrônica
+Hidráulica
+Outros serviços náuticos
+O proprietário poderá publicar uma demanda.
+Exemplo:
+Preciso de mecânico Volvo em Angra.
+Prestadores poderão visualizar/interagir conforme as regras do Marketplace.
+51. SERVIÇOS
+✅ CONCEITO DEFINIDO
+Objetivo:
+Encontrar quem resolve determinado problema.
+Pode mostrar categorias e prestadores.
+Não deve ser confundido com Explorar .
+52. EXPLORAR
+✅ CONCEITO DEFINIDO
+Objetivo:
+Descobrir onde ir e o que existe ao redor da navegação.
+Categorias:
+Marina
+Posto
+Pousada/hotel
+Restaurante
+Loja náutica
+Outros parceiros pertinentes
+Explorar deve possuir forte componente de mapa.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+32
+53. MARKETPLACE
+✅ CONCEITO ATUAL
+Marketplace é a área de:
+Oportunidades
+Vagas
+Diárias
+Serviços solicitados
+Necessidades
+Procura por itens/peças
+Exemplo:
+COMPRO — Rádio VHF
+Fornecedores/prestadores podem responder .
+54. REGRA DO MARKETPLACE
+✅ DECISÃO IMPORTANTE
+Não queremos:
+feed lotado de empresas anunciando produtos aleatórios.
+Uma loja náutica pode possuir perfil, fotos, localização e informações sobre o que oferece.
+Mas o Marketplace deve ser orientado principalmente pela necessidade do usuário.
+Exemplo:
+Proprietário precisa de VHF
+↓
+Publica demanda
+↓
+Loja/prestador encontra a oportunidade
+Isso reduz poluição comercial.
+• 
+• 
+• 
+• 
+• 
+• 
+33
+55. PARCEIROS
+Criar tipo de conta/painel:
+PARCEIRO
+Cada categoria possui informações específicas.
+Parceiro não precisa possuir ficha de embarcação.
+56. MARINA
+Pode cadastrar:
+Nome
+Localização
+Fotos
+Contato
+Horários
+Estrutura
+Vagas
+Diárias
+Preços
+Serviços
+Posto próprio
+Diesel quando aplicável
+Informações de acesso
+57. POSTO NÁUTICO
+Pode cadastrar:
+Localização
+Combustíveis
+Preço
+Horário
+Contato
+Serviços
+Última atualização
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+34
+58. POUSADA / HOTEL COM ACESSO NÁUTICO
+Campos:
+Localização
+Fotos
+Vaga própria
+Poita
+Quantidade
+Calado suportado
+Preço
+Traslado
+Check-in náutico
+Horários
+Contato
+59. RESTAURANTE COM ACESSO NÁUTICO
+Campos:
+Localização
+Fotos
+Vaga
+Poita
+Quantidade
+Calado
+Vaga paga ou cortesia
+Culinária
+Faixa de preço
+Horários
+Contato
+Reserva integrada pode ser fase futura.
+60. LOJA NÁUTICA
+✅ ADICIONADA AO MODELO
+Perfil:
+Nome
+Localização
+Contato
+Fotos
+Categorias de produtos
+Serviços
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+35
+Marcas atendidas quando pertinente
+Pode responder a demandas do Marketplace.
+Não deve transformar o Marketplace em catálogo publicitário.
+61. ATUALIZAÇÃO DE INFORMAÇÕES DE
+PARCEIROS
+Conceito já estudado:
+Mostrar:
+Atualizado há 3 horas
+ou:
+Atualizado há 12 dias
+Informações antigas não devem parecer tempo real.
+Após período elevado sem atualização, o sistema pode sinalizar que o dado precisa ser confirmado.
+62. MAPA
+🟡 CONCEITO DEFINIDO / TECNOLOGIA PENDENTE
+Mapa poderá usar:
+Google Maps SDK
+ou
+Mapbox
+Decisão técnica pendente.
+Pins diferentes por categoria.
+Ao tocar:
+PIN → CARD RESUMIDO → PERFIL COMPLETO
+• 
+• 
+• 
+36
+Ações:
+Ver rota
+Ligar
+Contato
+Ver informações
+Solicitar/reservar quando aplicável
+63. MAR AGORA / METEOROLOGIA
+🔵 PARCIALMENTE DEFINIDO
+Área de condições para navegação.
+Pode incluir:
+Vento
+Ondas
+Condições
+Alertas meteorológicos
+Situação da região da embarcação
+APIs estudadas:
+Open-Meteo
+StormGlass
+Windy/API compatível
+A API definitiva e escopo final ainda precisam ser escolhidos.
+64. ALERTAS E NOTIFICAÇÕES
+Arquitetura deve aceitar notificações provenientes de:
+Motor
+Manutenção
+Documentos
+Segurança
+Gerador
+Ocorrências
+Meteorologia
+Commander Review
+Gold
+Assinatura
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+37
+Tipos futuros:
+Push
+E-mail
+Dentro do app
+O detalhamento completo de frequência/canais ainda precisa ser fechado.
+65. CHAT COMMANDER
+Funcionalidade prevista:
+Falar com a equipe Commander
+Pode inicialmente utilizar integração externa em vez de construir sistema de atendimento complexo.
+Exemplos estudados:
+WhatsApp Business
+Zendesk
+Intercom
+equivalente
+66. SEGURO NÁUTICO
+Funcionalidade comercial prevista.
+Próximo do vencimento:
+Seu seguro está próximo do vencimento. Deseja solicitar uma cotação?
+Pode encaminhar lead para corretora parceira.
+Não é necessário construir seguradora dentro do Commander .
+67. COMMANDER CONNECTED
+🔵 FASE FUTURA
+O Commander atual deve funcionar 100% sem hardware.
+Connected futuramente automatiza dados.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+38
+Arquitetura conceitual:
+MOTORES / SENSORES
+↓
+NMEA 2000 / INTERFACE COMPATÍVEL
+↓
+COMMANDER CONNECTED
+↓
+CLOUD
+↓
+APP COMMANDER
+68. DADOS FUTUROS DO CONNECTED
+Quando disponíveis:
+Localização
+Velocidade
+Heading
+Horas dos motores
+Combustível
+Baterias
+Energia
+Profundidade
+Vento
+AIS
+Outros dados compatíveis
+Não assumir que toda embarcação disponibiliza todos esses dados.
+69. ESTRATÉGIA CONNECTED
+Não substituir:
+Garmin
+Raymarine
+Simrad
+Furuno
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+39
+Boning
+equipamentos existentes
+Commander deve ficar uma camada acima do helm.
+Hardware próprio somente onde necessário.
+Piloto futuro estudado:
+10–25 embarcações.
+70. PRINCÍPIOS DE UX
+A interface deve evitar termos internos.
+NÃO:
+"Gerar checkout"
+"Objeto cadastrado"
+"CRUD"
+"Evento de manutenção"
+SIM:
+"Continuar para pagamento"
+"Adicionar equipamento"
+"Registrar manutenção"
+"Resolver ocorrência"
+A linguagem deve ser de proprietário/comandante.
+71. AÇÕES RÁPIDAS
+Sempre que fizer sentido:
++ Registrar manutenção
++ Abrir ocorrência
++ Novo Diário
+• 
+• 
+40
++ Adicionar documento
++ Atualizar horas
++ Registrar gasto
+Solicitar Commander Review
+Evitar obrigar o usuário a navegar por cinco telas para executar ações frequentes.
+72. RELACIONAMENTO ENTRE OS DADOS
+Uma das regras mais importantes para o backend:
+Não criar módulos isolados.
+Exemplo:
+Usuário registra no Diário:
+Bomba de água doce apresentou falha.
+Isso deve poder gerar:
+DIÁRIO
+↓
+OCORRÊNCIA
+↓
+HIDRÁULICA
+↓
+posteriormente MANUTENÇÃO
+↓
+GASTO
+↓
+HISTÓRICO
+41
+↓
+RESUMO MENSAL
+Essa inteligência relacional é parte essencial do Commander .
+73. ENTIDADES PRINCIPAIS DE BACKEND
+Arquitetura inicial deverá prever entidades equivalentes a:
+User
+Profile
+Vessel
+VesselAccess
+Permission
+Engine
+EngineHourReading
+Component
+Maintenance
+Occurrence
+Document
+SafetyItem
+Equipment
+Logbook
+LogbookEntry
+Attachment
+Expense
+Contact
+Review
+ReviewProtocol
+ReviewItem
+VerifiedStatus
+GoldStatus
+Transfer
+Subscription
+Payment
+ProfessionalProfile
+Job
+ServiceRequest
+MarketplacePost
+Partner
+PartnerLocation
+Nomes técnicos podem mudar .
+O importante é preservar as relações.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+42
+74. REGRA DE ANEXOS
+Anexos devem estar vinculados ao registro correspondente.
+Exemplo:
+Nota fiscal de revisão do Motor BB não deve simplesmente ficar perdida em "arquivos".
+Ela pertence a:
+Motor BB → Manutenção X → Anexo
+E pode também aparecer no histórico.
+75. AUDITORIA / ORIGEM DO REGISTRO
+Recomendado registrar internamente:
+Quem criou
+Quem editou
+Data/hora
+Origem
+Especialmente para:
+Manutenção
+Ocorrência
+Diário
+Documentação
+Review
+Transferência
+Isso será importante para confiança no histórico.
+76. ESTADOS IMPORTANTES
+O backend deve evitar apenas true/false quando o processo possui ciclo.
+Ocorrência
+ABERTA → EM ACOMPANHAMENTO → RESOLVIDA
+Documento
+OK → PRÓXIMO → CRÍTICO → VENCIDO
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+43
+Manutenção
+OK → PRÓXIMA → VENCIDA
+Review
+SOLICITADO → AGUARDANDO PAGAMENTO → PAGO → AGENDAMENTO → AGENDADO → REALIZADO 
+→ EM ANÁLISE → APROVADO/REPROVADO
+Gold
+INATIVO → ATIVO → PRÓXIMO DO VENCIMENTO → EXPIRADO
+Estados exatos podem receber ajuste, mas arquitetura deve considerar workflow.
+77. ADMIN COMMANDER
+Além do aplicativo do cliente, o sistema precisará futuramente de backoffice.
+Equipe Commander deve conseguir administrar:
+Usuários
+Embarcações
+Assinaturas
+Pagamentos
+Reviews
+Consultores
+Gold
+Verified
+Parceiros
+Profissionais
+Denúncias/moderação
+Preços
+Protocolos
+Configurações
+Não é necessário deixar todo o Admin bonito no MVP .
+Mas as operações administrativas não podem depender de alteração direta no banco.
+78. O QUE ESTÁ FECHADO NO UPGRADE 2
+✅ IMPLEMENTAÇÃO PODE SEGUIR CONCEITUALMENTE
+Motores
+Casco
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+44
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+Fotos
+Contatos
+Manutenções
+Ocorrências vinculadas aos hubs
+Diário alimentando hubs
+Atualização sugerida de horas pelo Diário
+Gastos
+Resumos mensal/semestral/anual
+Memória técnica
+Transferência de propriedade
+Hub Selos & Review
+Diferença Verified × Gold
+Commander Review
+Protocolo Commander como metodologia
+Solicitação por proprietário/vendedor/interessado
+Review de barco não cadastrado
+Pagamento EU/INTERESSADO
+Gold independente da assinatura
+Gold com 6 meses Premium
+Serviços
+Explorar
+Marketplace conceitual
+Parceiros
+Marina
+Posto
+Pousada/hotel
+Restaurante
+Loja náutica
+Comandante como perfil profissional + acesso operacional
+79. O QUE AINDA PRECISA SER FECHADO
+🟡 NÃO INVENTAR DURANTE O DESENVOLVIMENTO
+1. Dashboard definitivo
+Layout e hierarquia final.
+2. Saúde da Embarcação
+Fórmula/pesos/status.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+45
+3. Diário de Bordo
+Tela e campos finais.
+4. Histórico/Ocorrências
+Tela central definitiva.
+5. Commander Verified
+Critérios objetivos para conquista e perda/manutenção.
+6. Commander Gold
+Critérios mínimos exatos de aprovação.
+7. Protocolo Commander
+Checklist técnico definitivo.
+8. Planos
+Diferenças comerciais finais entre Commander / Pro / Enterprise.
+9. Permissões
+Quantidade exata de usuários permitidos por plano.
+10. Pagamentos
+Gateway definitivo.
+11. Mapa
+Google Maps × Mapbox.
+12. Meteorologia
+API e escopo definitivo.
+13. Notificações
+Regras exatas de push/e-mail.
+46
+80. FORA DO UPGRADE 2
+🔵 NÃO DESENVOLVER AGORA
+Jet Ski
+Embarcações em cota
+Cotistas
+Gestão de cotas
+Fluxos específicos para administradoras de cotas
+Tudo isso será definido no COMMANDER UPGRADE 3.
+Também deixar como fase futura:
+Commander Connected
+Hardware próprio
+Integrações profundas com eletrônica de bordo
+Reserva completa de restaurante/hotel
+Recursos avançados que dependam de massa crítica
+81. ORDEM RECOMENDADA DE IMPLEMENTAÇÃO
+BLOCO 1 — FUNDAÇÃO
+Usuários
+Login
+Perfis
+Embarcações
+Acessos
+Permissões
+BLOCO 2 — GESTÃO TÉCNICA
+Motores
+Casco
+Elétrica
+Hidráulica
+Segurança
+Equipamentos
+Documentação
+BLOCO 3 — HISTÓRICO
+Manutenções
+Ocorrências
+Anexos
+Gastos
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+47
+BLOCO 4 — OPERAÇÃO
+Diário de Bordo
+Integração Diário → hubs
+Horas
+BLOCO 5 — INTELIGÊNCIA
+Dashboard
+Alertas
+Saúde
+Resumos
+BLOCO 6 — CONFIANÇA
+Verified
+Review
+Protocolo
+Gold
+Transferência
+BLOCO 7 — ECOSSISTEMA
+Serviços
+Explorar
+Marketplace
+Parceiros
+Comandantes
+Prestadores
+BLOCO 8 — COMERCIAL
+Free/Premium
+Assinatura
+Paywall
+Pagamentos
+Upgrades
+82. REGRA PARA O PROGRAMADOR
+Quando existir uma funcionalidade marcada neste PRD como:
+✅ FECHADA
+Pode ser implementada respeitando as regras descritas.
+Quando estiver:
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+48
+🟡 PENDENTE
+Perguntar antes de criar a regra de negócio.
+Quando estiver:
+🔵 FUTURA
+Preparar arquitetura somente quando necessário para evitar retrabalho, mas não transformar em
+prioridade atual.
+83. OBJETIVO DO UPGRADE 2
+O Upgrade 2 deve fazer o Commander deixar de parecer:
+"um aplicativo onde cadastro informações do meu barco"
+e passar a parecer:
+"o sistema operacional da minha embarcação."
+O diferencial não está simplesmente em possuir uma tela de Motor ou Documentação.
+Está no relacionamento:
+Diário gera histórico.
+Ocorrência gera ação.
+Manutenção gera memória.
+Gasto conversa com manutenção.
+Documento gera alerta.
+Histórico gera confiança.
+Uso consistente gera Verified.
+Avaliação presencial gera Gold.
+Necessidade encontra serviço.
+Navegação encontra parceiro.
+E tudo permanece conectado à mesma embarcação.
+49
+84. POSICIONAMENTO DO PRODUTO
+Frases que representam a direção do Commander:
+Do motor ao mar inteiro. Commander.
+Seu barco. Sua marina. Seu comando.
+Um app. Todo o litoral.
+Documento em dia. Motor em dia. Comando em dia.
+Nada vence sem você saber.
+Seu barco tem memória agora.
+Conectando quem navega com quem recebe.
+E a principal:
+Você não administra um barco.
+Você comanda um império.
+COMMANDER
+50
