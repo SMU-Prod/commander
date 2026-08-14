@@ -85,6 +85,10 @@ export default async function MenuPage({
         subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
       />
 
+      <SecaoPagina icone="documento">Legal</SecaoPagina>
+      <LinhaLista href="/termos" variant="cartao" titulo="Termos de Uso" />
+      <LinhaLista href="/privacidade" variant="cartao" className="mt-2" titulo="Política de Privacidade" />
+
       <form action={sair} className="mt-8">
         <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">
           Sair da conta
