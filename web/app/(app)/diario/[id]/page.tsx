@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Avatar } from "@/components/avatar"
 import { Icone } from "@/components/icone"
@@ -8,6 +9,7 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
+import { ROTULO_HUB_CHECKLIST } from "@/lib/domain/checklist-diario"
 import { textoCompartilharSaida } from "@/lib/domain/compartilhar"
 import { resumoTrilha } from "@/lib/domain/geo"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
@@ -90,6 +92,15 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
 
   const temMar = e.mar_onda_m != null || e.mar_vento_kt != null
 
+  // Checklist rápido por hub (onda 40, PRD §23) — quando algum hub virou
+  // ocorrência (checkbox "isso é um problema" marcada ao registrar), o link
+  // "Ver ocorrência" reconstrói pela mesma dupla evento_id+aba, sem precisar
+  // duplicar o id da ocorrência dentro do próprio array `checklist`.
+  const checklist = Array.isArray(e.checklist) ? e.checklist : []
+  const { data: ocorrenciasDaSaida } = checklist.length > 0
+    ? await supabase.from("ocorrencias").select("id, aba").eq("evento_id", id)
+    : { data: [] as { id: string; aba: string }[] }
+
   const texto = textoCompartilharSaida({
     distanciaNm: r?.distanciaNm ?? null,
     duracaoH,
@@ -170,6 +181,33 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
               <span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>
               {e.mar_vento_kt != null ? `${Math.round(e.mar_vento_kt)} kt` : "—"}
             </span>
+          </div>
+        </div>
+      )}
+
+      {checklist.length > 0 && (
+        <div>
+          <SecaoPagina icone="guardado">Checklist da saída</SecaoPagina>
+          <div className="sombra-1 divide-y divide-line rounded-[14px] border border-line bg-panel px-4">
+            {checklist.map((item) => {
+              const ocorrencia = (ocorrenciasDaSaida ?? []).find((o) => o.aba === item.hub)
+              return (
+                <div key={item.hub} className="py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="corpo font-medium">{ROTULO_HUB_CHECKLIST[item.hub]}</p>
+                    <span className={`apoio font-medium ${item.estado === "ok" ? "text-ok" : "text-warn"}`}>
+                      {item.estado === "ok" ? "OK" : "Observação"}
+                    </span>
+                  </div>
+                  {item.nota && <p className="apoio mt-0.5 text-dim">{item.nota}</p>}
+                  {ocorrencia && (
+                    <Link href={`/barco/ocorrencias/${ocorrencia.id}`} className="apoio mt-1 inline-block text-accent-forte">
+                      Ver ocorrência
+                    </Link>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

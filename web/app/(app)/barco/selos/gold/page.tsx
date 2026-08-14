@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { SeloGold } from "@/components/selos/selo-gold"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -44,7 +45,7 @@ export default async function GoldPage({
     <main>
       <CabecalhoDetalhe voltarHref="/barco/selos" voltarRotulo="Selos Commander" />
       <h1 className="titulo-pagina mt-3 inline-flex items-center gap-2">
-        <Icone nome="ancora" className="size-5 text-accent-forte" /> Commander Gold
+        <SeloGold size={32} variant={selo ? "ativo" : "convite"} /> Commander Gold
       </h1>
       <p className="apoio mt-1 text-dim">
         O nível de confiança presencial do Commander: avaliação de um consultor náutico autorizado,
@@ -62,7 +63,7 @@ export default async function GoldPage({
         >
           <div className="flex items-center justify-between gap-2">
             <p className="titulo-card inline-flex items-center gap-1.5">
-              <Icone nome="medalha" className="size-4 text-accent-forte" /> Commander Gold {ROTULO_STATUS_SELO[statusSelo]}
+              <SeloGold size={20} variant="ativo" /> Commander Gold {ROTULO_STATUS_SELO[statusSelo]}
             </p>
             <Icone nome="chevron" className="size-4 text-dim" />
           </div>

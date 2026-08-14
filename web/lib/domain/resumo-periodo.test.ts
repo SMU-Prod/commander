@@ -21,6 +21,9 @@ const ev = (extra: Partial<Evento>): Evento => ({
   tipo: "manutencao", categoria: null, data: "2026-08-10", horas_no_momento: null, descricao: "t",
   custo_centavos: null, anexo_path: null, trilha: null, tem_trilha: false, criado_por: "u1",
   hora_saida: null, hora_retorno: null, destino: null, tripulacao: [], mar_onda_m: null, mar_vento_kt: null,
+  // checklist chegou na onda 40 (merge paralelo com esta onda 37) — null é o
+  // valor honesto do auxiliar: "ninguém tocou o checklist nesta saída".
+  checklist: null,
   importado_do_plotter: false, trilha_sem_horario: false, origem_hash: null,
   created_at: "2026-08-10", ...extra,
 })

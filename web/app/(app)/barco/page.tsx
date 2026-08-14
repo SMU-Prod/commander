@@ -4,12 +4,15 @@ import { Farol } from "@/components/farol"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
+import { SeloGold } from "@/components/selos/selo-gold"
+import { SeloVerified } from "@/components/selos/selo-verified"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarSeloGold } from "@/lib/consultas-gold"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -23,7 +26,7 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const verified = await carregarVerified()
+  const [verified, seloGold] = await Promise.all([carregarVerified(), carregarSeloGold(embarcacao.id)])
 
   const statusDoEquipamento = (eqId: string): StatusFarol =>
     itens
@@ -240,7 +243,7 @@ export default async function BarcoPage({
       >
         <div className="flex items-center justify-between">
           <p className="titulo-card inline-flex items-center gap-1.5">
-            <Icone nome="escudo" className="size-4 text-dim" /> Commander Verified
+            <SeloVerified size={18} /> Commander Verified
           </p>
           {verified && (
             <span className="font-mono-instr text-xs tabular-nums text-dim">
@@ -256,8 +259,9 @@ export default async function BarcoPage({
             />
           </div>
         )}
-        <p className="apoio mt-2 text-dim">
-          + Commander Gold — avaliação presencial, não depende do Verified.
+        <p className="apoio mt-2 inline-flex items-center gap-1.5 text-dim">
+          <SeloGold size={16} variant={seloGold ? "ativo" : "convite"} /> Commander Gold — avaliação
+          presencial, não depende do Verified.
         </p>
       </Link>
 

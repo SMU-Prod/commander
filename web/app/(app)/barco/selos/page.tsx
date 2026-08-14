@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
-import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { ModalGold } from "@/components/gold/modal-gold"
+import { SeloGold } from "@/components/selos/selo-gold"
+import { SeloVerified } from "@/components/selos/selo-verified"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel, carregarVerified } from "@/lib/consultas"
 import { carregarRelatorioSeloGold, hojeISO } from "@/lib/consultas-gold"
 import {
@@ -43,7 +44,7 @@ export default async function SelosPage() {
       >
         <div className="flex items-center justify-between gap-2">
           <p className="titulo-card inline-flex items-center gap-1.5">
-            <Icone nome="escudo" className="size-4 text-dim" /> Commander Verified
+            <SeloVerified size={20} /> Commander Verified
           </p>
           {verified && (
             <span className="font-mono-instr text-xs tabular-nums text-dim">
@@ -70,7 +71,7 @@ export default async function SelosPage() {
             <div className="sombra-1 mt-3 rounded-[14px] border border-accent-forte/40 bg-panel p-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="titulo-card inline-flex items-center gap-1.5">
-                  <Icone nome="medalha" className="size-4 text-accent-forte" /> Commander Gold
+                  <SeloGold size={20} variant="ativo" /> Commander Gold
                 </p>
                 <span className="font-mono-instr text-xs uppercase tracking-[.08em] text-dim">
                   {ROTULO_STATUS_SELO[statusSelo]}
@@ -82,7 +83,14 @@ export default async function SelosPage() {
             </div>
           }
         >
-          <p className="apoio text-dim">{TEXTO_MODAL_GOLD}</p>
+          <div className="flex justify-center">
+            <SeloGold
+              size={72} variant="ativo"
+              dataAvaliacao={relatorioGold.selo.data_avaliacao}
+              validadeAte={relatorioGold.selo.validade_ate}
+            />
+          </div>
+          <p className="mt-3 apoio text-dim">{TEXTO_MODAL_GOLD}</p>
           <div className="mt-3 divide-y divide-line">
             {HUBS_PROTOCOLO_GOLD.map((hub) => {
               const item = relatorioGold.itens.find((i) => i.hub === hub)
@@ -98,8 +106,6 @@ export default async function SelosPage() {
             })}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 apoio text-dim">
-            <p>Data: {new Date(`${relatorioGold.selo.data_avaliacao}T00:00:00`).toLocaleDateString("pt-BR")}</p>
-            <p>Validade: até {new Date(`${relatorioGold.selo.validade_ate}T00:00:00`).toLocaleDateString("pt-BR")}</p>
             <p>Protocolo: v{relatorioGold.selo.versao_protocolo}</p>
             {relatorioGold.consultor && <p>Consultor: {relatorioGold.consultor.nome}</p>}
           </div>
@@ -116,7 +122,7 @@ export default async function SelosPage() {
           className="sombra-1 mt-3 block rounded-[14px] border border-line bg-panel p-4"
         >
           <p className="titulo-card inline-flex items-center gap-1.5">
-            <Icone nome="ancora" className="size-4 text-accent-forte" /> Commander Gold
+            <SeloGold size={20} variant="convite" /> Commander Gold
           </p>
           <p className="apoio mt-1 text-dim">
             Avaliação presencial de um consultor náutico, seguindo o Protocolo Commander.

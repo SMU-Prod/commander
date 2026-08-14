@@ -1,16 +1,15 @@
 "use client"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
+import { ChecklistDiario } from "@/components/checklist-diario"
 import { Icone, type NomeIcone } from "@/components/icone"
-import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { Campo, CampoSelect } from "@/components/ui/campo"
 import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import {
   CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
   nomeDoEquipamento, ROTULO_CASCO, ROTULO_HIDRAULICA,
 } from "@/lib/domain/diario"
-import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
-import { ROTULO_ABA } from "@/lib/domain/permissoes"
 
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
@@ -229,37 +228,20 @@ export function FormularioNovoEvento({
                   tipo sem nenhum lugar para escrever o que aconteceu. */}
               <Campo label="Observações — opcional" id="descricao-nav" name="descricao" placeholder="Ex.: mar grosso na volta" />
 
-              {/* Nascer do Diário (onda 32, PRD §22/§23): apontar um problema
-                  aqui vira ocorrência já vinculada ao setor certo ao salvar —
-                  sem obrigar a pessoa a preencher isso quando não houve nada
-                  ("Elétrica — ✓ OK" é o caso comum, não o excepcional). */}
+              {/* Checklist rápido por hub (onda 40, PRD §23) — substitui o
+                  antigo seletor de um setor só: "Motores/Casco/Elétrica/
+                  Hidráulica/Segurança — ✓ OK / observação" + atalho "OK
+                  GERAL". Uma observação marcada como problema nasce
+                  ocorrência já vinculada ao setor certo ao salvar (onda 32,
+                  mesmo `inserirOcorrenciaDoDiario` de sempre) — sem obrigar a
+                  pessoa a tocar em nada quando não aconteceu nada. */}
               <details className="group rounded-[14px] border border-line bg-panel">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 [&::-webkit-details-marker]:hidden">
-                  <span className={rotulo}>Ocorreu algum problema? — opcional</span>
+                  <span className={rotulo}>Checklist rápido dos hubs — opcional</span>
                   <Icone nome="chevron" className="size-4 shrink-0 text-dim transition-transform group-open:rotate-90" />
                 </summary>
-                <div className="space-y-4 border-t border-line p-4">
-                  <CampoSelect label="Setor" id="ocorrencia_setor" name="ocorrencia_setor" defaultValue="">
-                    <option value="">Selecione</option>
-                    {ABAS_OCORRENCIA.map((aba) => (
-                      <option key={aba} value={aba}>{ROTULO_ABA[aba]}</option>
-                    ))}
-                  </CampoSelect>
-                  <Campo
-                    label="O que aconteceu? (título curto)"
-                    id="ocorrencia_titulo"
-                    name="ocorrencia_titulo"
-                    placeholder="Ex.: luz de navegação BE falhou"
-                  />
-                  <CampoTextarea
-                    label="Descrição — opcional"
-                    id="ocorrencia_descricao"
-                    name="ocorrencia_descricao"
-                    rows={3}
-                  />
-                  <p className="apoio text-dim">
-                    Isso cria uma ocorrência aberta no setor escolhido, ligada a essa saída.
-                  </p>
+                <div className="border-t border-line p-4">
+                  <ChecklistDiario />
                 </div>
               </details>
             </div>
