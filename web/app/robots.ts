@@ -19,6 +19,8 @@ export default function robots(): MetadataRoute.Robots {
         "/assinar",
         "/onboarding",
         "/convite",
+        "/admin",
+        "/consultor",
       ],
     },
     sitemap: `${APP_URL}/sitemap.xml`,

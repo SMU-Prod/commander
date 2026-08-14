@@ -2,7 +2,6 @@ import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
 import { avaliarVerified, type ResultadoVerified } from "@/lib/domain/verified"
-import { MARCADOR_SOLICITACAO_GOLD } from "@/lib/domain/gold"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import type { Embarcacao, Equipamento, ItemMonitorado, Viagem } from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
@@ -92,15 +91,13 @@ export const carregarVerified = cache(async (): Promise<ResultadoVerified | null
   const [{ count: totalFotos }, { count: totalEventosDiario }, { count: totalContatos }] = await Promise.all([
     supabase.from("fotos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
-    // exclui o marcador do pedido de Commander Gold: ele e um evento de
-    // verdade na tabela, mas contar como "historico do barco" faria o
-    // proprio pedido inflar o criterio do Verified de que ele depende
-    // (Correcao 14 do PRD de Correcoes: Gold nao depende de Verified — e
-    // essa exclusao existe justamente pra manter essa independencia limpa
-    // dos dois lados).
+    // Pedidos de Commander Gold vivem em `gold_solicitacoes` desde a onda 35
+    // (nao mais um evento marcador no diario) — entao a contagem de eventos
+    // do Verified nunca precisou de exclusao: o pedido do Gold nao toca
+    // `eventos`. Correcao 14 do PRD de Correcoes (Gold nao depende de
+    // Verified) continua valendo por construcao, nao por filtro aqui.
     supabase.from("eventos").select("id", { count: "exact", head: true })
-      .eq("embarcacao_id", embarcacao.id)
-      .neq("descricao", MARCADOR_SOLICITACAO_GOLD),
+      .eq("embarcacao_id", embarcacao.id),
     supabase.from("contatos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
   ])
