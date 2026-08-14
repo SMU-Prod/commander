@@ -92,6 +92,57 @@ export async function cancelarAssinaturaAsaas(subscriptionId: string) {
   await asaas(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: "DELETE" })
 }
 
+/** `true` só quando ASAAS_API_KEY existe — mesma flag dormente que já
+ *  protege a assinatura (`NEXT_PUBLIC_COBRANCA_ATIVA` decide se o gate
+ *  REDIRECIONA pra /assinar; esta aqui decide se o BOTÃO de pagamento da
+ *  avaliação Commander Gold existe de verdade ou honestamente avisa que a
+ *  contratação abre em breve — ver `lib/acoes/gold.ts`). Sem chave, o app
+ *  nunca finge que abriu cobrança. */
+export function asaasConfigurado(): boolean {
+  return Boolean(process.env.ASAAS_API_KEY)
+}
+
+/** Cobrança avulsa (não-assinatura) — usada pela avaliação presencial do
+ *  Commander Gold, que é pagamento único, não recorrente. Mesmo padrão de
+ *  `criarAssinaturaAsaas`: `billingType: "UNDEFINED"` deixa o pagador
+ *  escolher entre os meios habilitados na conta. A página de fatura
+ *  (`invoiceUrl`) já traz o QR Code do Pix quando habilitado — é o "link/QR
+ *  Code" que a Correção 08 pede pro fluxo do INTERESSADO, sem precisar
+ *  buscar a imagem do QR à parte. */
+export async function criarCobrancaAvulsaAsaas(dados: {
+  customerId: string
+  valorCentavos: number
+  descricao: string
+  externalReference: string
+  urlRetorno?: string
+}): Promise<{ id: string; invoiceUrl: string | null }> {
+  const vencimento = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const p = await asaas<{ id: string; invoiceUrl?: string }>("/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: dados.customerId,
+      billingType: "UNDEFINED",
+      value: dados.valorCentavos / 100,
+      dueDate: vencimento,
+      description: dados.descricao,
+      externalReference: dados.externalReference,
+    }),
+  })
+  if (dados.urlRetorno) {
+    // best-effort, mesma regra de urlPrimeiraCobranca: sem callback o
+    // pagador so fica preso na pagina do Asaas depois de pagar.
+    await asaas(`/payments/${encodeURIComponent(p.id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ callback: { successUrl: dados.urlRetorno, autoRedirect: true } }),
+    }).catch(() => {})
+  }
+  return { id: p.id, invoiceUrl: p.invoiceUrl ?? null }
+}
+
+export async function cancelarCobrancaAvulsaAsaas(paymentId: string) {
+  await asaas(`/payments/${encodeURIComponent(paymentId)}`, { method: "DELETE" })
+}
+
 export interface CobrancaAsaas {
   id: string
   dataVencimento: string
