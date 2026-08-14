@@ -2,8 +2,9 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, carregarUsoFotos } from "@/lib/consultas"
 import { usoDaCota } from "@/lib/domain/cota"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { AlbumFoto } from "@/lib/db/types"
 
@@ -27,6 +28,14 @@ export async function subirFoto(formData: FormData) {
 
   const album = String(formData.get("album") ?? "")
   if (!ALBUNS_VALIDOS.includes(album)) voltar(null, "Escolha um álbum válido.")
+
+  // Gate do plano Free (onda 38, PRD §43) — mesma regra dupla do Diário:
+  // já bloqueado na tela (`/barco/fotos`), checado de novo aqui pra um POST
+  // direto não furar o limite.
+  const [nivel, usoFotos] = await Promise.all([carregarNivelPlano(), carregarUsoFotos()])
+  if (!recursoLiberado("fotos", nivel, usoFotos)) {
+    voltar(album, mensagemBloqueio("fotos", usoFotos).descricao)
+  }
 
   const arquivo = formData.get("arquivo")
   if (!(arquivo instanceof File) || arquivo.size === 0) voltar(album, "Escolha uma foto.")

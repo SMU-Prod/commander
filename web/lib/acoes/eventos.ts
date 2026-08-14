@@ -4,13 +4,14 @@ import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { inserirOcorrenciaDoDiario } from "@/lib/acoes/ocorrencias"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
 import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
 import type { Aba } from "@/lib/domain/permissoes"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -24,6 +25,15 @@ export async function criarEvento(formData: FormData) {
   if (!user) redirect("/login")
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+
+  // Gate do plano Free (onda 38, PRD §43) — checado de novo aqui mesmo já
+  // bloqueado na tela (`/diario/novo`): bloqueio só na interface é
+  // decorativo, um POST direto (ou uma aba antiga aberta) precisa cair na
+  // mesma regra.
+  const [nivel, usoDiario] = await Promise.all([carregarNivelPlano(), carregarUsoDiario()])
+  if (!recursoLiberado("diario_registros", nivel, usoDiario)) {
+    erroNovo(mensagemBloqueio("diario_registros", usoDiario).descricao)
+  }
 
   const texto = (k: string) => {
     const v = String(formData.get(k) ?? "").trim()
