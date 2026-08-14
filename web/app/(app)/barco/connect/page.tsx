@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -64,6 +65,17 @@ export default async function ConnectPage() {
         motores e equipamentos de bordo — o Commander Connect foi pensado para coexistir com essa
         infraestrutura, não para substituir chartplotters, MFDs ou os painéis dos motores.
       </p>
+
+      <p className="rotulo mt-6 mb-2 text-dim">Quer saber se sua embarcação já é compatível?</p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <p className="corpo">
+          Responda um questionário curto sobre a sua instalação. O resultado é uma classificação
+          preliminar — nunca uma promessa — e ajuda a Commander a priorizar quem atender primeiro.
+        </p>
+        <Link href="/barco/connect/interesse" className="apoio mt-2 inline-block text-accent-forte">
+          Responder o questionário
+        </Link>
+      </div>
 
       <p className="rotulo mt-6 mb-2 text-dim">Seu sistema não aparece como compatível?</p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
