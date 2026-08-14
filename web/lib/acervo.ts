@@ -13,7 +13,9 @@ export function validarArquivo(file: File): { ok: true } | { ok: false; erro: st
 export async function subirArquivo(
   supabase: SupabaseClient,
   embarcacaoId: string,
-  pasta: "documentos" | "eventos" | "fotos" | "ocorrencias",
+  // "ocorrencias" (onda 32) e "connect" (onda 34) entraram em paralelo, cada
+  // uma numa branch — as duas valem.
+  pasta: "documentos" | "eventos" | "fotos" | "ocorrencias" | "connect",
   file: File,
 ): Promise<{ path: string } | { erro: string }> {
   const v = validarArquivo(file)
