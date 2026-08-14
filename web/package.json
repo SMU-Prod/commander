@@ -15,7 +15,8 @@
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios",
-    "simular-nmea": "node ../scripts/simular-nmea.mjs"
+    "simular-nmea": "node ../scripts/simular-nmea.mjs",
+    "simular-n2k": "node ../scripts/simular-n2k.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.0",

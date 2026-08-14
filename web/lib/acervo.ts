@@ -13,7 +13,7 @@ export function validarArquivo(file: File): { ok: true } | { ok: false; erro: st
 export async function subirArquivo(
   supabase: SupabaseClient,
   embarcacaoId: string,
-  pasta: "documentos" | "eventos" | "fotos",
+  pasta: "documentos" | "eventos" | "fotos" | "connect",
   file: File,
 ): Promise<{ path: string } | { erro: string }> {
   const v = validarArquivo(file)
