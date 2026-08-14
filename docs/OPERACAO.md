@@ -801,6 +801,41 @@ Se o volume real de abuso justificar uma barreira de verdade, a recomendação �
 limiter compartilhado (Redis/Upstash) — não implementado nesta onda por não ser dependência
 leve.
 
+## Verificação de backup (onda 31)
+
+Banco no plano **Free** da Supabase (projeto `khgjtxvmduizyooqaoox` — ver seção "Banco"
+abaixo pra migrations e RLS).
+
+**Política real no plano Free (hoje): nenhum backup automático.** O free tier NÃO inclui
+snapshot diário nem Point-in-Time Recovery (PITR) — se o banco corromper ou alguém rodar um
+`DELETE`/`UPDATE` sem `WHERE`, não existe "desfazer" pelo painel Supabase. A recomendação
+oficial da Supabase pro Free tier é justamente o dump manual abaixo.
+
+**No plano Pro (US$ 25/mês):** backup diário automático com 7 dias de retenção incluso;
+PITR granular (restaurar pra qualquer segundo, não só o snapshot da noite) é um add-on
+pago à parte, cobrado por dia de retenção do WAL — não incluso automaticamente no Pro.
+
+**Procedimento manual de dump enquanto estivermos no Free** — recomendado antes de
+qualquer migration arriscada, e pelo menos 1×/semana:
+1. Pegue a connection string **direta** (não o pooler/Supavisor — `pg_dump` precisa do
+   protocolo completo do Postgres): dashboard Supabase → **Settings → Database →
+   Connection string → URI**, aba "Direct connection".
+2. Rode local, sem deixar a senha no histórico do shell:
+   ```
+   PGPASSWORD='<senha-do-banco>' pg_dump \
+     --host=db.khgjtxvmduizyooqaoox.supabase.co --port=5432 --username=postgres \
+     --format=custom --file=commander-$(date +%Y%m%d).dump
+   ```
+   A senha do banco fica em dashboard Supabase → Settings → Database → Database
+   Password — NUNCA cole ela direto num arquivo versionado; passe via variável de
+   ambiente (como acima) ou um gerenciador de segredo local.
+3. Guarde o `.dump` fora da máquina local (ex.: um bucket privado) — um backup que só
+   existe no laptop de quem rodou o comando não é um backup confiável.
+4. Pra restaurar: `pg_restore --host=... --username=postgres --dbname=postgres --clean
+   commander-AAAAMMDD.dump` (`--clean` derruba objetos existentes antes de recriar —
+   rodar isso contra o banco de PRODUÇÃO é destrutivo; só use pra restaurar um banco novo
+   ou em caso de desastre confirmado).
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.
