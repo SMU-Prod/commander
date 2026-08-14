@@ -691,6 +691,187 @@ NetCDF com validade — mesmo tipo de trabalho que a batimetria/máscara de águ
 ETOPO, só que pra um dataset diferente. Fica registrado para uma onda futura; nenhuma tela
 promete correnteza hoje.
 
+## Testes ponta a ponta (Playwright, onda 31)
+
+Todos os bugs reais desta semana (mapa branco no emulador, rota cruzando terra, sessão
+caindo, chunk 403) foram achados pelos OLHOS DO DONO, não pela suíte de vitest — ela testa
+domínio/lógica isolada, nunca sobe um navegador de verdade. `web/e2e/*.spec.ts` cobre os
+caminhos onde isso apareceu: landing pública, `/login` (renderiza + valida campo vazio),
+redirect de rota protegida sem sessão, `/parceiros` público, e **o mapa monta de verdade**
+em `/navegar`.
+
+**Rodar local:** `cd web && npm run test:e2e` (builda/sobe o `next dev` sozinho na porta
+3010, via `webServer` do `playwright.config.ts`).
+
+### A sessão de teste do mapa
+`/navegar` é rota protegida — testar que o mapa monta precisa de uma sessão real. Em vez de
+pedir credencial ou cadastrar conta na mão, `e2e/global-setup.ts` cria um usuário de teste
+**efêmero** pela Admin API do Supabase (precisa de `SUPABASE_SERVICE_ROLE_KEY` no ambiente),
+loga de verdade pela tela `/login` (fluxo real, não cookie fabricado) e salva a sessão.
+`e2e/global-teardown.ts` apaga esse usuário no final da rodada — o Commander não tem banco
+de staging separado (mesmo projeto Supabase de produção), então não deixar rastro é o
+mínimo.
+
+Local, com `web/.env.local` preenchido (é o caso hoje), isso roda de ponta a ponta sozinho.
+**Sem essas variáveis** (é o caso do CI hoje, que builda com credenciais fake — ver abaixo),
+`global-setup` não tenta nada e `e2e/navegar-mapa.spec.ts` pula sozinho, com o motivo
+explícito no relatório — nunca um "vermelho" confuso.
+
+### No CI (`.github/workflows/ci.yml`)
+Job `e2e` separado do `verificar`, com `continue-on-error: true` — roda e reporta (inclusive
+sobe o relatório HTML do Playwright como artefato do run), mas não bloqueia merge se ficar
+flaky no início. Hoje ele builda com as MESMAS credenciais fake do job `verificar`, então só
+os 4 testes públicos rodam de verdade; o do mapa pula (mesma lógica acima). **Pra ligar o
+teste do mapa também no CI**, cadastre em **Settings → Secrets and variables → Actions**:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (os mesmos valores já
+usados na Vercel) e, opcional, `MAPBOX_TOKEN` — sem isso o job continua rodando os outros 4
+testes normalmente, só sem ligar o quinto.
+
+## Observabilidade de erro (Sentry, onda 31)
+
+O dono só descobria bug quando via com os PRÓPRIOS olhos (mapa branco no emulador, sessão
+caindo, chunk 403) — a suíte de teste não pega isso, e ninguém era avisado em produção.
+`@sentry/nextjs` captura erro no cliente, no servidor e no edge (`middleware.ts`).
+
+**Sem chave configurada, o app funciona idêntico a hoje e não loga nada** — mesmo padrão de
+no-op que já existe pro PostHog (`components/analytics.tsx`): `Sentry.init` só é chamado se
+`NEXT_PUBLIC_SENTRY_DSN` (ou `SENTRY_DSN` no servidor) estiver preenchida. Sem isso, zero
+request de rede, zero overhead.
+
+1. Crie o projeto em sentry.io (plataforma **Next.js**), free tier serve (5k erros/mês).
+2. **Settings → Client Keys (DSN)** → copie o DSN e cole em `NEXT_PUBLIC_SENTRY_DSN` na
+   Vercel (Production + Preview) — ver `web/.env.example` pro nome exato de cada variável.
+3. Opcional — upload de source map no build (stack trace legível no Sentry em vez de
+   código minificado): **Settings → Auth Tokens** (escopo `project:releases`), cole em
+   `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`. Sem essas três, o build continua
+   verde — o plugin só pula o upload com um aviso (`web/next.config.ts`).
+
+**Privacidade — requisito do produto, não opção.** O Commander lida com GPS, trilha de
+navegação e documento de embarcação. Configuração (`instrumentation-client.ts`,
+`sentry.server.config.ts`, `sentry.edge.config.ts`):
+- `sendDefaultPii: false` (default do SDK, mantido explícito) — nenhum IP, cookie, header
+  ou corpo de request/response é anexado automaticamente a um evento.
+- Nenhuma integração de **Session Replay** habilitada — replay grava tela/DOM, e o mapa +
+  painel do barco mostram posição e dado sensível o tempo todo.
+- `beforeSend` (`web/lib/observabilidade/sentry-scrub.ts`, com teste) faz uma segunda
+  passada: tira `user` do evento e redige parâmetro de coordenada/credencial em query
+  string (`?destino_la=&destino_lo=`, `?token=`, etc.) tanto na URL principal quanto em
+  breadcrumbs de fetch/xhr.
+
+**Alcance:** `app/error.tsx` (boundary de erro comum) e `app/global-error.tsx` (erro dentro
+do próprio `app/layout.tsx`, caso raro) chamam `Sentry.captureException` — sem DSN, isso é
+no-op, sem custo.
+
+## Ambiente de teste — preview deployments (onda 31)
+
+Hoje `git push` não deploya sozinho (não há integração Git↔Vercel configurada neste
+projeto — cada deploy é manual pelo CLI). A regra da casa: **NUNCA `--prod` direto.**
+Sempre preview → conferir → só depois promover.
+
+### 1. Gerar um preview
+Dentro de `web/`:
+```
+vercel deploy
+```
+(sem `--prod`) — builda e publica numa URL única de preview
+(`commander-<hash>-smu-prods-projects.vercel.app`), sem tocar no domínio de produção. A
+Vercel imprime a URL ao final do comando.
+
+### 2. O que conferir no preview antes de promover
+- Abrir a URL de preview e passar pelo fluxo crítico: `/login` → entrar → `/hoje` →
+  `/navegar` (o mapa monta? nunca tela branca) → uma tela que grava dado (ex.: registrar
+  manutenção no diário).
+- Console do navegador sem erro vermelho novo (F12).
+- Se a mudança mexeu em rota de API ou variável de ambiente nova, testar essa rota
+  específica no preview.
+- Preview usa o MESMO banco Supabase de produção (não existe banco de staging separado —
+  ver "Verificação de backup" abaixo) — dado gravado num teste de preview é dado real.
+  Prefira testar com uma conta de teste, não a conta pessoal do dono.
+
+### 3. Só depois, promover
+```
+vercel deploy --prod
+```
+Ou, pra promover EXATAMENTE o build já testado no preview (sem rebuildar):
+`vercel promote <url-do-preview>`.
+
+### 4. Preview é privado por padrão (SSO da Vercel)
+Testado nesta onda (`vercel deploy` de dentro de `web/`, 14/08): o deploy completa e devolve
+uma URL tipo `commander-<hash>-smu-prods-projects.vercel.app`. Abrir essa URL sem estar
+logado na conta/time da Vercel devolve **302 para `vercel.com/sso-api`** — é a proteção
+padrão de preview deployment de projeto em time (não é bug; a URL não é indexada — header
+`X-Robots-Tag: noindex`). Pra conferir o preview: abra a URL logado na mesma conta Vercel
+do time, ou use `vercel inspect <url>` / os logs do próprio deploy pelo terminal.
+
+### 5. Se aparecer bloqueio de deploy por metadata de git
+O projeto Vercel (`smu-prods-projects/commander`) não está conectado a um repositório Git
+(deploys são só por CLI) — nessas condições, em alguns cenários (ex.: `vercel deploy` sem
+sessão de terminal interativa, ou metadata de commit que a Vercel não reconhece) o comando
+pode recusar citando autoria/branch do commit local. **Não reproduzido no teste desta
+onda** (o deploy funcionou direto, sem precisar disso) — mas caso apareça, o contorno
+conhecido é:
+```
+git remote remove origin
+vercel deploy            # ou --prod, conforme o caso
+git remote add origin <url-do-repositorio>
+```
+Sempre restaure o `origin` logo depois — não deixar o repositório local sem remote
+configurado por mais tempo que o necessário.
+
+## Rate limiting (onda 31)
+
+Mitigação simples contra abuso/custo em rotas que custam dinheiro (push, e-mail, chamada de
+API de tempo) ou expõem dado: `web/lib/seguranca/limitador.ts` — janela fixa em memória,
+sem dependência nova. Aplicado em:
+- `POST /api/alertas/disparar` — por IP, 5 chamadas/5min, checado ANTES do Bearer (mitiga
+  também força-bruta no segredo, não só custo).
+- `GET /api/corredores` — por usuário autenticado, 60 chamadas/min.
+- `gravarSondagens` (server action de escrita em lote da sondagem de profundidade) — por
+  usuário, 20 chamadas/min.
+
+**Limitação conhecida, documentada no código:** em ambiente serverless (Vercel), cada
+instância da função tem sua PRÓPRIA memória — não é um contador compartilhado entre
+instâncias/regiões. Isso é **mitigação, não muralha**: reduz abuso vindo de uma única
+instância "quente", mas não impede um ataque distribuído que acerte instâncias diferentes.
+Se o volume real de abuso justificar uma barreira de verdade, a recomendação é um rate
+limiter compartilhado (Redis/Upstash) — não implementado nesta onda por não ser dependência
+leve.
+
+## Verificação de backup (onda 31)
+
+Banco no plano **Free** da Supabase (projeto `khgjtxvmduizyooqaoox` — ver seção "Banco"
+abaixo pra migrations e RLS).
+
+**Política real no plano Free (hoje): nenhum backup automático.** O free tier NÃO inclui
+snapshot diário nem Point-in-Time Recovery (PITR) — se o banco corromper ou alguém rodar um
+`DELETE`/`UPDATE` sem `WHERE`, não existe "desfazer" pelo painel Supabase. A recomendação
+oficial da Supabase pro Free tier é justamente o dump manual abaixo.
+
+**No plano Pro (US$ 25/mês):** backup diário automático com 7 dias de retenção incluso;
+PITR granular (restaurar pra qualquer segundo, não só o snapshot da noite) é um add-on
+pago à parte, cobrado por dia de retenção do WAL — não incluso automaticamente no Pro.
+
+**Procedimento manual de dump enquanto estivermos no Free** — recomendado antes de
+qualquer migration arriscada, e pelo menos 1×/semana:
+1. Pegue a connection string **direta** (não o pooler/Supavisor — `pg_dump` precisa do
+   protocolo completo do Postgres): dashboard Supabase → **Settings → Database →
+   Connection string → URI**, aba "Direct connection".
+2. Rode local, sem deixar a senha no histórico do shell:
+   ```
+   PGPASSWORD='<senha-do-banco>' pg_dump \
+     --host=db.khgjtxvmduizyooqaoox.supabase.co --port=5432 --username=postgres \
+     --format=custom --file=commander-$(date +%Y%m%d).dump
+   ```
+   A senha do banco fica em dashboard Supabase → Settings → Database → Database
+   Password — NUNCA cole ela direto num arquivo versionado; passe via variável de
+   ambiente (como acima) ou um gerenciador de segredo local.
+3. Guarde o `.dump` fora da máquina local (ex.: um bucket privado) — um backup que só
+   existe no laptop de quem rodou o comando não é um backup confiável.
+4. Pra restaurar: `pg_restore --host=... --username=postgres --dbname=postgres --clean
+   commander-AAAAMMDD.dump` (`--clean` derruba objetos existentes antes de recriar —
+   rodar isso contra o banco de PRODUÇÃO é destrutivo; só use pra restaurar um banco novo
+   ou em caso de desastre confirmado).
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "mascara": "node ../scripts/gerar-mascara-agua.mjs",
     "batimetria": "node ../scripts/gerar-batimetria.mjs",
     "grade-profundidade": "node ../scripts/gerar-grade-profundidade.mjs",
@@ -19,6 +20,7 @@
   "dependencies": {
     "@capacitor/core": "^8.5.0",
     "@capacitor/geolocation": "^8.2.1",
+    "@sentry/nextjs": "^10.70.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.1",
     "mapbox-gl": "^3.28.1",
@@ -32,6 +34,7 @@
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

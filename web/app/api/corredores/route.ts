@@ -1,5 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { supabaseServer } from "@/lib/supabase/server"
+import { checarLimite } from "@/lib/seguranca/limitador"
+
+// Onda 31 (robustez) — cada recálculo de rota no worker pode bater aqui;
+// limite generoso pra não atrapalhar navegação normal, só cortar loop/abuso.
+// Por USUÁRIO (não por IP): mais preciso que IP atrás de wifi de marina
+// compartilhado. Mitigação em memória por instância, não muralha — ver
+// `lib/seguranca/limitador.ts`.
+const JANELA_CORREDORES_MS = 60_000
+const LIMITE_CORREDORES_POR_JANELA = 60
 
 /** Nunca mais que isso numa resposta — um bbox gigante (trecho nacional
  *  longo) nao pode virar payload sem teto; o worker so usa isso pra
@@ -25,6 +34,14 @@ export async function GET(req: NextRequest) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 })
+
+  const limite = checarLimite(`corredores:${user.id}`, JANELA_CORREDORES_MS, LIMITE_CORREDORES_POR_JANELA)
+  if (!limite.permitido) {
+    return NextResponse.json(
+      { erro: "muitas requisições, tente novamente em instantes" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(limite.retryAfterMs / 1000)) } },
+    )
+  }
 
   const params = req.nextUrl.searchParams
   const lngMin = Number(params.get("lngMin"))

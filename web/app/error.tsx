@@ -1,11 +1,25 @@
 "use client"
 
+import { useEffect } from "react"
+import * as Sentry from "@sentry/nextjs"
+
 export default function Erro({
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  // Onda 31 (robustez) — todo erro que cai neste boundary (a maioria dos
+  // erros do app, por rodar dentro do layout normal) vai pro Sentry. Sem
+  // DSN configurada, `captureException` é no-op (nenhum client ativo) —
+  // mesmo comportamento de sempre, sem custo. Nenhum dado do usuário é
+  // anexado aqui; a limpeza de PII/URL acontece em `beforeSend` (ver
+  // `lib/observabilidade/sentry-scrub.ts`).
+  useEffect(() => {
+    Sentry.captureException(error)
+  }, [error])
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col items-center justify-center px-6 text-center">
       <p className="font-mono-instr text-[11px] uppercase tracking-[.2em] text-dim">Commander</p>

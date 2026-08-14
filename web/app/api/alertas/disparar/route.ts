@@ -8,14 +8,33 @@ import { hojeISO } from "@/lib/domain/datas"
 import { boletimDoMar } from "@/lib/mar"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
 import { emLotes } from "@/lib/lotes"
+import { checarLimite, identificarIp } from "@/lib/seguranca/limitador"
 
 // Envio (push + e-mail) por usuário em lotes concorrentes — ver comentário
 // no laço de usuários, abaixo.
 const TAMANHO_LOTE = 10
 
+// Onda 31 (robustez) — rota cara (varre todo barco, chama API de tempo,
+// manda push+e-mail) protegida por Bearer, mas o segredo pode vazar. Rate
+// limit POR IP, checado ANTES de validar o Bearer — também mitiga
+// força-bruta no segredo, não só custo. Uso normal é 1x/dia via cron; o
+// teto generoso (5 no cron) sobra folga pra reexecução manual de teste.
+// Mitigação em memória por instância, não muralha — ver
+// `lib/seguranca/limitador.ts`.
+const JANELA_ALERTAS_MS = 5 * 60_000
+const LIMITE_ALERTAS_POR_JANELA = 5
+
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
+  const limite = checarLimite(`alertas:${identificarIp(req.headers)}`, JANELA_ALERTAS_MS, LIMITE_ALERTAS_POR_JANELA)
+  if (!limite.permitido) {
+    return NextResponse.json(
+      { erro: "muitas tentativas, tente novamente mais tarde" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(limite.retryAfterMs / 1000)) } },
+    )
+  }
+
   const segredo = process.env.ALERTAS_SEGREDO
   if (!segredo || req.headers.get("authorization") !== `Bearer ${segredo}`) {
     return NextResponse.json({ erro: "não autorizado" }, { status: 401 })
