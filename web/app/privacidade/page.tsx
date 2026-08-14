@@ -261,15 +261,19 @@ export default function PrivacidadePage() {
         </p>
       </SecaoLegal>
 
-      <SecaoLegal titulo="7. Transferência internacional">
+      <SecaoLegal titulo="7. Onde seus dados ficam">
         <p>
-          O Commander usa provedores de nuvem (Supabase, Vercel e os serviços de terceiro
-          listados na seção 4) cuja infraestrutura pode estar hospedada fora do Brasil,
-          dependendo da região do servidor contratada para cada serviço. Quando isso acontece,
-          seus dados podem ser transferidos internacionalmente para viabilizar o funcionamento
-          do app. Exigimos desses provedores práticas de segurança compatíveis com a LGPD; se
-          quiser confirmar a região específica de hospedagem em uso no momento, escreva para o
-          canal de contato desta política.
+          <strong>O banco de dados do Commander fica no Brasil</strong> — região de São Paulo.
+          Seu cadastro, a ficha da embarcação, os documentos, as fotos, o diário de bordo e as
+          trilhas são gravados e guardados em servidores brasileiros.
+        </p>
+        <p>
+          Alguns serviços de apoio listados na seção 4 operam com infraestrutura distribuída
+          fora do país — a hospedagem das páginas (Vercel), os mapas (Mapbox), a previsão do
+          tempo (Open-Meteo) e o envio de notificações. Para eles, o que trafega é o mínimo
+          necessário para a função (por exemplo, a coordenada da área do mapa que você está
+          vendo), nunca a sua base de dados. Nesses casos há transferência internacional, com
+          a exigência de práticas de segurança compatíveis com a LGPD.
         </p>
       </SecaoLegal>
 
