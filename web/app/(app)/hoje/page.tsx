@@ -11,13 +11,13 @@ import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
 import {
   calcularSemaforo,
   PESO,
-  resumoStatusGeral,
   temInformacaoSuficiente,
   textoRestante,
   textoRestanteCompacto,
   textoRestanteHero,
   type StatusFarol,
 } from "@/lib/domain/semaforo"
+import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
 import { carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
@@ -99,18 +99,13 @@ export default async function HojePage({
       const r = calcularSemaforo(calc, eq?.horas_atuais ?? null, hoje)
       const temInformacao = temInformacaoSuficiente(calc, eq?.horas_atuais ?? null)
       const onde = eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome
-      return { item: i, eq, r, onde, temInformacao }
+      const aba = abaDoItem(i, equipamentos)
+      return { item: i, eq, r, onde, temInformacao, aba }
     })
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
 
   const alertas = avaliados.filter((a) => a.r.status !== "ok")
   const motores = equipamentos.filter((e) => e.tipo === "motor")
-
-  // Anel de status geral: matemática real derivada do MESMO farol de sempre.
-  // Itens sem informação suficiente não entram no cálculo (nem a favor, nem
-  // contra) — ver `temInformacaoSuficiente`/`resumoStatusGeral` em
-  // lib/domain/semaforo.ts (regra de honestidade da onda 16).
-  const resumoAnel = resumoStatusGeral(avaliados.map((a) => ({ status: a.r.status, temInformacao: a.temInformacao })))
 
   // Manutenção próxima: só itens ligados a um equipamento (motor/elétrica) —
   // já vem ordenado do pior pro melhor porque filtra o array que o sort acima produziu.
@@ -201,11 +196,27 @@ export default async function HojePage({
   // Ocorrências abertas (onda 32) — gate de descoberta: precisa aparecer na
   // Início, não só dentro de cada hub. Sem filtro de aba na query: a RLS já
   // devolve só as ocorrências dos setores que esta pessoa pode ver, então
-  // "sozinho no barco" ou "acesso restrito" nunca vazam linha nenhuma.
-  const { data: ocorrenciasAbertasBrutas } = await supabase
+  // "sozinho no barco" ou "acesso restrito" nunca vazam linha nenhuma. Busca
+  // TODAS as ativas (sem limite) porque a saúde (abaixo) precisa da lista
+  // inteira pra pontuar corretamente — só o cartão de "Ocorrências abertas"
+  // mostra as 4 mais recentes.
+  const { data: ocorrenciasAtivasBrutas } = await supabase
     .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
-    .neq("estado", "resolvida").order("created_at", { ascending: false }).limit(4)
-  const ocorrenciasAbertas = (ocorrenciasAbertasBrutas ?? []) as Ocorrencia[]
+    .neq("estado", "resolvida").order("created_at", { ascending: false })
+  const ocorrenciasAtivas = (ocorrenciasAtivasBrutas ?? []) as Ocorrencia[]
+  const ocorrenciasAbertas = ocorrenciasAtivas.slice(0, 4)
+
+  // Saúde da Embarcação (fórmula fechada em 14/08/2026, decisão do dono —
+  // ver `lib/domain/saude.ts` pros pesos e a justificativa de cada um).
+  // Itens sem informação suficiente não entram no cálculo (nem a favor, nem
+  // contra) — mesma regra de honestidade de sempre.
+  const itensParaSaude: ItemParaSaude[] = avaliados.map((a) => ({
+    id: a.item.id, nome: a.item.nome, aba: a.aba, status: a.r.status, temInformacao: a.temInformacao,
+  }))
+  const ocorrenciasParaSaude: OcorrenciaParaSaude[] = ocorrenciasAtivas.map((o) => ({
+    id: o.id, titulo: o.titulo, aba: o.aba, estado: o.estado, gravidade: o.gravidade,
+  }))
+  const saude = calcularSaudeEmbarcacao(itensParaSaude, ocorrenciasParaSaude)
 
   // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
   // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
@@ -301,7 +312,7 @@ export default async function HojePage({
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="escudo" className="size-3.5" /> Status geral
       </p>
-      <AnelStatus resumo={resumoAnel} />
+      <AnelStatus saude={saude} />
 
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="alerta" className="size-3.5" />

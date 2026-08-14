@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   calcularSemaforo,
-  resumoStatusGeral,
-  rotuloAnel,
   temInformacaoSuficiente,
   textoRestante,
   textoRestanteCompacto,
@@ -192,58 +190,10 @@ describe("temInformacaoSuficiente — o item tem dado real por trás do status?"
   })
 })
 
-describe("rotuloAnel — faixas do anel de status geral", () => {
-  it("90 ou mais: Ótimo", () => {
-    expect(rotuloAnel(90)).toBe("Ótimo")
-    expect(rotuloAnel(100)).toBe("Ótimo")
-  })
-  it("de 70 a 89: Bom", () => {
-    expect(rotuloAnel(89)).toBe("Bom")
-    expect(rotuloAnel(70)).toBe("Bom")
-  })
-  it("de 40 a 69: Atenção", () => {
-    expect(rotuloAnel(69)).toBe("Atenção")
-    expect(rotuloAnel(40)).toBe("Atenção")
-  })
-  it("abaixo de 40: Crítico", () => {
-    expect(rotuloAnel(39)).toBe("Crítico")
-    expect(rotuloAnel(0)).toBe("Crítico")
-  })
-})
-
-describe("resumoStatusGeral — agrega o anel a partir dos itens já avaliados", () => {
-  it("sem nenhum item com informação suficiente, o anel não existe (percentual e rótulo nulos)", () => {
-    const r = resumoStatusGeral([
-      { status: "ok", temInformacao: false },
-      { status: "ok", temInformacao: false },
-    ])
-    expect(r.percentual).toBeNull()
-    expect(r.rotulo).toBeNull()
-    expect(r.total).toBe(0)
-  })
-  it("itens sem informação não contam nem a favor nem contra", () => {
-    const r = resumoStatusGeral([
-      { status: "ok", temInformacao: true },
-      { status: "ok", temInformacao: false }, // "ok" por omissão — não deve inflar o percentual
-    ])
-    expect(r.total).toBe(1)
-    expect(r.percentual).toBe(100)
-  })
-  it("exemplo da espec: 12 em dia + 3 atenção + 1 vencido de 16 com informação = 75%, Bom", () => {
-    const avaliacoes = [
-      ...Array(12).fill({ status: "ok" as const, temInformacao: true }),
-      ...Array(3).fill({ status: "atencao" as const, temInformacao: true }),
-      ...Array(1).fill({ status: "vencido" as const, temInformacao: true }),
-    ]
-    const r = resumoStatusGeral(avaliacoes)
-    expect(r).toMatchObject({ percentual: 75, rotulo: "Bom", emDia: 12, atencao: 3, vencido: 1, total: 16 })
-  })
-  it("tudo vencido: 0%, Crítico", () => {
-    const r = resumoStatusGeral([{ status: "vencido", temInformacao: true }])
-    expect(r.percentual).toBe(0)
-    expect(r.rotulo).toBe("Crítico")
-  })
-})
+// A fórmula do anel de saúde geral (antigo `resumoStatusGeral`/`rotuloAnel`)
+// mudou de casa: agora é `calcularSaudeEmbarcacao` em `lib/domain/saude.ts`,
+// com seus próprios testes (`saude.test.ts`) — ver comentário no fim de
+// `semaforo.ts` (perto de `temInformacaoSuficiente`).
 
 // QA do emulador (onda 16): "500h restantes" truncava no grid de 3 colunas
 // do hero — a versao hero e minima porque o rotulo da metrica ja da contexto.

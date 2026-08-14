@@ -90,6 +90,14 @@ texto que mencionar o estado da fila é honesto sobre o que está **guardado**
 vs. o que já foi **enviado**, e nunca deixa a pessoa achar que perdeu uma
 saída sem sinal — é o oposto: nada se perde, só demora pra subir.
 
+### Saúde da Embarcação (onda 36) — fórmula é decisão de produto, não refactor
+
+A fórmula da nota do anel de saúde (pesos por categoria, severidade de status/gravidade,
+faixas de rótulo) vive **inteira** em `web/lib/domain/saude.ts` — nenhum outro arquivo
+guarda peso nenhum. Qualquer mudança de número ali é decisão de produto (precisa passar
+pelo dono, mesmo padrão da decisão de 14/08/2026 registrada no topo do arquivo), nunca um
+ajuste de refactor ou "melhoria" de engenharia por conta própria.
+
 ## Antes de fechar uma fase
 1. `npm test` e `npm run build` verdes
 2. Passe visual contra as pranchas da marca (navy/dourado, ícones, tipografia),
