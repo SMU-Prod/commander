@@ -192,8 +192,17 @@ export interface Convite {
   created_at: string
 }
 
+// Onda 39 — "tipo" separa Comandantes (§47, skipper contratável) de
+// Prestadores (§50, mecânico/eletricista/fibra...) na MESMA tabela/RLS/
+// trigger anti-autoverificação (migration 037) em vez de inventar
+// arquitetura nova. `categoria` guarda a habilitação (comandante) ou a
+// especialidade (prestador) — mesmo campo texto-livre dos dois tipos, ver
+// web/lib/domain/prestadores.ts pras sugestões de especialidade.
+export type TipoPerfilComandante = "comandante" | "prestador"
+
 export interface PerfilComandante {
   usuario_id: string
+  tipo: TipoPerfilComandante
   nome_publico: string
   categoria: string | null
   cidade: string | null
@@ -202,6 +211,38 @@ export interface PerfilComandante {
   disponibilidade: string | null
   visivel: boolean
   verificado: boolean
+  created_at: string
+}
+
+// Oportunidades (onda 39, PRD upgrade2-master §49/§53-54) — o mural do
+// PRD Marketplace: publica uma demanda (vaga, diária, peça/serviço —
+// "COMPRO — Rádio VHF"), prestadores/comandantes respondem. Ver migration
+// 037 (tabelas) e 038 (nome autodeclarado do autor/respondente — profiles
+// tem RLS de tripulação, ver comentário na migration). Nome final
+// "Oportunidades" (não "Marketplace") — ver docs/CONTRIBUTING.md, Glossário.
+export type TipoOportunidade = "vaga" | "diaria" | "peca_servico"
+export type StatusOportunidade = "aberta" | "atendida" | "encerrada"
+
+export interface Oportunidade {
+  id: string
+  autor_id: string
+  autor_nome: string
+  tipo: TipoOportunidade
+  titulo: string
+  categoria: string | null
+  descricao: string | null
+  local: string | null
+  status: StatusOportunidade
+  created_at: string
+}
+
+export interface RespostaOportunidade {
+  id: string
+  oportunidade_id: string
+  respondente_id: string
+  nome: string
+  mensagem: string
+  telefone: string | null
   created_at: string
 }
 
