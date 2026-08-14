@@ -691,6 +691,41 @@ NetCDF com validade — mesmo tipo de trabalho que a batimetria/máscara de águ
 ETOPO, só que pra um dataset diferente. Fica registrado para uma onda futura; nenhuma tela
 promete correnteza hoje.
 
+## Observabilidade de erro (Sentry, onda 31)
+
+O dono só descobria bug quando via com os PRÓPRIOS olhos (mapa branco no emulador, sessão
+caindo, chunk 403) — a suíte de teste não pega isso, e ninguém era avisado em produção.
+`@sentry/nextjs` captura erro no cliente, no servidor e no edge (`middleware.ts`).
+
+**Sem chave configurada, o app funciona idêntico a hoje e não loga nada** — mesmo padrão de
+no-op que já existe pro PostHog (`components/analytics.tsx`): `Sentry.init` só é chamado se
+`NEXT_PUBLIC_SENTRY_DSN` (ou `SENTRY_DSN` no servidor) estiver preenchida. Sem isso, zero
+request de rede, zero overhead.
+
+1. Crie o projeto em sentry.io (plataforma **Next.js**), free tier serve (5k erros/mês).
+2. **Settings → Client Keys (DSN)** → copie o DSN e cole em `NEXT_PUBLIC_SENTRY_DSN` na
+   Vercel (Production + Preview) — ver `web/.env.example` pro nome exato de cada variável.
+3. Opcional — upload de source map no build (stack trace legível no Sentry em vez de
+   código minificado): **Settings → Auth Tokens** (escopo `project:releases`), cole em
+   `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`. Sem essas três, o build continua
+   verde — o plugin só pula o upload com um aviso (`web/next.config.ts`).
+
+**Privacidade — requisito do produto, não opção.** O Commander lida com GPS, trilha de
+navegação e documento de embarcação. Configuração (`instrumentation-client.ts`,
+`sentry.server.config.ts`, `sentry.edge.config.ts`):
+- `sendDefaultPii: false` (default do SDK, mantido explícito) — nenhum IP, cookie, header
+  ou corpo de request/response é anexado automaticamente a um evento.
+- Nenhuma integração de **Session Replay** habilitada — replay grava tela/DOM, e o mapa +
+  painel do barco mostram posição e dado sensível o tempo todo.
+- `beforeSend` (`web/lib/observabilidade/sentry-scrub.ts`, com teste) faz uma segunda
+  passada: tira `user` do evento e redige parâmetro de coordenada/credencial em query
+  string (`?destino_la=&destino_lo=`, `?token=`, etc.) tanto na URL principal quanto em
+  breadcrumbs de fetch/xhr.
+
+**Alcance:** `app/error.tsx` (boundary de erro comum) e `app/global-error.tsx` (erro dentro
+do próprio `app/layout.tsx`, caso raro) chamam `Sentry.captureException` — sem DSN, isso é
+no-op, sem custo.
+
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.

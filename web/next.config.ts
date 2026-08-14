@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -47,4 +48,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Onda 31 (robustez) — só faz upload de source map se as três variáveis de
+// build (SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN) existirem. Sem elas —
+// que é o caso hoje, e vai continuar sendo até alguém configurar um projeto
+// Sentry de verdade — o plugin do withSentryConfig loga um aviso e PULA o
+// upload, sem quebrar o build (`npm run build` continua verde). `silent:
+// true` evita esse aviso poluir o log de build local; em CI (`process.env.CI`)
+// o log volta, pra ficar visível se algum dia isso for configurado errado lá.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  webpack: { treeshake: { removeDebugLogging: true } },
+});
