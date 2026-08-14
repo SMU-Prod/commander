@@ -6,11 +6,10 @@ import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { inserirOcorrenciaDoDiario } from "@/lib/acoes/ocorrencias"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
+import { abaDoHubChecklist, itensQueViramOcorrencia, lerChecklistDoFormulario, ROTULO_HUB_CHECKLIST } from "@/lib/domain/checklist-diario"
 import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
-import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
-import type { Aba } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -97,6 +96,11 @@ export async function criarEvento(formData: FormData) {
     marVentoKt = boletim?.ventoKt ?? null
   }
 
+  // Checklist rápido por hub (onda 40, PRD §23) — só existe em navegacao, e
+  // só grava o que foi de fato tocado (hub sem estado reconhecido não entra,
+  // ver `lerChecklistDoFormulario`). `null` quando ninguém tocou.
+  const checklist = tipo === "navegacao" ? lerChecklistDoFormulario(texto) : []
+
   const { data: inserido, error } = await supabase.from("eventos").insert({
     embarcacao_id: painel.embarcacao.id,
     equipamento_id: equipamentoId,
@@ -116,6 +120,7 @@ export async function criarEvento(formData: FormData) {
     tripulacao,
     mar_onda_m: marOndaM,
     mar_vento_kt: marVentoKt,
+    checklist: checklist.length > 0 ? checklist : null,
   }).select("id").single()
   if (error || !inserido) {
     if (anexoPath) await supabase.storage.from("acervo").remove([anexoPath])
@@ -151,29 +156,30 @@ export async function criarEvento(formData: FormData) {
     }
   }
 
-  // "Apontar problema" na saída (onda 32, CLAUDE.md §1): a ocorrência nasce
-  // já vinculada ao setor certo ao finalizar o registro — PRD §22/§23,
-  // "REGRA FUNDAMENTAL: uma ocorrência registrada no Diário deve ser
-  // encaminhada automaticamente ao hub correspondente". Só se aplica a
-  // navegacao (a saída), e só quando a pessoa de fato marcou um setor +
-  // título — sem isso, toda saída normal ganharia uma pergunta que não
-  // pediu. Falha aqui não desfaz a saída já salva (mesmo padrão do item
+  // Checklist do Diário por hub (onda 40, PRD §23): um hub marcado
+  // "Observação" + a caixa "isso é um problema" vira ocorrência já vinculada
+  // ao setor certo ao finalizar o registro — mesma "REGRA FUNDAMENTAL" do
+  // PRD §22/§23 de sempre, reusando `inserirOcorrenciaDoDiario` (onda 32),
+  // agora podendo nascer mais de uma ocorrência por saída (uma por hub
+  // marcado). Falha aqui não desfaz a saída já salva (mesmo padrão do item
   // monitorado e da leitura acima: avisa, não perde o que já foi gravado).
-  if (tipo === "navegacao") {
-    const setorOcorrencia = texto("ocorrencia_setor")
-    const tituloOcorrencia = texto("ocorrencia_titulo")
-    if (setorOcorrencia && tituloOcorrencia && (ABAS_OCORRENCIA as readonly string[]).includes(setorOcorrencia)) {
+  if (tipo === "navegacao" && checklist.length > 0) {
+    const paraOcorrencia = itensQueViramOcorrencia(
+      checklist,
+      (hub) => Boolean(formData.get(`checklist_${hub}_ocorrencia`)),
+    )
+    for (const oc of paraOcorrencia) {
       const r = await inserirOcorrenciaDoDiario({
         embarcacaoId: painel.embarcacao.id,
-        aba: setorOcorrencia as Aba,
-        titulo: tituloOcorrencia,
-        descricao: texto("ocorrencia_descricao"),
+        aba: abaDoHubChecklist(oc.hub),
+        titulo: oc.titulo,
+        descricao: oc.descricao,
         eventoId: inserido!.id,
         criadoPor: user.id,
       })
       if (!r.ok) {
         revalidatePath("/diario")
-        redirect(`/diario?erro=${encodeURIComponent("Saída registrada, mas a ocorrência não foi criada. Abra manualmente em Ocorrências.")}`)
+        redirect(`/diario?erro=${encodeURIComponent(`Saída registrada, mas a ocorrência de ${ROTULO_HUB_CHECKLIST[oc.hub]} não foi criada. Abra manualmente em Ocorrências.`)}`)
       }
     }
   }

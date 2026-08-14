@@ -70,6 +70,16 @@ export interface PontoTrilhaDb {
   lo: number
 }
 
+// Checklist do Diário por hub (onda 40, ver web/lib/domain/checklist-diario.ts).
+export type HubChecklistDiarioDb = "motores" | "casco" | "eletrica" | "hidraulica" | "seguranca"
+export type EstadoChecklistHubDb = "ok" | "observacao"
+
+export interface ItemChecklistDiarioDb {
+  hub: HubChecklistDiarioDb
+  estado: EstadoChecklistHubDb
+  nota: string | null
+}
+
 export interface Evento {
   id: string
   embarcacao_id: string
@@ -92,6 +102,10 @@ export interface Evento {
   tripulacao: string[]
   mar_onda_m: number | null
   mar_vento_kt: number | null
+  /** Checklist rápido por hub (onda 40, PRD §23) — só existe em saídas
+   *  (`tipo === "navegacao"`) onde o dono tocou o checklist; `null` quando
+   *  ninguém tocou (nunca um array com os 5 hubs "ok" inventado). */
+  checklist: ItemChecklistDiarioDb[] | null
   /** saída criada por importação de GPX do plotter (onda 21), não gravada ao vivo. */
   importado_do_plotter: boolean
   /** true quando o GPX original não tinha horário em algum ponto — duração/velocidade
