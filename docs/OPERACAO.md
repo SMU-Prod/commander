@@ -738,9 +738,18 @@ no-op que já existe pro PostHog (`components/analytics.tsx`): `Sentry.init` só
 `NEXT_PUBLIC_SENTRY_DSN` (ou `SENTRY_DSN` no servidor) estiver preenchida. Sem isso, zero
 request de rede, zero overhead.
 
+**Decisão do dono (14/08/2026): FICA DORMENTE por enquanto.** Com dois usuários (o dono e o
+sócio), quem acha bug são os olhos deles. O monitoramento acorda quando existir o primeiro
+usuário que não dá pra ligar e perguntar — na prática, o terceiro ou quarto fundador.
+
 1. Crie o projeto em sentry.io (plataforma **Next.js**), free tier serve (5k erros/mês).
 2. **Settings → Client Keys (DSN)** → copie o DSN e cole em `NEXT_PUBLIC_SENTRY_DSN` na
    Vercel (Production + Preview) — ver `web/.env.example` pro nome exato de cada variável.
+2b. **NO MESMO DIA, ANTES OU JUNTO DO DEPLOY: descomente o item "Sentry" da seção 4 da
+   Política de Privacidade** (`web/app/privacidade/page.tsx` — o texto já está escrito e
+   comentado, com a marcação explicando isso). A política lista todo terceiro que recebe
+   dado; ligar o monitoramento sem declarar torna a página falsa, e ela é pública e
+   vinculante. Atualize também a data de vigência das duas páginas legais.
 3. Opcional — upload de source map no build (stack trace legível no Sentry em vez de
    código minificado): **Settings → Auth Tokens** (escopo `project:releases`), cole em
    `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`. Sem essas três, o build continua

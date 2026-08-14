@@ -218,6 +218,24 @@ export default function PrivacidadePage() {
             o código de analytics não faz nada. Nenhum evento é rastreado automaticamente
             (autocapture desligado) — só eventos específicos que registramos manualmente.
           </li>
+          {/* SENTRY — TEXTO PRONTO, DESATIVADO DE PROPÓSITO (decisão do dono,
+              14/08/2026). O monitoramento de erro (onda 31) está INSTALADO mas
+              DORMENTE: sem `NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN` no ambiente,
+              nenhum dado sai do app. NO MESMO DIA em que a chave for
+              configurada, DESCOMENTE este item — a política precisa listar todo
+              terceiro que recebe dado, e ligar o monitoramento sem declarar
+              aqui torna esta página falsa. Ver também `docs/OPERACAO.md`. */}
+          {/*
+          <li>
+            <strong>Sentry</strong> — monitoramento de erro: quando algo quebra no app,
+            recebe o relatório técnico da falha (mensagem, linha do código, navegador e
+            aparelho) para que possamos corrigir. Configuramos para <strong>não</strong>{" "}
+            enviar dados pessoais: o identificador da sua conta, o conteúdo das requisições,
+            cookies e cabeçalhos são removidos antes do envio, e{" "}
+            <strong>coordenadas de GPS são apagadas</strong> de qualquer endereço que apareça
+            no relatório. Não há gravação de sessão nem reprodução de tela.
+          </li>
+          */}
           <li>
             <strong>Serviço de push do seu navegador/fabricante</strong> (ex.: Google/Apple) —
             entrega as notificações Web Push até o seu aparelho, como em qualquer app que manda
