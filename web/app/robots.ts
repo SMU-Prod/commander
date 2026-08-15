@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/hoje",
         "/barco",
+        "/agenda",
         "/diario",
         "/menu",
         "/rede",

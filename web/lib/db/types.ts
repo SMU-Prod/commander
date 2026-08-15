@@ -598,3 +598,35 @@ export interface Parceiro {
   criado_em: string
   atualizado_em: string
 }
+
+// AGENDA (onda 43, PRD §8) — compromissos marcados. CUIDADO com o nome:
+// `Evento` lá em cima é o DIÁRIO DE BORDO (o que já aconteceu); isto aqui é
+// o que está MARCADO pra acontecer. Ver o cabeçalho da migration 044_agenda.
+export type VisibilidadeAgendaDb = "particular" | "compartilhado" | "atribuido"
+
+export interface AgendaEvento {
+  id: string
+  embarcacao_id: string
+  titulo: string
+  descricao: string | null
+  /** "AAAA-MM-DD" */
+  data: string
+  /** "HH:MM:SS" ou null (compromisso de dia inteiro). */
+  hora: string | null
+  visibilidade: VisibilidadeAgendaDb
+  /** Ponteiro opcional pra uma manutenção/documento. NUNCA concede acesso ao
+   *  hub — quem lê o item continua passando pela RLS de `itens_monitorados`
+   *  (PRD §8: "Receber um evento não concede acesso ao Hub relacionado"). */
+  item_monitorado_id: string | null
+  concluido_em: string | null
+  criado_por: string | null
+  created_at: string
+}
+
+export interface AgendaParticipante {
+  evento_id: string
+  usuario_id: string
+  /** true = atribuído a essa pessoa, não só compartilhado. */
+  responsavel: boolean
+  created_at: string
+}

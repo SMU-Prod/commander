@@ -35,6 +35,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | buffer · cache local · enviar sondagem | **fila** (leituras guardadas no aparelho esperando conexão pra enviar, `web/lib/nmea/fila.ts`, onda 14) — nunca "enviar" sozinho: sondagem sempre entra na fila primeiro, o envio é automático e em segundo plano |
 | tábua de marés · preamar/baixa-mar oficial | **maré estimada** / **curva de maré estimada por modelo** (onda 20, `web/lib/domain/mar.ts`) — a tábua oficial é a do CHM, o Commander não a embute, só linka pra ela |
 | Marketplace (pro mural de vagas/diárias/"COMPRO X") | **Oportunidades** (onda 39, ver abaixo) |
+| "criar uma agenda" · "evento" (na Agenda) | **compromisso** (onda 43, PRD §8) — o PRD é explícito: *"o usuário não 'cria uma agenda', cria eventos/compromissos"*. E "evento" no Commander **já é** o registro do Diário de Bordo (tabela `eventos`, o que aconteceu); a Agenda é `agenda_eventos` (o que está marcado). Na tela sempre **compromisso**, nunca "evento" |
 
 ### Comandantes · Prestadores · Serviços · Oportunidades · Explorar (onda 39) — cinco conceitos, cinco nomes
 
