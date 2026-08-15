@@ -7,9 +7,9 @@ import type { PerfilComandante } from "@/lib/db/types"
 
 // Onda 39 — renomeada de /marketplace pra /comandantes (a URL não tinha
 // acompanhado o rótulo do bottom-nav, já trocado numa auditoria de
-// usabilidade anterior). Ver docs/CONTRIBUTING.md, Glossário, pra por que
-// "Comandantes" é o nome final desta vitrine e "Oportunidades" (rota nova)
-// é o nome do Marketplace de verdade do PRD (vagas/diárias/"COMPRO X").
+// usabilidade anterior). Ver docs/CONTRIBUTING.md, Glossário: "Comandantes" é
+// o nome final desta VITRINE DE PERFIS, e ela nunca volta a se chamar
+// Marketplace — esse nome é da área de DEMANDAS (/marketplace, onda 45).
 export default async function ComandantesPage() {
   const supabase = await supabaseServer()
   const { data: perfis, error } = await supabase

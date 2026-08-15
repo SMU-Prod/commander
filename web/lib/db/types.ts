@@ -1,3 +1,16 @@
+import type {
+  CondicaoProduto,
+  DecisaoConfirmacao,
+  FormaEntrega,
+  PapelNegocio,
+  PeriodoVaga,
+  StatusDemanda,
+  StatusProposta,
+  TipoDemanda,
+  TipoTaxonomia,
+  TipoTrabalho,
+  TipoVaga,
+} from "@/lib/domain/marketplace"
 import type { NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 
 export interface Embarcacao {
@@ -274,36 +287,143 @@ export interface PerfilComandante {
   created_at: string
 }
 
-// Oportunidades (onda 39, PRD upgrade2-master §49/§53-54) — o mural do
-// PRD Marketplace: publica uma demanda (vaga, diária, peça/serviço —
-// "COMPRO — Rádio VHF"), prestadores/comandantes respondem. Ver migration
-// 037 (tabelas) e 038 (nome autodeclarado do autor/respondente — profiles
-// tem RLS de tripulação, ver comentário na migration). Nome final
-// "Oportunidades" (não "Marketplace") — ver docs/CONTRIBUTING.md, Glossário.
-export type TipoOportunidade = "vaga" | "diaria" | "peca_servico"
-export type StatusOportunidade = "aberta" | "atendida" | "encerrada"
+// MARKETPLACE ORIENTADO POR DEMANDA (onda 45, PRD upgrade2-master-final §11).
+// Substitui `oportunidades`/`respostas_oportunidade` da onda 39 (migration 046
+// migrou os dados e removeu as tabelas antigas — o porquê está no cabeçalho da
+// migration). Note que `demandas` NÃO tem coluna `titulo`: o §11.2 manda o
+// Commander gerar o título dos campos, e quem faz isso é `tituloDaDemanda`
+// em lib/domain/marketplace.ts.
+export interface ItemTaxonomiaDb {
+  id: string
+  tipo: TipoTaxonomia
+  slug: string
+  nome: string
+  uf: string | null
+  ordem: number
+  ativo: boolean
+  criado_em: string
+}
 
-export interface Oportunidade {
+export interface TaxonomiaSolicitacao {
+  id: string
+  solicitante_id: string
+  tipo: TipoTaxonomia
+  nome: string
+  observacao: string | null
+  status: "pendente" | "aprovada" | "recusada"
+  criado_em: string
+}
+
+export interface Demanda {
   id: string
   autor_id: string
   autor_nome: string
-  tipo: TipoOportunidade
-  titulo: string
-  categoria: string | null
-  descricao: string | null
-  local: string | null
-  status: StatusOportunidade
-  created_at: string
+  tipo: TipoDemanda
+  regiao_id: string
+  categoria_id: string | null
+  funcao_id: string | null
+  marca_id: string | null
+  combustivel_id: string | null
+  porte_pes: number | null
+  tipo_vaga: TipoVaga | null
+  quantidade_litros: number | null
+  data_desejada: string | null
+  data_fim: string | null
+  observacao: string | null
+  status: StatusDemanda
+  expira_em: string
+  criado_em: string
+  atualizado_em: string
 }
 
-export interface RespostaOportunidade {
-  id: string
-  oportunidade_id: string
-  respondente_id: string
-  nome: string
-  mensagem: string
+/** Tabela separada de propósito (§22): o telefone do proprietário só é
+ *  legível depois que ele aceita a proposta — a RLS da migration 046 é quem
+ *  garante, não a tela. */
+export interface DemandaContato {
+  demanda_id: string
   telefone: string | null
-  created_at: string
+  email: string | null
+  criado_em: string
+}
+
+export interface Proposta {
+  id: string
+  demanda_id: string
+  autor_id: string
+  autor_nome: string
+  telefone: string | null
+  disponibilidade: string | null
+  data_possivel: string | null
+  valor_centavos: number | null
+  valor_a_combinar: boolean
+  observacao: string | null
+  precisa_visita: boolean | null
+  marca_modelo: string | null
+  condicao: CondicaoProduto | null
+  entrega: FormaEntrega | null
+  prazo_dias: number | null
+  tipo_vaga: TipoVaga | null
+  periodo: PeriodoVaga | null
+  tem_agua_energia: boolean | null
+  preco_litro_centavos: number | null
+  quantidade_litros: number | null
+  taxa_deslocamento_centavos: number | null
+  valor_estimado_centavos: number | null
+  status: StatusProposta
+  criado_em: string
+  atualizado_em: string
+}
+
+export interface Negocio {
+  id: string
+  demanda_id: string
+  proposta_id: string
+  cliente_id: string
+  fornecedor_id: string
+  valor_final_centavos: number | null
+  criado_em: string
+}
+
+export interface NegocioConfirmacao {
+  id: string
+  negocio_id: string
+  usuario_id: string
+  papel: PapelNegocio
+  decisao: DecisaoConfirmacao
+  observacao: string | null
+  criado_em: string
+}
+
+export interface InteresseMarketplace {
+  id: string
+  usuario_id: string
+  tipo_demanda: TipoDemanda
+  regiao_id: string
+  categoria_id: string | null
+  funcao_id: string | null
+  combustivel_id: string | null
+  porte_max_pes: number | null
+  ativo: boolean
+  criado_em: string
+}
+
+export interface Disponibilidade {
+  id: string
+  autor_id: string
+  autor_nome: string
+  funcao_id: string
+  regiao_id: string
+  tipo_trabalho: TipoTrabalho
+  data_inicio: string | null
+  data_fim: string | null
+  experiencia_anos: number | null
+  porte_max_pes: number | null
+  certificacoes: string | null
+  observacao: string | null
+  telefone: string | null
+  expira_em: string
+  ativo: boolean
+  criado_em: string
 }
 
 export interface PushAssinatura {

@@ -1,12 +1,16 @@
 import Link from "next/link"
 
-export type DestinoRede = "comandantes" | "prestadores" | "servicos" | "oportunidades" | "explorar"
+export type DestinoRede = "comandantes" | "prestadores" | "servicos" | "marketplace" | "explorar"
 
 const DESTINOS: { valor: DestinoRede; href: string; rotulo: string }[] = [
   { valor: "comandantes", href: "/comandantes", rotulo: "Comandantes" },
   { valor: "prestadores", href: "/prestadores", rotulo: "Prestadores" },
   { valor: "servicos", href: "/servicos", rotulo: "Serviços" },
-  { valor: "oportunidades", href: "/oportunidades", rotulo: "Oportunidades" },
+  // Onda 45 — "Oportunidades" virou "Marketplace": o PRD FINAL (§0, §3.1,
+  // §11) nomeia oficialmente a área de demandas assim, e o motivo do apelido
+  // da onda 39 (evitar confusão com a vitrine de perfis) caiu quando o mesmo
+  // PRD mandou a vitrine para EXPLORAR PARCEIROS.
+  { valor: "marketplace", href: "/marketplace", rotulo: "Marketplace" },
   { valor: "explorar", href: "/explorar", rotulo: "Explorar" },
 ]
 
@@ -17,7 +21,8 @@ const DESTINOS: { valor: DestinoRede; href: string; rotulo: string }[] = [
  * - Comandantes: vitrine de perfis pra contratar via WhatsApp (§47).
  * - Prestadores: mecânico/eletricista/fibra... perfil por especialidade (§50).
  * - Serviços: achar quem resolve um problema — categorias + prestadores (§51).
- * - Oportunidades: mural de vagas/diárias/"COMPRO X", com resposta (§49, §53-54).
+ * - Marketplace: pedidos estruturados (profissional, tripulação, produto,
+ *   vaga, caminhão) com proposta e fechamento bilateral (PRD FINAL §11).
  * - Explorar: mapa de marina/posto/pousada/restaurante (§52).
  *
  * Fica no topo de cada uma das 5 telas — a distinção fica visível na

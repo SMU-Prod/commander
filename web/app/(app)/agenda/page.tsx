@@ -31,7 +31,7 @@ import {
 } from "@/lib/domain/agenda"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
-import { faroDoEstado, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
+import { ESTADOS_QUE_PESAM_NA_SAUDE, faroDoEstado, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
 import { podeEditar, podeVer, ROTULO_ABA, type Aba } from "@/lib/domain/permissoes"
 import { mesAnteriorISO, mesSeguinte } from "@/lib/domain/relatorio"
 import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
@@ -165,9 +165,15 @@ export default async function AgendaPage({
   // "o que precisa de ação" (PRD §7: "Diário gera histórico. Ocorrência gera
   // ação."). Ancorada no dia em que foi aberta, que é a única data real que
   // existe: a Agenda não inventa prazo que ninguém definiu.
+  // Lista explícita em vez de "tudo menos resolvida": a onda 44 (paralela a
+  // esta) criou o estado `anulada` — ocorrência aberta por engano. Anulada
+  // não é tarefa pendente de ninguém, e com o filtro por negação ela viraria
+  // item da Agenda pra sempre. `ESTADOS_QUE_PESAM_NA_SAUDE` é a mesma origem
+  // que a Início e a Saúde usam, então as três telas nunca divergem.
   const { data: ocorrenciasBrutas } = camadas.includes("tarefas")
     ? await supabase.from("ocorrencias").select("*")
-        .eq("embarcacao_id", painel.embarcacao.id).neq("estado", "resolvida")
+        .eq("embarcacao_id", painel.embarcacao.id)
+        .in("estado", ESTADOS_QUE_PESAM_NA_SAUDE as readonly string[])
     : { data: [] as Ocorrencia[] }
   for (const o of (ocorrenciasBrutas ?? []) as Ocorrencia[]) {
     derivados.push({
@@ -177,7 +183,10 @@ export default async function AgendaPage({
       detalhe: `${ROTULO_ABA[o.aba]} · ${ROTULO_ESTADO[o.estado]}`,
       camada: "tarefas",
       href: `/barco/ocorrencias/${o.id}`,
-      status: faroDoEstado(o.estado),
+      // `?? "vencido"`: o filtro acima já garante aberta/em_acompanhamento, que
+      // nunca devolvem null — o fallback existe só pra não precisar de `as`,
+      // que foi exatamente o cast mentiroso que escondeu o NaN na Saúde.
+      status: faroDoEstado(o.estado) ?? "vencido",
     })
   }
 

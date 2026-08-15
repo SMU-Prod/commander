@@ -34,7 +34,7 @@ export default async function PrestadoresPage() {
             variant="linha"
             icone="ferramenta"
             titulo="Ainda não há prestadores cadastrados na sua região"
-            descricao="Assim que houver, eles aparecem aqui. Enquanto isso, publique o que precisa em Oportunidades."
+            descricao="Assim que houver, eles aparecem aqui. Enquanto isso, publique o que precisa no Marketplace."
           />
         )}
         {((perfis ?? []) as PerfilComandante[]).map((p) => (
