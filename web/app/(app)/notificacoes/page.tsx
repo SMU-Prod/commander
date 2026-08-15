@@ -203,7 +203,7 @@ export default async function NotificacoesPage({
         /* A aba já diz "Histórico" — repetir "Histórico de avisos" num
            cabeçalho de seção logo abaixo seria moldura fazendo o trabalho do
            conteúdo (spec §3.2), então o bloco entra sem `SecaoPagina`. */
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {enviados.length === 0 && (
             <EstadoVazio
               variant="linha"
@@ -283,8 +283,15 @@ export default async function NotificacoesPage({
             />
           )}
 
+          {/* Mesma regra descendo um degrau: se informativas são TUDO que
+              há, elas abrem — senão a tela inteira vira dois títulos
+              fechados e a pessoa sai achando que não havia nada. */}
           {informativas.length > 0 && (
-            <NivelRecolhido rotulo="Informativas" itens={informativas} />
+            <NivelRecolhido
+              rotulo="Informativas"
+              itens={informativas}
+              aberto={criticas.length === 0 && importantes.length === 0}
+            />
           )}
         </>
       )}
