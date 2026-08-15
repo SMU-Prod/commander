@@ -5,13 +5,11 @@ import { subirArquivo } from "@/lib/acervo"
 import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
 import { inserirOcorrenciaDoDiario } from "@/lib/acoes/ocorrencias"
 import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "@/lib/consultas"
-import { duracaoHoras, horasSugeridas } from "@/lib/domain/bordo"
+import { duracaoHoras, horasSugeridas, lerPassageiros } from "@/lib/domain/bordo"
 import { abaDoHubChecklist, itensQueViramOcorrencia, lerChecklistDoFormulario, ROTULO_HUB_CHECKLIST } from "@/lib/domain/checklist-diario"
 import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
-import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
-import type { Aba } from "@/lib/domain/permissoes"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -84,7 +82,9 @@ export async function criarEvento(formData: FormData) {
   // tipos ficam null/vazio, exatamente como a tabela ja nasce.
   const horaSaida = tipo === "navegacao" ? texto("hora_saida") : null
   const horaRetorno = tipo === "navegacao" ? texto("hora_retorno") : null
+  const localSaida = tipo === "navegacao" ? texto("local_saida") : null
   const destino = tipo === "navegacao" ? texto("destino") : null
+  const passageiros = tipo === "navegacao" ? lerPassageiros(texto("passageiros")) : []
 
   let tripulacao: string[] = []
   if (tipo === "navegacao") {
@@ -128,8 +128,10 @@ export async function criarEvento(formData: FormData) {
     criado_por: user.id,
     hora_saida: horaSaida,
     hora_retorno: horaRetorno,
+    local_saida: localSaida,
     destino,
     tripulacao,
+    passageiros,
     mar_onda_m: marOndaM,
     mar_vento_kt: marVentoKt,
     checklist: checklist.length > 0 ? checklist : null,

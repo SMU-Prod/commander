@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
-import { Campo, CampoSelect } from "@/components/ui/campo"
+import { CamposTipoEquipamento } from "@/components/campos-tipo-equipamento"
+import { Campo } from "@/components/ui/campo"
 import { excluirEquipamento, salvarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
@@ -33,20 +34,11 @@ export default async function EditarEquipamentoPage({
       <form action={salvarEquipamento} className="mt-5 space-y-4">
         <input type="hidden" name="equipamento_id" value={id} />
         <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <CampoSelect label="Tipo" id="tipo" name="tipo" defaultValue={eq.tipo}>
-              <option value="gerador">Gerador</option>
-              <option value="bateria">Baterias</option>
-              <option value="motor">Motor</option>
-              <option value="outro">Outro</option>
-            </CampoSelect>
-            <CampoSelect label="Posição" id="posicao" name="posicao" defaultValue={eq.posicao ?? ""}>
-              <option value="">Sem posição</option>
-              <option value="BB">Bombordo (BB)</option>
-              <option value="BE">Boreste (BE)</option>
-              <option value="central">Central</option>
-            </CampoSelect>
-          </div>
+          <CamposTipoEquipamento
+            tipoInicial={eq.tipo}
+            posicaoInicial={eq.posicao ?? ""}
+            tipoBateriaInicial={eq.tipo_bateria ?? ""}
+          />
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Marca" id="marca" name="marca" defaultValue={eq.marca ?? ""} />
             <Campo label="Modelo" id="modelo" name="modelo" defaultValue={eq.modelo ?? ""} />

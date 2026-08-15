@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { abaDoItem, agruparPorMes, eventoNoFiltro, grupoDoEvento, validarNovoItem, zerarCiclo } from "./diario"
+import { abaDoItem, agruparPorMes, categoriaDeItemDeMotor, eventoNoFiltro, grupoDoEvento, validarNovoItem, zerarCiclo } from "./diario"
 
 const ev = (p: Partial<Parameters<typeof eventoNoFiltro>[0]>) => ({
   tipo: "manutencao", categoria: null, custoCentavos: null, tipoEquipamento: null, ...p,
@@ -72,10 +72,43 @@ describe("abaDoItem", () => {
     expect(abaDoItem({ equipamento_id: null, categoria: "hidraulica_black_water" }, [])).toBe("hidraulica")
     expect(abaDoItem({ equipamento_id: null, categoria: "seguranca" }, [])).toBe("seguranca")
   })
+  it("oleo e filtros seguem o motor, nao a categoria", () => {
+    // o caminho normal: o item aponta pro motor, e e o motor que manda
+    expect(abaDoItem({ equipamento_id: "m1", categoria: "motor_oleo" }, equipamentos)).toBe("motores")
+    expect(abaDoItem({ equipamento_id: "m1", categoria: "motor_filtro_ar" }, equipamentos)).toBe("motores")
+  })
+  it("oleo e filtros orfaos (motor apagado) continuam em motores, nao viram embarcacao", () => {
+    expect(abaDoItem({ equipamento_id: null, categoria: "motor_oleo" }, [])).toBe("motores")
+    expect(abaDoItem({ equipamento_id: null, categoria: "motor_filtro_combustivel" }, [])).toBe("motores")
+  })
   it("documento e casco continuam como sempre; sem categoria cai em embarcacao", () => {
     expect(abaDoItem({ equipamento_id: null, categoria: "documento" }, [])).toBe("documentos")
     expect(abaDoItem({ equipamento_id: null, categoria: "fibra" }, [])).toBe("casco")
     expect(abaDoItem({ equipamento_id: null, categoria: null }, [])).toBe("embarcacao")
+  })
+})
+
+describe("categoriaDeItemDeMotor", () => {
+  const equipamentos = [
+    { id: "m1", tipo: "motor" }, { id: "g1", tipo: "gerador" },
+  ]
+  it("grava o subtipo quando o alvo e um motor", () => {
+    expect(categoriaDeItemDeMotor("m1", "motor_oleo", equipamentos)).toBe("motor_oleo")
+    expect(categoriaDeItemDeMotor("m1", "motor_filtro_ar", equipamentos)).toBe("motor_filtro_ar")
+  })
+  it("filtro pendurado num gerador nao vira Oleo/Filtros do motor", () => {
+    expect(categoriaDeItemDeMotor("g1", "motor_filtro_ar", equipamentos)).toBeNull()
+  })
+  it("item de motor sem subtipo continua valendo", () => {
+    expect(categoriaDeItemDeMotor("m1", null, equipamentos)).toBeNull()
+    expect(categoriaDeItemDeMotor("m1", "", equipamentos)).toBeNull()
+  })
+  it("nao aceita categoria inventada nem de outro hub", () => {
+    expect(categoriaDeItemDeMotor("m1", "seguranca", equipamentos)).toBeNull()
+    expect(categoriaDeItemDeMotor("m1", "qualquer_coisa", equipamentos)).toBeNull()
+  })
+  it("equipamento que nao existe mais nao grava nada", () => {
+    expect(categoriaDeItemDeMotor("sumiu", "motor_oleo", equipamentos)).toBeNull()
   })
 })
 

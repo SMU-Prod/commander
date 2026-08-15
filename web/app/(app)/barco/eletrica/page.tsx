@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -22,7 +23,12 @@ export default async function EletricaPage() {
   }
   const editavel = podeEditar(painel.permissoes, "eletrica")
   const hoje = hojeISO()
-  const equipamentos = painel.equipamentos.filter((e) => e.tipo !== "motor")
+  // Só o que a matriz de permissões governa como "eletrica" (onda 32:
+  // `abaDoEquipamento`). Antes era `tipo !== "motor"`, que arrastava os
+  // equipamentos "outro" pra cá — e esses passaram a pertencer à área
+  // Equipamentos, com RLS própria: quem só tinha Elétrica via na tela um
+  // colete salva-vidas que o banco não deixava editar.
+  const equipamentos = painel.equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica")
 
   const podeVerContatos = podeVer(painel.permissoes, "contatos")
   let contatosEletrica: Contato[] = []
@@ -44,7 +50,7 @@ export default async function EletricaPage() {
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
   const rotuloTipo: Record<string, string> = {
-    gerador: "Gerador", bateria: "Baterias", outro: "Equipamento", motor: "Motor",
+    gerador: "Gerador", bateria: "Baterias", painel: "Painel de bordo",
   }
 
   return (
@@ -61,7 +67,7 @@ export default async function EletricaPage() {
           </Link>
         )}
       </div>
-      <p className="apoio mt-1 text-dim">Gerador, baterias e o que mais tiver manutenção própria a bordo.</p>
+      <p className="apoio mt-1 text-dim">Gerador, baterias e painel de bordo.</p>
 
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (

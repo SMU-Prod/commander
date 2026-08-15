@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { abaDoItem, validarNovoItem } from "@/lib/domain/diario"
+import { abaDoItem, categoriaDeItemDeMotor, validarNovoItem } from "@/lib/domain/diario"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -57,7 +57,12 @@ export async function criarItemMonitorado(formData: FormData) {
 
   const alvo = texto("alvo") ?? "emb"
   const equipamentoId = alvo.startsWith("eq:") ? alvo.slice(3) : null
-  const categoria = alvo.startsWith("cat:") ? alvo.slice(4) : null
+  // Item de motor pode dizer O QUE é (Óleo, Filtro de ar...) — PRD §11.
+  // Quando não é motor, `categoriaDeItemDeMotor` devolve null e a categoria
+  // continua vindo só do alvo, como sempre.
+  const categoria = alvo.startsWith("cat:")
+    ? alvo.slice(4)
+    : categoriaDeItemDeMotor(equipamentoId, texto("tipo_motor"), painel.equipamentos)
 
   const numero = (k: string, msg: string) => {
     const v = texto(k)
@@ -119,7 +124,11 @@ export async function salvarItemMonitorado(formData: FormData) {
 
   const alvo = texto("alvo") ?? "emb"
   const equipamentoId = alvo.startsWith("eq:") ? alvo.slice(3) : null
-  const categoria = alvo.startsWith("cat:") ? alvo.slice(4) : null
+  // Mesma regra do criar (PRD §11): mover o item de um motor pra um gerador
+  // tem que soltar o subtipo Óleo/Filtro junto, não deixar pendurado.
+  const categoria = alvo.startsWith("cat:")
+    ? alvo.slice(4)
+    : categoriaDeItemDeMotor(equipamentoId, texto("tipo_motor"), painel.equipamentos)
 
   // o alvo pode mudar no editar — checa a area de destino também, senão dá pra
   // mover um item pra uma area que o usuário não tem acesso de editar

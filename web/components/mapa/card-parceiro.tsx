@@ -11,6 +11,8 @@ const CATEGORIA_ROTULO: Record<CategoriaParceiro, string> = {
   posto: "Posto de combustível",
   pousada: "Pousada",
   restaurante: "Restaurante",
+  loja_nautica: "Loja náutica",
+  outros: "Outros",
 }
 
 const DIAS_DESATUALIZADO = 30
@@ -39,8 +41,23 @@ export function CardParceiro({
 
   const agoraIso = new Date().toISOString()
   const atualizado = tempoDesde(parceiro.atualizado_em, agoraIso)
-  const diasDesdeAtualizacao = (new Date(agoraIso).getTime() - new Date(parceiro.atualizado_em).getTime()) / 86_400_000
-  const desatualizado = diasDesdeAtualizacao > DIAS_DESATUALIZADO
+
+  // A frescura que importa é a do PREÇO (PRD §61), não a do cadastro:
+  // `atualizado_em` sobe a cada edição — trocar uma foto ou o texto do
+  // "sobre" fazia um diesel de três meses atrás parecer de ontem. Quem só
+  // sobe quando um preço/disponibilidade muda é `precos_atualizados_em`
+  // (trigger `parceiro_regras`, migration 020).
+  const temPreco =
+    parceiro.preco_diaria_centavos != null ||
+    parceiro.preco_diesel_centavos != null ||
+    parceiro.qtd_poitas != null
+  const precoAtualizado = parceiro.precos_atualizados_em
+    ? tempoDesde(parceiro.precos_atualizados_em, agoraIso)
+    : null
+  const diasDesdePreco = parceiro.precos_atualizados_em
+    ? (new Date(agoraIso).getTime() - new Date(parceiro.precos_atualizados_em).getTime()) / 86_400_000
+    : null
+  const precoDesatualizado = temPreco && (diasDesdePreco == null || diasDesdePreco > DIAS_DESATUALIZADO)
 
   const telefoneLimpo = parceiro.telefone?.replace(/\D/g, "") ?? ""
 
@@ -135,16 +152,23 @@ export function CardParceiro({
             {parceiro.horario && <p>Horário: {parceiro.horario}</p>}
           </div>
 
+          {temPreco && (
+            <p className="apoio mt-1.5 text-dim">
+              {precoAtualizado ? `Preços atualizados ${precoAtualizado}` : "Preços nunca atualizados desde o cadastro"}
+            </p>
+          )}
+
           {parceiro.email && (
             <a href={`mailto:${parceiro.email}`} className="corpo mt-2 block break-all text-accent-forte">
               {parceiro.email}
             </a>
           )}
 
-          <p className="apoio mt-2 text-dim">Atualizado {atualizado}</p>
-          {desatualizado && (
+          <p className="apoio mt-2 text-dim">Cadastro atualizado {atualizado}</p>
+          {precoDesatualizado && (
             <p className="apoio mt-1 rounded-lg border border-warn/40 bg-warn/10 px-2.5 py-1.5 text-warn">
-              Informações podem estar desatualizadas.
+              Os preços não são atualizados há mais de {DIAS_DESATUALIZADO} dias. Confirme por telefone
+              antes de contar com eles.
             </p>
           )}
 

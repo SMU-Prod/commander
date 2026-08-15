@@ -15,11 +15,15 @@ const CATEGORIAS: { valor: CategoriaParceiro | "todos"; rotulo: string }[] = [
   { valor: "posto", rotulo: "Posto" },
   { valor: "pousada", rotulo: "Pousada" },
   { valor: "restaurante", rotulo: "Restaurante" },
+  // Onda 41: as duas últimas categorias do PRD §52 ("Loja náutica" e
+  // "Outros parceiros pertinentes") — o CHECK do banco não as aceitava.
+  { valor: "loja_nautica", rotulo: "Loja náutica" },
+  { valor: "outros", rotulo: "Outros" },
 ]
 
 /** Onda 39 (PRD upgrade2-master §52) — "descobrir onde ir e o que existe ao
  *  redor da navegação": mapa de parceiros (marina, posto, pousada,
- *  restaurante) por categoria. Diferente de /navegar (instrumento de
+ *  restaurante, loja náutica, outros) por categoria. Diferente de /navegar (instrumento de
  *  navegação — trilha, rota pela água, alarme de âncora, MOB): Explorar é
  *  SÓ descoberta, sem nada disso.
  *

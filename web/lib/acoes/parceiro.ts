@@ -6,7 +6,9 @@ import { supabaseServer } from "@/lib/supabase/server"
 import { ehCorParceiroValida, ehIconeParceiroValido } from "@/lib/mapa/pino-parceiro"
 import type { CategoriaParceiro } from "@/lib/db/types"
 
-const CATEGORIAS: CategoriaParceiro[] = ["marina", "posto", "pousada", "restaurante"]
+const CATEGORIAS: CategoriaParceiro[] = [
+  "marina", "posto", "pousada", "restaurante", "loja_nautica", "outros",
+]
 const MIME_AUTORIZADOS = ["image/jpeg", "image/png", "image/webp"]
 const MAX_FOTOS = 3
 

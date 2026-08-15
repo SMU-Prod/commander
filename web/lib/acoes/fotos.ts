@@ -8,7 +8,7 @@ import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { AlbumFoto } from "@/lib/db/types"
 
-const ALBUNS_VALIDOS = ["exterior", "interior", "conves", "documentacao"]
+const ALBUNS_VALIDOS = ["exterior", "interior", "conves", "documentacao", "outros"]
 
 /** Volta para o álbum em que a pessoa estava — senão a foto recém-enviada "some". */
 function voltar(album?: string | null, msg?: string): never {

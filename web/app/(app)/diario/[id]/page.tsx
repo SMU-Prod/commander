@@ -104,7 +104,9 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
   const texto = textoCompartilharSaida({
     distanciaNm: r?.distanciaNm ?? null,
     duracaoH,
-    origem: painel.embarcacao.marina,
+    // O local de saída digitado na hora (onda 41) manda: a marina cadastrada
+    // é onde o barco MORA, e essa saída pode ter partido de outro lugar.
+    origem: e.local_saida ?? painel.embarcacao.marina,
     destino: e.destino,
   })
 
@@ -113,7 +115,12 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       <CabecalhoDetalhe
         voltarHref="/diario"
         voltarRotulo="Diário"
-        titulo={e.destino ? `Saída — ${e.destino}` : "Saída"}
+        titulo={
+          e.local_saida && e.destino ? `${e.local_saida} → ${e.destino}`
+            : e.destino ? `Saída — ${e.destino}`
+            : e.local_saida ? `Saída de ${e.local_saida}`
+            : "Saída"
+        }
         descricao={`${e.data.split("-").reverse().join("/")}${duracaoH != null ? ` · ${textoDuracao(duracaoH)}` : ""}${retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) ? " · retorno no dia seguinte" : ""}`}
       />
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
@@ -223,6 +230,15 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Passageiros (onda 41, PRD §23) — seção separada da tripulação de
+          propósito: aqui é só nome digitado, sem conta nem avatar. */}
+      {e.passageiros.length > 0 && (
+        <div>
+          <SecaoPagina icone="pessoas">Passageiros</SecaoPagina>
+          <p className="corpo text-dim">{e.passageiros.join(" · ")}</p>
         </div>
       )}
 

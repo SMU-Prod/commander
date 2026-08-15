@@ -8,8 +8,9 @@ import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
-const TIPOS = ["motor", "gerador", "bateria", "outro"]
+const TIPOS = ["motor", "gerador", "bateria", "painel", "outro"]
 const POSICOES = ["BB", "BE", "central"]
+const TIPOS_BATERIA = ["chumbo_acido", "agm", "gel", "litio", "outro"]
 
 function erroNovo(msg: string): never {
   redirect(`/barco/equipamento/novo?erro=${encodeURIComponent(msg)}`)
@@ -24,6 +25,15 @@ function camposDoForm(formData: FormData, falhar: (msg: string) => never) {
   if (!TIPOS.includes(tipo)) falhar("Escolha o tipo do equipamento.")
   const posicaoBruta = texto("posicao")
   const posicao = posicaoBruta && POSICOES.includes(posicaoBruta) ? posicaoBruta : null
+
+  // Tipo de bateria (onda 41, PRD §14) só existe em baterias. Se a pessoa
+  // escolheu "AGM" e depois trocou o tipo pra Gerador, o campo some da tela
+  // mas continua no FormData — descartar aqui evita salvar um gerador AGM.
+  const tipoBateriaBruto = texto("tipo_bateria")
+  const tipo_bateria =
+    tipo === "bateria" && tipoBateriaBruto && TIPOS_BATERIA.includes(tipoBateriaBruto)
+      ? tipoBateriaBruto
+      : null
 
   const inteiro = (k: string, rotulo: string) => {
     const bruto = texto(k)
@@ -47,6 +57,7 @@ function camposDoForm(formData: FormData, falhar: (msg: string) => never) {
     potencia_hp: inteiro("potencia_hp", "a potência"),
     combustivel: texto("combustivel"),
     quantidade: inteiro("quantidade", "a quantidade"),
+    tipo_bateria,
     horas_atuais: horas,
     observacoes: texto("observacoes"),
   }

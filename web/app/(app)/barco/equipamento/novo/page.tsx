@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
-import { Campo, CampoSelect } from "@/components/ui/campo"
+import { CamposTipoEquipamento } from "@/components/campos-tipo-equipamento"
+import { Campo } from "@/components/ui/campo"
 import { criarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
@@ -14,7 +15,7 @@ export default async function NovoEquipamentoPage({
   const { erro, tipo } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  const tipoInicial = ["motor", "gerador", "bateria", "outro"].includes(tipo ?? "") ? tipo! : "gerador"
+  const tipoInicial = ["motor", "gerador", "bateria", "painel", "outro"].includes(tipo ?? "") ? tipo! : "gerador"
   const aba = abaDoEquipamento(tipoInicial)
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite cadastrar este equipamento.")}`)
@@ -32,20 +33,7 @@ export default async function NovoEquipamentoPage({
 
       <form action={criarEquipamento} className="mt-5 space-y-4">
         <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <CampoSelect label="Tipo" id="tipo" name="tipo" defaultValue={tipoInicial}>
-              <option value="gerador">Gerador</option>
-              <option value="bateria">Baterias</option>
-              <option value="motor">Motor</option>
-              <option value="outro">Outro</option>
-            </CampoSelect>
-            <CampoSelect label="Posição" id="posicao" name="posicao" defaultValue="">
-              <option value="">Sem posição</option>
-              <option value="BB">Bombordo (BB)</option>
-              <option value="BE">Boreste (BE)</option>
-              <option value="central">Central</option>
-            </CampoSelect>
-          </div>
+          <CamposTipoEquipamento tipoInicial={tipoInicial} />
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Marca" id="marca" name="marca" placeholder="Kohler" />
             <Campo label="Modelo" id="modelo" name="modelo" placeholder="9EFKOZD" />

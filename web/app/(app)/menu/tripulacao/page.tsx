@@ -3,6 +3,7 @@ import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
+import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -49,6 +50,20 @@ export default async function TripulacaoPage({
           </a>
         </div>
       )}
+
+      {/* PRD §6: "a interface deverá informar que não é recomendado conceder
+          permissão de alteração dos dados da embarcação para toda a
+          tripulação". Ícone neutro, não o "!" vermelho — a REGRA DE UX do
+          PRD §16 reserva o vermelho pra alerta crítico, e isto é
+          orientação, não alarme. */}
+      <div className="mt-5 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+        <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
+        <p className="apoio text-dim">
+          Dê acesso de edição só a quem realmente cuida do barco. Tripulante que só embarca não
+          precisa poder alterar o cadastro, os documentos nem os custos — o acesso operacional
+          já deixa registrar horas e serviços.
+        </p>
+      </div>
 
       <SecaoPagina>Comandantes com acesso</SecaoPagina>
       <div className="rounded-[14px] border border-line bg-panel px-4">

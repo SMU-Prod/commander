@@ -5,8 +5,8 @@ import { Campo, CampoSelect } from "@/components/ui/campo"
 import { excluirItemMonitorado, salvarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel } from "@/lib/consultas"
 import {
-  abaDoItem, CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
-  ROTULO_CASCO, ROTULO_HIDRAULICA,
+  abaDoItem, CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA, CATEGORIAS_MOTOR,
+  ROTULO_CASCO, ROTULO_HIDRAULICA, ROTULO_MOTOR,
 } from "@/lib/domain/diario"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { numeroParaCampoPtBr } from "@/lib/ui/form"
@@ -70,6 +70,24 @@ export default async function EditarItemPage({
             <option key={c} value={`cat:${c}`}>Hidráulica — {ROTULO_HIDRAULICA[c]}</option>
           ))}
           <option value={`cat:${CATEGORIA_SEGURANCA}`}>Segurança</option>
+        </CampoSelect>
+        {/* PRD §11 — mesma regra do criar; o servidor solta o subtipo
+            sozinho se o item sair de um motor (`categoriaDeItemDeMotor`). */}
+        <CampoSelect
+          label="É óleo ou filtro de motor?"
+          id="tipo_motor"
+          name="tipo_motor"
+          defaultValue={
+            item.categoria != null && (CATEGORIAS_MOTOR as readonly string[]).includes(item.categoria)
+              ? item.categoria
+              : ""
+          }
+          dica="Só vale quando a manutenção pertence a um motor."
+        >
+          <option value="">Não é — outra manutenção</option>
+          {CATEGORIAS_MOTOR.map((c) => (
+            <option key={c} value={c}>{ROTULO_MOTOR[c]}</option>
+          ))}
         </CampoSelect>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal"

@@ -93,13 +93,13 @@ export default async function MenuPage({
       <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Mecânico, eletricista, fibra e outros profissionais" />
       <LinhaLista href="/servicos" variant="cartao" className="mt-2" titulo="Serviços" subtitulo="Encontre quem resolve um problema no barco" />
       <LinhaLista href="/oportunidades" variant="cartao" className="mt-2" titulo="Oportunidades" subtitulo="Publique uma vaga, diária ou peça — prestadores respondem" />
-      <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas e restaurantes parceiros" />
+      <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
 
       <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
       <LinhaLista
         href="/parceiro"
         variant="cartao"
-        titulo="É marina, posto, pousada ou restaurante?"
+        titulo="É marina, posto, pousada, restaurante ou loja náutica?"
         subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
       />
 

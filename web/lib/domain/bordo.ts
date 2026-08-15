@@ -57,3 +57,18 @@ export function textoDuracao(h: number): string {
   if (horas > 0) return `${horas} h`
   return `${minutos} min`
 }
+
+/**
+ * Lê o campo livre de Passageiros (PRD §23) — a pessoa digita "Pedro, Ana,
+ * João" num campo só porque no celular isso é muito mais rápido que uma
+ * lista com botão de "adicionar".
+ *
+ * Descarta espaço em volta e nome vazio ("Pedro,,Ana" e "Pedro, " são
+ * acidentes de digitação, não passageiros anônimos), e não deduplica: dois
+ * "João" a bordo podem ser duas pessoas diferentes — não cabe ao app decidir
+ * que uma delas não existe.
+ */
+export function lerPassageiros(bruto: string | null): string[] {
+  if (bruto == null) return []
+  return bruto.split(",").map((n) => n.trim()).filter((n) => n !== "")
+}

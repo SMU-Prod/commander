@@ -5,14 +5,14 @@ import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 const eq = (extra: Partial<Equipamento>): Equipamento => ({
   id: "e1", embarcacao_id: "b1", tipo: "motor", posicao: "BB", marca: null, modelo: null,
   numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-  quantidade: null, foto_path: null, observacoes: null, horas_atuais: 100, ultima_leitura: null,
+  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, horas_atuais: 100, ultima_leitura: null,
   created_at: "2026-01-01", ...extra,
 })
 const ev = (extra: Partial<Evento>): Evento => ({
   id: "v1", embarcacao_id: "b1", equipamento_id: null, item_monitorado_id: null, contato_id: null,
   tipo: "manutencao", categoria: null, data: "2026-08-10", horas_no_momento: null, descricao: "t",
   custo_centavos: null, anexo_path: null, trilha: null, tem_trilha: false, criado_por: "u1",
-  hora_saida: null, hora_retorno: null, destino: null, tripulacao: [], mar_onda_m: null, mar_vento_kt: null,
+  hora_saida: null, hora_retorno: null, local_saida: null, destino: null, tripulacao: [], passageiros: [], mar_onda_m: null, mar_vento_kt: null,
   checklist: null, importado_do_plotter: false, trilha_sem_horario: false, origem_hash: null,
   created_at: "2026-08-10", ...extra,
 })

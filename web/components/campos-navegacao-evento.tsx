@@ -204,7 +204,10 @@ export function FormularioNovoEvento({
                 </p>
               )}
 
-              <Campo label="Destino" id="destino" name="destino" placeholder="Ex.: Ilha de Búzios" />
+              <div className="grid grid-cols-2 gap-3">
+                <Campo label="Local de saída" id="local_saida" name="local_saida" placeholder="Ex.: Marina da Glória" />
+                <Campo label="Destino" id="destino" name="destino" placeholder="Ex.: Ilha de Búzios" />
+              </div>
 
               {tripulacao.length > 0 && (
                 <div>
@@ -222,6 +225,19 @@ export function FormularioNovoEvento({
                   </div>
                 </div>
               )}
+
+              {/* Passageiros (PRD §23) é campo separado da tripulação de
+                  propósito: tripulante tem conta no app e vínculo com o
+                  barco, passageiro é só um nome digitado — convidado,
+                  família, cliente. Por ser nome de terceiro, é dado pessoal
+                  e o PRD §27 manda NÃO levar numa transferência de
+                  propriedade (quem apaga é `aceitar_transferencia`). */}
+              <Campo
+                label="Passageiros — opcional"
+                id="passageiros"
+                name="passageiros"
+                placeholder="Nomes separados por vírgula"
+              />
 
               {/* a saída também merece um campo livre: "mar grosso na volta",
                   "parei em Angra pra almoçar". Sem isso, navegação era o único

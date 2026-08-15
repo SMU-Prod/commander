@@ -55,6 +55,11 @@ export const ICONE_PADRAO_POR_CATEGORIA: Record<CategoriaParceiro, NomeIconeParc
   posto: "oleo",
   pousada: "inicio",
   restaurante: "estrela",
+  // Onda 41 (PRD §52/§60): as duas categorias que faltavam pra fechar a
+  // lista do Explorar. Loja náutica herda "ferramenta" (é onde se compra
+  // peça) e "outros" fica com o pino genérico de embarcação.
+  loja_nautica: "ferramenta",
+  outros: "embarcacao",
 }
 
 export interface OpcaoCorParceiro {

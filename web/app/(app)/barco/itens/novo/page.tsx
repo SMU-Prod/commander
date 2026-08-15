@@ -4,8 +4,8 @@ import { Campo, CampoSelect } from "@/components/ui/campo"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
-  CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
-  ROTULO_CASCO, ROTULO_HIDRAULICA,
+  CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA, CATEGORIAS_MOTOR,
+  ROTULO_CASCO, ROTULO_HIDRAULICA, ROTULO_MOTOR,
 } from "@/lib/domain/diario"
 
 export default async function NovoItemPage({
@@ -58,6 +58,21 @@ export default async function NovoItemPage({
             <option key={c} value={`cat:${c}`}>Hidráulica — {ROTULO_HIDRAULICA[c]}</option>
           ))}
           <option value={`cat:${CATEGORIA_SEGURANCA}`}>Segurança</option>
+        </CampoSelect>
+        {/* Óleo e Filtros com tipo (PRD §11). Fica sempre visível, sem
+            depender de JS: só vale quando o alvo é um motor, e quem descarta
+            fora disso é `categoriaDeItemDeMotor` no servidor. */}
+        <CampoSelect
+          label="É óleo ou filtro de motor?"
+          id="tipo_motor"
+          name="tipo_motor"
+          defaultValue=""
+          dica="Só vale quando a manutenção pertence a um motor. Deixe em branco para os demais itens."
+        >
+          <option value="">Não é — outra manutenção</option>
+          {CATEGORIAS_MOTOR.map((c) => (
+            <option key={c} value={c}>{ROTULO_MOTOR[c]}</option>
+          ))}
         </CampoSelect>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal" placeholder="500" className="font-mono-instr tabular-nums" />

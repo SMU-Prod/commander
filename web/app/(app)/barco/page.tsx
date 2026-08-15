@@ -9,7 +9,7 @@ import { SeloVerified } from "@/components/selos/selo-verified"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
+import { abaDoEquipamento, abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
 import { carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { carregarSeloGold } from "@/lib/consultas-gold"
@@ -98,12 +98,26 @@ export default async function BarcoPage({
         variant="cartao"
         leading={<Icone nome="raio" className="size-5 shrink-0 text-dim" />}
         titulo={
-          equipamentos.filter((e) => e.tipo !== "motor").length === 0
+          equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica").length === 0
             ? "Cadastre gerador e baterias"
-            : `${equipamentos.filter((e) => e.tipo !== "motor").length} equipamentos`
+            : `${equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica").length} equipamentos`
         }
         subtitulo="Manutenção do gerador, troca das baterias e painel de bordo"
       />
+
+      {/* Equipamentos (PRD §17) — área flexível, separada da Elétrica desde a
+          onda 41: a matriz de permissões já tratava as duas como áreas
+          distintas, faltava a tela. */}
+      {podeVer(permissoes, "equipamentos") && (
+        <LinhaLista
+          href="/barco/equipamentos"
+          variant="cartao"
+          className="mt-2"
+          leading={<Icone nome="ferramenta" className="size-5 shrink-0 text-dim" />}
+          titulo="Equipamentos"
+          subtitulo="Bote, guincho, ar-condicionado e o mais que você acompanhar"
+        />
+      )}
 
       {podeVer(permissoes, "hidraulica") && (
         <LinhaLista

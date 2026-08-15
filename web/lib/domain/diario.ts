@@ -23,6 +23,24 @@ export const ROTULO_HIDRAULICA: Record<string, string> = {
  *  diferenciam pelo nome (colete, extintor, bengala...). */
 export const CATEGORIA_SEGURANCA = "seguranca"
 
+/** Óleo e Filtros do motor (onda 41, PRD §11) — subtipo, não área. Estes
+ *  itens sempre andam com `equipamento_id` (o motor), então quem decide a
+ *  área é o equipamento; a categoria aqui só diz O QUE é, pra tela do motor
+ *  poder separar "Óleo" de "Filtro de ar" em vez de depender do nome que a
+ *  pessoa digitou. */
+export const CATEGORIAS_MOTOR = [
+  "motor_oleo", "motor_filtro_oleo", "motor_filtro_combustivel",
+  "motor_filtro_ar", "motor_filtro_outros",
+] as const
+
+export const ROTULO_MOTOR: Record<string, string> = {
+  motor_oleo: "Óleo",
+  motor_filtro_oleo: "Filtro de óleo",
+  motor_filtro_combustivel: "Filtro de combustível",
+  motor_filtro_ar: "Filtro de ar",
+  motor_filtro_outros: "Outro filtro",
+}
+
 /** Qual área governa um equipamento pelo `tipo` — espelha exatamente
  *  `aba_do_equipamento` no banco (migration 010, remapeada na 032). Único
  *  lugar no front que decide isso: `abaDoItem` abaixo e as telas de
@@ -33,6 +51,30 @@ export function abaDoEquipamento(tipo: string): Aba {
   if (tipo === "motor") return "motores"
   if (tipo === "outro") return "equipamentos"
   return "eletrica"
+}
+
+/**
+ * Que categoria gravar num item que pertence a um motor (onda 41, PRD §11).
+ *
+ * Só devolve a categoria quando o alvo é MESMO um motor: um "filtro de ar"
+ * pendurado num gerador não é o Óleo/Filtros do PRD §11, e gravar a
+ * categoria nesse caso faria a tela do motor mostrar item de outro
+ * equipamento. Fora disso devolve null — item de motor sem subtipo continua
+ * valendo (é a maioria: "revisão dos 500h" não é óleo nem filtro).
+ *
+ * Uma função só, usada por criar e por editar, porque a regra precisa ser
+ * a mesma nos dois: no editar dá pra mudar o alvo de um motor pra um
+ * gerador, e sem isto a categoria antiga ficaria pendurada.
+ */
+export function categoriaDeItemDeMotor(
+  equipamentoId: string | null,
+  tipoMotor: string | null,
+  equipamentos: { id: string; tipo: string }[],
+): string | null {
+  if (equipamentoId == null || tipoMotor == null) return null
+  if (!(CATEGORIAS_MOTOR as readonly string[]).includes(tipoMotor)) return null
+  const eq = equipamentos.find((e) => e.id === equipamentoId)
+  return eq?.tipo === "motor" ? tipoMotor : null
 }
 
 /**
@@ -53,6 +95,11 @@ export function abaDoItem(
   if (item.categoria != null && (CATEGORIAS_CASCO as readonly string[]).includes(item.categoria)) return "casco"
   if (item.categoria != null && (CATEGORIAS_HIDRAULICA as readonly string[]).includes(item.categoria)) return "hidraulica"
   if (item.categoria === CATEGORIA_SEGURANCA) return "seguranca"
+  // Rede de segurança: um item de óleo/filtro só chega aqui sem
+  // `equipamento_id` se o motor dele foi apagado. Sem esta linha ele cairia
+  // em "embarcacao" — área errada, e divergindo de `aba_alvo` no banco
+  // (migration 041), que é quem a RLS de fato consulta.
+  if (item.categoria != null && (CATEGORIAS_MOTOR as readonly string[]).includes(item.categoria)) return "motores"
   return "embarcacao"
 }
 

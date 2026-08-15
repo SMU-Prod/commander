@@ -21,10 +21,14 @@ export interface Embarcacao {
   created_at: string
 }
 
+/** Tipo de bateria (PRD §14) — muda o regime de carga e a expectativa de
+ *  vida útil, por isso o PRD pede o campo em vez de deixar no texto livre. */
+export type TipoBateria = "chumbo_acido" | "agm" | "gel" | "litio" | "outro"
+
 export interface Equipamento {
   id: string
   embarcacao_id: string
-  tipo: "motor" | "gerador" | "bateria" | "outro"
+  tipo: "motor" | "gerador" | "bateria" | "painel" | "outro"
   posicao: "BB" | "BE" | "central" | null
   marca: string | null
   modelo: string | null
@@ -36,6 +40,8 @@ export interface Equipamento {
   quantidade: number | null
   foto_path: string | null
   observacoes: string | null
+  /** Só faz sentido quando `tipo === "bateria"` (PRD §14). Null nos demais. */
+  tipo_bateria: TipoBateria | null
   horas_atuais: number | null
   ultima_leitura: string | null
   created_at: string
@@ -44,6 +50,11 @@ export interface Equipamento {
 export type CategoriaItem =
   | "documento" | "deck" | "fibra" | "inox" | "vidros" | "estofados" | "casco_outros"
   | "hidraulica_agua_doce" | "hidraulica_grey_water" | "hidraulica_black_water" | "seguranca"
+  // Onda 41 (PRD §11): Óleo e Filtros deixam de ser nome livre e viram
+  // subtipo. Estes sempre andam com `equipamento_id` (o motor), então a
+  // área continua Motores — a categoria aqui é só o "que é isto".
+  | "motor_oleo" | "motor_filtro_oleo" | "motor_filtro_combustivel"
+  | "motor_filtro_ar" | "motor_filtro_outros"
 
 export interface ItemMonitorado {
   id: string
@@ -98,8 +109,14 @@ export interface Evento {
   criado_por: string | null
   hora_saida: string | null
   hora_retorno: string | null
+  /** De onde a saída partiu (PRD §23) — texto livre: marina, poita, praia. */
+  local_saida: string | null
   destino: string | null
   tripulacao: string[]
+  /** Nomes livres de quem estava a bordo sem ser tripulação cadastrada
+   *  (PRD §23). Dado pessoal: o PRD §27 cita "Passageiros" entre o que NÃO
+   *  acompanha o barco numa transferência — `aceitar_transferencia` limpa. */
+  passageiros: string[]
   mar_onda_m: number | null
   mar_vento_kt: number | null
   /** Checklist rápido por hub (onda 40, PRD §23) — só existe em saídas
@@ -153,8 +170,11 @@ export interface Contato {
   id: string
   embarcacao_id: string
   nome: string
+  empresa: string | null
   especialidade: string | null
   telefone: string | null
+  email: string | null
+  observacoes: string | null
   avaliacao: number | null
   created_at: string
 }
@@ -300,7 +320,7 @@ export interface AlertaEnviado {
   enviado_em: string
 }
 
-export type AlbumFoto = "exterior" | "interior" | "conves" | "documentacao"
+export type AlbumFoto = "exterior" | "interior" | "conves" | "documentacao" | "outros"
 
 export interface Foto {
   id: string
@@ -519,7 +539,8 @@ export interface Viagem {
   created_at: string
 }
 
-export type CategoriaParceiro = "marina" | "posto" | "pousada" | "restaurante"
+export type CategoriaParceiro =
+  | "marina" | "posto" | "pousada" | "restaurante" | "loja_nautica" | "outros"
 export type PlanoParceiro = "cortesia" | "basico" | "destaque"
 
 export interface Parceiro {

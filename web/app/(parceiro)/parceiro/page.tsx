@@ -15,6 +15,8 @@ const CATEGORIAS: { valor: CategoriaParceiro; rotulo: string; icone: NomeIcone }
   { valor: "posto", rotulo: "Posto", icone: "oleo" },
   { valor: "pousada", rotulo: "Pousada", icone: "inicio" },
   { valor: "restaurante", rotulo: "Restaurante", icone: "estrela" },
+  { valor: "loja_nautica", rotulo: "Loja náutica", icone: "ferramenta" },
+  { valor: "outros", rotulo: "Outros", icone: "embarcacao" },
 ]
 
 /** Centavos (ou null) para o campo de preço em pt-BR, ex.: 15000 → "150,00". */

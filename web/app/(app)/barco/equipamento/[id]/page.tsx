@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { ROTULO_TIPO_BATERIA } from "@/components/campos-tipo-equipamento"
 import { DicaLeitorNativo } from "@/components/dica-leitor-nativo"
 import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
@@ -10,7 +11,7 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { calcularSemaforo, formatarDataCurta, PESO, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { abaDoEquipamento } from "@/lib/domain/diario"
+import { abaDoEquipamento, ROTULO_MOTOR } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { iconeDoSistema, ordenarSistemas, urlManualNaPagina } from "@/lib/domain/sistemas"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
@@ -99,7 +100,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
       ? "gerador"
       : equipamento.tipo === "bateria"
         ? "conjunto de baterias"
-        : "equipamento"
+        : equipamento.tipo === "painel"
+          ? "painel de bordo"
+          : "equipamento"
 
   const especificacoes: [string, string | null][] = [
     ["Nº de série", equipamento.numero_serie],
@@ -108,6 +111,7 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
     ["Potência", equipamento.potencia_hp != null ? `${equipamento.potencia_hp} hp` : null],
     ["Combustível", equipamento.combustivel],
     ["Quantidade", equipamento.quantidade != null ? `${equipamento.quantidade}×` : null],
+    ["Tipo de bateria", equipamento.tipo_bateria ? ROTULO_TIPO_BATERIA[equipamento.tipo_bateria] : null],
   ]
 
   return (
@@ -258,6 +262,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null
           const venc = vencimentoPorData(itemMonitoradoToItemCalc(item))
           const regra = [
+            // Óleo/Filtros (onda 41, PRD §11) entram primeiro: dizem O QUE é
+            // o item independentemente do nome que a pessoa digitou.
+            item.categoria != null ? ROTULO_MOTOR[item.categoria] : null,
             item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
             item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
             item.especificacao,

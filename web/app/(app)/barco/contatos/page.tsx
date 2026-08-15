@@ -52,10 +52,12 @@ export default async function ContatosPage({
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <p className="titulo-card">{c.nome}</p>
+                {c.empresa && <p className="apoio mt-0.5 text-dim-chip">{c.empresa}</p>}
                 <p className="apoio mt-0.5 text-dim">
-                  {[c.especialidade, c.telefone, `${servicos.get(c.id) ?? 0} serviços neste barco`]
+                  {[c.especialidade, c.telefone, c.email, `${servicos.get(c.id) ?? 0} serviços neste barco`]
                     .filter(Boolean).join(" · ")}
                 </p>
+                {c.observacoes && <p className="apoio mt-1 text-dim">{c.observacoes}</p>}
               </div>
               {c.telefone && (
                 <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank"
@@ -86,6 +88,10 @@ export default async function ContatosPage({
           <label className={rotulo} htmlFor="nome">Nome</label>
           <input id="nome" name="nome" required className={campo} />
         </div>
+        <div>
+          <label className={rotulo} htmlFor="empresa">Empresa (opcional)</label>
+          <input id="empresa" name="empresa" placeholder="Náutica Angra" className={campo} />
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={rotulo} htmlFor="especialidade">Especialidade</label>
@@ -95,6 +101,15 @@ export default async function ContatosPage({
             <label className={rotulo} htmlFor="telefone">Telefone (com DDD)</label>
             <input id="telefone" name="telefone" inputMode="tel" placeholder="21 99999-0000" className={campo} />
           </div>
+        </div>
+        <div>
+          <label className={rotulo} htmlFor="email">E-mail (opcional)</label>
+          <input id="email" name="email" type="email" inputMode="email" placeholder="contato@nautica.com.br" className={campo} />
+        </div>
+        <div>
+          <label className={rotulo} htmlFor="observacoes">Observações (opcional)</label>
+          <textarea id="observacoes" name="observacoes" rows={2}
+            placeholder="Atende sábado, cobra deslocamento de Angra" className={campo} />
         </div>
         <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Salvar contato</button>
       </form>

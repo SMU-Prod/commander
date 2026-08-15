@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { duracaoHoras, horasSugeridas, retornoNoDiaSeguinte, textoDuracao } from "./bordo"
+import { duracaoHoras, horasSugeridas, lerPassageiros, retornoNoDiaSeguinte, textoDuracao } from "./bordo"
 
 describe("duracaoHoras", () => {
   it("calcula a duracao entre saida e retorno", () => {
@@ -49,5 +49,25 @@ describe("retornoNoDiaSeguinte", () => {
     expect(retornoNoDiaSeguinte("22:00", "01:30")).toBe(true)
     expect(retornoNoDiaSeguinte("08:00", "12:00")).toBe(false)
     expect(retornoNoDiaSeguinte(null, "12:00")).toBe(false)
+  })
+})
+
+describe("lerPassageiros", () => {
+  it("separa por virgula e limpa espaco", () => {
+    expect(lerPassageiros("Pedro, Ana,João ")).toEqual(["Pedro", "Ana", "João"])
+  })
+
+  it("campo vazio ou nulo nao vira passageiro", () => {
+    expect(lerPassageiros(null)).toEqual([])
+    expect(lerPassageiros("")).toEqual([])
+    expect(lerPassageiros("  ,  ")).toEqual([])
+  })
+
+  it("virgula sobrando nao cria passageiro anonimo", () => {
+    expect(lerPassageiros("Pedro,,Ana,")).toEqual(["Pedro", "Ana"])
+  })
+
+  it("nao deduplica: dois Joao a bordo sao duas pessoas", () => {
+    expect(lerPassageiros("João, João")).toEqual(["João", "João"])
   })
 })

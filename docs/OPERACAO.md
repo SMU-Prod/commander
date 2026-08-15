@@ -939,3 +939,60 @@ qualquer migration arriscada, e pelo menos 1×/semana:
 ## Banco
 Migrations em `supabase/migrations/`, aplicadas via MCP no projeto `khgjtxvmduizyooqaoox`.
 Antes de mexer em RLS, leia `docs/auditoria/auditoria-cto.md`.
+
+## Transferência de propriedade — o que NÃO vai junto (onda 41)
+
+O PRD §27 separa o que acompanha a embarcação do que fica com o dono antigo.
+Até a onda 40 essa lista era só texto: `aceitar_transferencia` trocava o
+vínculo de PROP e o comprador herdava o dossiê inteiro — inclusive quanto o
+dono anterior pagou em cada serviço e quem ele levou a bordo.
+
+A migration `041_campos_finais_prd.sql` passou a aplicar a regra dentro da
+mesma transação da troca de dono:
+
+| Dado | Vai junto? | Por quê |
+|---|---|---|
+| Motores, horas, manutenções, ocorrências, histórico, documentos, fotos | **Sim** | É o valor do dossiê — o PRD lista explicitamente como "dados técnicos" |
+| `eventos.custo_centavos` | Não — vira `null` | "Custos privados / informações financeiras pessoais" |
+| `eventos.passageiros` | Não — vira `'{}'` | Citado nominalmente no PRD; é nome de terceiro |
+| `eventos.tripulacao` | Não — vira `'{}'` | Dado pessoal de terceiro (e esses usuários já perdem o vínculo) |
+| `contatos` | Não — apagados | O PRD §20 abre a seção com "Lista **pessoal** de contatos de confiança": é a agenda do dono, com telefone e e-mail de terceiros |
+
+**É irreversível.** Não há undo depois que o comprador aceita — a tela de
+transferência precisa dizer isso antes de iniciar. Se algum dia aparecer
+demanda de "o dono antigo quer o histórico de gastos dele", a saída é
+exportar ANTES de transferir (Resumos já gera PDF), nunca reabrir a linha
+no banco.
+
+## Categorias e subtipos — onde cada coisa mora (onda 41)
+
+Três mecanismos diferentes, fácil de confundir:
+
+- **`equipamentos.tipo`** (`motor`, `gerador`, `bateria`, `painel`, `outro`)
+  decide a **área** via `aba_do_equipamento` / `abaDoEquipamento`. Motor →
+  Motores; gerador/bateria/painel → Elétrica; outro → Equipamentos.
+- **`itens_monitorados.categoria` / `eventos.categoria`** decide a área
+  **quando não há equipamento** (casco, hidráulica, segurança, documento).
+- **As categorias `motor_*`** (`motor_oleo`, `motor_filtro_oleo`,
+  `motor_filtro_combustivel`, `motor_filtro_ar`, `motor_filtro_outros`) são
+  a exceção: elas **não** decidem área, só dizem *o que o item é* (PRD §11).
+  A área continua vindo do motor, porque `aba_alvo` resolve pelo
+  `equipamento_id` antes de olhar a categoria.
+
+`aba_alvo` (banco) e `abaDoItem` (front) precisam continuar espelhados — o
+banco é quem a RLS consulta, o front é quem mostra a mensagem de erro certa.
+Quem mexer num tem que mexer no outro; há teste em `lib/domain/diario.test.ts`
+cobrindo inclusive o caso órfão (item de óleo cujo motor foi apagado).
+
+## Frescura de preço do parceiro (onda 41)
+
+`parceiros` tem duas datas e elas não são sinônimas:
+
+- `atualizado_em` — sobe a **cada** edição (trocar foto, mexer no "sobre").
+- `precos_atualizados_em` — só sobe quando preço/disponibilidade muda
+  (trigger `parceiro_regras`, migration 020, que também impõe o limite de 1
+  atualização de preço por dia).
+
+O card do parceiro mostra as duas coisas separadas de propósito: usar
+`atualizado_em` ao lado do preço fazia um diesel de três meses atrás parecer
+de ontem sempre que o parceiro editava qualquer outro campo.
