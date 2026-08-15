@@ -599,7 +599,7 @@ export default async function HojePage({
         icone="pessoas"
         titulo="Tripulação"
         acao={!sozinhoNoBarco && podeConvidar
-          ? <Link href="/menu/tripulacao" className={ACAO_CARTAO}>Gerenciar</Link>
+          ? <Link href="/tripulacao" className={ACAO_CARTAO}>Gerenciar</Link>
           : undefined}
       >
         {sozinhoNoBarco ? (
@@ -611,7 +611,7 @@ export default async function HojePage({
             descricao={podeConvidar
               ? "Convide comandantes de confiança pra dividir o controle."
               : "Nenhum outro comandante convidado ainda."}
-            acao={podeConvidar ? { href: "/menu/tripulacao", rotulo: "Convidar comandante" } : undefined}
+            acao={podeConvidar ? { href: "/tripulacao", rotulo: "Convidar comandante" } : undefined}
           />
         ) : (
           <>

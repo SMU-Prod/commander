@@ -47,7 +47,7 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   "components/selos/selo-gold.tsx": 4,
   "app/opengraph-image.tsx": 3,
   "app/(app)/carteira/[id]/page.tsx": 2,
-  "app/(app)/menu/tripulacao/[id]/page.tsx": 2,
+  "app/(app)/tripulacao/[id]/page.tsx": 2,
   "components/landing/mock-telas.tsx": 2,
   "components/mapa/card-parceiro.tsx": 2,
   "app/(app)/carteira/nova/page.tsx": 1,

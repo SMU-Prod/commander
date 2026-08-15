@@ -57,7 +57,7 @@ export default async function NovaCarteiraPage({
           icone="pessoas"
           titulo="Ninguém disponível na tripulação"
           descricao="Todo mundo com acesso a esta embarcação já tem carteira, ou você ainda não convidou ninguém."
-          acao={{ href: "/menu/tripulacao", rotulo: "Ir para Tripulação" }}
+          acao={{ href: "/tripulacao", rotulo: "Ir para Tripulação" }}
         />
       ) : (
         <form action={criarCarteira} className="mt-5 space-y-4">

@@ -33,7 +33,7 @@ export async function aceitarConvite(formData: FormData) {
 }
 
 function erroTripulacao(msg: string): never {
-  redirect(`/menu/tripulacao?erro=${encodeURIComponent(msg)}`)
+  redirect(`/tripulacao?erro=${encodeURIComponent(msg)}`)
 }
 
 /**
@@ -41,7 +41,7 @@ function erroTripulacao(msg: string): never {
  * OCUPA VAGA." E §2.3: o Free "não pode adicionar tripulação" (limite 0).
  *
  * A trava vale nos três lugares que o §27.2 exige: na tela
- * (`menu/tripulacao/page.tsx` esconde o formulário e mostra o motivo), aqui na
+ * (`tripulacao/page.tsx` esconde o formulário e mostra o motivo), aqui na
  * action, e no banco (trigger `convites_respeitam_limite`, migration 048). Os
  * dois primeiros existem pra dar mensagem boa; o terceiro é o que realmente
  * garante — action pode ser chamada direto.
@@ -74,8 +74,8 @@ export async function criarConvite(formData: FormData) {
   }
   if (error || !data) erroTripulacao("Não foi possível criar o convite. Tente de novo.")
 
-  revalidatePath("/menu/tripulacao")
-  redirect(`/menu/tripulacao?criado=${encodeURIComponent(data.codigo)}`)
+  revalidatePath("/tripulacao")
+  redirect(`/tripulacao?criado=${encodeURIComponent(data.codigo)}`)
 }
 
 export async function revogarConvite(formData: FormData) {
@@ -83,6 +83,6 @@ export async function revogarConvite(formData: FormData) {
   const id = String(formData.get("convite_id") ?? "")
   const { error } = await supabase.from("convites").delete().eq("id", id).is("usado_em", null)
   if (error) erroTripulacao("Não foi possível revogar.")
-  revalidatePath("/menu/tripulacao")
-  redirect("/menu/tripulacao")
+  revalidatePath("/tripulacao")
+  redirect("/tripulacao")
 }

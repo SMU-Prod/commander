@@ -96,7 +96,7 @@ const ROTAS = [
   "/marketplace/disponibilidades",
   "/avaliacoes", "/explorar", "/prestadores", "/prestadores/perfil",
   "/comandantes", "/rede", "/navegar", "/navegar/viagem/nova",
-  "/notificacoes", "/menu", "/menu/perfil", "/menu/assinatura", "/menu/tripulacao",
+  "/notificacoes", "/menu", "/menu/perfil", "/menu/assinatura", "/tripulacao",
   "/assinar", "/onboarding",
   "/admin", "/admin/administradores", "/admin/usuarios", "/admin/parceiros",
   "/admin/publicidade", "/admin/taxonomia", "/admin/taxonomia/solicitacoes",

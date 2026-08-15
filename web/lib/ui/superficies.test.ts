@@ -73,7 +73,7 @@ describe("ehTelaDeFormulario", () => {
       "/comandantes",
       "/notificacoes",
       "/menu",
-      "/menu/tripulacao",
+      "/tripulacao",
     ]) {
       expect(ehTelaDeFormulario(r), r).toBe(false)
     }

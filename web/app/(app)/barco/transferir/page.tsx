@@ -105,7 +105,7 @@ export default async function TransferirPage({
       <p className="apoio mt-4 text-dim">
         <Icone nome="transferir" className="mr-1 inline size-3.5 align-text-bottom" />
         Prefere só dar acesso, sem trocar de dono?{" "}
-        <Link href="/menu/tripulacao" className="text-accent-forte">Convide como tripulação</Link>.
+        <Link href="/tripulacao" className="text-accent-forte">Convide como tripulação</Link>.
       </p>
     </main>
   )
