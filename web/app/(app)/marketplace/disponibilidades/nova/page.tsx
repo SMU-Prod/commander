@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { publicarDisponibilidade } from "@/lib/acoes/marketplace"
+import { carregarAssinatura } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { DIAS_PADRAO_EXPIRACAO, ROTULO_TIPO_TRABALHO, TIPOS_TRABALHO } from "@/lib/domain/marketplace"
+import { formatarPreco, PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -12,9 +15,15 @@ import { supabaseServer } from "@/lib/supabase/server"
  * função e região saem da taxonomia, e o título do cartão é montado pelo
  * Commander (`tituloDaDisponibilidade`), não digitado.
  *
- * TODO: gate de plano — decisão pendente (auditoria 15/08, conflito 3).
- * §11.3 restringe a publicação ao Captain Pro; sem os planos definidos, a
- * tela fica aberta e o portão entra depois (ver lib/acoes/marketplace.ts).
+ * Gate de plano (onda 47): §11.3 restringe a publicação ao Captain Pro, e o
+ * PRD FINAL fechou o preço (§2, R$ 24,90/mês). Aqui o degrau é o do PRÓPRIO
+ * usuário — §12 separa as duas coisas de propósito: "Captain Pro nunca concede
+ * acesso adicional à embarcação por si só", e o contrário também vale (pagar
+ * Commander pelo barco não paga a carreira dele).
+ *
+ * O formulário continua montável mesmo sem Captain Pro, como no Marketplace
+ * (§1.1, demonstração interativa) — o cadeado troca só o botão. A action
+ * repete a checagem, porque tela não é segurança.
  */
 export default async function NovaDisponibilidadePage({
   searchParams,
@@ -29,6 +38,8 @@ export default async function NovaDisponibilidadePage({
   const taxonomia = await carregarTaxonomia()
   const funcoes = itensDoTipo(taxonomia, "funcao")
   const regioes = itensDoTipo(taxonomia, "regiao")
+  const { plano } = await carregarAssinatura()
+  const temCaptainPro = plano === "captain_pro"
 
   return (
     <main>
@@ -86,7 +97,18 @@ export default async function NovaDisponibilidadePage({
           dica="Fica visível para quem vê o seu anúncio — deixe em branco se prefere ser chamado de outro jeito."
         />
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar</button>
+        {temCaptainPro ? (
+          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar</button>
+        ) : (
+          <BloqueioPremium
+            titulo={`Publicar disponibilidade é do ${PLANOS.captain_pro.rotulo}`}
+            descricao={
+              `Por ${formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês você aparece para os proprietários da ` +
+              "sua região, se candidata a vagas e mantém o histórico de trabalhos confirmados. O acesso às " +
+              "embarcações que você já opera não muda em nada."
+            }
+          />
+        )}
       </form>
     </main>
   )

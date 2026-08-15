@@ -5,9 +5,30 @@ import {
   AsaasRecusa, atualizarAssinaturaAsaas, cancelarAssinaturaAsaas, criarAssinaturaAsaas, criarClienteAsaas,
   urlPrimeiraCobranca,
 } from "@/lib/asaas"
-import { PLANOS, proximoUpgrade, type PlanoId } from "@/lib/domain/planos"
+import { carregarAssinatura } from "@/lib/consultas"
+import { hojeISO } from "@/lib/domain/datas"
+import {
+  ehCobravel, PLANOS, precoVigenteCentavos, proximoUpgrade, type PlanoId,
+} from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
+import { supabaseServico } from "@/lib/supabase/servico"
 import type { Assinatura } from "@/lib/db/types"
+
+/**
+ * Ações de assinatura (onda 47 — PRD FINAL §2 e §23).
+ *
+ * §23 manda modelar os estados INDEPENDENTEMENTE do gateway. Aqui isso
+ * significa: este arquivo fala com o Asaas (que é quem cobra hoje) mas nunca
+ * deixa vocabulário do Asaas vazar pro resto do app — o status que vira linha
+ * em `assinaturas` é o do Commander (`pendente`/`ativa`/`problema_pagamento`/
+ * `cancelada`), e quem decide o que isso significa pro cliente é
+ * `lib/domain/assinatura-ciclo.ts`. Trocar de gateway amanhã é reescrever
+ * `lib/asaas.ts`, o webhook e este arquivo — nada além.
+ *
+ * O preço NUNCA é lido de formulário. Sai de `PLANOS` (catálogo) e, quando há
+ * promoção vigente, de `precoVigenteCentavos` — senão bastaria forjar um campo
+ * escondido pra assinar o Commander por um centavo.
+ */
 
 function erroAssinar(msg: string): never {
   redirect(`/assinar?erro=${encodeURIComponent(msg)}`)
@@ -30,7 +51,12 @@ export async function assinar(formData: FormData) {
   if (!user?.email) redirect("/login?volta=/assinar")
 
   const plano = String(formData.get("plano") ?? "") as PlanoId
+  // Duas checagens diferentes de propósito: existir no catálogo é uma coisa,
+  // ser vendável é outra. Enterprise existe e NÃO é vendável (§2: "Exibir
+  // apenas como reservado/Em breve"), e plano grátis não gera cobrança.
   if (!(plano in PLANOS)) erroAssinar("Escolha um plano.")
+  if (!ehCobravel(plano)) erroAssinar("Este plano ainda não está disponível para contratação.")
+
   const nome = String(formData.get("nome") ?? "").trim()
   if (nome.length < 5 || !nome.includes(" ")) erroAssinar("Informe seu nome completo.")
   const cpf = cpfLimpo(String(formData.get("cpf") ?? ""))
@@ -50,14 +76,25 @@ export async function assinar(formData: FormData) {
     redirect("/menu/assinatura")
   }
 
+  // §2.1/§2.2 — promoção vigente derruba o preço do plano alvo pelo tempo
+  // dela. Sai do banco (`assinatura_promocoes`, concedida pela operação), nunca
+  // do formulário. O banco garante no máximo uma vigente: não acumulam.
+  const { promocao } = await carregarAssinatura()
+  const valorCentavos = precoVigenteCentavos(plano, promocao, hojeISO()) ?? PLANOS[plano].valorCentavos
+  if (valorCentavos == null || valorCentavos <= 0) {
+    // Promoção "incluída" (§2.2, 6 meses sem cobrança) não passa por aqui: ela
+    // vira concessão em `premium_concessoes`, não assinatura no gateway.
+    erroAssinar("Este plano já está incluído na sua conta — não há nada a cobrar agora.")
+  }
+
   let customerId: string
   let subscriptionId: string
   try {
     customerId = await criarClienteAsaas({ nome, email: user.email, cpfCnpj: cpf })
     subscriptionId = await criarAssinaturaAsaas({
       customerId,
-      valorCentavos: PLANOS[plano].valorCentavos,
-      ciclo: PLANOS[plano].ciclo,
+      valorCentavos,
+      ciclo: PLANOS[plano].ciclo ?? "MONTHLY",
       descricao: PLANOS[plano].descricao,
       referenciaExterna: user.id,
     })
@@ -74,7 +111,7 @@ export async function assinar(formData: FormData) {
       asaas_customer_id: customerId,
       asaas_subscription_id: subscriptionId,
       plano,
-      valor_centavos: PLANOS[plano].valorCentavos,
+      valor_centavos: valorCentavos,
     })
     .select("id")
   if (error || !criada?.length) {
@@ -84,9 +121,7 @@ export async function assinar(formData: FormData) {
     // 23505 = violacao do indice unico `assinaturas_uma_viva_idx` (migration 019):
     // outra requisicao (duplo clique, ou retry de rede) venceu a corrida e ja
     // gravou a assinatura viva deste usuario primeiro. Nao e falha — e o duplo
-    // clique sendo pego pelo banco. Manda pra tela de assinatura (onde a que
-    // venceu ja aparece) em vez do erro cru "tente de novo", que so faria a
-    // pessoa clicar de novo e criar mais um cliente/assinatura descartavel no Asaas.
+    // clique sendo pego pelo banco.
     if (error?.code === "23505") {
       redirect("/menu/assinatura?ok=" + encodeURIComponent("Você já tem uma assinatura em andamento"))
     }
@@ -99,6 +134,13 @@ export async function assinar(formData: FormData) {
   redirect("/menu/assinatura?ok=" + encodeURIComponent("Assinatura criada — o link de pagamento chega por e-mail"))
 }
 
+/**
+ * Cancelamento (§23). Não apaga NADA: a linha de assinatura vira `cancelada`,
+ * o plano cai pro Free aplicável e todo o histórico da embarcação continua
+ * onde está. "Reativação posterior restabelece o acesso aos dados existentes"
+ * é consequência direta disso — não existe passo de restauração porque nunca
+ * houve remoção.
+ */
 export async function cancelarAssinatura() {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -125,50 +167,83 @@ export async function cancelarAssinatura() {
   }
 
   revalidatePath("/menu/assinatura")
-  redirect("/menu/assinatura?ok=" + encodeURIComponent("Assinatura cancelada"))
+  redirect(
+    "/menu/assinatura?ok=" +
+      encodeURIComponent("Assinatura cancelada. Tudo o que você registrou continua guardado."),
+  )
 }
 
 /**
- * Upgrade (PRD §44) — troca o ciclo da assinatura viva pro próximo definido
- * em `proximoUpgrade` (hoje só mensal→anual).
+ * Troca de plano — sobe (Commander → Pro) ou desce (Pro → Commander).
  *
- * Só atualiza o Asaas (fonte de verdade da cobrança) — de propósito NÃO
- * escreve `plano`/`valor_centavos` na linha local de `assinaturas`: a
- * policy de UPDATE dessa tabela (migration 017) só deixa o dono mudar pra
- * `status = 'cancelada'`, nada mais — abrir uma segunda policy pra permitir
- * troca de ciclo é mudança de banco (RLS) fora do que esta onda pode aplicar
- * sozinha (aplicar migration em produção passa por revisão à parte). Por
- * isso a tela de assinatura (`menu/assinatura/page.tsx`) NUNCA confia cegamente
- * na coluna local pra mostrar valor/ciclo — sempre tenta ler o valor/ciclo
- * AO VIVO do Asaas primeiro (`detalhesAssinaturaAsaas`) e só cai pro dado
- * local se o Asaas não responder. `nivelPlano`/o gate de Premium não usam
- * `plano` nem `valor_centavos` em nenhum momento (só `status`), então esse
- * descompasso não afeta liberar/bloquear recurso nenhum — é só cosmético.
+ * A coluna `plano` local TAMBÉM é atualizada agora, diferente da onda 38.
+ * Naquela época o upgrade era só uma troca de ciclo e a tela lia o Asaas ao
+ * vivo, então o dado local podia ficar para trás. Com sete planos isso deixou
+ * de servir: o PLANO decide limite de embarcação e de tripulação, inclusive na
+ * RLS (`plano_do_usuario`, migration 048) — plano defasado no banco viraria
+ * limite errado no backend.
+ *
+ * A policy de UPDATE (migration 018) só deixa o próprio dono escrever
+ * `status`, e isso está certo: uma RPC que aceitasse o plano como parâmetro
+ * seria chamável direto pelo cliente, e alguém pediria `commander_pro` sem
+ * pagar. Quem autoriza a troca é o GATEWAY ter aceitado a mudança de cobrança
+ * — fato que só o servidor conhece. Por isso a escrita usa a chave de serviço
+ * (`lib/supabase/servico.ts`), sempre restrita à linha de quem está logado, e
+ * SÓ DEPOIS de o gateway confirmar.
+ *
+ * DOWNGRADE Pro → Commander (§23): "não apagar embarcações excedentes;
+ * bloquear gestão das excedentes e exigir seleção da embarcação ativa". Este
+ * arquivo não apaga nada — quem decide o que fica bloqueado é
+ * `dividirEmbarcacoesPorPlano` (`lib/domain/assinatura-ciclo.ts`), lido em
+ * `carregarAcessoEmbarcacoes`. O barco excedente continua inteiro no banco.
  */
-export async function trocarPlano() {
+export async function trocarPlano(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
   const { data: viva } = await supabase
     .from("assinaturas").select("*")
-    .eq("usuario_id", user.id).in("status", ["ativa", "inadimplente"])
+    .eq("usuario_id", user.id).in("status", ["ativa", "problema_pagamento"])
     .maybeSingle()
   if (!viva) redirect("/menu/assinatura")
   const assinatura = viva as Assinatura
 
-  const proximo = proximoUpgrade(assinatura.plano)
-  if (!proximo) redirect("/menu/assinatura")
+  const pedido = String(formData.get("plano") ?? "") as PlanoId
+  const destino: PlanoId | null =
+    pedido in PLANOS && ehCobravel(pedido) ? pedido : proximoUpgrade(assinatura.plano)
+  if (!destino || destino === assinatura.plano) redirect("/menu/assinatura")
+
+  const valor = PLANOS[destino].valorCentavos
+  if (valor == null || valor <= 0) redirect("/menu/assinatura")
 
   try {
     await atualizarAssinaturaAsaas(assinatura.asaas_subscription_id, {
-      valorCentavos: PLANOS[proximo].valorCentavos,
-      ciclo: PLANOS[proximo].ciclo,
+      valorCentavos: valor,
+      ciclo: PLANOS[destino].ciclo ?? "MONTHLY",
     })
   } catch {
     redirect("/menu/assinatura?erro=" + encodeURIComponent("Não foi possível trocar o plano agora. Tente de novo."))
   }
 
+  const servico = supabaseServico()
+  const { data: gravada, error } = servico
+    ? await servico
+        .from("assinaturas").update({ plano: destino, valor_centavos: valor })
+        .eq("id", assinatura.id).eq("usuario_id", user.id).select("id")
+    : { data: null, error: { message: "sem chave de serviço" } }
+  if (error || !gravada?.length) {
+    // O cliente já foi cobrado no valor novo lá fora. Esconder a falha aqui
+    // deixaria o app com o plano antigo (e o limite antigo) enquanto a fatura
+    // vem no valor novo — a pior combinação possível. Diz a verdade.
+    redirect(
+      "/menu/assinatura?erro=" +
+        encodeURIComponent(
+          "A cobrança foi atualizada, mas o app não conseguiu registrar o plano novo. Fale com a equipe antes de continuar.",
+        ),
+    )
+  }
+
   revalidatePath("/menu/assinatura")
-  redirect("/menu/assinatura?ok=" + encodeURIComponent(`Você passou para ${PLANOS[proximo].rotulo}`))
+  redirect("/menu/assinatura?ok=" + encodeURIComponent(`Você passou para o ${PLANOS[destino].rotulo}`))
 }

@@ -1,10 +1,25 @@
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { assinar } from "@/lib/acoes/assinatura"
-import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS } from "@/lib/domain/planos"
+import { carregarAssinatura } from "@/lib/consultas"
+import { hojeISO } from "@/lib/domain/datas"
+import { formatarPreco, PLANOS, planosDoPerfil, precoVigenteCentavos, PROMOCOES } from "@/lib/domain/planos"
+import { BENEFICIOS_PAGOS } from "@/lib/domain/plano-acesso"
 import { Campo } from "@/components/ui/campo"
 import { supabaseServer } from "@/lib/supabase/server"
 
+/**
+ * Escolha do plano (onda 47 — PRD FINAL §2, §23).
+ *
+ * §23, primeiro passo do fluxo: "Usuário escolhe plano e VÊ PREÇO/BENEFÍCIOS".
+ * Por isso a tela lista os planos do proprietário com preço, regra do §2 e o
+ * que cada um libera — nada de "assine e descubra".
+ *
+ * O Enterprise aparece como reservado, sem botão (§2: "Exibir apenas como
+ * reservado/Em breve"), e o Free aparece como o degrau em que a pessoa já
+ * está: esconder o gratuito faria a tela parecer um pedágio em vez de uma
+ * escolha.
+ */
 export default async function AssinarPage({
   searchParams,
 }: {
@@ -15,20 +30,32 @@ export default async function AssinarPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login?volta=/assinar")
 
-  const { data: vagas } = await supabase.rpc("vagas_fundador_restantes")
-  const restantes = typeof vagas === "number" ? vagas : null
+  // §2.1/§2.2 — promoção vigente (no máximo uma; o banco garante que não
+  // acumulam) muda o preço mostrado E o preço cobrado. A action recalcula por
+  // conta própria: o preço nunca vem do formulário.
+  const { promocao } = await carregarAssinatura()
+  const hoje = hojeISO()
+  const promo = promocao ? { promocao: promocao.promocao, validoAte: promocao.validoAte } : null
+
+  const planos = planosDoPerfil("proprietario")
 
   return (
     <main>
       <p className="rotulo text-dim">Commander</p>
-      <h1 className="titulo-pagina mt-2">Seja fundador</h1>
+      <h1 className="titulo-pagina mt-2">Escolha seu plano</h1>
       <p className="corpo mt-2 text-dim">
-        Preço travado enquanto a assinatura durar, prioridade no concierge de bordo
-        e o número de fundador gravado no seu perfil.
+        Todo o dossiê do barco, os avisos de vencimento e os alertas de segurança continuam funcionando em
+        qualquer plano. O que muda é quanto você gerencia.
       </p>
-      {restantes !== null && (
-        <p className="apoio mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3 py-1.5 text-dim">
-          <Icone nome="estrela" className="size-3.5" /> Restam {restantes} de 100 vagas
+
+      {promocao && (
+        <p className="apoio mt-3 inline-flex items-start gap-1.5 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2">
+          <Icone nome="estrela" className="mt-0.5 size-3.5 shrink-0 text-accent-forte" />
+          <span>
+            {PROMOCOES[promocao.promocao].rotulo} ativa até{" "}
+            {promocao.validoAte.split("-").reverse().join("/")}. Depois desse período a cobrança volta ao valor
+            normal do plano.
+          </span>
         </p>
       )}
 
@@ -36,27 +63,65 @@ export default async function AssinarPage({
 
       <form action={assinar} className="mt-5 space-y-4">
         <div className="space-y-2.5">
-          <label className="sombra-1 block cursor-pointer rounded-[14px] border border-line bg-panel p-4 has-[:checked]:border-accent">
-            <div className="flex items-center justify-between">
-              <span className="titulo-card">{PLANOS.fundador_anual.rotulo}</span>
-              <input type="radio" name="plano" value="fundador_anual" defaultChecked className="size-5 accent-[var(--acao)]" />
-            </div>
-            <p className="corpo mt-1">
-              <span className="font-semibold">{formatarPreco(PLANOS.fundador_anual.valorCentavos)}</span>
-              <span className="text-dim"> /ano — 2 meses grátis</span>
-            </p>
-          </label>
-          <label className="sombra-1 block cursor-pointer rounded-[14px] border border-line bg-panel p-4 has-[:checked]:border-accent">
-            <div className="flex items-center justify-between">
-              <span className="titulo-card">{PLANOS.fundador_mensal.rotulo}</span>
-              <input type="radio" name="plano" value="fundador_mensal" className="size-5 accent-[var(--acao)]" />
-            </div>
-            <p className="corpo mt-1">
-              <span className="apoio text-dim line-through">{formatarPreco(ANCORA_MENSAL_CENTAVOS)}</span>{" "}
-              <span className="font-semibold">{formatarPreco(PLANOS.fundador_mensal.valorCentavos)}</span>
-              <span className="text-dim"> /mês</span>
-            </p>
-          </label>
+          {planos.map((p) => {
+            const preco = precoVigenteCentavos(p.id, promo, hoje)
+            const emPromocao = preco != null && p.valorCentavos != null && preco < p.valorCentavos
+            const contratavel = p.disponibilidade === "disponivel" && p.valorCentavos != null && p.valorCentavos > 0
+
+            if (!contratavel) {
+              // Free e Enterprise: aparecem, mas não são contratáveis aqui —
+              // um sem cobrança, o outro sem definição (§2).
+              return (
+                <div key={p.id} className="rounded-[14px] border border-line bg-panel2 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="titulo-card text-dim">{p.rotulo}</span>
+                    <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">
+                      {p.disponibilidade === "em_breve" ? "Em breve" : "Seu plano hoje"}
+                    </span>
+                  </div>
+                  <p className="apoio mt-1 text-dim">{p.regra}</p>
+                </div>
+              )
+            }
+
+            return (
+              <label
+                key={p.id}
+                className="sombra-1 block cursor-pointer rounded-[14px] border border-line bg-panel p-4 has-[:checked]:border-accent"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="titulo-card">{p.rotulo}</span>
+                  <input
+                    type="radio"
+                    name="plano"
+                    value={p.id}
+                    defaultChecked={p.id === "commander"}
+                    className="size-5 accent-[var(--acao)]"
+                  />
+                </div>
+                <p className="corpo mt-1">
+                  {emPromocao && (
+                    <span className="apoio mr-1.5 text-dim line-through">{formatarPreco(p.valorCentavos!)}</span>
+                  )}
+                  <span className="font-semibold">{formatarPreco(preco ?? p.valorCentavos!)}</span>
+                  <span className="text-dim"> /mês</span>
+                </p>
+                <p className="apoio mt-1 text-dim">{p.regra}</p>
+              </label>
+            )
+          })}
+        </div>
+
+        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          <p className="rotulo text-dim">O que o plano pago libera</p>
+          <ul className="mt-2 space-y-1.5">
+            {BENEFICIOS_PAGOS.map((b) => (
+              <li key={b} className="apoio flex items-start gap-2">
+                <Icone nome="selo" className="mt-0.5 size-3.5 shrink-0 text-accent-forte" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
@@ -78,7 +143,15 @@ export default async function AssinarPage({
         <p className="apoio text-center text-dim">
           Cartão ou Pix, direto na página segura do Asaas. Nada de cartão aqui no app.
         </p>
+        <p className="apoio text-center text-dim">
+          Você pode cancelar quando quiser — o que já foi registrado continua guardado, nada é apagado.
+        </p>
       </form>
+
+      <p className="apoio mt-6 text-center text-dim">
+        É comandante ou empresa do meio náutico? {PLANOS.captain_pro.rotulo} e Commander Partner custam{" "}
+        {formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês — fale com a equipe para ativar.
+      </p>
     </main>
   )
 }

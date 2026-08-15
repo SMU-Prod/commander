@@ -12,13 +12,20 @@ import {
 } from "@/lib/domain/ocorrencias"
 import { calcularSemaforo, textoRestante } from "@/lib/domain/semaforo"
 import { normalizarPermissoes, podeEditar, type Aba, type Permissoes } from "@/lib/domain/permissoes"
-import { nivelPlano, type NivelPlano } from "@/lib/domain/plano-acesso"
+import { limiteEmbarcacoes, nivelPlano, type NivelPlano } from "@/lib/domain/plano-acesso"
+import { PLANOS, type PlanoId, type PromocaoId } from "@/lib/domain/planos"
+import {
+  avaliarCiclo, dividirEmbarcacoesPorPlano, TOLERANCIA_PADRAO_DIAS,
+  type CicloAvaliado, type DivisaoEmbarcacoes,
+} from "@/lib/domain/assinatura-ciclo"
 import {
   avaliarSeloVerified, avaliarVerified,
   type ResultadoVerified, type SeloVerifiedAvaliado,
 } from "@/lib/domain/verified"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
-import type { Embarcacao, Equipamento, ItemMonitorado, VerifiedEstado, Viagem } from "@/lib/db/types"
+import type {
+  Assinatura, Embarcacao, Equipamento, ItemMonitorado, VerifiedEstado, Viagem,
+} from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
 
 export const carregarPainel = cache(async (): Promise<{
@@ -168,39 +175,160 @@ export const carregarVerified = cache(async (): Promise<
 })
 
 /**
- * Free ou Premium (onda 38, `web/lib/domain/plano-acesso.ts`) — a decisão é
- * sobre a ASSINATURA DO PROPRIETÁRIO, e `assinaturas`/`premium_concessoes`
- * (migrations 017/033) só deixam cada dono ler a PRÓPRIA linha via RLS.
+ * A ASSINATURA DA PESSOA LOGADA, já avaliada pelo ciclo do §23 (onda 47).
  *
- * Em vez de abrir uma trinca nova nessas tabelas só pra um CMDT/tripulação
- * conseguir contar o limite do barco, esta função aplica a MESMA isenção que
- * já existe pro gate de cobrança (`web/app/(app)/layout.tsx`: "só o PROP
- * paga; CMDT/tripulação nunca vê paywall") — quem não é PROP nunca é
- * bloqueado por causa do plano. Isso não amplia poder nenhum: um CMDT já tem
- * `editar:true` em Diário/Fotos nos presets de permissão
- * (`lib/domain/permissoes.ts`) independente do plano; a única coisa que essa
- * função decide aqui é se o LIMITE do Free se aplica a ele — e a resposta,
- * por design, é não.
+ * Devolve tudo que as telas e os portões precisam saber sobre cobrança num
+ * lugar só: o plano, a linha crua (pra tela de assinatura), a situação
+ * derivada (ativa / em tolerância / bloqueada / cancelada) e o aviso que o
+ * §23 exige mostrar ANTES de bloquear.
+ *
+ * `assinaturas`/`premium_concessoes`/`assinatura_promocoes` só deixam cada
+ * pessoa ler a PRÓPRIA linha via RLS — então isto é sempre sobre quem está
+ * logado, nunca sobre outra pessoa.
+ *
+ * A tolerância vem de `assinatura_parametros` (§23: "configurável, não
+ * hardcoded"). Se a leitura falhar, cai em `TOLERANCIA_PADRAO_DIAS` — sem
+ * fallback, um erro de leitura viraria bloqueio geral ou liberação geral, e as
+ * duas coisas são piores que um padrão conhecido.
+ */
+export const carregarAssinatura = cache(async (): Promise<{
+  assinatura: Assinatura | null
+  /** Plano vigente da pessoa: assinatura viva, concessão vigente, ou o Free. */
+  plano: PlanoId
+  ciclo: CicloAvaliado | null
+  /** Promoção vigente (§2.1/§2.2), no máximo uma — o banco garante. */
+  promocao: { promocao: PromocaoId; validoAte: string; valorCentavos: number; descontoGoldPercentual: number } | null
+}> => {
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { assinatura: null, plano: "proprietario_free", ciclo: null, promocao: null }
+
+  const hoje = hojeISO()
+  const [{ data: linha }, { data: concessoes }, { data: promocoes }, { data: parametros }] = await Promise.all([
+    supabase.from("assinaturas").select("*")
+      .eq("usuario_id", user.id).order("criado_em", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("premium_concessoes").select("plano_concedido, valido_ate")
+      .eq("usuario_id", user.id).gte("valido_ate", hoje).order("valido_ate", { ascending: false }).limit(1),
+    supabase.from("assinatura_promocoes").select("promocao, plano, valor_promocional_centavos, desconto_gold_percentual, valido_ate")
+      .eq("usuario_id", user.id).gte("valido_ate", hoje).order("valido_ate", { ascending: false }).limit(1),
+    supabase.from("assinatura_parametros").select("tolerancia_dias").limit(1).maybeSingle(),
+  ])
+
+  const assinatura = (linha as Assinatura | null) ?? null
+  const ciclo = assinatura
+    ? avaliarCiclo({
+        status: assinatura.status,
+        problemaDesde: assinatura.problema_desde?.slice(0, 10) ?? null,
+        toleranciaDias: (parametros as { tolerancia_dias: number } | null)?.tolerancia_dias ?? TOLERANCIA_PADRAO_DIAS,
+        hoje,
+      })
+    : null
+
+  const concessao = (concessoes ?? [])[0] as { plano_concedido: PlanoId; valido_ate: string } | undefined
+  const promo = (promocoes ?? [])[0] as
+    | { promocao: PromocaoId; valor_promocional_centavos: number; desconto_gold_percentual: number; valido_ate: string }
+    | undefined
+
+  // §23: durante a tolerância os recursos do plano CONTINUAM liberados. Só
+  // quando o ciclo diz que não há mais acesso pago é que a assinatura para de
+  // contar pro plano vigente.
+  const planoDaAssinatura = assinatura != null && ciclo?.acessoPago ? assinatura.plano : null
+  const plano: PlanoId = planoDaAssinatura ?? concessao?.plano_concedido ?? "proprietario_free"
+
+  return {
+    assinatura,
+    plano,
+    ciclo,
+    promocao: promo
+      ? {
+          promocao: promo.promocao,
+          validoAte: promo.valido_ate,
+          valorCentavos: promo.valor_promocional_centavos,
+          descontoGoldPercentual: promo.desconto_gold_percentual,
+        }
+      : null,
+  }
+})
+
+/**
+ * O DEGRAU DA EMBARCAÇÃO ATIVA (onda 38, reescrito na onda 47) — Free,
+ * Commander ou Commander Pro. É a régua que os portões do §2.3 usam.
+ *
+ * A decisão é sobre a assinatura do PROPRIETÁRIO da embarcação, e
+ * `assinaturas`/`premium_concessoes` só deixam cada dono ler a PRÓPRIA linha
+ * via RLS. Em vez de abrir uma trinca nova nessas tabelas só pra um
+ * CMDT/tripulação conseguir contar o limite do barco, esta função aplica a
+ * MESMA isenção que já existe pro gate de cobrança (`app/(app)/layout.tsx`:
+ * "só o PROP paga; CMDT/tripulação nunca vê paywall") — quem não é PROP nunca
+ * é bloqueado por causa do plano.
+ *
+ * Isso não amplia poder nenhum: um CMDT já tem `editar:true` em Diário/Fotos
+ * nos presets de permissão independente do plano, e o limite de EMBARCAÇÕES
+ * dele é decidido por `carregarAssinatura` (a assinatura dele, não a do dono
+ * deste barco) — então ele não ganha 4 barcos por tabela. `commander` e não
+ * `commander_pro` de propósito: é o degrau mínimo que libera a operação, sem
+ * fingir capacidade que ninguém pagou.
  */
 export const carregarNivelPlano = cache(async (): Promise<NivelPlano> => {
   const painel = await carregarPainel()
-  if (!painel) return "free"
-  if (painel.papel !== "PROP") return "premium"
+  if (!painel) return "proprietario_free"
+  if (painel.papel !== "PROP") return "commander"
 
+  const { plano } = await carregarAssinatura()
+  return nivelPlano(
+    { planoAssinatura: plano, concessao: null },
+    hojeISO(),
+  )
+})
+
+/**
+ * §23, downgrade Commander Pro → Commander: "não apagar embarcações
+ * excedentes; bloquear gestão das excedentes e exigir seleção da embarcação
+ * ativa até regularização".
+ *
+ * Só olha as embarcações onde a pessoa é PROP — barco de terceiro em que ela é
+ * tripulação nunca conta pro limite dela nem é bloqueado pelo plano dela.
+ */
+export const carregarAcessoEmbarcacoes = cache(async (): Promise<{
+  divisao: DivisaoEmbarcacoes
+  limite: number
+  /** A embarcação ativa está com a gestão bloqueada pelo plano? */
+  ativaBloqueada: boolean
+}> => {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return "free"
+  const vazio = { divisao: { liberadas: [], bloqueadas: [], precisaEscolher: false }, limite: 1, ativaBloqueada: false }
+  if (!user) return vazio
 
-  const [{ data: assinatura }, { data: concessoes }] = await Promise.all([
-    supabase.from("assinaturas").select("status")
-      .eq("usuario_id", user.id).in("status", ["ativa", "inadimplente"]).limit(1).maybeSingle(),
-    supabase.from("premium_concessoes").select("valido_ate").eq("usuario_id", user.id),
+  const [{ data: meus }, { plano }, ativa] = await Promise.all([
+    supabase.from("vinculos").select("embarcacao_id")
+      .eq("usuario_id", user.id).eq("papel", "PROP").order("created_at"),
+    carregarAssinatura(),
+    lerEmbarcacaoAtiva(),
   ])
-  const concessaoValidoAte = (concessoes ?? []).reduce<string | null>(
-    (maisRecente, c: { valido_ate: string }) => (maisRecente === null || c.valido_ate > maisRecente ? c.valido_ate : maisRecente),
-    null,
-  )
-  return nivelPlano({ assinaturaAtiva: Boolean(assinatura), concessaoValidoAte }, hojeISO())
+  const ids = (meus ?? []).map((v: { embarcacao_id: string }) => v.embarcacao_id)
+  if (ids.length === 0) return vazio
+
+  const limite = PLANOS[plano].limiteEmbarcacoes ?? limiteEmbarcacoes(await carregarNivelPlano())
+  const divisao = dividirEmbarcacoesPorPlano(ids, ativa, limite)
+  return { divisao, limite, ativaBloqueada: ativa != null && divisao.bloqueadas.includes(ativa) }
+})
+
+/** Vagas de tripulação da embarcação ativa (§19) — vínculos CMDT + convites
+ *  pendentes, os dois ocupando vaga. Mesma conta que o trigger do banco faz
+ *  (migration 048, `acessos_ocupados`); aqui é pra tela poder AVISAR antes de
+ *  a pessoa clicar e tomar erro. */
+export const carregarUsoTripulacao = cache(async (): Promise<{ vinculos: number; convites: number }> => {
+  const painel = await carregarPainel()
+  if (!painel) return { vinculos: 0, convites: 0 }
+  const supabase = await supabaseServer()
+  const [{ count: vinculos }, { count: convites }] = await Promise.all([
+    supabase.from("vinculos").select("id", { count: "exact", head: true })
+      .eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT"),
+    supabase.from("convites").select("id", { count: "exact", head: true })
+      .eq("embarcacao_id", painel.embarcacao.id).is("usado_em", null).gt("expira_em", new Date().toISOString()),
+  ])
+  return { vinculos: vinculos ?? 0, convites: convites ?? 0 }
 })
 
 /** Total de registros já criados no Diário de Bordo desta embarcação — o

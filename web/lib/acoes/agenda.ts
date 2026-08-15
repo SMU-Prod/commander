@@ -1,7 +1,7 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import {
   ehCompartilhavel,
   podeGerenciarEventos,
@@ -9,6 +9,7 @@ import {
   VISIBILIDADES,
   type Visibilidade,
 } from "@/lib/domain/agenda"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -82,6 +83,13 @@ export async function criarCompromisso(formData: FormData) {
   // permissão 'Gerenciar eventos da embarcação'".
   if (!podeGerenciarEventos(painel.permissoes)) {
     erroNovo("Seu acesso não permite criar compromissos desta embarcação.")
+  }
+  // §2.3 — "Agenda e Financeiro podem ser VISUALIZADOS como estrutura, mas
+  // criação/lançamento ficam bloqueados". Note a ordem: permissão primeiro,
+  // plano depois. Quem não tem permissão não deve receber convite de upgrade
+  // pra um recurso que não é dele nem quando pago.
+  if (!recursoLiberado("agenda_criar", await carregarNivelPlano())) {
+    erroNovo(mensagemBloqueio("agenda_criar").descricao)
   }
 
   const titulo = texto(formData, "titulo")

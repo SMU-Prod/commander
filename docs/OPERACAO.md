@@ -1027,3 +1027,79 @@ cobrindo inclusive o caso órfão (item de óleo cujo motor foi apagado).
 O card do parceiro mostra as duas coisas separadas de propósito: usar
 `atualizado_em` ao lado do preço fazia um diesel de três meses atrás parecer
 de ontem sempre que o parceiro editava qualquer outro campo.
+
+## Planos, promoções e tolerância de cobrança (onda 47)
+
+Os preços do PRD FINAL §2 vivem **em código**, em `web/lib/domain/planos.ts`
+(`PLANOS`) — não há tabela de preços no banco. Mudar preço é mudar aquele
+arquivo + o teste. O banco só guarda a **constraint** dos ids de plano válidos
+(`assinaturas.plano`, migration 048).
+
+Planos cobráveis hoje: `commander` (R$ 49,90), `commander_pro` (R$ 69,90),
+`captain_pro` (R$ 24,90), `partner_prestador` e `partner_loja` (R$ 24,90). Os
+gratuitos não geram linha de assinatura, e `commander_enterprise` é
+"reservado/Em breve" — a action `assinar` recusa qualquer um dos dois.
+
+A promo dos 100 fundadores foi **aposentada** nesta onda (o PRD FINAL não a
+menciona e ninguém chegou a assinar: 0 assinaturas em 15/08/2026). Sumiram
+junto a coluna `assinaturas.fundador_numero`, a RPC
+`vagas_fundador_restantes()` e o trigger `assinaturas_fundador`.
+
+### Tolerância antes de bloquear (§23)
+
+Configurável, nunca hardcoded:
+
+```sql
+update public.assinatura_parametros set tolerancia_dias = 10, atualizado_em = now();
+```
+
+O relógio começa em `assinaturas.problema_desde`, gravado pelo trigger
+`assinaturas_touch` quando o status vira `problema_pagamento` e **zerado
+sozinho** quando volta pra `ativa`. Não existe job de fundo: a situação é
+derivada na leitura (`avaliarCiclo`, `web/lib/domain/assinatura-ciclo.ts`).
+
+### Conceder uma promoção (§2.1 — migração de concorrente)
+
+Não existe tela pra isso (é operação, não autoatendimento). A tabela
+`assinatura_promocoes` não tem policy de escrita: só service role / SQL.
+
+```sql
+insert into public.assinatura_promocoes
+  (usuario_id, promocao, plano, valor_promocional_centavos, desconto_gold_percentual, valido_ate)
+values
+  ('<uuid do usuário>', 'migracao_concorrente', 'commander', 2490, 20,
+   (current_date + interval '3 months')::date);
+```
+
+O trigger `assinatura_promocoes_nao_acumula` recusa (`promocao_ja_vigente`) se
+a pessoa já tiver promoção **ou** concessão vigente — §2.1 diz que os
+benefícios não acumulam, e a trava é do banco, não da tela.
+
+### Entrada direta pelo Gold (§2.2)
+
+Automática: `gold_definir_estado(..., 'aprovado')` concede **6 meses de
+Commander** em `premium_concessoes` — mas só pra quem **não** tem assinatura
+viva e não tem outra promoção/concessão vigente. Quem já paga não recebe nada
+(não faria sentido "dar" o que ele já tem) e continua com o plano intacto.
+
+### Limites que o banco aplica sozinho
+
+- Embarcações por plano: `criar_embarcacao` recusa com `limite_embarcacoes_N`.
+  Downgrade **não apaga** barco: o excedente fica com a gestão pausada
+  (`dividirEmbarcacoesPorPlano`), com os dados inteiros.
+- Acessos de tripulação: 2 por embarcação nos planos pagos, 0 no Free.
+  Convite pendente **ocupa vaga**. Triggers `convites_respeitam_limite` e
+  `vinculos_respeitam_limite` recusam com `limite_acessos_<limite>_<ocupados>`.
+
+Barco que já estava acima do limite quando a régua mudou **não perde nada** —
+os triggers são `before insert`, então só a criação nova é barrada.
+
+### Trocar de plano grava com chave de serviço
+
+`trocarPlano` (`web/lib/acoes/assinatura.ts`) escreve `assinaturas.plano` via
+`SUPABASE_SERVICE_ROLE_KEY` (`web/lib/supabase/servico.ts`), **depois** de o
+gateway confirmar. Não é preguiça de RLS: qualquer RPC que aceitasse o plano
+como parâmetro seria chamável direto pelo cliente, e alguém pediria
+`commander_pro` sem pagar — o plano decide limites, inclusive no banco. Sem a
+variável de ambiente configurada, a troca falha com aviso na tela em vez de
+mentir que deu certo.

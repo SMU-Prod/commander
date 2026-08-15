@@ -62,12 +62,18 @@ export default function TermosPage() {
 
       <SecaoLegal titulo="3. Assinatura e pagamento">
         <p>
-          O Commander tem um plano pago (hoje na promoção &quot;fundador&quot;, com preço
-          travado enquanto a assinatura durar — os valores e a quantidade de vagas atuais estão
-          sempre visíveis na página <Link href="/assinar">/assinar</Link> antes de você
-          confirmar; não repetimos os números aqui para não ficarem desatualizados). Apenas o
-          proprietário (papel PROP) da embarcação assina; comandantes e tripulantes convidados
-          não pagam.
+          O Commander tem um plano gratuito e planos pagos. Os valores vigentes ficam sempre
+          visíveis na página <Link href="/assinar">/assinar</Link> antes de você confirmar
+          qualquer coisa; não repetimos os números aqui para não ficarem desatualizados. Apenas
+          o proprietário (papel PROP) da embarcação assina; comandantes e tripulantes
+          convidados não pagam.
+        </p>
+        <p>
+          Podemos oferecer condições promocionais temporárias (por exemplo, para quem vem de
+          outro aplicativo, ou como parte de uma avaliação Commander Gold aprovada). Quando o
+          período da promoção termina, a cobrança passa ao valor normal do plano, e isso fica
+          informado na tela Menu → Assinatura enquanto a promoção está valendo. Promoções não
+          são cumulativas entre si.
         </p>
         <p>
           A cobrança é processada pelo <strong>Asaas</strong>, um gateway de pagamento
@@ -76,12 +82,19 @@ export default function TermosPage() {
           Asaas para cadastrar você como cliente.
         </p>
         <p>
-          A assinatura renova automaticamente (mensal ou anual, conforme o plano escolhido) até
-          ser cancelada. Você cancela a qualquer momento pela tela Menu → Assinatura, sem
-          multa. Ao cancelar, o dossiê da embarcação fica congelado (os dados não somem, mas o
-          app para de liberar as telas normalmente) — não é apagado; se quiser excluir os
-          dados de verdade, veja a seção &quot;Direitos do titular&quot; da{" "}
+          A assinatura renova automaticamente até ser cancelada. Você cancela a qualquer
+          momento pela tela Menu → Assinatura, sem multa. Ao cancelar, sua conta volta ao plano
+          gratuito: <strong>nada do que você registrou é apagado</strong> — embarcação,
+          Diários, documentos, fotos e histórico continuam guardados e visíveis. O que fica
+          bloqueado são os recursos do plano pago, e eles voltam inteiros se você reativar. Se
+          quiser excluir os dados de verdade, veja a seção &quot;Direitos do titular&quot; da{" "}
           <Link href="/privacidade">Política de Privacidade</Link>.
+        </p>
+        <p>
+          Se um pagamento for recusado, avisamos e você tem um prazo de regularização antes de
+          os recursos pagos serem bloqueados — o prazo em vigor aparece no próprio aviso, na
+          tela Menu → Assinatura. Durante esse prazo, nada muda no seu acesso. O histórico de
+          faturas também fica nessa tela.
         </p>
       </SecaoLegal>
 

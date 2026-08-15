@@ -4,7 +4,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { criarEvento } from "@/lib/acoes/eventos"
 import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "@/lib/consultas"
-import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
+import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function NovoEventoPage({
@@ -31,10 +31,17 @@ export default async function NovoEventoPage({
   // Sem liberar, nem busca o resto (contatos/tripulação) — a tela vai
   // mostrar só o bloqueio, o formulário nunca aparece.
   if (!liberado) {
+    // §23 — quando o barco já tem MAIS registros que o teto novo (o Free caiu
+    // de 20 pra 2 na onda 47), o aviso vem antes do cadeado: a primeira coisa
+    // que a pessoa precisa ler é que nada dela foi apagado.
+    const aviso = avisoAcervoAcimaDoTeto("diario_registros", nivel, usoDiario)
     return (
       <main>
         <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo="Novo registro" />
-        <BloqueioPremium {...mensagemBloqueio("diario_registros", usoDiario)} className="mt-5" />
+        {aviso && (
+          <p className="corpo mt-4 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">{aviso}</p>
+        )}
+        <BloqueioPremium {...mensagemBloqueio("diario_registros", usoDiario)} className="mt-4" />
       </main>
     )
   }

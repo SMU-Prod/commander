@@ -6,20 +6,26 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { cancelarAssinatura, trocarPlano } from "@/lib/acoes/assinatura"
 import {
-  asaasConfigurado, detalhesAssinaturaAsaas, listarCobrancas, proximaCobrancaAsaas, type CobrancaAsaas,
+  asaasConfigurado, listarCobrancas, proximaCobrancaAsaas, type CobrancaAsaas,
 } from "@/lib/asaas"
-import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
-import { formatarPreco, PLANOS, proximoUpgrade, type PlanoId } from "@/lib/domain/planos"
-import { BENEFICIOS_PREMIUM, LIMITES_FREE } from "@/lib/domain/plano-acesso"
+import { carregarAcessoEmbarcacoes, carregarAssinatura, carregarNivelPlano, carregarPainel } from "@/lib/consultas"
+import { mensagemDowngrade, ROTULO_SITUACAO } from "@/lib/domain/assinatura-ciclo"
+import { formatarPreco, PLANOS, planosDoPerfil, proximoUpgrade } from "@/lib/domain/planos"
+import { BENEFICIOS_PAGOS, O_QUE_O_FREE_FAZ, ehPago } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
-import type { Assinatura } from "@/lib/db/types"
 
-const ROTULO_STATUS: Record<Assinatura["status"], string> = {
-  pendente: "Aguardando o primeiro pagamento",
-  ativa: "Ativa",
-  inadimplente: "Pagamento em atraso",
-  cancelada: "Cancelada",
-}
+/**
+ * MINHA CONTA › ASSINATURA (onda 47 — PRD FINAL §2, §23).
+ *
+ * Mostra, nesta ordem: o plano vigente e o que ele libera, a situação da
+ * cobrança (com o aviso de tolerância do §23 em destaque quando existe), o
+ * caminho de upgrade/downgrade, e o HISTÓRICO DE FATURAS — que o §23 pede
+ * nominalmente ("Histórico de faturas/cobranças disponível em Minha Conta").
+ *
+ * A situação vem de `avaliarCiclo` (regra pura), não do Asaas: o gateway diz
+ * se a cobrança entrou; o que isso significa pro cliente é decisão do
+ * Commander (§23, "estados modelados independentemente do fornecedor").
+ */
 
 const ROTULO_COBRANCA: Record<string, string> = {
   PENDING: "Aguardando pagamento",
@@ -63,9 +69,7 @@ function dataBr(iso: string): string {
 }
 
 /** Meio de pagamento mais recente com algo definido — entre as faturas já
- *  emitidas, a primeira (mais recente) que não é mais "a definir". Sem
- *  nenhuma, cai pro billingType da fatura mais nova mesmo (normalmente
- *  "UNDEFINED", e a tela mostra isso honestamente). */
+ *  emitidas, a primeira (mais recente) que não é mais "a definir". */
 function formaPagamentoAtual(cobrancas: CobrancaAsaas[]): string | null {
   if (cobrancas.length === 0) return null
   const definida = cobrancas.find((c) => c.billingType !== "UNDEFINED")
@@ -87,7 +91,7 @@ export default async function AssinaturaPage({
   // Tripulação/CMDT não tem assinatura própria — a cobrança é do
   // proprietário, e `assinaturas`/`premium_concessoes` só deixam CADA DONO
   // ler a própria linha (RLS, migrations 017/033). Em vez de uma tela de
-  // cobrança vazia e confusa (ou fingir um Premium que não é "deles"), avisa
+  // cobrança vazia e confusa (ou fingir um plano que não é "deles"), avisa
   // com honestidade — mesma filosofia de "CMDT/tripulação nunca vê paywall"
   // (`app/(app)/layout.tsx`), só que aqui o caminho é avisar, não bloquear.
   if (painel && painel.papel !== "PROP") {
@@ -105,37 +109,25 @@ export default async function AssinaturaPage({
     )
   }
 
-  const { data } = await supabase
-    .from("assinaturas").select("*")
-    .eq("usuario_id", user.id)
-    .order("criado_em", { ascending: false })
-    .limit(1).maybeSingle()
-  const assinatura = data as Assinatura | null
-  const temAssinaturaViva = Boolean(assinatura) && assinatura!.status !== "cancelada"
-
+  const { assinatura, plano, ciclo, promocao } = await carregarAssinatura()
   const nivel = await carregarNivelPlano()
+  const acesso = await carregarAcessoEmbarcacoes()
   const chaveAsaas = asaasConfigurado()
+  const temAssinaturaViva = assinatura != null && assinatura.status !== "cancelada"
 
   let proximaCobranca: string | null = null
   let cobrancas: CobrancaAsaas[] = []
-  let valorVivo: { valorCentavos: number; ciclo: "MONTHLY" | "YEARLY" } | null = null
   if (temAssinaturaViva) {
-    ;[proximaCobranca, cobrancas, valorVivo] = await Promise.all([
-      proximaCobrancaAsaas(assinatura!.asaas_subscription_id),
-      listarCobrancas(assinatura!.asaas_subscription_id),
-      detalhesAssinaturaAsaas(assinatura!.asaas_subscription_id),
+    ;[proximaCobranca, cobrancas] = await Promise.all([
+      proximaCobrancaAsaas(assinatura.asaas_subscription_id),
+      listarCobrancas(assinatura.asaas_subscription_id),
     ])
   }
-  // O Asaas manda no ciclo/valor DE VERDADE (upgrade só escreve lá, nunca na
-  // coluna local — ver `lib/acoes/assinatura.ts`). Sem resposta do Asaas
-  // (sem chave, erro, ambiente sandbox fora do ar), cai pro que foi
-  // gravado na assinatura — nunca uma tela em branco.
-  const planoEfetivo: PlanoId | undefined = valorVivo
-    ? (valorVivo.ciclo === "YEARLY" ? "fundador_anual" : "fundador_mensal")
-    : assinatura?.plano
-  const valorEfetivoCentavos = valorVivo?.valorCentavos ?? assinatura?.valor_centavos ?? 0
-  const proximo = planoEfetivo ? proximoUpgrade(planoEfetivo) : null
+
   const formaPagamento = formaPagamentoAtual(cobrancas)
+  const upgrade = proximoUpgrade(plano)
+  const downgrade = plano === "commander_pro" ? "commander" : null
+  const avisoDowngrade = mensagemDowngrade(acesso.divisao, acesso.limite)
 
   return (
     <main>
@@ -143,72 +135,98 @@ export default async function AssinaturaPage({
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
       {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 
-      {/* Plano da embarcação — Free ou Premium, sempre visível primeiro
-          (PRD §43/§44): mostra o valor do Premium antes de qualquer detalhe
-          de cobrança. */}
+      {/* §23: "durante tolerância, avisar claramente ANTES de bloquear". O
+          aviso vem primeiro na tela justamente por isso — antes do plano,
+          antes das faturas. */}
+      {ciclo?.aviso && ciclo.situacao !== "ativa" && (
+        <p
+          className={`corpo mt-3 rounded-lg border px-3 py-2 ${
+            ciclo.acessoPago ? "border-aten/40 bg-aten/10" : "border-crit/40 bg-crit/10"
+          }`}
+        >
+          {ciclo.aviso}
+        </p>
+      )}
+
+      {/* Plano vigente — sempre visível primeiro, com o que ele libera. */}
       <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
-        <div className="flex items-center justify-between">
-          <p className="titulo-card">Seu plano</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="titulo-card">{PLANOS[plano].rotulo}</p>
           <span
             className={`rotulo rounded-full px-2.5 py-1 ${
-              nivel === "premium" ? "bg-accent/15 text-accent-forte" : "bg-panel2 text-dim"
+              ehPago(nivel) ? "bg-accent/15 text-accent-forte" : "bg-panel2 text-dim"
             }`}
           >
-            {nivel === "premium" ? "Premium" : "Free"}
+            {ehPago(nivel) ? "Ativo" : "Gratuito"}
           </span>
         </div>
+        <p className="apoio mt-1 text-dim">{PLANOS[plano].regra}</p>
+
         <ul className="mt-3 space-y-1.5">
-          {BENEFICIOS_PREMIUM.map((b) => (
+          {(ehPago(nivel) ? BENEFICIOS_PAGOS : O_QUE_O_FREE_FAZ).map((b) => (
             <li key={b} className="apoio flex items-start gap-2">
               <Icone
-                nome={nivel === "premium" ? "selo" : "cadeado"}
-                className={`mt-0.5 size-3.5 shrink-0 ${nivel === "premium" ? "text-accent-forte" : "text-dim"}`}
+                nome={ehPago(nivel) ? "selo" : "documento"}
+                className={`mt-0.5 size-3.5 shrink-0 ${ehPago(nivel) ? "text-accent-forte" : "text-dim"}`}
               />
-              <span className={nivel === "premium" ? "" : "text-dim"}>{b}</span>
+              <span>{b}</span>
             </li>
           ))}
         </ul>
-        {nivel === "free" && (
-          <p className="apoio mt-3 text-dim">
-            No Free: até {LIMITES_FREE.diarioRegistros} registros no Diário e {LIMITES_FREE.fotos} fotos por
-            embarcação — o resto do app funciona normalmente, sem limite.
+
+        {promocao && (
+          <p className="apoio mt-3 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
+            Você está com uma condição promocional até {dataBr(promocao.validoAte)}
+            {promocao.valorCentavos > 0 ? ` — ${formatarPreco(promocao.valorCentavos)}/mês` : " — sem cobrança"}.
+            Depois desse período, a cobrança volta ao valor normal do plano.
+            {promocao.descontoGoldPercentual > 0 &&
+              ` No mesmo período, a avaliação Commander Gold tem ${promocao.descontoGoldPercentual}% de desconto.`}
           </p>
         )}
       </div>
 
+      {/* §23, downgrade Pro → Commander: barco excedente fica pausado, nunca apagado. */}
+      {avisoDowngrade && (
+        <div className="sombra-1 mt-4 rounded-[14px] border border-aten/40 bg-panel p-4">
+          <p className="titulo-card">Embarcações acima do plano</p>
+          <p className="apoio mt-1 text-dim">{avisoDowngrade}</p>
+          {acesso.divisao.precisaEscolher && (
+            <Link href="/menu" className="apoio mt-3 inline-block font-semibold text-accent-forte">
+              Escolher a embarcação ativa
+            </Link>
+          )}
+        </div>
+      )}
+
       {!temAssinaturaViva ? (
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
-          <p className="titulo-card">Você ainda não é assinante</p>
-          <p className="apoio mt-1 text-dim">A promo de fundador trava o preço enquanto a assinatura durar.</p>
+          <p className="titulo-card">
+            {assinatura?.status === "cancelada" ? "Sua assinatura está cancelada" : "Você ainda não é assinante"}
+          </p>
+          <p className="apoio mt-1 text-dim">
+            O Commander custa {formatarPreco(PLANOS.commander.valorCentavos!)}/mês e o Commander Pro{" "}
+            {formatarPreco(PLANOS.commander_pro.valorCentavos!)}/mês. Nada do que você já registrou é apagado em
+            nenhum dos casos.
+          </p>
           <Link href="/assinar" className="mt-3 block w-full rounded-xl bg-accent py-3.5 text-center font-semibold text-acao-texto">
             Ver planos
           </Link>
         </div>
       ) : (
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
-          <div className="flex items-baseline justify-between">
-            <p className="titulo-card">{planoEfetivo ? PLANOS[planoEfetivo].rotulo : "Fundador"}</p>
-            <p className="apoio text-dim">{ROTULO_STATUS[assinatura!.status]}</p>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="titulo-card">Cobrança</p>
+            <p className="apoio text-dim">{ciclo ? ROTULO_SITUACAO[ciclo.situacao] : ""}</p>
           </div>
           <p className="corpo mt-1">
-            <span className="font-semibold">{formatarPreco(valorEfetivoCentavos)}</span>
-            <span className="text-dim">{planoEfetivo === "fundador_anual" ? " /ano" : " /mês"}</span>
+            <span className="font-semibold">{formatarPreco(assinatura.valor_centavos)}</span>
+            <span className="text-dim">{PLANOS[assinatura.plano].ciclo === "YEARLY" ? " /ano" : " /mês"}</span>
           </p>
           {proximaCobranca && (
             <p className="apoio mt-1 text-dim">Próxima cobrança em {dataBr(proximaCobranca)}</p>
           )}
           {formaPagamento && (
             <p className="apoio mt-1 text-dim">Forma de pagamento: {ROTULO_FORMA_PAGAMENTO[formaPagamento] ?? formaPagamento}</p>
-          )}
-          {assinatura!.fundador_numero !== null && (
-            <p className="apoio mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel2 px-3 py-1.5 text-dim-chip">
-              <Icone nome="estrela" className="size-3.5" /> Fundador #{assinatura!.fundador_numero}
-            </p>
-          )}
-          {assinatura!.status === "pendente" && (
-            <p className="apoio mt-3 text-dim">
-              O link de pagamento foi aberto na hora da assinatura e também chega por e-mail. Pagou agora? O status atualiza sozinho em instantes.
-            </p>
           )}
           {!chaveAsaas && (
             <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
@@ -218,29 +236,45 @@ export default async function AssinaturaPage({
             </p>
           )}
 
-          {/* Upgrade (PRD §44) — só existe UM upgrade real hoje: mensal→anual,
-              mesmo preço/mês, 2 meses grátis. Nunca aparece pra quem já está
-              no anual (proximoUpgrade devolve null). */}
-          {proximo && assinatura!.status !== "pendente" && (
+          {upgrade && assinatura.status !== "pendente" && (
             <form action={trocarPlano} className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
-              <p className="corpo font-medium">Passe para o {PLANOS[proximo].rotulo}</p>
+              <input type="hidden" name="plano" value={upgrade} />
+              <p className="corpo font-medium">Passe para o {PLANOS[upgrade].rotulo}</p>
               <p className="apoio mt-0.5 text-dim">
-                Mesmo preço por mês, 2 meses grátis por ano — {formatarPreco(PLANOS[proximo].valorCentavos)}/ano.
+                {PLANOS[upgrade].regra} — {formatarPreco(PLANOS[upgrade].valorCentavos!)}/mês.
               </p>
               <button className="apoio mt-2 font-semibold text-accent-forte">Fazer upgrade</button>
+            </form>
+          )}
+
+          {/* §23 — descer de plano é um caminho de primeira classe, não algo
+              escondido: o cliente precisa saber que dá pra descer sem perder
+              barco. */}
+          {downgrade && assinatura.status !== "pendente" && (
+            <form action={trocarPlano} className="mt-3">
+              <input type="hidden" name="plano" value={downgrade} />
+              <Confirmar
+                rotulo={`Voltar para o ${PLANOS[downgrade].rotulo}`}
+                mensagem={
+                  `Voltar para o ${PLANOS[downgrade].rotulo}? As embarcações acima do limite não são apagadas — ` +
+                  "a gestão delas fica pausada até você voltar para o Pro."
+                }
+                className="text-sm text-dim"
+              />
             </form>
           )}
 
           <form action={cancelarAssinatura} className="mt-4">
             <Confirmar
               rotulo="Cancelar assinatura"
-              mensagem="Cancelar a assinatura? O dossiê do barco fica congelado."
+              mensagem="Cancelar a assinatura? Nada é apagado — o dossiê do barco continua guardado e volta inteiro se você reativar."
               className="text-sm text-crit"
             />
           </form>
         </div>
       )}
 
+      {/* §23: "Histórico de faturas/cobranças disponível em Minha Conta." */}
       {cobrancas.length > 0 && (
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
           <p className="rotulo pt-4 text-dim">Faturas</p>
@@ -263,6 +297,22 @@ export default async function AssinaturaPage({
           ))}
         </div>
       )}
+
+      {/* §2 — Enterprise existe no catálogo só como reservado. */}
+      {planosDoPerfil("proprietario")
+        .filter((p) => p.disponibilidade === "em_breve")
+        .map((p) => (
+          <div key={p.id} className="mt-4 rounded-[14px] border border-line bg-panel2 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="titulo-card text-dim">{p.rotulo}</p>
+              <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">Em breve</span>
+            </div>
+            <p className="apoio mt-1 text-dim">
+              Para frotas e operações maiores. Ainda estamos definindo o formato — se é o seu caso, fale com a
+              equipe.
+            </p>
+          </div>
+        ))}
     </main>
   )
 }

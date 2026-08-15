@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"
+import { mensagemBloqueio, vagasTripulacao } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -29,6 +31,9 @@ export default async function TripulacaoPage({
     supabase.from("profiles").select("id, nome"),
   ])
   const nomePorId = new Map((perfis ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+
+  const [nivel, uso] = await Promise.all([carregarNivelPlano(), carregarUsoTripulacao()])
+  const vagas = vagasTripulacao(nivel, uso.vinculos, uso.convites)
 
   const linkConvite = (codigo: string) => `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"}/convite/${codigo}`
 
@@ -108,19 +113,42 @@ export default async function TripulacaoPage({
       </div>
 
       <SecaoPagina>Novo convite</SecaoPagina>
-      <form action={criarConvite} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
-        <CampoSelect
-          label="Acesso inicial"
-          id="nivel"
-          name="nivel"
-          defaultValue="operacional"
-          dica="Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar."
-        >
-          <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
-          <option value="completo">Completo — vê e edita tudo</option>
-        </CampoSelect>
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar convite</button>
-      </form>
+      {/* §19 — "até 2 acessos de tripulação por embarcação. Convite pendente
+          ocupa vaga", e §2.3 — Free "não pode adicionar tripulação" (0 vagas).
+          O formulário some quando não há vaga, mas o MOTIVO fica: §24 exige
+          "explicar o limite e mostrar CTA de upgrade; nunca falhar
+          silenciosamente". A mesma conta roda na action e no banco. */}
+      {vagas.cabeMais ? (
+        <form action={criarConvite} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <p className="apoio text-dim">
+            {vagas.restantes === 1
+              ? "Resta 1 vaga de tripulação nesta embarcação."
+              : `Restam ${vagas.restantes} vagas de tripulação nesta embarcação.`}{" "}
+            Convite aguardando resposta também ocupa vaga.
+          </p>
+          <CampoSelect
+            label="Acesso inicial"
+            id="nivel"
+            name="nivel"
+            defaultValue="operacional"
+            dica="Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar."
+          >
+            <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
+            <option value="completo">Completo — vê e edita tudo</option>
+          </CampoSelect>
+          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar convite</button>
+        </form>
+      ) : vagas.total === 0 ? (
+        <BloqueioPremium {...mensagemBloqueio("tripulacao_adicionar")} />
+      ) : (
+        <div className="rounded-[14px] border border-line bg-panel p-4">
+          <p className="titulo-card">Vagas de tripulação preenchidas</p>
+          <p className="apoio mt-1 text-dim">
+            Esta embarcação já usa as {vagas.total} vagas do plano, somando comandantes com acesso e convites
+            aguardando resposta. Revogue um convite pendente ou remova um acesso acima para abrir vaga.
+          </p>
+        </div>
+      )}
     </main>
   )
 }

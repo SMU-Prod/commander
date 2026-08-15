@@ -1,9 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { carregarNivelPlano } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { publicarDemanda } from "@/lib/acoes/marketplace"
 import {
   DIAS_PADRAO_EXPIRACAO,
@@ -84,6 +87,7 @@ export default async function NovaDemandaPage({
   const funcoes = itensDoTipo(taxonomia, "funcao")
   const combustiveis = itensDoTipo(taxonomia, "combustivel")
   const marcas = itensDoTipo(taxonomia, "marca")
+  const podePublicar = recursoLiberado("marketplace_publicar", await carregarNivelPlano())
 
   return (
     <main>
@@ -187,7 +191,17 @@ export default async function NovaDemandaPage({
           </div>
         </fieldset>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar pedido</button>
+        {/* §2.3 — "Marketplace: pode preencher o fluxo de uma demanda, mas o
+            botão Publicar aciona o paywall." O formulário acima continua
+            inteiro e utilizável no Free de propósito: o PRD quer demonstração
+            interativa (§1.1), então o cadeado troca só o BOTÃO, nunca a tela.
+            A action repete a checagem — esta aqui é pra pessoa não descobrir
+            o limite depois de digitar tudo. */}
+        {podePublicar ? (
+          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar pedido</button>
+        ) : (
+          <BloqueioPremium {...mensagemBloqueio("marketplace_publicar")} />
+        )}
       </form>
 
       <p className="apoio mt-4 text-center text-dim">

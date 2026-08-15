@@ -12,7 +12,10 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { abaDoEquipamento, abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
-import { carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import {
+  carregarAcessoEmbarcacoes, carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc,
+} from "@/lib/consultas"
+import { mensagemDowngrade } from "@/lib/domain/assinatura-ciclo"
 import { carregarSeloGold } from "@/lib/consultas-gold"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -27,7 +30,15 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const [verified, seloGold] = await Promise.all([carregarVerified(), carregarSeloGold(embarcacao.id)])
+  const [verified, seloGold, acesso] = await Promise.all([
+    carregarVerified(),
+    carregarSeloGold(embarcacao.id),
+    carregarAcessoEmbarcacoes(),
+  ])
+  // Só avisa quando a embarcação ABERTA é uma das excedentes — um aviso
+  // genérico em todo barco seria ruído pra quem está justamente no barco que
+  // continua liberado.
+  const avisoPlano = acesso.ativaBloqueada ? mensagemDowngrade(acesso.divisao, acesso.limite) : null
 
   const statusDoEquipamento = (eqId: string): StatusFarol =>
     itens
@@ -61,6 +72,26 @@ export default async function BarcoPage({
   return (
     <main>
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+
+      {/* §23, downgrade Commander Pro → Commander: "não apagar embarcações
+          excedentes; BLOQUEAR GESTÃO das excedentes e exigir seleção da
+          embarcação ativa até regularização".
+
+          O aviso fica no topo da ficha do barco porque é aqui que a pessoa
+          vem tentar gerenciar. Ele explica a pausa e diz, com todas as
+          letras, que nada foi apagado — a leitura do dossiê continua inteira
+          (por isso o bloqueio é um aviso, não uma parede: esconder a ficha
+          seria exatamente o "apagar" que o PRD proíbe). */}
+      {avisoPlano && (
+        <div className="sombra-1 mt-3 rounded-[14px] border border-aten/40 bg-panel p-4">
+          <p className="titulo-card">Gestão pausada pelo plano</p>
+          <p className="apoio mt-1 text-dim">{avisoPlano}</p>
+          <Link href="/menu/assinatura" className="apoio mt-3 inline-block font-semibold text-accent-forte">
+            Ver planos
+          </Link>
+        </div>
+      )}
+
       <CardEmbarcacao
         embarcacao={embarcacao}
         statusGeral={statusGeral}

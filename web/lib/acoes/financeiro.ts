@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
 import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, FREQUENCIAS, TIPOS_LANCAMENTO,
   centavosDeReais, validarLancamento, validarRecorrente,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/domain/financeiro"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeEditar } from "@/lib/domain/permissoes"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { RecorrenciaFinanceira } from "@/lib/db/types"
 
@@ -96,6 +97,12 @@ export async function criarLancamento(formData: FormData) {
   const tipoUrl = c.tipo ?? "despesa"
   if (!podeEditar(painel.permissoes, "gastos")) {
     erroNovo(tipoUrl, "Seu acesso não permite lançar no Financeiro.")
+  }
+  // §2.3 — no Free o Financeiro é visível como estrutura, mas o lançamento
+  // fica bloqueado. Permissão primeiro, plano depois: quem não tem acesso a
+  // gastos não recebe convite de upgrade pra algo que não é dele.
+  if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
+    erroNovo(tipoUrl, mensagemBloqueio("financeiro_lancar").descricao)
   }
   const v = validarLancamento(c)
   if (!v.ok) erroNovo(tipoUrl, v.erro)
@@ -241,6 +248,10 @@ export async function criarRecorrente(formData: FormData) {
   if (!painel) redirect("/onboarding")
   if (!podeEditar(painel.permissoes, "gastos")) {
     erroRecorrenteNova("Seu acesso não permite criar recorrentes.")
+  }
+  // §2.3 — mesmo portão do lançamento avulso: recorrente é lançamento.
+  if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
+    erroRecorrenteNova(mensagemBloqueio("financeiro_lancar").descricao)
   }
 
   const texto = ler(formData)

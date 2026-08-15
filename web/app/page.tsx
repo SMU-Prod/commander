@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { Logo } from "@/components/logo"
 import { MockTelas } from "@/components/landing/mock-telas"
-import { ANCORA_MENSAL_CENTAVOS, formatarPreco, PLANOS, VAGAS_FUNDADOR } from "@/lib/domain/planos"
+import { formatarPreco, PLANOS } from "@/lib/domain/planos"
+import { LIMITES_FREE } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
 // A página é dinâmica (o redirect de logado lê cookies), então não há ISR a
@@ -33,9 +34,12 @@ const PASSOS = [
   { titulo: "O Commander vigia os prazos", desc: "Alerta antes de vencer, pelo que chegar primeiro: hora de motor ou data." },
 ]
 
+// Onda 47 — a promo dos 100 fundadores foi aposentada (PRD FINAL §2 congela
+// R$ 49,90 e R$ 69,90; ninguém chegou a assinar o plano fundador). O que a
+// landing promete agora é o que o produto entrega em qualquer plano.
 const BENEFICIOS = [
-  "Preço travado enquanto a assinatura durar — mesmo que o valor cheio suba depois.",
-  "Fundador #N gravado no seu perfil, para sempre.",
+  "Comece de graça: 1 embarcação com hubs técnicos, documentos e avisos de vencimento.",
+  "Cancele quando quiser — nada do que você registrou é apagado.",
   "Concierge de bordo: a equipe monta o dossiê do seu barco com você.",
 ]
 
@@ -44,27 +48,12 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect("/hoje")
 
-  // RPC anon (grant em vagas_fundador_restantes) — segue sendo buscada a
-  // cada request (fica pronta pra voltar a aparecer), mas a UI só MOSTRA o
-  // número abaixo de um gatilho (ver comentário perto do JSX). Se a RPC
-  // falhar por qualquer motivo, a seção de fundadores segue de pé, só sem
-  // o contador.
-  let restantes: number | null = null
-  try {
-    const { data } = await supabase.rpc("vagas_fundador_restantes")
-    if (typeof data === "number") restantes = data
-  } catch {
-    restantes = null
-  }
-  // Auditoria CMO P0 (2026-08-12): "Restam 100 de 100 vagas" em 100% da
-  // capacidade lê como zero tração, não urgência — pior que não mostrar
-  // número nenhum. Regra do produto: nenhum número inventado, então a
-  // saída não é fabricar prova social, é só não expor a contagem enquanto
-  // ela não ajuda a vender. Gatilho pra religar (mover pra 100, ou trocar
-  // por outro limiar combinado com o dono, quando os primeiros fundadores
-  // reais entrarem): reativar quando restarem menos de 80 de VAGAS_FUNDADOR.
-  const LIMIAR_MOSTRAR_CONTADOR = 80
-  const mostrarContador = restantes !== null && restantes < LIMIAR_MOSTRAR_CONTADOR
+  // Onda 47 — o contador de vagas de fundador saiu junto com a promo. A RPC
+  // `vagas_fundador_restantes()` foi removida na migration 048; o que a
+  // landing mostra agora é o preço real do §2, sem âncora e sem escassez
+  // fabricada (a auditoria CMO de 12/08 já apontava que "restam 100 de 100"
+  // lia como zero tração — o problema era a prova social inventada, e a
+  // solução acabou sendo não ter nenhuma).
 
   return (
     <div data-theme="dark" className="bg-ink text-texto">
@@ -91,8 +80,8 @@ export default async function LandingPage() {
             Manutenção em dia, documentos alertados e um histórico que vale dinheiro na hora de vender.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#fundador" className="sombra-2 rounded-xl bg-accent px-6 py-3.5 text-center font-semibold text-acao-texto">
-              Quero ser fundador
+            <a href="#planos" className="sombra-2 rounded-xl bg-accent px-6 py-3.5 text-center font-semibold text-acao-texto">
+              Ver planos
             </a>
             <Link href="/login" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-texto">
               Entrar
@@ -133,44 +122,46 @@ export default async function LandingPage() {
         </ol>
       </section>
 
-      {/* Fundador */}
-      <section id="fundador" className="mx-auto max-w-4xl px-6 py-14 sm:py-20">
+      {/* Planos (PRD FINAL §2) */}
+      <section id="planos" className="mx-auto max-w-4xl px-6 py-14 sm:py-20">
         <div className="text-center">
-          <p className="rotulo text-accent">Turma fundadora</p>
-          <h2 className="titulo-pagina mt-2">
-            {VAGAS_FUNDADOR} assinaturas com {formatarPreco(PLANOS.fundador_mensal.valorCentavos)}/mês pra sempre.
-          </h2>
+          <p className="rotulo text-accent">Planos</p>
+          <h2 className="titulo-pagina mt-2">Comece de graça. Pague quando fizer sentido.</h2>
           <p className="corpo mx-auto mt-3 max-w-md text-dim">
-            Preço travado enquanto durar a assinatura — depois desta turma, o Commander passa a
-            valer {formatarPreco(ANCORA_MENSAL_CENTAVOS)}/mês.
+            Os avisos de vencimento e os alertas de segurança valem em qualquer plano, inclusive no gratuito —
+            isso nunca fica atrás de assinatura.
           </p>
-          {/* Só aparece perto do fim da turma (ver LIMIAR_MOSTRAR_CONTADOR acima) —
-              antes disso, "restam 100 de 100" leria como zero tração. */}
-          {mostrarContador && (
-            <p className="apoio mt-4 inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3 py-1.5 text-dim">
-              <Icone nome="estrela" className="size-3.5 text-accent" /> Restam {restantes} de {VAGAS_FUNDADOR} vagas
-            </p>
-          )}
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="sombra-1 rounded-[16px] border border-line bg-panel p-5">
-            <p className="titulo-card">{PLANOS.fundador_mensal.rotulo}</p>
+            <p className="titulo-card">{PLANOS.proprietario_free.rotulo}</p>
             <p className="mt-3">
-              <span className="apoio mr-1.5 text-dim line-through">{formatarPreco(ANCORA_MENSAL_CENTAVOS)}</span>
-              <span className="text-3xl font-semibold text-accent-forte">{formatarPreco(PLANOS.fundador_mensal.valorCentavos)}</span>
-              <span className="corpo text-dim"> /mês</span>
+              <span className="text-3xl font-semibold">Grátis</span>
+            </p>
+            <p className="corpo mt-2 text-dim">
+              1 embarcação, {LIMITES_FREE.diarioRegistros} Diários de Bordo completos e o resto do app aberto para
+              conhecer.
             </p>
           </div>
           <div className="sombra-2 relative rounded-[16px] border border-accent/50 bg-panel p-5">
             <span className="absolute -top-3 right-4 rounded-full bg-accent px-2.5 py-1 font-mono-instr text-[11px] uppercase tracking-[.1em] text-acao-texto">
-              2 meses grátis
+              Mais escolhido
             </span>
-            <p className="titulo-card">{PLANOS.fundador_anual.rotulo}</p>
+            <p className="titulo-card">{PLANOS.commander.rotulo}</p>
             <p className="mt-3">
-              <span className="text-3xl font-semibold text-accent-forte">{formatarPreco(PLANOS.fundador_anual.valorCentavos)}</span>
-              <span className="corpo text-dim"> /ano</span>
+              <span className="text-3xl font-semibold text-accent-forte">{formatarPreco(PLANOS.commander.valorCentavos!)}</span>
+              <span className="corpo text-dim"> /mês</span>
             </p>
+            <p className="corpo mt-2 text-dim">{PLANOS.commander.regra}</p>
+          </div>
+          <div className="sombra-1 rounded-[16px] border border-line bg-panel p-5">
+            <p className="titulo-card">{PLANOS.commander_pro.rotulo}</p>
+            <p className="mt-3">
+              <span className="text-3xl font-semibold">{formatarPreco(PLANOS.commander_pro.valorCentavos!)}</span>
+              <span className="corpo text-dim"> /mês</span>
+            </p>
+            <p className="corpo mt-2 text-dim">{PLANOS.commander_pro.regra}</p>
           </div>
         </div>
 
@@ -188,7 +179,7 @@ export default async function LandingPage() {
             href="/login?volta=/assinar"
             className="sombra-2 inline-block rounded-xl bg-accent px-8 py-3.5 font-semibold text-acao-texto"
           >
-            Quero ser fundador
+            Começar agora
           </Link>
         </div>
       </section>

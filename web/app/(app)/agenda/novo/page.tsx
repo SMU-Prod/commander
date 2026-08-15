@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarCompromisso } from "@/lib/acoes/agenda"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import {
   EXPLICACAO_VISIBILIDADE,
   podeGerenciarEventos,
@@ -33,6 +35,18 @@ export default async function NovoCompromissoPage({
   if (!painel) redirect("/onboarding")
   if (!podeGerenciarEventos(painel.permissoes)) {
     redirect(`/agenda?erro=${encodeURIComponent("Seu acesso não permite criar compromissos desta embarcação.")}`)
+  }
+  // §2.3 — "Agenda e Financeiro podem ser visualizados como estrutura, mas
+  // criação/lançamento ficam bloqueados". A Agenda em si continua aberta no
+  // Free (a estrutura é justamente o que o PRD quer mostrar); é só o criar
+  // que vira cadeado — aqui, na action e em nenhum outro lugar.
+  if (!recursoLiberado("agenda_criar", await carregarNivelPlano())) {
+    return (
+      <main>
+        <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo="Marcar compromisso" />
+        <BloqueioPremium {...mensagemBloqueio("agenda_criar")} className="mt-5" />
+      </main>
+    )
   }
 
   const supabase = await supabaseServer()

@@ -33,6 +33,20 @@ export async function concluirOnboarding(formData: FormData) {
     p_marina: texto("marina"),
   })
   if (error || !embarcacaoId) {
+    // §2/§28 — o limite de embarcações do plano é aplicado NO BANCO
+    // (`criar_embarcacao`, migration 048), não só na tela: §27.2 exige a regra
+    // nos dois lados. O erro vem como `limite_embarcacoes_N`; traduzir aqui é
+    // o que o §24 pede pra "Limite atingido" — explicar o limite e oferecer o
+    // upgrade, nunca falhar em silêncio nem cuspir erro de banco.
+    const limite = error?.message.match(/limite_embarcacoes_(\d+)/)?.[1]
+    if (limite) {
+      redirect(
+        `/onboarding?erro=${encodeURIComponent(
+          `Seu plano cadastra ${limite} ${limite === "1" ? "embarcação" : "embarcações"}. ` +
+            "Para cuidar de mais barcos no mesmo aplicativo, passe para o Commander Pro em Menu › Assinatura.",
+        )}`,
+      )
+    }
     redirect(`/onboarding?erro=${encodeURIComponent("Não deu para cadastrar o barco agora. Confira sua conexão e tente de novo.")}`)
   }
 

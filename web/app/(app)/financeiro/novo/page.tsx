@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarLancamento } from "@/lib/acoes/financeiro"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, ROTULO_CATEGORIA, ROTULO_FORMA_PAGAMENTO,
 } from "@/lib/domain/financeiro"
@@ -32,6 +34,16 @@ export default async function NovoLancamentoPage({
   if (!painel) redirect("/onboarding")
   if (!podeEditar(painel.permissoes, "gastos")) {
     redirect(`/financeiro?erro=${encodeURIComponent("Seu acesso não permite lançar no Financeiro.")}`)
+  }
+  // §2.3 — o Financeiro fica visível como estrutura no Free; o LANÇAMENTO é
+  // que vira cadeado. Mesma checagem na action, porque tela não é segurança.
+  if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
+    return (
+      <main>
+        <CabecalhoDetalhe voltarHref="/financeiro" voltarRotulo="Financeiro" titulo="Novo lançamento" />
+        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-5" />
+      </main>
+    )
   }
 
   const tipo = tipoBruto === "entrada" ? "entrada" : "despesa"

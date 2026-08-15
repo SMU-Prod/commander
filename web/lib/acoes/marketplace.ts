@@ -20,7 +20,9 @@ import {
   type TipoTrabalho,
   type TipoVaga,
 } from "@/lib/domain/marketplace"
+import { carregarAssinatura, carregarNivelPlano } from "@/lib/consultas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -32,16 +34,17 @@ import { supabaseServer } from "@/lib/supabase/server"
  * sem a checagem a tela diria "salvo" sem ter salvado nada (regra da casa,
  * docs/CONTRIBUTING.md).
  *
- * TODO: gate de plano — decisão pendente (auditoria 15/08, conflito 3).
- * O PRD amarra três portões de plano a este arquivo, e nenhum dos três pode
- * ser implementado enquanto os planos não estiverem fechados com o dono:
+ * PORTÕES DE PLANO (onda 47) — o TODO da onda 45 esperava a decisão de
+ * planos, que o PRD FINAL fechou. Dois dos três portões vivem aqui:
  *   · §2.3 — Free "pode preencher o fluxo de uma demanda, mas o botão
- *     Publicar aciona o paywall" → seria em `publicarDemanda`;
- *   · §11.3 — "Somente Captain Pro pode publicar disponibilidade
- *     profissional estruturada" → seria em `publicarDisponibilidade`;
- *   · §13 — vitrine/dashboard por tipo e plano de Partner → fora deste arquivo.
- * Enquanto isso a funcionalidade fica inteira e aberta: é mais fácil ligar um
- * portão depois do que descobrir que o fluxo por baixo nunca foi testado.
+ *     Publicar aciona o paywall" → `publicarDemanda`. Repare no que o portão
+ *     NÃO faz: ele não impede montar o pedido nem apaga o que foi digitado.
+ *     A tela `/marketplace/nova` continua inteira e o bloqueio só entra no
+ *     Publicar, que é exatamente o que o PRD descreve;
+ *   · §11.3 — "Somente Captain Pro pode publicar disponibilidade profissional
+ *     estruturada" → `publicarDisponibilidade`.
+ * O terceiro (§13 — vitrine/dashboard por tipo de Partner) continua fora
+ * deste arquivo: depende do módulo de Partner por tipo, que não existe.
  *
  * Comissão: não existe e não deve existir aqui — §11.6, "Não cobrar comissão
  * sobre transações no Upgrade 2".
@@ -122,6 +125,14 @@ export async function publicarDemanda(formData: FormData) {
   if (!tipo) erro("/marketplace/nova", "Escolha o tipo do que você precisa.")
 
   const rota = `/marketplace/nova?tipo=${tipo}`
+
+  // §2.3 — o paywall entra AQUI, no Publicar, e não antes: no Free a pessoa
+  // monta a demanda inteira e só descobre o limite ao publicar, com o texto
+  // dizendo que o que ela preencheu não se perde (`mensagemBloqueio`).
+  const nivel = await carregarNivelPlano()
+  if (!recursoLiberado("marketplace_publicar", nivel)) {
+    erro(rota, mensagemBloqueio("marketplace_publicar").descricao)
+  }
   const regiaoId = texto(formData, "regiao_id")
   if (!regiaoId) erro(rota, "Escolha a região — é o que decide quem vai receber o pedido.")
 
@@ -449,9 +460,20 @@ export async function publicarDisponibilidade(formData: FormData) {
   const userId = await usuarioLogado(supabase)
   const rota = "/marketplace/disponibilidades/nova"
 
-  // TODO: gate de plano — decisão pendente (auditoria 15/08, conflito 3).
   // §11.3: "Somente Captain Pro pode publicar disponibilidade profissional
-  // estruturada." Sem os planos definidos, publicar fica aberto a todos.
+  // estruturada." Aqui o degrau é o do PRÓPRIO usuário (a assinatura dele),
+  // não o da embarcação — publicar disponibilidade é ato de carreira, e §12
+  // deixa claro que os dois não se misturam ("Captain Pro nunca concede acesso
+  // adicional à embarcação por si só"). Commander Pro do barco de outra pessoa
+  // não paga a carreira dele.
+  const { plano } = await carregarAssinatura()
+  if (plano !== "captain_pro") {
+    erro(
+      rota,
+      "Publicar sua disponibilidade profissional é do Captain Pro. Assine em Menu › Assinatura para aparecer " +
+        "para os proprietários que estão procurando tripulação.",
+    )
+  }
 
   const funcaoId = texto(formData, "funcao_id")
   const regiaoId = texto(formData, "regiao_id")

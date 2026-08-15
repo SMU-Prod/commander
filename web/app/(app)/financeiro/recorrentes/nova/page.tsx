@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarRecorrente } from "@/lib/acoes/financeiro"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, FREQUENCIAS, ROTULO_CATEGORIA,
   ROTULO_FORMA_PAGAMENTO, ROTULO_FREQUENCIA,
@@ -22,6 +24,15 @@ export default async function NovaRecorrentePage({
   if (!painel) redirect("/onboarding")
   if (!podeEditar(painel.permissoes, "gastos")) {
     redirect(`/financeiro?erro=${encodeURIComponent("Seu acesso não permite criar recorrentes.")}`)
+  }
+  // §2.3 — recorrente é lançamento: mesmo portão do "+ Despesa".
+  if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
+    return (
+      <main>
+        <CabecalhoDetalhe voltarHref="/financeiro/recorrentes" voltarRotulo="Recorrentes" titulo="Nova recorrente" />
+        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-5" />
+      </main>
+    )
   }
 
   return (

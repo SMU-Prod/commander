@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox } from "mapbox-gl"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
@@ -36,7 +37,18 @@ const CATEGORIAS: { valor: CategoriaParceiro | "todos"; rotulo: string }[] = [
  *  navegar/page.tsx (`.eq("visivel", true)`). "Traçar rumo" no card manda
  *  pra /navegar com o destino pronto — a mesma ponte que VerViagemMapa já
  *  usa (`?destino_la=&destino_lo=&destino_nome=`), sem inventar uma nova. */
-export function ExplorarMapa({ parceiros }: { parceiros: Parceiro[] }) {
+export function ExplorarMapa({
+  parceiros,
+  amostraFree = false,
+}: {
+  parceiros: Parceiro[]
+  /** Onda 47, §2.3 — a lista que chegou é a AMOSTRA do plano Free, já sem
+   *  contato nem detalhe (o corte é feito no servidor, em
+   *  `app/(app)/explorar/page.tsx`). Aqui a flag serve só pra dizer isso em
+   *  voz alta: §24 proíbe limite silencioso, e um mapa com seis pinos sem
+   *  explicação pareceria um app vazio, não um app com paywall. */
+  amostraFree?: boolean
+}) {
   const router = useRouter()
 
   useEffect(() => {
@@ -118,6 +130,24 @@ export function ExplorarMapa({ parceiros }: { parceiros: Parceiro[] }) {
           ))}
         </div>
       </div>
+
+      {amostraFree && (
+        <div className="pointer-events-auto absolute inset-x-3 bottom-24 z-10">
+          <div className="sombra-2 rounded-[14px] border border-accent/30 bg-mapa-instrumento p-3 text-center">
+            <p className="corpo font-medium text-meter-texto">Você está vendo uma amostra</p>
+            <p className="apoio mt-1 text-meter-texto/70">
+              No plano gratuito o Explorar mostra alguns parceiros só com nome e foto. Assine o Commander para
+              ver perfil completo, contato e preços.
+            </p>
+            <Link
+              href="/menu/assinatura"
+              className="mt-2.5 inline-block rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-acao-texto"
+            >
+              Ver planos
+            </Link>
+          </div>
+        </div>
+      )}
 
       {parceiroAberto && (
         <CardParceiro

@@ -10,7 +10,7 @@ import { definirCapa, excluirFoto, subirFoto } from "@/lib/acoes/fotos"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { formatarBytes, usoDaCota } from "@/lib/domain/cota"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
-import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
+import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Foto } from "@/lib/db/types"
 import { ALBUNS, ROTULO_ALBUM } from "./albuns"
@@ -154,7 +154,16 @@ export default async function FotosPage({
               <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
             </form>
           ) : (
-            <BloqueioPremium {...mensagemBloqueio("fotos", usoFotos)} />
+            <>
+              {/* §23 — nada do acervo é apagado quando o teto muda; o aviso
+                  diz isso antes do cadeado. `null` quando não há excedente. */}
+              {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos) && (
+                <p className="corpo mb-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+                  {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos)}
+                </p>
+              )}
+              <BloqueioPremium {...mensagemBloqueio("fotos", usoFotos)} />
+            </>
           )}
         </>
       )}

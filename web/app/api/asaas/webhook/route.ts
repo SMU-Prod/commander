@@ -4,11 +4,27 @@ import type { StatusAssinatura } from "@/lib/db/types"
 
 export const maxDuration = 30
 
-/** Espelha o estado do Asaas na tabela assinaturas. So eventos que mudam status. */
+/**
+ * Traduz o evento do gateway pro vocabulário do Commander (PRD §23).
+ *
+ * Este mapa é a ÚNICA fronteira entre "o que o Asaas chama" e "o que o
+ * Commander chama" — §23 exige que os estados sejam modelados
+ * independentemente do fornecedor, e é aqui que isso vira código. Trocar de
+ * gateway amanhã significa reescrever este mapa, não o resto do app.
+ *
+ * `PAYMENT_OVERDUE` → `problema_pagamento` (§23: "Pagamento recusado →
+ * notificação + status 'problema de pagamento'"). A partir daí o trigger do
+ * banco marca `problema_desde`, e `avaliarCiclo` decide sozinho quando a
+ * tolerância acaba — nenhum job precisa rodar pra bloquear na hora certa.
+ *
+ * `PAYMENT_CONFIRMED`/`PAYMENT_RECEIVED` → `ativa` também é o caminho da
+ * REGULARIZAÇÃO: quem estava em tolerância volta a `ativa`, o trigger limpa
+ * `problema_desde` e o acesso é restabelecido imediatamente, sem intervenção.
+ */
 const STATUS_POR_EVENTO: Record<string, StatusAssinatura> = {
   PAYMENT_CONFIRMED: "ativa",
   PAYMENT_RECEIVED: "ativa",
-  PAYMENT_OVERDUE: "inadimplente",
+  PAYMENT_OVERDUE: "problema_pagamento",
 }
 
 /** Eventos que confirmam pagamento recebido — únicos que avançam a avaliação
