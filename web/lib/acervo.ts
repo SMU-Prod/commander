@@ -14,8 +14,11 @@ export async function subirArquivo(
   supabase: SupabaseClient,
   embarcacaoId: string,
   // "ocorrencias" (onda 32) e "connect" (onda 34) entraram em paralelo, cada
-  // uma numa branch — as duas valem.
-  pasta: "documentos" | "eventos" | "fotos" | "ocorrencias" | "connect",
+  // uma numa branch — as duas valem. "financeiro"/"carteira" (onda 42) são o
+  // comprovante do lançamento e o do gasto da Carteira: a policy de storage
+  // (migration 009) só trata "documentos" de forma especial, o resto exige
+  // vínculo com a embarcação — que é exatamente o caso aqui.
+  pasta: "documentos" | "eventos" | "fotos" | "ocorrencias" | "connect" | "financeiro" | "carteira",
   file: File,
 ): Promise<{ path: string } | { erro: string }> {
   const v = validarArquivo(file)

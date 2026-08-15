@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -79,6 +80,22 @@ export default async function OcorrenciaDetalhePage({
         Aberta por {nomeDe(o.criado_por)} em {formatarCarimbo(o.created_at)}
         {o.evento_id && " · a partir de uma saída do Diário"}
       </p>
+
+      {/* Onda 42 (PRD FINAL §9.1: "Hubs onde fizer sentido mostram 'Adicionar
+          ao Financeiro'"). Ocorrência é o hub mais natural pra isso — o PRD
+          §7 já diz que ela "pode gerar manutenção/reparo, custo e resolução".
+          É um ATALHO com a descrição pronta, não um lançamento automático: o
+          PRD proíbe que orçamento vire despesa, e um reparo aberto ainda pode
+          nem ter preço fechado. Quem confirma o valor é a pessoa, no
+          formulário. */}
+      {podeEditar(painel.permissoes, "gastos") && (
+        <Link
+          href={`/financeiro/novo?tipo=despesa&descricao=${encodeURIComponent(o.titulo)}`}
+          className="corpo mt-4 flex h-11 items-center justify-center rounded-xl border border-line bg-panel font-semibold"
+        >
+          Adicionar ao Financeiro
+        </Link>
+      )}
 
       {editavel && acoes.length > 0 && (
         <form action={transicionarOcorrencia} className="sombra-1 mt-5 space-y-3 rounded-[14px] border border-line bg-panel p-4">

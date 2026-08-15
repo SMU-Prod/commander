@@ -57,6 +57,26 @@ export default async function MenuPage({
         subtitulo="Em breve — conectividade NMEA 2000"
       />
 
+      {/* Onda 42 (PRD §9) — o Menu é a lista de tudo que o app tem (gate de
+          descoberta, docs/CONTRIBUTING.md): Financeiro e Carteira também
+          chegam por /barco, mas nada pode depender de um link único. */}
+      <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
+      <LinhaLista
+        href="/financeiro"
+        variant="cartao"
+        leading={<Icone nome="cifrao" className="size-4 shrink-0 text-dim" />}
+        titulo="Financeiro"
+        subtitulo="Despesas, entradas, recorrentes e relatórios"
+      />
+      <LinhaLista
+        href="/carteira"
+        variant="cartao"
+        className="mt-2"
+        leading={<Icone nome="carteira" className="size-4 shrink-0 text-dim" />}
+        titulo="Carteira da Tripulação"
+        subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
+      />
+
       <SecaoPagina icone="imagem">Aparência</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
         <ThemeToggle />
