@@ -139,6 +139,36 @@ export const FOLGA_COM_FAB = "pb-[calc(9rem_+_env(safe-area-inset-bottom))]"
 export const FOLGA_SEM_FAB = "pb-[calc(4.75rem_+_env(safe-area-inset-bottom))]"
 
 /**
+ * ONDA 57 — LARGURA DO CONTEÚDO POR TAMANHO DE TELA.
+ *
+ * Até aqui o conteúdo vivia numa coluna de 430px em QUALQUER tela: num
+ * notebook de 1440px isso é um app de celular encalhado com mil pixels
+ * vazios em volta. O app tinha 42 usos de breakpoint em 109 telas — ou
+ * seja, layout de desktop não existia.
+ *
+ * 430px continua sendo o teto no celular (linha de leitura confortável);
+ * a partir de `lg` o conteúdo respira até 1400px ao lado do trilho.
+ *
+ * Mora aqui, e não solto na `MolduraApp`, pelo mesmo motivo das folgas: é a
+ * medida que precisa combinar com o trilho logo abaixo. Quem mudar uma sem
+ * a outra deixa o conteúdo embaixo da navegação.
+ */
+export const LARGURA_CONTEUDO = "max-w-[430px] md:max-w-[680px] lg:max-w-[1400px]"
+
+/**
+ * Espaço que o trilho de 72px (`components/trilho-lateral.tsx`) ocupa a
+ * partir de `lg`.
+ *
+ * São 88px e não 72px porque o trilho é `fixed`: ele sai do fluxo, então o
+ * conteúdo passaria POR BAIXO dele sem este empurrão. 72 do trilho + 16 de
+ * respiro — sem os 16, numa tela de exatamente 1024px o primeiro cartão
+ * encosta na borda do trilho (a conta fecha em zero: `mx-auto` não sobra
+ * margem nenhuma nessa largura). 16 é o mesmo gutter do `px-4` que o
+ * `pl` daqui substitui do lado esquerdo.
+ */
+export const OFFSET_TRILHO = "lg:pl-[88px]"
+
+/**
  * O ÚNICO lugar onde uma ação flutuante pode morar: canto inferior direito,
  * logo acima da bottom-nav.
  *

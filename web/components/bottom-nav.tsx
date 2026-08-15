@@ -58,7 +58,10 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
 export function BottomNav({ avisos = 0 }: { avisos?: number }) {
   const pathname = usePathname()
   return (
-    <nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur">
+    // Onda 57 — `lg:hidden` porque a partir de `lg` quem navega é o
+    // `TrilhoLateral`. As duas ao mesmo tempo seriam duas navegações
+    // principais competindo na mesma tela; o breakpoint é o mesmo lá e cá.
+    <nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)

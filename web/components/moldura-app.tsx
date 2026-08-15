@@ -1,6 +1,13 @@
 "use client"
 import { usePathname } from "next/navigation"
-import { FOLGA_COM_FAB, FOLGA_SEM_FAB, mostrarRegistroRapido } from "@/lib/ui/superficies"
+import {
+  FOLGA_COM_FAB,
+  FOLGA_SEM_FAB,
+  LARGURA_CONTEUDO,
+  OFFSET_TRILHO,
+  mostrarRegistroRapido,
+} from "@/lib/ui/superficies"
+import { TrilhoLateral } from "./trilho-lateral"
 
 /**
  * ONDA 54 — a folga inferior do conteúdo deixa de ser constante.
@@ -18,6 +25,11 @@ import { FOLGA_COM_FAB, FOLGA_SEM_FAB, mostrarRegistroRapido } from "@/lib/ui/su
  * É client component só por causa do `usePathname` — `children` chega como
  * prop e continua renderizando no servidor, então nada da árvore vira
  * cliente por causa disto.
+ *
+ * ONDA 57 — esta virou a ÚNICA peça do app que conhece breakpoint de
+ * layout. A largura do conteúdo deixa de ser 430px em qualquer tela e o
+ * trilho de desktop entra aqui, porque casca é assunto de moldura: as 109
+ * telas herdam a mudança sem serem tocadas uma a uma.
  */
 export function MolduraApp({
   temFab,
@@ -30,12 +42,23 @@ export function MolduraApp({
   const pathname = usePathname()
   const fabVisivel = temFab && mostrarRegistroRapido(pathname)
   return (
-    <div
-      className={`mx-auto min-h-dvh max-w-[430px] px-4 pt-5 print:max-w-full print:px-0 print:pb-0 print:pt-0 ${
-        fabVisivel ? FOLGA_COM_FAB : FOLGA_SEM_FAB
-      }`}
-    >
-      {children}
-    </div>
+    <>
+      <div
+        className={`mx-auto min-h-dvh ${LARGURA_CONTEUDO} ${OFFSET_TRILHO} px-4 pt-5 print:max-w-full print:px-0 print:pb-0 print:pt-0 ${
+          fabVisivel ? FOLGA_COM_FAB : FOLGA_SEM_FAB
+        }`}
+      >
+        {children}
+      </div>
+      {/* DEPOIS do conteúdo, e isso NÃO é cosmético: a bottom-nav é filha
+          desta moldura (ver `app/(app)/layout.tsx`) e `e2e/sem-saida.spec.ts`
+          acha a moldura pelo `parentElement` do primeiro `nav.fixed` da
+          página para medir a folga da safe-area da onda 54. O trilho também
+          é um `nav.fixed`; se ele vier antes, o teste passa a medir o pai do
+          trilho — que não tem folga nenhuma — e o guarda da regressão do
+          iPhone quebra sem que nada de verdade tenha quebrado. Sendo `fixed`,
+          a ordem não muda um pixel do que se vê. */}
+      <TrilhoLateral />
+    </>
   )
 }
