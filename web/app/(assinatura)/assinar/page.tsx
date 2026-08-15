@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { assinar } from "@/lib/acoes/assinatura"
 import { carregarAssinatura } from "@/lib/consultas"
+import { carregarTrilha } from "@/lib/consultas-captain"
+import { O_QUE_O_CAPTAIN_FREE_FAZ, O_QUE_O_CAPTAIN_PRO_LIBERA } from "@/lib/domain/captain"
 import { hojeISO } from "@/lib/domain/datas"
 import {
   formatarPreco,
@@ -38,6 +40,18 @@ import { supabaseServer } from "@/lib/supabase/server"
  * aparecem na aba, sem botão de pagar: o caminho deles é criar o perfil, e o
  * link leva direto pra lá em vez de fingir que há algo a contratar.
  *
+ * ---------------------------------------------------------------------------
+ * ONDA 50 — O QUE A ABA "COMANDANTE" PRECISA DIZER (§12)
+ * ---------------------------------------------------------------------------
+ * Três acréscimos, todos pela mesma razão: a aba de Captain herdava a
+ * linguagem de proprietário e ficava vendendo a coisa errada.
+ *   · a aba que ABRE por padrão é deduzida da conta (`trilhaDaConta`), não
+ *     fixa em "proprietário";
+ *   · o Captain Pro tem lista de benefícios PRÓPRIA — `BENEFICIOS_PAGOS` fala
+ *     de Diário sem limite, tripulação e Financeiro, que são gestão de barco
+ *     e não é nada do que ele entrega;
+ *   · o Captain FREE aparece dizendo o que já faz, porque o §12 é explícito
+ *     que operar a embarcação "não depende de Captain Pro".
  */
 const PERFIS: { valor: PerfilPlano; rotulo: string }[] = [
   { valor: "proprietario", rotulo: "Proprietário" },
@@ -45,8 +59,8 @@ const PERFIS: { valor: PerfilPlano; rotulo: string }[] = [
   { valor: "partner", rotulo: "Parceiro" },
 ]
 
-function perfilValido(v: string | undefined): PerfilPlano {
-  return PERFIS.some((p) => p.valor === v) ? (v as PerfilPlano) : "proprietario"
+function perfilValido(v: string | undefined, padrao: PerfilPlano): PerfilPlano {
+  return PERFIS.some((p) => p.valor === v) ? (v as PerfilPlano) : padrao
 }
 
 export default async function AssinarPage({
@@ -59,7 +73,14 @@ export default async function AssinarPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login?volta=/assinar")
 
-  const perfil = perfilValido(perfilBruto)
+  // ONDA 50 (§12) — a aba que abre por padrão é DEDUZIDA, não fixa. Um
+  // comandante contratado que caísse sempre em "Proprietário" veria o preço da
+  // gestão de um barco que não é dele, e concluiria que o Commander não tem
+  // nada pra ele. `trilhaDaConta` lê os fatos que já existem (é PROP de
+  // alguma embarcação? foi convidado a operar a de outro? tem perfil
+  // profissional?) — ver `lib/domain/captain.ts`.
+  const { trilha } = await carregarTrilha()
+  const perfil = perfilValido(perfilBruto, trilha)
 
   // §2.1/§2.2 — promoção vigente (no máximo uma; o banco garante que não
   // acumulam) muda o preço mostrado E o preço cobrado. A action recalcula por
@@ -151,6 +172,27 @@ export default async function AssinarPage({
                     <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">{etiqueta}</span>
                   </div>
                   <p className="apoio mt-1 text-dim">{p.regra}</p>
+                  {/* §12 — o Captain Free não é uma versão capada esperando
+                      upgrade: é o plano de quem foi CONTRATADO pra operar um
+                      barco. Dizer o que ele já faz evita que a tela pareça
+                      cobrar por algo que a pessoa já tem. */}
+                  {p.id === "captain_free" && (
+                    <ul className="mt-2 space-y-1">
+                      {O_QUE_O_CAPTAIN_FREE_FAZ.map((b) => (
+                        <li key={b} className="apoio flex items-start gap-2 text-dim">
+                          <Icone nome="documento" className="mt-0.5 size-3.5 shrink-0" />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {/* Partner gratuito não tem o que pagar: o caminho dele é
+                      publicar o perfil, e o link vai direto pra lá. */}
+                  {p.perfil === "partner" && p.valorCentavos === 0 && (
+                    <Link href="/parceiro/perfil" className="apoio mt-2 inline-block text-accent-forte">
+                      Criar perfil gratuito
+                    </Link>
+                  )}
                 </div>
               )
             }
@@ -194,6 +236,28 @@ export default async function AssinarPage({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* ONDA 50 (§12) — a lista do Captain Pro é OUTRA. `BENEFICIOS_PAGOS`
+            fala de Diário sem limite, tripulação e Financeiro: tudo gestão de
+            barco, nada que o Captain Pro entregue. Mostrar aquela lista aqui
+            seria prometer o que a assinatura não dá. */}
+        {perfil === "captain" && (
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+            <p className="rotulo text-dim">O que o {PLANOS.captain_pro.rotulo} libera</p>
+            <ul className="mt-2 space-y-1.5">
+              {O_QUE_O_CAPTAIN_PRO_LIBERA.map((b) => (
+                <li key={b} className="apoio flex items-start gap-2">
+                  <Icone nome="selo" className="mt-0.5 size-3.5 shrink-0 text-accent-forte" />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+              O que ela <strong>não</strong> muda: o acesso às embarcações que você opera. Isso vem do convite
+              do proprietário e das permissões que ele deu — assinar não abre nem fecha nenhuma porta a bordo.
+            </p>
           </div>
         )}
 

@@ -647,19 +647,39 @@ $$;
 revoke all on function public.admin_metricas_pessoas() from public, anon;
 grant execute on function public.admin_metricas_pessoas() to authenticated;
 
+-- Onda 47 (migration 048) passou por cima desta função de duas maneiras, e as
+-- duas foram corrigidas no banco pela migration `metricas_assinaturas_status_novo`
+-- — este arquivo estava atrasado em relação ao que está no ar, que é pior do
+-- que estar errado: um `db reset` reintroduziria o bug já consertado.
+--
+--   1) `inadimplente` virou `problema_pagamento` no check de `assinaturas`.
+--      Contar o status antigo não dava erro — dava 0 pra sempre. Num painel
+--      executivo "0 com problema de pagamento" lê-se como boa notícia, e era
+--      na verdade a ausência da medição. Pior ainda depois que o TypeScript
+--      (`FonteAssinaturas`) renomeou o campo: a chave `inadimplentes` do JSON
+--      não casava com `problema_pagamento` esperado na tela, e a métrica
+--      chegava `undefined` em `NUM()`.
+--   2) Faltava `pendentes`, que a tela usa como apoio ("N aguardando 1º
+--      pagamento") desde sempre — mesmo caso: `undefined`, não zero.
+--
+-- MRR: soma direta porque, depois da onda 47, NENHUM dos sete planos do §2 é
+-- anual (todos são MONTHLY ou não cobráveis; `fundador_anual` foi aposentado
+-- junto com a promo). A divisão por 12 que existia aqui dependia de o id do
+-- plano conter "anual" e hoje não casa com nada. Se um plano YEARLY voltar ao
+-- catálogo, a divisão precisa voltar JUNTO — somar um valor anual inteiro num
+-- indicador mensal infla o número em 12x.
 create or replace function public.admin_metricas_assinaturas()
 returns jsonb language sql security definer stable set search_path = public as $$
   select case when not public.eh_ceo() then null::jsonb else jsonb_build_object(
     'total', (select count(*) from public.assinaturas),
     'ativas', (select count(*) from public.assinaturas where status = 'ativa'),
-    'inadimplentes', (select count(*) from public.assinaturas where status = 'inadimplente'),
+    'pendentes', (select count(*) from public.assinaturas where status = 'pendente'),
+    'problema_pagamento', (select count(*) from public.assinaturas where status = 'problema_pagamento'),
     'canceladas', (select count(*) from public.assinaturas where status = 'cancelada'),
     'novas_30d', (select count(*) from public.assinaturas where criado_em >= now() - interval '30 days'),
     'canceladas_30d', (select count(*) from public.assinaturas where status = 'cancelada' and atualizado_em >= now() - interval '30 days'),
-    -- MRR: mensal conta cheio, anual entra dividido por 12. Somar o anual
-    -- inteiro num indicador MENSAL infla o número em 12x.
     'mrr_centavos', (
-      select coalesce(sum(case when plano like '%anual%' then valor_centavos / 12 else valor_centavos end), 0)
+      select coalesce(sum(valor_centavos), 0)
       from public.assinaturas where status = 'ativa'
     )
   ) end;

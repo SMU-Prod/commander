@@ -1002,7 +1002,6 @@ export interface ParceiroAcomodacao {
   criado_em: string
 }
 
-
 // AGENDA (onda 43, PRD §8) — compromissos marcados. CUIDADO com o nome:
 // `Evento` lá em cima é o DIÁRIO DE BORDO (o que já aconteceu); isto aqui é
 // o que está MARCADO pra acontecer. Ver o cabeçalho da migration 044_agenda.
