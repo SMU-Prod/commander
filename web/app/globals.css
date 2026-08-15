@@ -190,14 +190,12 @@ body.fundo-tela-mapa {
   }
 
   /* Escala tipográfica — 4 vozes, nada abaixo de 11px.
-     Exceção documentada: a nav inferior (components/bottom-nav.tsx) roda a
-     9.5px. Medido ao vivo: 5 abas dividem 375px em 75px cada, sobrando 71px
-     de texto por aba; "COMANDANTES" maiúsculo precisa de 81px a 11px/tracking
-     zero — não cabe. Testado em canvas: 9.5px é o maior tamanho que ainda
-     cabe (9.75px já estoura pra 71.8px). Ficou fora da escala de conteúdo de
-     propósito — é chrome global (5 abas fixas, rótulos curtos, papel de
-     ícone com legenda, não de texto de leitura), mais perto da convenção
-     nativa de tab bar (iOS usa 10pt) do que da escala de corpo/rótulo. */
+     Onda 57 — a nav inferior (components/bottom-nav.tsx) teve, até aqui,
+     exceção documentada rodando a 9.5px: 5 abas dividem 375px em 75px cada,
+     sobrando 71px de texto por aba, e "COMANDANTES" maiúsculo precisava de
+     81px a 11px/tracking zero — não cabia. A troca de Comandantes por
+     Diário nesta onda tirou o rótulo que forçava a exceção; a barra inteira
+     volta ao piso de 11px como as outras 4 vozes. */
   .titulo-pagina {
     font-size: 1.5rem;      /* 24px */
     font-weight: 600;

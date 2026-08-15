@@ -15,12 +15,20 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
     icone: "embarcacao",
   },
   {
-    // Onda 39 — renomeada de /marketplace pra /comandantes; o rótulo já
-    // tinha trocado numa auditoria de usabilidade anterior, só a URL
-    // continuava desatualizada (ver docs/CONTRIBUTING.md, Glossário).
-    href: "/comandantes",
-    rotulo: "Comandantes",
-    icone: "marketplace",
+    // Onda 57 — Comandantes sai, Diário entra. A troca é UMA só, de
+    // propósito: "Avisos" fica, porque é o único indicador de alerta
+    // crítico presente em toda tela (o app não tem barra superior, ver
+    // onda 44) e tirá-lo apagaria o aviso de seguro vencido de todo lugar.
+    //
+    // O PRD chama o Diário de coração do app e ele era um ícone num grid
+    // de cinco atalhos. De brinde, conserta o defeito tipográfico
+    // documentado abaixo: "Comandantes" não cabia em 11px e precisou da
+    // exceção de 9.5px — "Diário" cabe.
+    //
+    // Comandantes continua alcançável pelo Menu e pela RedeNav.
+    href: "/diario",
+    rotulo: "Diário",
+    icone: "relatorio",
   },
   {
     href: "/notificacoes",
@@ -40,9 +48,10 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
  * A onda 43 entregou a Agenda e deixou a pergunta em aberto: ela merece uma
  * das posições do menu de baixo? O dono respondeu em 15/08/2026: NÃO.
  * O motivo é físico e já está documentado 30 linhas abaixo — só cabem 5
- * abas, e "Comandantes" já não cabe em 11px nos 71px por coluna (por isso a
- * exceção de 9.5px). Uma sexta aba não encolhe o rótulo: encolhe todas as
- * seis até nenhuma ser legível.
+ * abas, e 71px por coluna já é pouco pra rótulo longo: era o caso de
+ * "Comandantes", que forçou a exceção de 9.5px removida na onda 57 ao
+ * trocá-lo por "Diário". Uma sexta aba não encolhe o rótulo: encolhe todas
+ * as seis até nenhuma ser legível.
  *
  * A Agenda continua a 1 toque da Início (atalho de "Acesso rápido") e
  * listada no Menu — os dois caminhos que o gate de descoberta exige
@@ -71,7 +80,7 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
               key={a.href}
               href={a.href}
               aria-current={ativa ? "page" : undefined}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[9.5px] font-medium uppercase ${
+              className={`flex min-w-0 flex-1 flex-col items-center gap-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >
@@ -86,15 +95,14 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
                   </span>
                 )}
               </span>
-              {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação",
-                  "Comandantes") estouram o flex-1 e encostam um no outro em
-                  tela de 375px — foi o que aconteceu ao trocar Marketplace por
-                  Comandantes. tracking removido pelo mesmo motivo.
-                  text-[9.5px] é exceção documentada ao piso de 11px de
-                  globals.css — "COMANDANTES" maiúsculo não cabe em 11px nos
-                  71px disponíveis por aba (medido: precisa de 81px); 9.5px é
-                  o maior tamanho que ainda cabe (ver comentário completo em
-                  globals.css, acima de .titulo-pagina). */}
+              {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação")
+                  estouram o flex-1 e encostam um no outro em tela de 375px —
+                  foi o que acontecia com "Comandantes". tracking removido
+                  pelo mesmo motivo.
+                  Onda 57 — a exceção de 9.5px ao piso de 11px de globals.css
+                  (documentada lá, acima de .titulo-pagina) foi removida
+                  junto com Comandantes: "Diário" cabe no piso padrão, então
+                  a barra inteira volta a ele. */}
               <span className="w-full truncate px-0.5 text-center">{a.rotulo}</span>
             </Link>
           )
