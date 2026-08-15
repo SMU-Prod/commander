@@ -160,9 +160,29 @@ export function mostrarRegistroRapido(pathname: string): boolean {
  * E por que dois valores: sem o FAB (tela de formulário) só a bottom-nav
  * flutua, e reservar 9rem ali deixava um vazio de ~90px embaixo de todo
  * formulário — espaço morto que não tem motivo de existir.
+ *
+ * ONDA 57 (revisão) — A PARTIR DE `lg` A CONTA É OUTRA, PORQUE A BARRA SUMIU.
+ *
+ * As duas contas acima somam a altura da bottom-nav. A partir de `lg` ela é
+ * `lg:hidden` (quem navega é o trilho, que é lateral e não come rodapé
+ * nenhum), então os 4.75rem de `FOLGA_SEM_FAB` reservavam espaço para uma
+ * barra que não está lá: ~76px de nada no fim de toda tela de desktop. Com o
+ * FAB, o mesmo raciocínio: ele passa a morar a 1.5rem do rodapé (ver
+ * `SLOT_ACAO_FLUTUANTE`), então 1.5rem + 48px de botão + respiro fecham em
+ * 6rem — não em 9.
+ *
+ * O `env(safe-area-inset-bottom)` continua nas variantes `lg` de propósito:
+ * `lg` é largura, não "mesa". Um iPad em paisagem passa de 1024px e continua
+ * tendo barra de gestos — foi exatamente a suposição de safe-area zero que
+ * quebrou a conta da onda 54 no aparelho do dono.
+ *
+ * NADA DISTO MUDA UM PIXEL EM 390px: as variantes `lg` só valem de 1024px
+ * pra cima, e `e2e/sem-saida.spec.ts` mede o celular.
  */
-export const FOLGA_COM_FAB = "pb-[calc(9rem_+_env(safe-area-inset-bottom))]"
-export const FOLGA_SEM_FAB = "pb-[calc(4.75rem_+_env(safe-area-inset-bottom))]"
+export const FOLGA_COM_FAB =
+  "pb-[calc(9rem_+_env(safe-area-inset-bottom))] lg:pb-[calc(6rem_+_env(safe-area-inset-bottom))]"
+export const FOLGA_SEM_FAB =
+  "pb-[calc(4.75rem_+_env(safe-area-inset-bottom))] lg:pb-[calc(2rem_+_env(safe-area-inset-bottom))]"
 
 /**
  * ONDA 57 — LARGURA DO CONTEÚDO POR TAMANHO DE TELA.
@@ -191,6 +211,27 @@ export const LARGURA_CONTEUDO = "max-w-[430px] md:max-w-[680px] lg:max-w-[1400px
  * encosta na borda do trilho (a conta fecha em zero: `mx-auto` não sobra
  * margem nenhuma nessa largura). 16 é o mesmo gutter do `px-4` que o
  * `pl` daqui substitui do lado esquerdo.
+ *
+ * SIM, ESTE `pl` VENCE O `px-4` — MEDIDO, NÃO DEDUZIDO (revisão da onda 57).
+ * `getComputedStyle` da `[data-moldura]` devolve `padding-left: 88px` em
+ * 1024, 1440 e 1920, e `padding-right: 16px`. É a ordenação de utilitários do
+ * Tailwind (`pl-*` depois de `px-*` na mesma camada) e não sorte de
+ * especificidade — mas ela não está escrita em lugar nenhum do nosso código,
+ * então `e2e/sem-saida.spec.ts` trava o valor: se um dia o `pl` perder, o
+ * conteúdo passa por baixo do trilho em TODO o desktop, e a varredura não
+ * pegaria (não é sobreposição de dois elementos do fluxo, nem estouro).
+ *
+ * E O CONTEÚDO NÃO FICA TORTO ACIMA DE 1400px — TAMBÉM MEDIDO. A suspeita era
+ * que `mx-auto` + `max-w-[1400px]` + este `pl` empurrassem o conteúdo pra
+ * direita do centro óptico. Não empurram, e a conta fecha em qualquer
+ * largura: o conteúdo começa em `caixa + 88` e termina em `caixa + largura -
+ * 16`, e como os 88 são 72 (o trilho) + 16 (o gutter), o que sobra dos dois
+ * lados DEPOIS do trilho é sempre igual. Medido a 1920px: caixa de 260 a
+ * 1660, conteúdo de 348 a 1644 — 276px de folga entre o trilho e o conteúdo,
+ * 276px entre o conteúdo e a borda direita. A 1440px: 36 e 36. O centro do
+ * conteúdo fica 36px à direita do centro da VIEWPORT, que é exatamente meia
+ * largura de trilho — ou seja, centrado no espaço que sobra ao lado dele, que
+ * é o centro que o olho usa.
  */
 export const OFFSET_TRILHO = "lg:pl-[88px]"
 
@@ -209,6 +250,20 @@ export const OFFSET_TRILHO = "lg:pl-[88px]"
  * declare a tela em `TEM_ACAO_FLUTUANTE_PROPRIA`. Duas ao mesmo tempo na
  * mesma tela não é uma opção — a de cima come o toque da de baixo, e a de
  * baixo fica invisível e inalcançável.
+ *
+ * ONDA 57 (revisão) — OS 5rem SÃO A ALTURA DA BARRA DE BAIXO, E ELA NÃO
+ * EXISTE NO DESKTOP.
+ *
+ * `bottom-[5rem]` nunca foi uma medida estética: são os ~58px da bottom-nav
+ * mais respiro, pra pastilha não encostar nela. A partir de `lg` a barra é
+ * `lg:hidden` — e o botão continuava pairando a 80px do rodapé, sobre 80px
+ * de nada, em todos os hubs a 1440px (medido: `bottomGap` de 80px igual ao
+ * do celular). Vale pro "+ Registrar" e pro "Exportar PDF" de
+ * `/barco/resumos`, que usam esta mesma constante.
+ *
+ * 1.5rem = 24px, degrau da escala de espaçamento (docs/DESIGN.md §5), e o
+ * mesmo respiro que o `px-4`/`right-4` já dá do lado. A safe-area continua
+ * somada: ver o comentário das folgas acima.
  */
 export const SLOT_ACAO_FLUTUANTE =
-  "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+  "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
