@@ -116,8 +116,8 @@ export function mostrarRegistroRapido(pathname: string): boolean {
  * página NUNCA fique embaixo de um elemento `fixed`.
  *
  * A conta (390×844, medida no navegador):
- * - bottom-nav: 8 (pt-2) + 21 (ícone) + 4 (gap) + ~12 (rótulo 9.5px) +
- *   max(10, safe-area) de padding + 1 de borda ≈ 56px + safe-area.
+ * - bottom-nav: 8 (pt-2) + 21 (ícone) + 4 (gap) + ~14 (rótulo 11px) +
+ *   max(10, safe-area) de padding + 1 de borda ≈ 58px + safe-area.
  * - "+ Registrar": mora a `5rem + safe-area` do rodapé e tem 48px de altura
  *   (py-3.5 + text-sm) → o topo dele fica a 128px + safe-area do rodapé.
  *
