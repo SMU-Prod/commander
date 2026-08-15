@@ -166,6 +166,102 @@ export interface OcorrenciaTransicao {
   created_at: string
 }
 
+// Financeiro (onda 42, PRD FINAL §9.1–9.3) — ver web/lib/domain/financeiro.ts
+// e migration 042. `lancamentos_financeiros` é a FONTE do dinheiro do barco:
+// `eventos.custo_centavos` continua existindo como histórico do evento, mas
+// nenhuma tela soma as duas coisas (seria contar o mesmo gasto duas vezes).
+export interface LancamentoFinanceiro {
+  id: string
+  embarcacao_id: string
+  tipo: TipoLancamentoDb
+  categoria: CategoriaFinanceiraDb
+  descricao: string
+  valor_centavos: number
+  data: string
+  status: StatusLancamentoDb
+  fornecedor: string | null
+  forma_pagamento: FormaPagamentoDb | null
+  comprovante_path: string | null
+  observacao: string | null
+  /** Evento do Diário que originou o lançamento ("Adicionar ao Financeiro").
+   *  Índice único no banco: o mesmo evento nunca vira dois lançamentos. */
+  evento_id: string | null
+  /** Série recorrente deste vencimento. `null` = lançamento variável. */
+  recorrencia_id: string | null
+  /** Gasto da Carteira da Tripulação que virou despesa da embarcação. */
+  carteira_movimento_id: string | null
+  criado_por: string | null
+  created_at: string
+}
+
+export type TipoLancamentoDb = "despesa" | "entrada"
+export type StatusLancamentoDb = "pago" | "pendente"
+export type CategoriaFinanceiraDb =
+  | "marina_vaga" | "combustivel" | "manutencao" | "tripulacao" | "seguro"
+  | "documentacao_taxas" | "limpeza_conservacao" | "pecas_equipamentos" | "transporte" | "outros"
+export type FormaPagamentoDb =
+  | "dinheiro" | "pix" | "cartao_credito" | "cartao_debito" | "boleto" | "transferencia" | "outro"
+export type FrequenciaDb = "semanal" | "mensal" | "trimestral" | "semestral" | "anual"
+
+export interface RecorrenciaFinanceira {
+  id: string
+  embarcacao_id: string
+  tipo: TipoLancamentoDb
+  categoria: CategoriaFinanceiraDb
+  descricao: string
+  valor_centavos: number
+  frequencia: FrequenciaDb
+  inicio: string
+  /** Último dia coberto. Preenchido quando o dono muda o valor escolhendo
+   *  "este e os próximos": a série antiga fecha e nasce outra (`origem_id`). */
+  fim: string | null
+  fornecedor: string | null
+  forma_pagamento: FormaPagamentoDb | null
+  observacao: string | null
+  ativa: boolean
+  origem_id: string | null
+  criado_por: string | null
+  created_at: string
+}
+
+// Carteira da Tripulação (onda 42, PRD FINAL §9.4) — ver
+// web/lib/domain/carteira.ts e migration 043. Controle contábil de valores
+// informados: o Commander não guarda, transfere nem movimenta dinheiro.
+export type ModoCarteiraDb = "direto" | "aprovacao"
+export type TipoMovimentoDb = "repasse" | "gasto" | "devolucao"
+export type StatusMovimentoDb = "pendente" | "aprovado" | "recusado"
+
+export interface Carteira {
+  id: string
+  embarcacao_id: string
+  tripulante_id: string
+  ativa: boolean
+  exige_comprovante: boolean
+  modo: ModoCarteiraDb
+  observacao: string | null
+  criado_por: string | null
+  created_at: string
+}
+
+export interface CarteiraMovimento {
+  id: string
+  carteira_id: string
+  tipo: TipoMovimentoDb
+  valor_centavos: number
+  data: string
+  descricao: string
+  /** Só o gasto tem — é a categoria com que ele entra no Financeiro. */
+  categoria: CategoriaFinanceiraDb | null
+  comprovante_path: string | null
+  observacao: string | null
+  status: StatusMovimentoDb
+  motivo_recusa: string | null
+  criado_por: string | null
+  decidido_por: string | null
+  decidido_em: string | null
+  created_at: string
+}
+
 export interface Contato {
   id: string
   embarcacao_id: string

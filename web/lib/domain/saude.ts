@@ -86,10 +86,15 @@ export const MULTIPLICADOR_ESTADO_OCORRENCIA: Record<"aberta" | "em_acompanhamen
 //   - Casco = 2 ("estética/conforto", mesmo peso de Equipamentos): deck,
 //     fibra, inox, vidros, estofados — nunca deveria, sozinho, derrubar a
 //     nota tanto quanto um extintor vencido (pedido explícito do dono).
-//   - Fotos, Contatos, Gastos, Diário, Histórico = 0: essas abas nunca têm
-//     manutenção/documento nem ocorrência vinculada (não são "lugar no
-//     barco" com estado físico — ver `ABAS_OCORRENCIA` em `ocorrencias.ts`);
-//     ficam aqui só porque o tipo `Aba` exige as 13 chaves.
+//   - Fotos, Contatos, Gastos, Diário, Histórico, Carteira = 0: essas abas
+//     nunca têm manutenção/documento nem ocorrência vinculada (não são
+//     "lugar no barco" com estado físico — ver `ABAS_OCORRENCIA` em
+//     `ocorrencias.ts`); ficam aqui só porque o tipo `Aba` exige todas as
+//     chaves. `carteira` entrou na onda 42 pelo mesmo motivo que as outras
+//     cinco: a matriz de permissões ganhou a área (PRD §9.4), e o peso 0
+//     mantém a fórmula da Saúde EXATAMENTE como estava — nenhum número
+//     desta tabela foi tocado, porque a fórmula é decisão de produto
+//     (ver docs/CONTRIBUTING.md, "Saúde da Embarcação").
 export const PESO_CATEGORIA: Record<Aba, number> = {
   documentos: 6,
   seguranca: 6,
@@ -104,6 +109,7 @@ export const PESO_CATEGORIA: Record<Aba, number> = {
   gastos: 0,
   diario: 0,
   historico: 0,
+  carteira: 0,
 }
 
 // Conversão final de "peso efetivo" (categoria × severidade, teto 6×3=18)

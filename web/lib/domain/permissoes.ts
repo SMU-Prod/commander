@@ -8,6 +8,14 @@
 export const ABAS = [
   "embarcacao", "motores", "eletrica", "casco", "hidraulica", "seguranca", "equipamentos",
   "documentos", "fotos", "contatos", "gastos", "diario", "historico",
+  // Onda 42 (PRD FINAL §9.4): "Financeiro completo e Carteira são permissões
+  // independentes" — o PRD diz isso com todas as letras, então a Carteira
+  // NÃO pode ser um pedaço de `gastos`. Um tripulante pode ter carteira sem
+  // ver um centavo do Financeiro do barco (é o caso comum: ele vê o que
+  // recebeu e gastou, não a mensalidade da marina), e o contrário também
+  // vale. Área nova não herda nada: `normalizarPermissoes` e o `coalesce`
+  // de `permissao()` no banco devolvem false pra quem não tem a chave.
+  "carteira",
 ] as const
 
 export type Aba = (typeof ABAS)[number]
@@ -15,8 +23,14 @@ export type Aba = (typeof ABAS)[number]
 export const ROTULO_ABA: Record<Aba, string> = {
   embarcacao: "Embarcação", motores: "Motores", eletrica: "Elétrica", casco: "Casco",
   hidraulica: "Hidráulica", seguranca: "Segurança", equipamentos: "Equipamentos",
-  documentos: "Documentos", fotos: "Fotos", contatos: "Contatos", gastos: "Gastos", diario: "Diário",
-  historico: "Histórico",
+  documentos: "Documentos", fotos: "Fotos", contatos: "Contatos",
+  // A CHAVE continua `gastos`, o RÓTULO virou "Financeiro" (onda 42, PRD
+  // §9.1 chama a aba assim). Trocar a chave exigiria reescrever o jsonb de
+  // `vinculos.permissoes` de todo mundo que já foi convidado — e qualquer
+  // vínculo que a migração não alcançasse perderia acesso em silêncio.
+  // Rótulo é vocabulário; chave é acesso. Só o vocabulário mudou.
+  gastos: "Financeiro",
+  diario: "Diário", historico: "Histórico", carteira: "Carteira da Tripulação",
 }
 
 export interface PermissaoAba {
@@ -55,6 +69,10 @@ export const PRESETS: Record<"completo" | "operacional", Permissoes> = {
     // Histórico central espelha Diário: quem já via o feed do diário
     // continua vendo o mesmo tanto de informação consolidada.
     historico: { ver: true, editar: false },
+    // `carteira` fica de fora do Operacional de propósito: no PRD §9.4 quem
+    // libera Carteira é o proprietário, tripulante por tripulante, com
+    // regra própria (comprovante, aprovação). Vir ligada num preset seria
+    // liberar dinheiro por atacado — o oposto do que o PRD descreve.
   }),
 }
 

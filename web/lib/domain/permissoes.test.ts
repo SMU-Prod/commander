@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ABAS, PRESETS, normalizarPermissoes, podeEditar, podeVer } from "./permissoes"
+import { ABAS, PRESETS, ROTULO_ABA, normalizarPermissoes, podeEditar, podeVer } from "./permissoes"
 
 describe("presets", () => {
   it("completo libera tudo", () => {
@@ -24,15 +24,27 @@ describe("presets", () => {
     expect(PRESETS.operacional.equipamentos).toEqual({ ver: true, editar: true })
     expect(PRESETS.operacional.historico).toEqual({ ver: true, editar: false })
   })
+  it("operacional NAO liga Carteira — quem libera e o proprietario, um a um (PRD §9.4)", () => {
+    expect(PRESETS.operacional.carteira).toEqual({ ver: false, editar: false })
+  })
 })
 
-describe("matriz de 13 areas (onda 32)", () => {
-  it("tem exatamente as 13 areas do PRD, nem mais nem menos", () => {
-    expect(ABAS).toHaveLength(13)
+describe("matriz de 14 areas (onda 32 + carteira na onda 42)", () => {
+  it("tem exatamente as 14 areas do PRD, nem mais nem menos", () => {
+    expect(ABAS).toHaveLength(14)
     expect([...ABAS].sort()).toEqual([
-      "casco", "contatos", "diario", "documentos", "eletrica", "embarcacao",
+      "carteira", "casco", "contatos", "diario", "documentos", "eletrica", "embarcacao",
       "equipamentos", "fotos", "gastos", "hidraulica", "historico", "motores", "seguranca",
     ])
+  })
+  it("o Financeiro do PRD e a area `gastos` de sempre — rotulo novo, chave antiga", () => {
+    // Trocar a chave quebraria o acesso de todo vinculo ja gravado no banco.
+    expect(ROTULO_ABA.gastos).toBe("Financeiro")
+    expect(ROTULO_ABA.carteira).toBe("Carteira da Tripulação")
+  })
+  it("vinculo sem a chave `carteira` (todos os de hoje) nao ganha Carteira de graca", () => {
+    expect(normalizarPermissoes({ gastos: { ver: true, editar: true } }).carteira)
+      .toEqual({ ver: false, editar: false })
   })
   it("vinculo CMDT antigo (sem as 4 chaves novas) nao ganha acesso indevido — vira tudo falso nas areas novas", () => {
     // Simula um vinculo salvo ANTES da onda 32: so as 9 chaves de entao.
