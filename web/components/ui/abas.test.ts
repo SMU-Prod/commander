@@ -33,9 +33,13 @@ describe("Abas", () => {
     expect(saida).toContain('href="/avisos?aba=historico"')
   })
 
-  it("a contagem sai em font-mono-instr", () => {
+  it("a contagem sai em fonte de instrumento — mono E tabular", () => {
     const saida = html("pendentes")
-    expect(saida).toMatch(/<span class="[^"]*font-mono-instr[^"]*">3<\/span>/)
+    // As duas classes, não só a mono: `tabular-nums` é o que alinha o dígito
+    // em coluna; perder só ela passaria despercebido no olho.
+    const span = saida.match(/<span class="([^"]*)">3<\/span>/)?.[1] ?? ""
+    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
   })
 
   it("sem contagem, nenhum span de número aparece pra aquela aba", () => {
