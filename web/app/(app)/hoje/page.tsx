@@ -499,12 +499,23 @@ export default async function HojePage({
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="raio" className="size-3.5" /> Acesso rápido
       </p>
-      <div className="grid grid-cols-4 gap-2 text-center">
+      {/* 5 colunas desde a onda 43 (Agenda entrou aqui): em 375px sobram
+          ~62px por coluna e o maior rótulo ("Contatos", 11px) mede ~47px —
+          cabe. Este é o caminho de descoberta da Agenda a partir da Início
+          (gate do CONTRIBUTING.md: no máximo 3 toques); o segundo caminho é
+          o Menu.
+          O Diário trocou de ícone (calendário -> relatório) porque o
+          calendário passou a ser da Agenda: dois atalhos vizinhos com o
+          mesmo desenho é o mesmo problema que o glossário resolve nos nomes.
+          O Diário é o registro do que aconteceu; a Agenda é o que está
+          marcado. */}
+      <div className="grid grid-cols-5 gap-2 text-center">
         {(
           [
             { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
+            { href: "/agenda", rotulo: "Agenda", aba: "diario", icone: "calendario" },
             { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
-            { href: "/diario", rotulo: "Diário", icone: "calendario" },
+            { href: "/diario", rotulo: "Diário", aba: "diario", icone: "relatorio" },
             { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
           ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
         )

@@ -5,6 +5,7 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { sair } from "@/lib/acoes/auth"
 import { carregarPainel } from "@/lib/consultas"
+import { podeVerAgenda } from "@/lib/domain/agenda"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function MenuPage({
@@ -64,6 +65,22 @@ export default async function MenuPage({
           O modo claro é o padrão — feito para leitura sob sol forte na marina.
         </p>
       </div>
+
+      {/* Agenda (onda 43, PRD §8) — segundo caminho de descoberta, além do
+          atalho na Início. Só aparece pra quem pode ver: o acesso da Agenda
+          ainda pega carona na área "diario" (ver AREA_AGENDA em
+          lib/domain/agenda.ts, TODO onda 44). */}
+      {painel != null && podeVerAgenda(painel.permissoes) && (
+        <>
+          <SecaoPagina icone="calendario">Agenda</SecaoPagina>
+          <LinhaLista
+            href="/agenda"
+            variant="cartao"
+            titulo="Agenda"
+            subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
+          />
+        </>
+      )}
 
       <SecaoPagina icone="alerta">Avisos</SecaoPagina>
       <LinhaLista
