@@ -19,9 +19,11 @@ const COR: Record<EstadoSelo, string> = {
   neutro: "border-line text-dim",
 }
 
-export function rotuloDoSelo(estado: EstadoSelo): string {
-  return ROTULO[estado]
-}
+/* `rotuloDoSelo` foi removido na revisão da onda 57. Ele existia só para o
+   teste chamar — nenhuma tela usava — e é por isso que a garantia de "estado
+   nunca só por cor" estava sendo medida num galho que não roda. O `ROTULO`
+   acima continua sendo o texto de reserva de quem não passa `children`; quem
+   quiser a palavra, renderize o `Selo`. */
 
 export function Selo({ estado, children }: { estado: EstadoSelo; children?: React.ReactNode }) {
   return (

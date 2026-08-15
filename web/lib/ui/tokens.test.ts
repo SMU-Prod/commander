@@ -20,9 +20,46 @@ import { describe, expect, it } from "vitest"
  * O TETO SÓ DESCE. Ele não trava a fundação (as 91 de hoje continuam onde
  * estão, e várias têm motivo — ver "o que conta" abaixo); ele impede que a
  * conta cresça enquanto as telas herdadas não são refeitas. Quando chegar a
- * zero, troque o teto por 0 e apague este comentário.
+ * zero, apague o mapa abaixo e este comentário.
+ *
+ * O TETO É POR ARQUIVO, E NÃO A SOMA (revisão da onda 57). Enquanto ele era
+ * um número só — 91 — apagar três literais num arquivo e escrever três em
+ * outro passava nos dois testes: a soma não mudava, e a deriva entrava pela
+ * porta da frente com o teste verde. É exatamente a folga que o comentário
+ * da catraca, lá embaixo, diz querer fechar. `ranking()` já produzia o número
+ * por arquivo pra mensagem de erro; agora é ele que está travado.
+ *
+ * COMO MEXER NESTE MAPA: baixando um número (apagou literal) ou apagando uma
+ * linha (o arquivo zerou). Subir um número ou acrescentar uma linha é
+ * escrever cor à mão — se for realmente inevitável, escreva o porquê no
+ * commit, porque a linha vai ficar aqui até alguém apagá-la.
  */
-const TETO = 91
+const TETO_POR_ARQUIVO: Record<string, number> = {
+  "components/mapa/navegar-mapa.tsx": 11,
+  "components/card-embarcacao.tsx": 10,
+  "components/mapa/mapa-nautico.tsx": 10,
+  "components/selos/selo-verified.tsx": 9,
+  "app/(app)/barco/equipamento/[id]/page.tsx": 8,
+  "components/mapa/trilha-mapa.tsx": 7,
+  "components/explorar/cards-parceiros.tsx": 4,
+  "components/mapa/planejar-viagem-mapa.tsx": 4,
+  "components/mapa/ver-viagem-mapa.tsx": 4,
+  "components/selos/selo-gold.tsx": 4,
+  "app/opengraph-image.tsx": 3,
+  "app/(app)/carteira/[id]/page.tsx": 2,
+  "app/(app)/menu/tripulacao/[id]/page.tsx": 2,
+  "components/landing/mock-telas.tsx": 2,
+  "components/mapa/card-parceiro.tsx": 2,
+  "app/(app)/carteira/nova/page.tsx": 1,
+  "app/(app)/explorar/[id]/page.tsx": 1,
+  "app/(app)/financeiro/lancamentos/[id]/page.tsx": 1,
+  "app/(app)/financeiro/novo/page.tsx": 1,
+  "app/(app)/marketplace/[id]/page.tsx": 1,
+  "app/layout.tsx": 1,
+  "components/logo.tsx": 1,
+  "components/mapa/escolher-pino-parceiro.tsx": 1,
+  "components/perfil-profissional-form.tsx": 1,
+}
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
@@ -102,53 +139,67 @@ function contarPorArquivo(): Map<string, number> {
   return porArquivo
 }
 
-function total(porArquivo: Map<string, number>): number {
-  return [...porArquivo.values()].reduce((soma, n) => soma + n, 0)
-}
-
-/** As piores primeiro — a mensagem de falha precisa dizer ONDE olhar. */
-function ranking(porArquivo: Map<string, number>): string {
-  return [...porArquivo]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([arquivo, n]) => `  ${String(n).padStart(3)}  ${arquivo}`)
-    .join("\n")
+/** Todo arquivo que aparece na conta OU no mapa, sem repetir. */
+function arquivosConhecidos(porArquivo: Map<string, number>): string[] {
+  return [...new Set([...porArquivo.keys(), ...Object.keys(TETO_POR_ARQUIVO)])].sort()
 }
 
 describe("tokens", () => {
-  it("cor literal em .tsx nao aumenta", () => {
-    const porArquivo = contarPorArquivo()
-    // Sanidade: se a caminhada não achar arquivo nenhum — pasta renomeada,
-    // `RAIZ` resolvida errada — a soma daria zero e o teto passaria por
-    // vazio, virando decoração. Um teste de disciplina que passa sem ler
-    // nada é pior que teste nenhum, porque dá a sensação de estar coberto.
-    expect(porArquivo.size).toBeGreaterThan(0)
+  // Sanidade: se a caminhada não achar arquivo nenhum — pasta renomeada,
+  // `RAIZ` resolvida errada — tudo daria zero e os dois testes abaixo
+  // passariam por vazio, virando decoração. Um teste de disciplina que passa
+  // sem ler nada é pior que teste nenhum, porque dá a sensação de estar
+  // coberto.
+  it("a varredura encontra os .tsx do app", () => {
+    expect(contarPorArquivo().size).toBeGreaterThan(0)
+  })
 
+  it("nenhum arquivo escreve mais cor a mao do que ja escrevia", () => {
+    const porArquivo = contarPorArquivo()
+    const piores: string[] = []
+    for (const arquivo of arquivosConhecidos(porArquivo)) {
+      const atual = porArquivo.get(arquivo) ?? 0
+      const teto = TETO_POR_ARQUIVO[arquivo] ?? 0
+      if (atual > teto) piores.push(`  ${arquivo}: ${teto} → ${atual}`)
+    }
     expect(
-      total(porArquivo),
-      `Cor literal em .tsx passou do teto (${TETO}).\n` +
+      piores,
+      `Cor literal escrita à mão aumentou.\n` +
         `Use um token de app/globals.css (bg-panel, text-dim, text-accent...) ` +
-        `em vez de escrever o hexadecimal.\n` +
-        `Arquivos com mais ocorrências:\n${ranking(porArquivo)}`,
-    ).toBeLessThanOrEqual(TETO)
+        `em vez do hexadecimal. Se o arquivo não está no mapa, o teto dele é 0 ` +
+        `— arquivo novo já nasce sem direito a cor literal.\n${piores.join("\n")}`,
+    ).toEqual([])
   })
 
   /**
-   * A CATRACA. Sem ela o `<=` acima deixa a folga se acumular em silêncio:
-   * a onda que apaga dez literais devolve dez de crédito pra próxima que
-   * quiser escrever dez. Isso é a deriva voltando pela porta da frente, com
-   * o teste verde. Aqui o número só desce e FICA descido.
+   * A CATRACA — agora por arquivo, e é a diferença que importa.
+   *
+   * Com o teto na SOMA, apagar três literais aqui e escrever três ali passava
+   * nos dois testes: o total não mexia. Travado por arquivo, cada lado é
+   * cobrado de um jeito — o que ganhou cor reprova no teste de cima, o que
+   * perdeu reprova aqui até alguém baixar a linha dele no mapa.
    *
    * O preço é uma linha a mudar quando alguém apaga uma cor — e a mensagem
    * abaixo já diz qual número escrever. É barato pelo que compra.
    */
-  it("o teto acompanha a queda (catraca)", () => {
-    const atual = total(contarPorArquivo())
+  it("o teto de cada arquivo acompanha a queda (catraca)", () => {
+    const porArquivo = contarPorArquivo()
+    const folgas: string[] = []
+    for (const [arquivo, teto] of Object.entries(TETO_POR_ARQUIVO)) {
+      const atual = porArquivo.get(arquivo) ?? 0
+      if (atual < teto) {
+        folgas.push(
+          atual === 0
+            ? `  ${arquivo}: zerou — apague a linha do mapa`
+            : `  ${arquivo}: ${teto} → ${atual} (baixe o teto para ${atual})`,
+        )
+      }
+    }
     expect(
-      atual,
-      `Sobraram ${atual} cores literais, menos que o teto (${TETO}). ` +
-        `Ótimo — agora baixe TETO para ${atual} neste arquivo, senão a folga ` +
-        `de ${TETO - atual} vira crédito pra próxima cor escrita à mão.`,
-    ).toBeGreaterThanOrEqual(TETO)
+      folgas,
+      `Ótimo, sobrou menos cor literal do que o mapa registra — agora ajuste ` +
+        `TETO_POR_ARQUIVO, senão a folga vira crédito pra próxima cor escrita ` +
+        `à mão:\n${folgas.join("\n")}`,
+    ).toEqual([])
   })
 })
