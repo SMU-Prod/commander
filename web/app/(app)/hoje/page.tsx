@@ -458,9 +458,18 @@ export default async function HojePage({
            mesmo assunto no mesmo cartão é ruído, não conveniência. */
         acao={motores.length > 0 ? <Link href="/barco" className={ACAO_CARTAO}>Ver ficha</Link> : undefined}
       >
+        {/* `enfase="discreta"` nos QUATRO estados vazios desta tela (aqui,
+            Gastos, Mar agora e Tripulação). Num barco recém-cadastrado eles
+            aparecem TODOS ao mesmo tempo, e cada um dourado somava quatro
+            "aqui se age" em cima dos que a tela já gasta legitimamente — o
+            orçamento é dois (docs/DESIGN.md §5). Nenhum deles é a ação
+            principal da Início: essa é "Registrar saída", no Diário. O
+            padrão do componente segue dourado pras ~49 telas em que o estado
+            vazio É o corpo inteiro e a ação dele É a ação da tela. */}
         {motores.length === 0 ? (
           <EstadoVazio
             variant="linha"
+            enfase="discreta"
             icone="motor"
             titulo="Nenhum motor cadastrado"
             descricao="Cadastre pra ganhar horímetro e alerta de revisão automáticos."
@@ -510,6 +519,7 @@ export default async function HojePage({
           ) : (
             <EstadoVazio
               variant="linha"
+            enfase="discreta"
               icone="cifrao"
               titulo="Nenhuma despesa paga este mês"
               descricao="Vaga, combustível, manutenção — o que sai do bolso fica registrado aqui."
@@ -523,6 +533,7 @@ export default async function HojePage({
         {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
           <EstadoVazio
             variant="linha"
+            enfase="discreta"
             icone="mapa"
             titulo="Ligue o boletim do mar"
             descricao="Defina a posição da marina para ver onda, vento e água aqui."
@@ -554,6 +565,7 @@ export default async function HojePage({
         {sozinhoNoBarco ? (
           <EstadoVazio
             variant="linha"
+            enfase="discreta"
             icone="pessoas"
             titulo="Só você tem acesso a este barco"
             descricao={podeConvidar

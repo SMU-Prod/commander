@@ -11,6 +11,20 @@ import { Icone, type NomeIcone } from "@/components/icone"
  *   (ex.: "Nenhum motor ainda" sem um painel ao redor).
  * - `variant="linha"`: dentro de um painel que já tem borda (mesmo painel
  *   onde `LinhaLista variant="grupo"` mora) — sem sombra/borda repetida.
+ *
+ * `enfase` — QUANTO PESO A AÇÃO TEM. Numa página inteira vazia, uma ação
+ * dourada é a resposta certa: ela É a ação principal daquela tela, e o
+ * orçamento de dois dourados por tela (docs/DESIGN.md §5) cabe folgado.
+ * O problema aparece ANINHADO: a Início de um barco recém-cadastrado tem
+ * quatro cartões vazios ao mesmo tempo (Motores, Gastos, Mar agora,
+ * Tripulação) e nenhum deles é a ação principal da tela — quatro dourados
+ * de uma vez, mais os que a tela já gasta legitimamente, e o dourado para
+ * de significar "aqui se age".
+ *
+ * Por isso o padrão continua sendo `"acao"`: as ~49 telas que usam este
+ * componente como corpo inteiro não mudam nada. Quem está DENTRO de um
+ * cartão passa `enfase="discreta"` e a ação vira link sublinhado neutro —
+ * mesmo tratamento de link não-dourado que /barco/selos/verified já usa.
  */
 export function EstadoVazio({
   icone,
@@ -18,6 +32,7 @@ export function EstadoVazio({
   descricao,
   acao,
   variant = "cartao",
+  enfase = "acao",
   className = "",
 }: {
   icone: NomeIcone
@@ -25,9 +40,15 @@ export function EstadoVazio({
   descricao?: string
   acao?: { href: string; rotulo: string }
   variant?: "cartao" | "linha"
+  /** Peso visual da ação — ver o cabeçalho. `"discreta"` quando o estado
+   *  vazio mora dentro de um cartão que não é a ação principal da tela. */
+  enfase?: "acao" | "discreta"
   className?: string
 }) {
   const base = variant === "cartao" ? "sombra-1 rounded-[14px] border border-line bg-panel p-4" : "py-6"
+  const corDaAcao = enfase === "discreta"
+    ? "text-texto underline underline-offset-2"
+    : "text-accent-forte"
   return (
     <div className={`${base} text-center ${className}`}>
       <Icone nome={icone} className="mx-auto size-6 text-dim" />
@@ -46,7 +67,7 @@ export function EstadoVazio({
       {acao && (
         <Link
           href={acao.href}
-          className="apoio mt-1 inline-flex min-h-11 items-center px-2 text-accent-forte"
+          className={`apoio mt-1 inline-flex min-h-11 items-center px-2 ${corDaAcao}`}
         >
           {acao.rotulo}
         </Link>

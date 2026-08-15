@@ -52,7 +52,12 @@ export function CardEmbarcacao({
 }) {
   const legenda = [embarcacao.estaleiro, embarcacao.modelo, embarcacao.ano].filter(Boolean).join(" · ")
   return (
-    <div className={`sombra-2 overflow-hidden rounded-[var(--raio-cartao)] ${className}`}>
+    /* `sombra-1` e não `sombra-2`: a elevação flutuante é reservada ao que de
+       fato paira sobre outra coisa — bottom sheet, menu, pastilha sobre o
+       mapa (docs/DESIGN.md §5). A foto está encostada na página como
+       qualquer cartão. Sombra funda em elemento que não flutua é, ao pé da
+       letra, um dos sintomas que o §1 lista como "cara de IA". */
+    <div className={`sombra-1 overflow-hidden rounded-[var(--raio-cartao)] ${className}`}>
       <div className="relative bg-[#0b1d2d]">
         {urlCapa ? (
           /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
