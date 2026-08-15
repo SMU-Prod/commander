@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { atualizarPrecoGold } from "@/lib/acoes/gold-admin"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarPrecosGold } from "@/lib/consultas-gold"
 import { formatarPrecoGold } from "@/lib/domain/gold"
 
@@ -12,7 +12,7 @@ export default async function AdminPrecosGoldPage({
 }: {
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold_precos")
   const { ok, erro } = await searchParams
   const precos = await carregarPrecosGold()
 

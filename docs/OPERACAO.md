@@ -124,15 +124,46 @@ ou um comprador que não usa o Commander), o solicitante gera o link/QR na próp
 (`/barco/selos/gold/[id]`) e compartilha por WhatsApp ou copiando o link — não há emissão de QR
 Code como imagem separada, a própria página do Asaas já mostra o QR do Pix.
 
-### Admin — concessão manual, nunca autoatendida
+### Admin — papéis com escopo (onda 48)
 
-`profiles.is_admin` não tem UI de autopromoção — é ligado direto no banco pelo dono:
+`profiles.is_admin` **não existe mais**. O PRD §22 é explícito: *"Admin deve operar por
+permissões de função, não por simples 'admin=true'"*. A migration `049_admin_papeis.sql`
+trocou o flag pela tabela `admin_papeis`, com quatro funções (PRD §21):
 
-    update public.profiles set is_admin = true where id = '<uuid do usuario>';
+| Função | Escopo |
+|---|---|
+| `ceo` | Acesso total; cria/edita/suspende administradores; métricas executivas |
+| `suporte` | Usuários, embarcações, planos/status, operação — inclusive o Gold |
+| `comercial` | Partners, campanhas, publicidade, preços e métricas comerciais |
+| `vistoriador` | Vistorias **só nas regiões autorizadas**; agenda e registros de visita |
 
-Ache o uuid em Supabase Studio > Authentication > Users. Depois disso, `/admin/gold` fica
-acessível pra essa conta (Preços, Consultores, Solicitações/Pagamentos/Agendamentos/Avaliações/
-Aprovados/Reprovados/Ativos/Expirados).
+**O primeiro CEO nasce por SQL, e só ele.** Não há autopromoção: a RLS de `admin_papeis` só
+aceita insert de quem já é CEO (`eh_ceo()`), então a conta-mãe precisa ser semeada à mão:
+
+    insert into public.admin_papeis (usuario_id, papel)
+    values ('<uuid do dono>', 'ceo');
+
+Ache o uuid em Supabase Studio > Authentication > Users. Daí em diante **todo o resto é pela
+tela**: `/admin/administradores` concede, edita e suspende as demais funções.
+
+Suspender é `ativo = false`, nunca DELETE — o privilégio de DELETE está revogado de
+`authenticated` justamente pra que "quem era admin em março?" continue tendo resposta.
+
+**Escopo regional do Vistoriador é RLS, não filtro de tela.** A região da vistoria fica em
+`gold_solicitacoes.regiao_id` (definida em `/admin/gold/[id]` por Suporte/CEO). Um vistoriador
+de Angra não consegue nem `select` numa vistoria de Salvador — testado no banco. Vistoriador
+sem nenhuma região não enxerga vistoria nenhuma, e o formulário barra essa concessão.
+
+**O que `eh_admin()` significa agora:** "tem papel de alcance NACIONAL" — `ceo`, `suporte` ou
+`comercial`, nunca `vistoriador`. As ~25 policies antigas que usam `eh_admin()` foram escritas
+presumindo alcance nacional; deixar o vistoriador entrar nelas concederia acesso nacional a ele
+de uma vez, que é o oposto do §21. Pra "é funcionário?" existe `eh_admin_qualquer()`, e pra
+regra fina `tem_papel_admin('suporte')` (com CEO implicando todos).
+
+**Logs (§21.3):** toda ação administrativa relevante cai em `admin_logs` pela RPC
+`registrar_log_admin()`, que carimba quem/quando/função do lado do banco. A tabela não tem
+policy de UPDATE nem de DELETE e tem os privilégios revogados — **ninguém apaga log, nem o
+CEO**. Leitura em `/admin/logs`: o CEO vê tudo, os demais veem as próprias ações.
 
 ### Consultores — cadastro pelo admin, vínculo pelo próprio consultor
 

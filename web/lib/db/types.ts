@@ -579,8 +579,10 @@ export interface Perfil {
   telefone: string | null
   avatar_path: string | null
   created_at: string
-  /** Admin Commander (onda 35) — concedido manualmente via SQL, nunca autoatendido. */
-  is_admin: boolean
+  // `is_admin` saiu na onda 48 (migration 049). O papel administrativo agora
+  // mora em `admin_papeis` — ver `lib/domain/admin-papeis.ts` e o PRD §22
+  // ("Admin deve operar por permissões de função, não por simples
+  // 'admin=true'").
 }
 
 // Commander Gold (onda 35) — fluxo completo: SOLICITAR → PAGAMENTO →
@@ -623,6 +625,10 @@ export interface GoldSolicitacao {
   papel_solicitante: "proprietario" | "interessado"
   quem_paga: "proprio" | "interessado"
   estado: EstadoSolicitacaoGold
+  /** Região da vistoria (`taxonomia` tipo `regiao`), onda 48. É o que a RLS
+   *  usa pra limitar o Vistoriador às regiões autorizadas (PRD §21) — `null`
+   *  significa "ainda não atribuída", e aí só CEO/Suporte enxergam. */
+  regiao_id: string | null
   criado_em: string
   atualizado_em: string
 }
@@ -845,4 +851,44 @@ export interface AgendaParticipante {
   /** true = atribuído a essa pessoa, não só compartilhado. */
   responsavel: boolean
   created_at: string
+}
+
+// ADMIN COMMANDER (onda 48, PRD §21/§22) — papéis com escopo no lugar do
+// `is_admin` binário. NÃO confundir com `permissoes.ts` (PROP/COMANDANTE/
+// TRIPULANTE): aquilo é acesso à EMBARCAÇÃO, isto é cargo interno na empresa.
+// Ver o cabeçalho de `lib/domain/admin-papeis.ts` e a migration 049.
+export interface AdminPapelDb {
+  id: string
+  usuario_id: string
+  papel: "ceo" | "suporte" | "comercial" | "vistoriador"
+  ativo: boolean
+  observacao: string | null
+  criado_por: string | null
+  criado_em: string
+  atualizado_em: string
+}
+
+/** Regiões autorizadas — só fazem sentido no papel `vistoriador` (§21: "Não
+ *  concede acesso nacional irrestrito"). Aponta pra `taxonomia` tipo
+ *  `regiao`, a mesma lista do Marketplace. */
+export interface AdminPapelRegiaoDb {
+  papel_id: string
+  regiao_id: string
+  criado_em: string
+}
+
+/** §21.3 — "quem, quando, função, ação, entidade afetada e mudança de
+ *  status". `papel` é texto congelado no momento da ação, não FK: revogar o
+ *  papel amanhã não pode reescrever em que qualidade a pessoa agiu ontem. */
+export interface AdminLogDb {
+  id: string
+  admin_id: string | null
+  papel: string
+  acao: string
+  entidade: string
+  entidade_id: string | null
+  status_antes: string | null
+  status_depois: string | null
+  detalhes: Record<string, unknown> | null
+  criado_em: string
 }

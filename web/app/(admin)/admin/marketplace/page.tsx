@@ -1,6 +1,6 @@
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarMapaTaxonomia, nomeDe, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import { formatarReais } from "@/lib/domain/gastos"
 import {
@@ -28,7 +28,7 @@ import type { Demanda, Negocio, NegocioConfirmacao, Proposta } from "@/lib/db/ty
  * (§22) não é métrica.
  */
 export default async function AdminMarketplacePage() {
-  await exigirAdmin()
+  await exigirAreaAdmin("marketplace")
   const supabase = await supabaseServer()
 
   const [mapa, { data: demandasBrutas }, { data: propostasBrutas }, { data: negociosBrutos }] =

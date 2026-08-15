@@ -1,16 +1,21 @@
 "use server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin, exigirPapelAdmin } from "@/lib/admin"
+import { registrarLogAdmin } from "@/lib/log-admin"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { FaixaPorteGold, GoldAvaliacao } from "@/lib/db/types"
 
 /**
  * Admin Commander Gold (onda 35, Correção 19 do PRD de Correções):
  * Preços · Consultores · Agendamentos · Análise · Aprovação/Reprovação.
- * Toda action confirma `exigirAdmin()` primeiro — a RLS/RPC do banco também
- * checam `eh_admin()` (defesa em profundidade), mas a tela nunca deve deixar
- * a mensagem de erro genérica do banco ser a primeira barreira.
+ * Toda action confirma a ÁREA primeiro — a RLS/RPC do banco também checam o
+ * papel (defesa em profundidade), mas a tela nunca deve deixar a mensagem de
+ * erro genérica do banco ser a primeira barreira.
+ *
+ * Onda 48: `exigirAdmin()` (que era o `is_admin` binário) virou
+ * `exigirAreaAdmin("gold")` — operação de vistoria é do Suporte e do
+ * Vistoriador; preço é do Comercial. Ver `lib/domain/admin-papeis.ts`.
  */
 
 function erroAdmin(caminho: string, msg: string): never {
@@ -31,7 +36,10 @@ function revalidarAdminGold(solicitacaoId?: string) {
 }
 
 export async function atualizarPrecoGold(formData: FormData) {
-  await exigirAdmin()
+  // Preço é matéria Comercial (§20: "configurável no Admin/Comercial"), não da
+  // operação de vistoria — por isso a área é outra. A policy `gold_precos:
+  // comercial atualiza` (migration 049) diz o mesmo do lado do banco.
+  await exigirAreaAdmin("gold_precos")
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -52,7 +60,7 @@ export async function atualizarPrecoGold(formData: FormData) {
 }
 
 export async function criarConsultor(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
 
   const nome = String(formData.get("nome") ?? "").trim()
@@ -70,7 +78,7 @@ export async function criarConsultor(formData: FormData) {
 }
 
 export async function atualizarConsultor(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
 
   const id = String(formData.get("id") ?? "")
@@ -92,7 +100,7 @@ export async function atualizarConsultor(formData: FormData) {
 /** Agenda a avaliação presencial — só válido quando a solicitação está
  *  `aguardando_agendamento` (pagamento já confirmado pelo webhook do Asaas). */
 export async function criarAgendamentoGold(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
 
   const solicitacaoId = String(formData.get("solicitacao_id") ?? "")
@@ -124,7 +132,7 @@ export async function criarAgendamentoGold(formData: FormData) {
 /** Reagendar/atualizar status sem mexer no estado da solicitação (ela já
  *  está `agendado`). */
 export async function atualizarAgendamentoGold(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
 
   const id = String(formData.get("id") ?? "")
@@ -151,7 +159,7 @@ export async function atualizarAgendamentoGold(formData: FormData) {
 /** Abre a análise — a avaliação presencial já aconteceu (consultor marcou
  *  `avaliacao_realizada`), agora é decisão do admin. */
 export async function iniciarAnaliseGold(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
   const solicitacaoId = String(formData.get("solicitacao_id") ?? "")
 
@@ -168,7 +176,7 @@ export async function iniciarAnaliseGold(formData: FormData) {
  *  transição, porque `gold_definir_estado('aprovado')` exige
  *  `validade_meses` já definido pra gravar o selo (migration 033). */
 export async function aprovarSolicitacaoGold(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
   const solicitacaoId = String(formData.get("solicitacao_id") ?? "")
   const validadeMeses = Number(formData.get("validade_meses"))
@@ -200,7 +208,7 @@ export async function aprovarSolicitacaoGold(formData: FormData) {
 }
 
 export async function reprovarSolicitacaoGold(formData: FormData) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const supabase = await supabaseServer()
   const solicitacaoId = String(formData.get("solicitacao_id") ?? "")
   const motivo = String(formData.get("motivo") ?? "").trim() || null
@@ -219,4 +227,43 @@ export async function reprovarSolicitacaoGold(formData: FormData) {
 
   revalidarAdminGold(solicitacaoId)
   okAdmin(`/admin/gold/${solicitacaoId}`, "Solicitação marcada como reprovada")
+}
+
+/**
+ * Região da vistoria (onda 48, PRD §21) — é o que dá ESCOPO ao Vistoriador.
+ * Só Suporte/CEO define: se o vistoriador pudesse escolher onde trabalha, o
+ * escopo regional seria autoatendido e deixaria de ser escopo.
+ *
+ * Passa por RPC porque `gold_solicitacoes` não tem policy de UPDATE de
+ * propósito (a 033 fechou tudo pra que a máquina de estados não fosse
+ * contornada por um update solto).
+ */
+export async function definirRegiaoGold(formData: FormData) {
+  await exigirPapelAdmin("suporte")
+  const supabase = await supabaseServer()
+
+  const solicitacaoId = String(formData.get("solicitacao_id") ?? "")
+  const regiaoId = String(formData.get("regiao_id") ?? "").trim() || null
+
+  const { error } = await supabase.rpc("gold_definir_regiao", {
+    p_solicitacao_id: solicitacaoId,
+    p_regiao_id: regiaoId,
+  })
+  if (error) erroAdmin(`/admin/gold/${solicitacaoId}`, "Não foi possível definir a região. Tente de novo.")
+
+  await registrarLogAdmin({
+    acao: "gold.regiao.definir",
+    entidade: "gold_solicitacoes",
+    entidadeId: solicitacaoId,
+    statusDepois: regiaoId ? "com região" : "sem região",
+    detalhes: { regiao_id: regiaoId },
+  })
+
+  revalidarAdminGold(solicitacaoId)
+  okAdmin(
+    `/admin/gold/${solicitacaoId}`,
+    regiaoId
+      ? "Região definida — vistoriadores autorizados nela já enxergam esta vistoria."
+      : "Região removida — nenhum vistoriador enxerga esta vistoria agora.",
+  )
 }

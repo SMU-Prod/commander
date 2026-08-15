@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { hojeISO } from "@/lib/consultas-gold"
 import { formatarPrecoGold, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE, statusSeloGold } from "@/lib/domain/gold"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -31,7 +31,7 @@ export default async function AdminGoldPage({
 }: {
   searchParams: Promise<{ filtro?: string; ok?: string; erro?: string }>
 }) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const { filtro: filtroBruto, ok, erro } = await searchParams
   const filtro = (ABAS.some((a) => a.chave === filtroBruto) ? filtroBruto : "solicitacoes") as Aba
 

@@ -3,7 +3,7 @@ import { Icone } from "@/components/icone"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { atualizarConsultor, criarConsultor } from "@/lib/acoes/gold-admin"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { GoldConsultor } from "@/lib/db/types"
 
@@ -15,7 +15,7 @@ export default async function AdminConsultoresGoldPage({
 }: {
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
-  await exigirAdmin()
+  await exigirAreaAdmin("gold")
   const { ok, erro } = await searchParams
   const supabase = await supabaseServer()
   const { data } = await supabase.from("gold_consultores").select("*").order("criado_em", { ascending: false })

@@ -3,10 +3,13 @@ import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import {
-  aprovarSolicitacaoGold, atualizarAgendamentoGold, criarAgendamentoGold, iniciarAnaliseGold, reprovarSolicitacaoGold,
+  aprovarSolicitacaoGold, atualizarAgendamentoGold, criarAgendamentoGold, definirRegiaoGold, iniciarAnaliseGold,
+  reprovarSolicitacaoGold,
 } from "@/lib/acoes/gold-admin"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarDetalheSolicitacaoGold } from "@/lib/consultas-gold"
+import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
+import { temPapelAdmin } from "@/lib/domain/admin-papeis"
 import {
   HUBS_PROTOCOLO_GOLD, ROTULO_ESTADO_ITEM, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE, ROTULO_HUB_GOLD,
 } from "@/lib/domain/gold"
@@ -19,12 +22,17 @@ export default async function AdminDetalheGoldPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
-  await exigirAdmin()
+  const papeis = await exigirAreaAdmin("gold")
   const { id } = await params
   const { ok, erro } = await searchParams
   const detalhe = await carregarDetalheSolicitacaoGold(id)
   if (!detalhe) notFound()
   const { solicitacao, pagamento, agendamento, avaliacao, itens } = detalhe
+
+  // Só Suporte/CEO define região. O vistoriador vê a solicitação (a RLS
+  // liberou porque a região é dele), mas não escolhe onde trabalha.
+  const podeDefinirRegiao = temPapelAdmin(papeis, "suporte")
+  const regioes = podeDefinirRegiao ? itensDoTipo(await carregarTaxonomia(), "regiao") : []
 
   const supabase = await supabaseServer()
   const [{ data: embarcacao }, { data: consultoresBrutos }] = await Promise.all([
@@ -52,6 +60,29 @@ export default async function AdminDetalheGoldPage({
 
       {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+
+      {/* Região da vistoria (onda 48, §21) — não é etiqueta, é a chave do
+          escopo: a RLS libera esta solicitação exatamente pros vistoriadores
+          autorizados nesta região. Sem região, nenhum vistoriador enxerga. */}
+      {podeDefinirRegiao && (
+        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+          <p className="rotulo mb-2 text-dim">Região da vistoria</p>
+          <form action={definirRegiaoGold} className="space-y-2">
+            <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
+            <CampoSelect label="Região" id="regiao_id" name="regiao_id" defaultValue={solicitacao.regiao_id ?? ""}>
+              <option value="">Sem região definida</option>
+              {regioes.map((r) => (
+                <option key={r.id} value={r.id}>{r.uf ? `${r.nome} · ${r.uf}` : r.nome}</option>
+              ))}
+            </CampoSelect>
+            <p className="apoio text-dim">
+              Define quem enxerga esta vistoria: só vistoriadores autorizados nesta região. Sem região, nenhum
+              vistoriador tem acesso.
+            </p>
+            <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">Salvar região</button>
+          </form>
+        </div>
+      )}
 
       {pagamento && (
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
