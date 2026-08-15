@@ -1,12 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Farol } from "@/components/farol"
+import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
-import { ESTADOS_OCORRENCIA, faroDoEstado, ROTULO_ESTADO, type EstadoOcorrencia } from "@/lib/domain/ocorrencias"
+import { ESTADOS_OCORRENCIA, ROTULO_ESTADO, type EstadoOcorrencia } from "@/lib/domain/ocorrencias"
 import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento, Ocorrencia } from "@/lib/db/types"
@@ -140,9 +140,14 @@ export default async function HistoricoPage({
                   href={`/barco/ocorrencias/${entrada.ocorrencia.id}`}
                   className="flex items-center gap-3 border-b border-line py-3 last:border-0"
                 >
-                  <Farol status={faroDoEstado(entrada.ocorrencia.estado)} />
+                  {/* Anulada continua na linha do tempo — o §7 é explícito
+                      que registro finalizado relevante não some — só riscada,
+                      pra ficar claro de relance que não vale mais. */}
+                  <FarolOcorrencia estado={entrada.ocorrencia.estado} />
                   <div className="min-w-0 flex-1">
-                    <p className="titulo-card truncate">{entrada.ocorrencia.titulo}</p>
+                    <p className={`titulo-card truncate ${entrada.ocorrencia.estado === "anulada" ? "text-dim line-through decoration-dim/60" : ""}`}>
+                      {entrada.ocorrencia.titulo}
+                    </p>
                     <p className="apoio mt-0.5 text-dim">Ocorrência · {ROTULO_ESTADO[entrada.ocorrencia.estado]}</p>
                   </div>
                   <Icone nome="chevron" className="size-4 shrink-0 text-dim" />

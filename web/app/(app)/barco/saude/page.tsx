@@ -6,6 +6,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem } from "@/lib/domain/diario"
+import { ESTADOS_QUE_PESAM_NA_SAUDE } from "@/lib/domain/ocorrencias"
 import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import { calcularSaudeEmbarcacao, type FatorSaude, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
 import { calcularSemaforo, temInformacaoSuficiente } from "@/lib/domain/semaforo"
@@ -42,9 +43,13 @@ export default async function SaudePage() {
   })
 
   const supabase = await supabaseServer()
+  // `ESTADOS_QUE_PESAM_NA_SAUDE` em vez de "tudo que não é resolvida": desde
+  // a onda 44 existe também "anulada" (PRD §7), e ocorrência anulada não pode
+  // continuar puxando a nota — foi declarada inexistente por escrito. A
+  // filtragem é aqui, na ORIGEM: a fórmula e os pesos de `saude.ts` não mudam.
   const { data: ocorrenciasBrutas, error } = await supabase
     .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
-    .neq("estado", "resolvida").order("created_at", { ascending: false })
+    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false })
   if (error) throw new Error("Não foi possível carregar a saúde da embarcação. Recarregue a página.")
   const ocorrenciasParaSaude: OcorrenciaParaSaude[] = ((ocorrenciasBrutas ?? []) as Ocorrencia[]).map((o) => ({
     id: o.id, titulo: o.titulo, aba: o.aba, estado: o.estado, gravidade: o.gravidade,

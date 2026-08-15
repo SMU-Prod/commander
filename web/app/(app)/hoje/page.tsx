@@ -4,10 +4,11 @@ import { Suspense } from "react"
 import { AnelStatus } from "@/components/anel-status"
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao, type MetricaHero } from "@/components/card-embarcacao"
-import { Farol } from "@/components/farol"
+import { FarolOcorrencia } from "@/components/farol"
 import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
+import { SinoNotificacoes } from "@/components/sino-notificacoes"
 import {
   calcularSemaforo,
   PESO,
@@ -20,9 +21,10 @@ import {
 import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
-import { carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarNotificacoes, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { contadorSino } from "@/lib/domain/notificacoes"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
-import { faroDoEstado, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
+import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { resumoAno, type EventoParaResumoAno } from "@/lib/domain/resumo-ano"
 import type { Equipamento, Ocorrencia } from "@/lib/db/types"
@@ -200,9 +202,15 @@ export default async function HojePage({
   // TODAS as ativas (sem limite) porque a saúde (abaixo) precisa da lista
   // inteira pra pontuar corretamente — só o cartão de "Ocorrências abertas"
   // mostra as 4 mais recentes.
+  //
+  // Onda 44: o filtro é `ESTADOS_QUE_PESAM_NA_SAUDE` (aberta + em
+  // acompanhamento), não "tudo que não é resolvida" — ocorrência ANULADA
+  // (PRD §7) não é problema vivo e não pode entrar nesta lista, nem no
+  // cartão nem na conta da Saúde. Filtrar na origem mantém a fórmula e os
+  // pesos de `lib/domain/saude.ts` intocados.
   const { data: ocorrenciasAtivasBrutas } = await supabase
     .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
-    .neq("estado", "resolvida").order("created_at", { ascending: false })
+    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false })
   const ocorrenciasAtivas = (ocorrenciasAtivasBrutas ?? []) as Ocorrencia[]
   const ocorrenciasAbertas = ocorrenciasAtivas.slice(0, 4)
 
@@ -217,6 +225,10 @@ export default async function HojePage({
     id: o.id, titulo: o.titulo, aba: o.aba, estado: o.estado, gravidade: o.gravidade,
   }))
   const saude = calcularSaudeEmbarcacao(itensParaSaude, ocorrenciasParaSaude)
+
+  // Contador do sino (onda 44) — mesma fonte da tela /notificacoes, via
+  // `cache()`: o badge e a lista nunca podem discordar.
+  const contadorAvisos = contadorSino(await carregarNotificacoes())
 
   // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
   // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
@@ -286,15 +298,20 @@ export default async function HojePage({
 
   return (
     <main>
+      {/* Sino no topo com contador (PRD §5.2). Fica aqui, no cabeçalho da
+          Início, porque o app não tem uma barra superior global — e o topo
+          da tela de casa é onde o dono chega. O contador aparece também no
+          rodapé, na aba Avisos, que essa sim segue em toda tela. */}
       <div className="mb-4 flex items-center gap-3">
         <Avatar url={urlAvatar} nome={nomeUsuario} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="apoio text-dim">Olá, {nomeUsuario.split(" ")[0]}</p>
           <SeletorEmbarcacao
             atual={{ id: embarcacao.id, nome: embarcacao.nome }}
             opcoes={painel.embarcacoes}
           />
         </div>
+        <SinoNotificacoes contador={contadorAvisos} />
       </div>
       <CardEmbarcacao
         embarcacao={embarcacao}
@@ -386,7 +403,7 @@ export default async function HojePage({
             {ocorrenciasAbertas.map((o) => (
               <Link key={o.id} href={`/barco/ocorrencias/${o.id}`}
                 className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
-                <Farol status={faroDoEstado(o.estado)} />
+                <FarolOcorrencia estado={o.estado} />
                 <p className="titulo-card min-w-0 flex-1 truncate">{o.titulo}</p>
                 <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{ROTULO_ESTADO[o.estado]}</span>
                 <Icone nome="chevron" className="size-4 shrink-0 text-dim" />

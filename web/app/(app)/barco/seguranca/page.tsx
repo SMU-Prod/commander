@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Farol } from "@/components/farol"
+import { Farol, FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIA_SEGURANCA } from "@/lib/domain/diario"
-import { faroDoEstado, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
+import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo, formatarDataCurta, vencimentoPorData } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -26,7 +26,7 @@ export default async function SegurancaPage() {
   const supabase = await supabaseServer()
   const { data: ocorrenciasBrutas } = await supabase.from("ocorrencias")
     .select("*").eq("embarcacao_id", painel.embarcacao.id).eq("aba", "seguranca")
-    .neq("estado", "resolvida").order("created_at", { ascending: false })
+    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false })
   const ocorrencias = (ocorrenciasBrutas ?? []) as Ocorrencia[]
 
   return (
@@ -57,7 +57,7 @@ export default async function SegurancaPage() {
               <LinhaLista
                 key={o.id}
                 href={`/barco/ocorrencias/${o.id}`}
-                leading={<Farol status={faroDoEstado(o.estado)} />}
+                leading={<FarolOcorrencia estado={o.estado} />}
                 titulo={o.titulo}
                 valor={ROTULO_ESTADO[o.estado]}
               />

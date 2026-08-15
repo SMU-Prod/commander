@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { ModalGold } from "@/components/gold/modal-gold"
 import { SeloGold } from "@/components/selos/selo-gold"
 import { SeloVerified } from "@/components/selos/selo-verified"
+import { SituacaoVerified } from "@/components/selos/situacao-verified"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel, carregarVerified } from "@/lib/consultas"
 import { carregarRelatorioSeloGold, hojeISO } from "@/lib/consultas-gold"
@@ -43,25 +44,20 @@ export default async function SelosPage() {
         className="sombra-1 mt-5 block rounded-[14px] border border-line bg-panel p-4"
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="titulo-card inline-flex items-center gap-1.5">
+          <p className="titulo-card inline-flex min-w-0 items-center gap-1.5">
             <SeloVerified size={20} /> Commander Verified
           </p>
-          {verified && (
-            <span className="font-mono-instr text-xs tabular-nums text-dim">
-              {verified.completos} de {verified.total}
-            </span>
-          )}
+          {verified && <SituacaoVerified selo={verified.selo} />}
         </div>
         <p className="apoio mt-1 text-dim">
           Verificação digital — cadastro, histórico e dados atualizados no app. Sem vistoria física.
         </p>
+        {/* Contagem de requisitos, sem barra de progresso: barra é
+            porcentagem desenhada, e o PRD §15 proíbe porcentagem no selo. */}
         {verified && (
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-panel2">
-            <div
-              className="h-full rounded-full bg-dim"
-              style={{ width: `${Math.max(2, verified.percentual)}%` }}
-            />
-          </div>
+          <p className="apoio mt-2 font-mono-instr tabular-nums text-dim">
+            {verified.completos} de {verified.total} requisitos atendidos
+          </p>
         )}
       </Link>
 

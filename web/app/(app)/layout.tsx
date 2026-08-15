@@ -4,7 +4,8 @@ import { BottomNav } from "@/components/bottom-nav"
 import { RegistroRapido } from "@/components/registro-rapido"
 import { RegistrarSw } from "@/components/registrar-sw"
 import { Toast } from "@/components/toast"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
+import { contadorSino } from "@/lib/domain/notificacoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const motores = (painel?.equipamentos ?? [])
     .filter((e) => e.tipo === "motor")
     .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
+
+  // Contador de avisos no rodapé (onda 44, PRD §5.2 "sino no topo com
+  // contador"). Fica no layout pra acompanhar a pessoa em toda tela, e usa
+  // a MESMA `carregarNotificacoes` da tela /notificacoes e do sino da
+  // Início — com `cache()`, na Início isso não vira consulta extra. Já vem
+  // filtrado por permissão: tripulante não vê contador subir por causa de
+  // um hub que ele não pode abrir.
+  const avisos = painel ? contadorSino(await carregarNotificacoes()) : 0
   // pb-36 e não pb-24: o botão "+ Registrar" flutua a 5rem do rodapé e tem
   // ~3rem de altura, então o conteúdo precisa de ~8rem de folga — com pb-24
   // (6rem) ele cobria o último item da tela.
@@ -42,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </Suspense>
       {children}
       {motores.length > 0 && <RegistroRapido motores={motores} />}
-      <BottomNav />
+      <BottomNav avisos={avisos} />
     </div>
   )
 }
