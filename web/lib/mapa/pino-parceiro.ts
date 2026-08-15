@@ -60,6 +60,11 @@ export const ICONE_PADRAO_POR_CATEGORIA: Record<CategoriaParceiro, NomeIconeParc
   // peça) e "outros" fica com o pino genérico de embarcação.
   loja_nautica: "ferramenta",
   outros: "embarcacao",
+  // Onda 51 (PRD §13.1): o tipo Prestador de Serviço. Mesma "ferramenta" da
+  // Loja — os dois são o negócio de serviço/peça, e a paleta é curada
+  // (ICONES_PARCEIRO acima), não infinita. O mesmo mapa está no `case` de
+  // `parceiro_icone_cor_padrao()` na migration 052.
+  prestador: "ferramenta",
 }
 
 export interface OpcaoCorParceiro {

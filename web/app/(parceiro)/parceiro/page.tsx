@@ -1,242 +1,186 @@
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Confirmar } from "@/components/confirmar"
+import { redirect } from "next/navigation"
 import { Icone, type NomeIcone } from "@/components/icone"
-import { EscolherPonto } from "@/components/mapa/escolher-ponto"
-import { EscolherPinoParceiro } from "@/components/mapa/escolher-pino-parceiro"
-import { excluirFotoParceiro, salvarParceiro, subirFotoParceiro } from "@/lib/acoes/parceiro"
-import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { carregarMapaTaxonomia, nomeDaRegiao, tituloDeDemanda } from "@/lib/consultas-marketplace"
+import { carregarMeuPartner } from "@/lib/consultas-partner"
+import { hojeISO } from "@/lib/domain/datas"
+import {
+  demandasParaPartner,
+  recebeDemandas,
+  ROTULO_MEU_PERFIL,
+  ROTULO_TIPO_PARTNER,
+  type AtividadeDeclarada,
+} from "@/lib/domain/partner"
 import { supabaseServer } from "@/lib/supabase/server"
-import { COR_PADRAO, ICONE_PADRAO_POR_CATEGORIA } from "@/lib/mapa/pino-parceiro"
-import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
+import type { Demanda, Negocio, Proposta } from "@/lib/db/types"
 
-const CATEGORIAS: { valor: CategoriaParceiro; rotulo: string; icone: NomeIcone }[] = [
-  { valor: "marina", rotulo: "Marina", icone: "ancora" },
-  { valor: "posto", rotulo: "Posto", icone: "oleo" },
-  { valor: "pousada", rotulo: "Pousada", icone: "inicio" },
-  { valor: "restaurante", rotulo: "Restaurante", icone: "estrela" },
-  { valor: "loja_nautica", rotulo: "Loja náutica", icone: "ferramenta" },
-  { valor: "outros", rotulo: "Outros", icone: "embarcacao" },
-]
+/**
+ * INÍCIO DO PARTNER (PRD §13.1: "Dashboard: oportunidades compatíveis,
+ * propostas, negociações, visualizações e atalhos").
+ *
+ * §13 manda o Dashboard exibir o TIPO REAL — por isso o título é "Marina",
+ * "Loja Náutica", "Prestador de Serviço", e não "Commander Partner", que é o
+ * nome do plano.
+ *
+ * Os quatro números do §13.1 valem pros tipos que recebem demanda. Restaurante
+ * e Pousada não recebem nenhuma (§13.5/§13.6 não descrevem Marketplace), então
+ * pra eles o Dashboard mostra o que de fato existe — visualizações e o estado
+ * do perfil — em vez de três zeros que nunca vão sair do lugar. Zero fabricado
+ * em painel é pior que a ausência honesta.
+ */
+export default async function ParceiroInicioPage() {
+  const meu = await carregarMeuPartner()
+  if (!meu) {
+    const supabase = await supabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect("/login?volta=/parceiro")
+    return (
+      <main>
+        <h1 className="titulo-pagina">Commander Partner</h1>
+        <p className="corpo mt-2 text-dim">
+          Publique seu perfil pra aparecer no Explorar e receber pedidos de proprietários.
+        </p>
+        <EstadoVazio
+          className="mt-4"
+          icone="marketplace"
+          titulo="Você ainda não tem perfil de parceiro"
+          descricao="Escolha o tipo do seu negócio — marina, posto, loja, prestador, restaurante ou pousada — e publique."
+          acao={{ href: "/parceiro/perfil", rotulo: "Criar meu perfil" }}
+        />
+      </main>
+    )
+  }
 
-/** Centavos (ou null) para o campo de preço em pt-BR, ex.: 15000 → "150,00". */
-function precoParaCampo(centavos: number | null): string {
-  return centavos == null ? "" : (centavos / 100).toFixed(2).replace(".", ",")
-}
-
-export default async function ParceiroPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ erro?: string; ok?: string }>
-}) {
-  const { erro, ok } = await searchParams
+  const { parceiro, atividades, vagas } = meu
+  const tipo = parceiro.categoria
   const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login?volta=/parceiro")
+  const hoje = hojeISO()
 
-  const { data, error } = await supabase
-    .from("parceiros").select("*").eq("usuario_id", user.id).maybeSingle()
-  if (error) throw new Error("Não foi possível carregar seu perfil. Recarregue a página.")
-  const p = data as Parceiro | null
+  const [mapaTaxonomia, { data: demandasBrutas }, { data: propostasBrutas }, { data: negociosBrutos }] =
+    await Promise.all([
+      carregarMapaTaxonomia(),
+      recebeDemandas(tipo)
+        ? supabase
+            .from("demandas").select("*")
+            .in("status", ["aberta", "em_negociacao"])
+            .gte("expira_em", hoje)
+            .order("criado_em", { ascending: false })
+            .limit(100)
+        : Promise.resolve({ data: null }),
+      supabase.from("propostas").select("*").eq("autor_id", parceiro.usuario_id),
+      supabase.from("negocios").select("*").eq("fornecedor_id", parceiro.usuario_id),
+    ])
 
-  const fotos = (p?.fotos ?? []).map((path) => ({
-    path,
-    url: supabase.storage.from("parceiros").getPublicUrl(path).data.publicUrl,
-  }))
+  const paraMatching = {
+    categoria: tipo,
+    tambem_vende_produtos: parceiro.tambem_vende_produtos,
+    tambem_presta_servicos: parceiro.tambem_presta_servicos,
+    regiao_id: parceiro.regiao_id,
+    atividades: atividades.map((a): AtividadeDeclarada => ({ id: a.taxonomia_id, tipo: a.tipo })),
+  }
+  const todas = ((demandasBrutas as Demanda[] | null) ?? []).filter((d) => d.autor_id !== parceiro.usuario_id)
+  const compativeis = demandasParaPartner(todas, paraMatching, vagas)
+
+  const propostas = (propostasBrutas as Proposta[] | null) ?? []
+  const negocios = (negociosBrutos as Negocio[] | null) ?? []
+  const emNegociacao = propostas.filter((p) => p.status === "aceita").length
 
   return (
     <main>
-      {/* Onda 25 — link de volta pra página pública de vendas (/parceiros),
-          pro parceiro que caiu direto aqui (ex.: link salvo, favorito). */}
-      <Link href="/parceiros" className="apoio inline-flex items-center gap-1 text-dim hover:text-texto">
-        <Icone nome="voltar" className="size-3.5" /> Ver a página pública de apresentação
-      </Link>
-      <h1 className="titulo-pagina mt-3">Seu perfil no mapa</h1>
+      <h1 className="titulo-pagina">{ROTULO_TIPO_PARTNER[tipo]}</h1>
       <p className="apoio mt-1 text-dim">
-        O que estiver aqui aparece pra quem navega perto — vocês mesmos atualizam, sem chamar ninguém.
+        {parceiro.nome} · {nomeDaRegiao(mapaTaxonomia, parceiro.regiao_id)}
       </p>
 
-      {ok && <p className="corpo mt-4 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
-
-      {p && (
-        <div className="sombra-1 mt-4 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-4">
-          <Icone nome="grafico" className="size-6 shrink-0 text-accent-forte" />
-          <p className="corpo">
-            <span className="text-lg font-semibold tabular-nums">{p.visualizacoes}</span>{" "}
-            {p.visualizacoes === 1 ? "proprietário viu" : "proprietários viram"} seu perfil
-          </p>
-        </div>
+      {!parceiro.visivel && (
+        <p className="corpo mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
+          Seu perfil está oculto: ninguém encontra você no Explorar. Ative a visibilidade em{" "}
+          {ROTULO_MEU_PERFIL[tipo]}.
+        </p>
       )}
 
-      <form action={salvarParceiro} className="group mt-5 space-y-5">
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Categoria</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            {CATEGORIAS.map((c) => (
-              <label
-                key={c.valor}
-                htmlFor={`cat-${c.valor}`}
-                className="sombra-1 flex cursor-pointer flex-col items-center gap-1.5 rounded-[14px] border border-line bg-panel px-3 py-4 text-center has-[:checked]:border-accent"
-              >
-                <Icone nome={c.icone} className="size-6 text-accent-forte" />
-                <span className="titulo-card">{c.rotulo}</span>
-                <input
-                  id={`cat-${c.valor}`}
-                  type="radio"
-                  name="categoria"
-                  value={c.valor}
-                  defaultChecked={p ? p.categoria === c.valor : c.valor === "marina"}
-                  className="sr-only"
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
+        {recebeDemandas(tipo) && (
+          <>
+            <Numero
+              icone="marketplace"
+              valor={compativeis.length}
+              rotulo={tipo === "posto" ? "Solicitações compatíveis" : "Oportunidades compatíveis"}
+              href="/parceiro/marketplace"
+            />
+            <Numero icone="documento" valor={propostas.length} rotulo="Propostas enviadas" href="/parceiro/marketplace" />
+            <Numero icone="repetir" valor={emNegociacao} rotulo="Em negociação" href="/parceiro/marketplace" />
+          </>
+        )}
+        <Numero icone="grafico" valor={parceiro.visualizacoes} rotulo="Visualizações do perfil" />
+        {negocios.length > 0 && (
+          <Numero icone="selo" valor={negocios.length} rotulo="Negócios registrados" href="/avaliacoes" />
+        )}
+      </div>
+
+      {recebeDemandas(tipo) && (
+        <>
+          <SecaoPagina
+            icone="marketplace"
+            acao={compativeis.length > 0 ? { href: "/parceiro/marketplace", rotulo: "Ver tudo" } : undefined}
+          >
+            {tipo === "posto" ? "Solicitações de caminhão" : "Compatíveis com você"}
+          </SecaoPagina>
+          {compativeis.length === 0 ? (
+            <EstadoVazio
+              icone="marketplace"
+              titulo="Nada compatível agora"
+              descricao={`Você recebe pedidos de ${nomeDaRegiao(mapaTaxonomia, parceiro.regiao_id)} nas atividades que declarou. Ampliar região ou atividades aumenta o que chega até você.`}
+              acao={{ href: "/parceiro/perfil", rotulo: `Ajustar ${ROTULO_MEU_PERFIL[tipo].toLowerCase()}` }}
+            />
+          ) : (
+            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+              {compativeis.slice(0, 5).map((d) => (
+                <LinhaLista
+                  key={d.id}
+                  href={`/marketplace/${d.id}`}
+                  titulo={tituloDeDemanda(mapaTaxonomia, d)}
+                  subtitulo={d.autor_nome || "Proprietário"}
                 />
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Identificação</p>
-          <div>
-            <label className={rot} htmlFor="nome">Nome</label>
-            <input id="nome" name="nome" required minLength={3} defaultValue={p?.nome ?? ""} className={campo} />
-          </div>
-          <div>
-            <p className={rot}>Ponto no mapa</p>
-            <EscolherPonto lat={p?.lat ?? null} lng={p?.lng ?? null} />
-          </div>
-        </section>
-
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Pino no mapa</p>
-          <EscolherPinoParceiro
-            iconeInicial={p?.icone ?? ICONE_PADRAO_POR_CATEGORIA[p?.categoria ?? "marina"]}
-            corInicial={p?.cor ?? COR_PADRAO}
-            destaque={p?.plano === "destaque"}
-          />
-        </section>
-
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Preço</p>
-          <div>
-            <label className={rot} htmlFor="preco_diaria">Diária (vaga/poita)</label>
-            <input
-              id="preco_diaria" name="preco_diaria" inputMode="decimal" required placeholder="150,00"
-              defaultValue={precoParaCampo(p?.preco_diaria_centavos ?? null)}
-              className={`${campo} font-mono-instr tabular-nums`}
-            />
-          </div>
-          <div className="hidden group-has-[#cat-posto:checked]:block">
-            <label className={rot} htmlFor="preco_diesel">Diesel (por litro)</label>
-            <input
-              id="preco_diesel" name="preco_diesel" inputMode="decimal" placeholder="6,20"
-              defaultValue={precoParaCampo(p?.preco_diesel_centavos ?? null)}
-              className={`${campo} font-mono-instr tabular-nums`}
-            />
-          </div>
-          <p className="apoio text-dim">
-            Preço e disponibilidade de poita mudam no máximo 1× por dia.
-          </p>
-        </section>
-
-        <div className="hidden group-has-[#cat-pousada:checked]:block group-has-[#cat-restaurante:checked]:block">
-          <label className={rot} htmlFor="calado_max_m">Calado máximo (m)</label>
-          <input
-            id="calado_max_m" name="calado_max_m" inputMode="decimal" placeholder="1,80"
-            defaultValue={numeroParaCampoPtBr(p?.calado_max_m ?? null)}
-            className={`${campo} font-mono-instr tabular-nums`}
-          />
-        </div>
-
-        <div className="hidden group-has-[#cat-pousada:checked]:block">
-          <label className="flex items-center gap-2.5 corpo">
-            <input type="checkbox" name="traslado_incluso" defaultChecked={p?.traslado_incluso ?? false} className="size-5 accent-[var(--acao)]" />
-            Traslado incluso
-          </label>
-        </div>
-
-        <div className="hidden space-y-3 group-has-[#cat-restaurante:checked]:block">
-          <label className="flex items-center gap-2.5 corpo">
-            <input type="checkbox" name="vaga_cortesia" defaultChecked={p?.vaga_cortesia ?? false} className="size-5 accent-[var(--acao)]" />
-            Vaga de carro cortesia
-          </label>
-          <div>
-            <label className={rot} htmlFor="culinaria">Culinária</label>
-            <input id="culinaria" name="culinaria" placeholder="Frutos do mar, brasileira…" defaultValue={p?.culinaria ?? ""} className={campo} />
-          </div>
-        </div>
-
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Poita</p>
-          <label className="flex items-center gap-2.5 corpo">
-            <input id="tem_poita" type="checkbox" name="tem_poita" defaultChecked={p?.tem_poita ?? false} className="size-5 accent-[var(--acao)]" />
-            Tem poita disponível
-          </label>
-          <div className="hidden group-has-[#tem_poita:checked]:block">
-            <label className={rot} htmlFor="qtd_poitas">Quantas poitas</label>
-            <input
-              id="qtd_poitas" name="qtd_poitas" inputMode="numeric" placeholder="4"
-              defaultValue={p?.qtd_poitas ?? ""} className={`${campo} font-mono-instr tabular-nums`}
-            />
-          </div>
-        </section>
-
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Contato</p>
-          <div>
-            <label className={rot} htmlFor="horario">Horário de funcionamento</label>
-            <input id="horario" name="horario" placeholder="Todos os dias, 8h às 22h" defaultValue={p?.horario ?? ""} className={campo} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={rot} htmlFor="telefone">Telefone / WhatsApp</label>
-              <input id="telefone" name="telefone" inputMode="tel" placeholder="21 99999-0000" defaultValue={p?.telefone ?? ""} className={campo} />
-            </div>
-            <div>
-              <label className={rot} htmlFor="email">E-mail</label>
-              <input id="email" name="email" type="email" placeholder="contato@exemplo.com" defaultValue={p?.email ?? ""} className={campo} />
-            </div>
-          </div>
-          <div>
-            <label className={rot} htmlFor="sobre">Sobre</label>
-            <textarea id="sobre" name="sobre" rows={3} placeholder="O que faz o seu lugar ser a parada certa…" defaultValue={p?.sobre ?? ""} className={campo} />
-          </div>
-        </section>
-
-        <label className="flex items-center gap-2.5 corpo">
-          <input type="checkbox" name="visivel" defaultChecked={p?.visivel ?? true} className="size-5 accent-[var(--acao)]" />
-          Visível no mapa dos proprietários
-        </label>
-
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-          {p ? "Salvar alterações" : "Publicar perfil"}
-        </button>
-      </form>
-
-      {p && (
-        <section className="mt-6">
-          <p className={rot}>Fotos ({fotos.length}/3)</p>
-          {fotos.length > 0 && (
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {fotos.map((f) => (
-                <div key={f.path} className="overflow-hidden rounded-[12px] border border-line bg-panel sombra-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros */}
-                  <img src={f.url} alt={p.nome} className="aspect-square w-full object-cover" loading="lazy" />
-                  <form action={excluirFotoParceiro} className="p-1.5">
-                    <input type="hidden" name="path" value={f.path} />
-                    <Confirmar mensagem="Excluir foto?" rotulo="Excluir" className="apoio flex h-11 w-full items-center justify-center text-crit" />
-                  </form>
-                </div>
               ))}
             </div>
           )}
-          {fotos.length < 3 && (
-            <form action={subirFotoParceiro} className="sombra-1 mt-3 flex items-center gap-2 rounded-[14px] border border-line bg-panel p-3">
-              <input name="foto" type="file" accept="image/jpeg,image/png,image/webp" required className="corpo min-w-0 flex-1" />
-              <button className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-acao-texto">Enviar</button>
-            </form>
-          )}
-        </section>
+        </>
       )}
+
+      <SecaoPagina icone="mais">Atalhos</SecaoPagina>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <LinhaLista href="/parceiro/perfil" titulo={ROTULO_MEU_PERFIL[tipo]} subtitulo="Fotos, contato e o que você atende" />
+        <LinhaLista href="/explorar" titulo="Explorar Parceiros" subtitulo="Veja como os outros parceiros se apresentam" />
+        <LinhaLista href="/parceiro/conta" titulo="Minha Conta" subtitulo="Plano, cobrança e visibilidade" />
+      </div>
     </main>
   )
+}
+
+/** Cartão de número do dashboard. Vira link quando existe destino — número
+ *  sem para-onde-ir é enfeite. */
+function Numero({
+  icone,
+  valor,
+  rotulo,
+  href,
+}: {
+  icone: NomeIcone
+  valor: number
+  rotulo: string
+  href?: string
+}) {
+  const miolo = (
+    <>
+      <Icone nome={icone} className="size-5 text-accent-forte" />
+      <p className="mt-1.5 text-2xl font-semibold tabular-nums">{valor}</p>
+      <p className="apoio mt-0.5 text-dim">{rotulo}</p>
+    </>
+  )
+  const classe = "sombra-1 block rounded-[14px] border border-line bg-panel p-3.5"
+  return href ? <Link href={href} className={classe}>{miolo}</Link> : <div className={classe}>{miolo}</div>
 }

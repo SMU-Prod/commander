@@ -899,8 +899,13 @@ export interface Viagem {
   created_at: string
 }
 
+// COMMANDER PARTNER (PRD §13) — `categoria` é o TIPO PRINCIPAL do Partner.
+// "prestador" entrou na onda 51 (migration 052, §13.1). CUIDADO: não é o
+// mesmo "prestador" de `perfis_comandante` (migration 037, tela
+// /prestadores), que é PESSOA da rede profissional — aqui é conta Partner.
+// Rótulos, menu e regras por tipo: web/lib/domain/partner.ts.
 export type CategoriaParceiro =
-  | "marina" | "posto" | "pousada" | "restaurante" | "loja_nautica" | "outros"
+  | "prestador" | "loja_nautica" | "marina" | "posto" | "restaurante" | "pousada" | "outros"
 export type PlanoParceiro = "cortesia" | "basico" | "destaque"
 
 export interface Parceiro {
@@ -933,7 +938,70 @@ export interface Parceiro {
   precos_atualizados_em: string | null
   criado_em: string
   atualizado_em: string
+  // --- onda 51 / migration 052 (PRD §13 e §10) --------------------------
+  /** Região da `taxonomia` — a MESMA lista do Marketplace (§10: "regiões
+   *  padronizadas e compartilhadas"). Ponto no mapa não serve de filtro. */
+  regiao_id: string
+  /** §13.1 "Também vendo produtos" / §13.2 "Também presto serviços". Só o
+   *  tipo dono do toggle pode ligá-lo — `atividadesValidas` em
+   *  lib/domain/partner.ts é quem garante. */
+  tambem_vende_produtos: boolean
+  tambem_presta_servicos: boolean
+  /** §13.3 "acesso náutico" / §13.5 "informações náuticas" / §13.6 "acesso
+   *  pelo mar" — a mesma pergunta, uma coluna só. */
+  acesso_nautico: string | null
+  estrutura: string | null
+  atracacao: string | null
+  tem_combustivel: boolean
+  /** "HH:MM:SS" ou null (§13.6). */
+  check_in: string | null
+  check_out: string | null
+  /** §13.5 — galeria de IMAGENS do cardápio, separada de `fotos` (que são as
+   *  do estabelecimento). Não existe cadastro de prato. */
+  fotos_cardapio: string[]
 }
+
+/** Categoria/marca/combustível que o Partner declara atender (§13.1, §13.2,
+ *  §13.4). Sempre id de `taxonomia` — §21.2 proíbe texto livre, e é isso que
+ *  faz o filtro do Explorar e o matching do Marketplace falarem do mesmo
+ *  "Elétrica". */
+export interface ParceiroAtividade {
+  parceiro_id: string
+  taxonomia_id: string
+  tipo: "categoria_servico" | "categoria_produto" | "marca" | "combustivel"
+  criado_em: string
+}
+
+/** §13.3 — vaga seca/molhada da Marina. `disponiveis` é NÚMERO DECLARADO por
+ *  ela, não saldo transacional: nada no app escreve aqui além da própria
+ *  Marina, e `declarado_em` existe pra a tela mostrar a idade do número. */
+export interface ParceiroVaga {
+  parceiro_id: string
+  tipo: "seca" | "molhada"
+  total: number | null
+  disponiveis: number | null
+  porte_max_pes: number | null
+  preco_diaria_centavos: number | null
+  preco_mensal_centavos: number | null
+  /** "sob consulta" é ESTADO, não preço zero (mesma decisão do Gold 81+ pés). */
+  sob_consulta: boolean
+  declarado_em: string
+}
+
+/** §13.6 — acomodação da Pousada/Hotel. `valor_diaria_centavos` é nullable
+ *  porque o PRD diz "valores opcionais"; não há data/ocupação porque não há
+ *  calendário nem booking no Upgrade 2. */
+export interface ParceiroAcomodacao {
+  id: string
+  parceiro_id: string
+  nome: string
+  capacidade: number | null
+  valor_diaria_centavos: number | null
+  descricao: string | null
+  ordem: number
+  criado_em: string
+}
+
 
 // AGENDA (onda 43, PRD §8) — compromissos marcados. CUIDADO com o nome:
 // `Evento` lá em cima é o DIÁRIO DE BORDO (o que já aconteceu); isto aqui é

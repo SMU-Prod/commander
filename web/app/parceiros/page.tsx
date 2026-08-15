@@ -15,7 +15,7 @@ import { Logo } from "@/components/logo"
 
 export const metadata: Metadata = {
   title: "Seja parceiro Commander — apareça no mapa dos donos de barco",
-  description: "Marina, posto, pousada ou restaurante: cadastre seu negócio no mapa náutico que os donos de embarcação já usam pra navegar. Autoatendimento, sem mensalidade de agência.",
+  description: "Marina, posto, loja náutica, prestador de serviço, restaurante ou pousada: cadastre seu negócio no app que os donos de embarcação já usam pra navegar e contratar. Autoatendimento, sem mensalidade de agência.",
   openGraph: {
     title: "Seja parceiro Commander",
     description: "Apareça no mapa náutico que os donos de embarcação já usam pra navegar.",
@@ -74,7 +74,11 @@ export default function ParceirosPage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-6 pb-16 pt-10 text-center lg:pb-24 lg:pt-16">
-        <p className="rotulo text-accent">Para marinas, postos, pousadas e restaurantes</p>
+        {/* Onda 51 (PRD §13): os tipos de Partner passaram de quatro pra seis —
+            Prestador de Serviço e Loja Náutica entraram, e os dois são
+            vendáveis em /assinar. A página de vendas tinha que dizer o mesmo
+            que a tela de plano, senão o pitch exclui justamente quem paga. */}
+        <p className="rotulo text-accent">Para marinas, postos, lojas náuticas, prestadores, restaurantes e pousadas</p>
         <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-5xl">
           Seu ponto no mapa que os donos de barco já usam.
         </h1>

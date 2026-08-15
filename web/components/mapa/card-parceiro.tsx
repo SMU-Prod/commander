@@ -3,17 +3,15 @@ import { useEffect, useState } from "react"
 import { Icone } from "@/components/icone"
 import { formatarReais } from "@/lib/domain/gastos"
 import { tempoDesde } from "@/lib/domain/navegacao"
+import { ROTULO_TIPO_PARTNER } from "@/lib/domain/partner"
 import { supabaseBrowser } from "@/lib/supabase/client"
-import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
+import type { Parceiro } from "@/lib/db/types"
 
-const CATEGORIA_ROTULO: Record<CategoriaParceiro, string> = {
-  marina: "Marina",
-  posto: "Posto de combustível",
-  pousada: "Pousada",
-  restaurante: "Restaurante",
-  loja_nautica: "Loja náutica",
-  outros: "Outros",
-}
+// Onda 51: o rótulo do tipo saiu daqui pra `lib/domain/partner.ts`, que é a
+// fonte única do §13 ("o Dashboard e o perfil exibem o tipo real"). Havia
+// três listas de categoria no app — esta, a do filtro do mapa e a do
+// formulário do parceiro — e elas já discordavam ("Posto de combustível" vs
+// "Posto"). Agora é uma só.
 
 const DIAS_DESATUALIZADO = 30
 
@@ -86,7 +84,7 @@ export function CardParceiro({
             <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="titulo-card">{parceiro.nome}</p>
-                <p className="apoio mt-0.5 text-dim">{CATEGORIA_ROTULO[parceiro.categoria]}</p>
+                <p className="apoio mt-0.5 text-dim">{ROTULO_TIPO_PARTNER[parceiro.categoria]}</p>
               </div>
               <button
                 type="button"

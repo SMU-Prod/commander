@@ -8,18 +8,17 @@ import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { RedeNav } from "@/components/ui/rede-nav"
 import type { EstadoCamadas } from "@/lib/mapa/camadas"
 import { criarElementoMarcadorParceiro } from "@/lib/mapa/pino-parceiro"
-import type { CategoriaParceiro, Parceiro } from "@/lib/db/types"
+import { FILTRO_TODOS, ROTULO_TIPO_PARTNER, TIPOS_PARTNER, type TipoPartner } from "@/lib/domain/partner"
+import type { Parceiro } from "@/lib/db/types"
 
-const CATEGORIAS: { valor: CategoriaParceiro | "todos"; rotulo: string }[] = [
-  { valor: "todos", rotulo: "Todos" },
-  { valor: "marina", rotulo: "Marina" },
-  { valor: "posto", rotulo: "Posto" },
-  { valor: "pousada", rotulo: "Pousada" },
-  { valor: "restaurante", rotulo: "Restaurante" },
-  // Onda 41: as duas últimas categorias do PRD §52 ("Loja náutica" e
-  // "Outros parceiros pertinentes") — o CHECK do banco não as aceitava.
-  { valor: "loja_nautica", rotulo: "Loja náutica" },
-  { valor: "outros", rotulo: "Outros" },
+// Onda 51: a lista de categorias virou os TIPOS DE PARTNER do §13, com os
+// rótulos vindos de `lib/domain/partner.ts` — mesma fonte da vitrine de
+// cards, do card do mapa e do formulário do parceiro. Antes eram três listas
+// escritas à mão que já discordavam entre si ("Posto" aqui, "Posto de
+// combustível" no card).
+const CATEGORIAS: { valor: TipoPartner | typeof FILTRO_TODOS; rotulo: string }[] = [
+  { valor: FILTRO_TODOS, rotulo: "Todos" },
+  ...TIPOS_PARTNER.map((t) => ({ valor: t, rotulo: ROTULO_TIPO_PARTNER[t] })),
 ]
 
 /** Onda 39 (PRD upgrade2-master §52) — "descobrir onde ir e o que existe ao
@@ -61,12 +60,12 @@ export function ExplorarMapa({
   // grava em localStorage) — desligar "Parceiros" aqui também desliga lá, o
   // que é o comportamento certo: é a MESMA camada, não uma cópia.
   const [mostrarParceiros, setMostrarParceiros] = useState(true)
-  const [categoria, setCategoria] = useState<CategoriaParceiro | "todos">("todos")
+  const [categoria, setCategoria] = useState<TipoPartner | typeof FILTRO_TODOS>(FILTRO_TODOS)
   const [parceiroAberto, setParceiroAberto] = useState<Parceiro | null>(null)
   const marcadoresRef = useRef<MarcadorMapbox[]>([])
 
   const filtrados = useMemo(
-    () => (categoria === "todos" ? parceiros : parceiros.filter((p) => p.categoria === categoria)),
+    () => (categoria === FILTRO_TODOS ? parceiros : parceiros.filter((p) => p.categoria === categoria)),
     [parceiros, categoria],
   )
 
@@ -108,8 +107,17 @@ export function ExplorarMapa({
           em "top-right" — mesmo espaço reservado que NavegarMapa já usa pro
           seu próprio overlay do topo. */}
       <div className="pointer-events-none absolute left-3 right-14 top-3 z-20 flex flex-col gap-2">
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex items-center gap-2">
           <RedeNav atual="explorar" variant="mapa" />
+          {/* Onda 51 — o §10 põe os cards como experiência principal, então o
+              mapa deixou de ser a porta de entrada do Explorar. A volta pra
+              vitrine fica a um toque, do mesmo jeito que a ida pro mapa. */}
+          <Link
+            href="/explorar"
+            className="sombra-2 flex h-11 shrink-0 items-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3.5 text-sm font-medium text-meter-texto"
+          >
+            Vitrine
+          </Link>
         </div>
         <div
           className="pointer-events-auto sombra-2 flex gap-1.5 overflow-x-auto rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento p-1.5"
