@@ -4,7 +4,6 @@ import {
   temInformacaoSuficiente,
   textoRestante,
   textoRestanteCompacto,
-  textoRestanteHero,
 } from "./semaforo"
 
 const HOJE = "2026-08-05"
@@ -195,20 +194,7 @@ describe("temInformacaoSuficiente — o item tem dado real por trás do status?"
 // com seus próprios testes (`saude.test.ts`) — ver comentário no fim de
 // `semaforo.ts` (perto de `temInformacaoSuficiente`).
 
-// QA do emulador (onda 16): "500h restantes" truncava no grid de 3 colunas
-// do hero — a versao hero e minima porque o rotulo da metrica ja da contexto.
-describe("textoRestanteHero — minimo pro grid do hero", () => {
-  it("horas viram so o numero", () => {
-    expect(textoRestanteHero({ status: "atencao", horasRestantes: 500, diasRestantes: null })).toBe("500h")
-  })
-  it("dias viram numero + dias", () => {
-    expect(textoRestanteHero({ status: "atencao", horasRestantes: null, diasRestantes: 2 })).toBe("2 dias")
-  })
-  it("vencido mantem a palavra — e a informacao mais importante", () => {
-    expect(textoRestanteHero({ status: "vencido", horasRestantes: -12, diasRestantes: null })).toBe("vencido 12h")
-    expect(textoRestanteHero({ status: "vencido", horasRestantes: null, diasRestantes: -3 })).toBe("vencido 3d")
-  })
-  it("sem dado nenhum vira travessao", () => {
-    expect(textoRestanteHero({ status: "atencao", horasRestantes: null, diasRestantes: null })).toBe("—")
-  })
-})
+// `textoRestanteHero` e seus testes sairam na onda 57 junto com o grid de
+// mini-metricas do hero de /hoje — ver o comentario no lugar dele em
+// `semaforo.ts`. Quem quer a frase da revisao agora: `apoioDaRevisao` em
+// `lib/domain/inicio.ts`, com testes proprios.

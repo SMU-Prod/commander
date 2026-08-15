@@ -114,20 +114,12 @@ export function textoRestanteCompacto(r: ResultadoCalc): string {
   return "—"
 }
 
-/** Versão MÍNIMA pro grid de mini-métricas do hero de /hoje (3 colunas de
- *  ~120px): "500h restantes" truncava em "500h restan…" no aparelho (visto
- *  no QA do emulador, onda 16) — aqui o rótulo da métrica ("Próxima
- *  revisão") já carrega o contexto, então só o número basta. Vencido
- *  mantém a palavra: é a informação mais importante da tela. */
-export function textoRestanteHero(r: ResultadoCalc): string {
-  if (r.horasRestantes != null) {
-    return r.horasRestantes < 0 ? `vencido ${Math.round(-r.horasRestantes)}h` : `${Math.round(r.horasRestantes)}h`
-  }
-  if (r.diasRestantes != null) {
-    return r.diasRestantes < 0 ? `vencido ${-r.diasRestantes}d` : `${r.diasRestantes} dias`
-  }
-  return "—"
-}
+/* `textoRestanteHero` saiu na onda 57. Ele existia só pro grid de três
+ * mini-métricas que ficava colado embaixo da foto em /hoje — e esse grid saiu
+ * junto com ele: o hero voltou a ser foto e nome (docs/DESIGN.md §4), e a
+ * revisão do motor passou a ser dita por extenso no cartão "Motores"
+ * (`apoioDaRevisao`, em lib/domain/inicio.ts), onde cabe a frase inteira sem
+ * abreviação. */
 
 /** Um item só entra no cálculo do anel de completude de /hoje quando há
  *  dado real por trás do status: motor com intervalo + último ciclo +

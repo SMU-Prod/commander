@@ -19,7 +19,12 @@ export function GraficoMesesGastos({
       {meses.map((m) => (
         <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
           <div
-            className={`w-full rounded-t ${m.mes === mesAtual ? "bg-accent-forte" : "bg-panel2 border border-line"}`}
+            /* Onda 57 — a barra do mês corrente era dourada. Dourado é ação
+               principal e marca (docs/DESIGN.md §5), e aqui ele estava só
+               marcando "este é o mês de agora" — trabalho que o contraste
+               faz igual, sem gastar o acento que a tela reserva pro botão
+               que importa. */
+            className={`w-full rounded-t ${m.mes === mesAtual ? "bg-texto" : "bg-panel2 border border-line"}`}
             style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
           />
           <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
