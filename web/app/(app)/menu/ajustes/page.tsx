@@ -7,14 +7,13 @@ import { sair } from "@/lib/acoes/auth"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
- * AJUSTES (onda 58, tarefa 3) — a casa nova de tudo que é configuração; o
- * Menu hoje mistura isso com destinos do produto, e a tarefa 4 esvazia o
- * Menu depois que esta tela existir. Os blocos abaixo foram MOVIDOS de
- * `menu/page.tsx` como estavam, não reescritos — por um commit as duas
- * telas mostram as mesmas linhas (Conta, Aparência), e está certo assim.
+ * AJUSTES (onda 58) — a casa de tudo que é configuração. O Menu virou o
+ * índice do produto (spec de arquitetura §4) e só aponta pra cá por uma
+ * linha no fim; Conta, Assinatura, Aparência, avisos do aparelho, cadastro
+ * de embarcação, Legal e Sair moram AQUI, e em nenhum outro lugar.
  *
- * `AtivarAlertas` vinha de Avisos (onda 58, tarefa 2 tirou de lá); esta é a
- * primeira vez que ela é renderizada de novo, agora com casa fixa.
+ * `AtivarAlertas` vinha de Avisos (onda 58, tarefa 2 tirou de lá); agora
+ * tem casa fixa.
  */
 export default async function AjustesPage() {
   const supabase = await supabaseServer()

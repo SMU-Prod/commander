@@ -1,26 +1,90 @@
 import { Logo } from "@/components/logo"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { sair } from "@/lib/acoes/auth"
 import { meusPapeisAdmin } from "@/lib/admin"
 import { carregarPainel } from "@/lib/consultas"
-import { podeVerAgenda } from "@/lib/domain/agenda"
 import { resumoPapeis } from "@/lib/domain/admin-papeis"
+import { podeVerAgenda } from "@/lib/domain/agenda"
+import { hojeISO } from "@/lib/domain/datas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
+import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
+import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
+/**
+ * MENU = O ÍNDICE DO PRODUTO (onda 58, spec de arquitetura §4).
+ *
+ * O dono olhou esta tela e disse "o menu mais parece configurações do que
+ * menu" — e leu certo: metade das linhas ERA configuração (Conta, Assinatura,
+ * Aparência, avisos do aparelho, Legal, Sair). Tudo isso mudou de casa para
+ * `/menu/ajustes`; o que fica aqui são só DESTINOS — áreas do produto,
+ * agrupadas pela vida do barco (o barco · dinheiro · gente · rede), não por
+ * tecnologia. O PRD §9 chama o Menu de *gate de descoberta*: é onde se
+ * aprende que o app faz mais do que a barra de baixo mostra — por isso
+ * Financeiro e Carteira aparecem aqui mesmo tendo caminho por /barco, e nada
+ * pode depender de um link único (docs/CONTRIBUTING.md).
+ *
+ * ÍNDICE SEM INFORMAÇÃO É SUMÁRIO (spec §4.2): cada destino diz o que tem lá
+ * dentro quando existe um número que orienta decisão — "Financeiro · R$ 4.820
+ * este mês" é um destino, "Financeiro" sozinho é um rótulo. As consultas são
+ * baratas (um `count`/`head` por seção, nunca N por linha) e NÃO acontecem
+ * para área que a pessoa não pode ver: contar o que está bloqueado vazaria
+ * pelo subtítulo o número que a tela de destino recusa mostrar. Barco sem
+ * dado mostra o subtítulo descritivo, nunca "0" seco.
+ */
 export default async function MenuPage({
   searchParams,
 }: {
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
   const { erro } = await searchParams
-  const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
   const painel = await carregarPainel()
   // `cache()` no `meusPapeisAdmin` — a mesma consulta que o layout de (admin)
   // faz; aqui não custa uma ida a mais ao banco.
   const papeisAdmin = await meusPapeisAdmin()
+
+  // Equipamentos do hub (tipo "outro") já vêm inteiros em `painel.equipamentos`
+  // — contar de novo no banco seria pagar duas vezes pela mesma resposta. O
+  // filtro é o MESMO de /barco/equipamentos (`abaDoEquipamento`), senão o
+  // número da porta discordaria do que a sala mostra.
+  const equipamentosNoHub =
+    painel != null && podeVer(painel.permissoes, "equipamentos")
+      ? painel.equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "equipamentos").length
+      : 0
+
+  let ocorrenciasAbertas = 0
+  let totalMesCentavos = 0
+  if (painel != null) {
+    const supabase = await supabaseServer()
+    const hoje = hojeISO()
+    const [{ count: abertas }, { data: despesasMes }] = await Promise.all([
+      // Só `estado = 'aberta'`: o subtítulo diz "abertas", então "em
+      // acompanhamento" não entra — número e palavra têm que ser o mesmo fato.
+      supabase
+        .from("ocorrencias").select("id", { count: "exact", head: true })
+        .eq("embarcacao_id", painel.embarcacao.id).eq("estado", "aberta"),
+      // Mesmo recorte da Início (/hoje): despesas pagas de
+      // `lancamentos_financeiros` — e a soma é a MESMA `resumoGastos` de
+      // `lib/domain/gastos.ts`, nunca uma segunda fórmula. Aqui só o mês
+      // corrente, porque o subtítulo não compara com o anterior.
+      podeVer(painel.permissoes, "gastos")
+        ? supabase
+            .from("lancamentos_financeiros").select("data, valor_centavos")
+            .eq("embarcacao_id", painel.embarcacao.id)
+            .eq("tipo", "despesa").eq("status", "pago")
+            .gte("data", `${hoje.slice(0, 7)}-01`)
+        : Promise.resolve({ data: [] as { data: string; valor_centavos: number }[] }),
+    ])
+    ocorrenciasAbertas = abertas ?? 0
+    totalMesCentavos = resumoGastos(
+      (despesasMes ?? []).map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" })),
+      hoje,
+    ).totalMesCentavos
+  }
+
+  // Todo número em fonte de instrumento — e SÓ o número, nunca as palavras
+  // em volta (docs/DESIGN.md §5).
+  const num = (n: number) => <span className="font-mono-instr tabular-nums">{n}</span>
 
   return (
     <main>
@@ -28,39 +92,51 @@ export default async function MenuPage({
         <h1 className="titulo-pagina">Menu</h1>
         <Logo compacto />
       </div>
+      {/* Outras telas redirecionam pra cá com ?erro= — o toast fica. */}
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <SecaoPagina icone="pessoas">Conta</SecaoPagina>
+      {/* Onda 56 — as linhas do Menu não têm ícone à ESQUERDA de propósito:
+          a coluna de títulos alinha, o chevron da direita é a única marca de
+          "isto navega", e o ícone significa uma coisa só: a seção. */}
+      <SecaoPagina icone="embarcacao">O barco</SecaoPagina>
       <LinhaLista
-        href="/menu/perfil"
+        href="/barco/equipamentos"
         variant="cartao"
-        titulo={user?.email ?? "—"}
-        subtitulo="Proprietário"
+        titulo="Equipamentos"
+        subtitulo={
+          equipamentosNoHub > 0
+            ? <>{num(equipamentosNoHub)} {equipamentosNoHub === 1 ? "equipamento" : "equipamentos"}</>
+            : "Bote, guincho, ar-condicionado — o que você acompanha a bordo"
+        }
       />
-      {/* Onda 56 — as linhas do Menu perderam o ícone da ESQUERDA (só cinco
-          das quinze tinham um). O efeito na tela era uma borda esquerda
-          serrilhada: "Cadastrar outra embarcação" começava 28px à direita de
-          "Agenda", logo abaixo, sem nenhuma razão visível. E o ícone repetia
-          o que o cabeçalho da seção já dizia — "DINHEIRO 💲" seguido de
-          "💲 Financeiro" — quando não contradizia: a linha "Assinatura",
-          dentro de CONTA, carregava o cifrão que é o símbolo de DINHEIRO.
-          Sem eles a coluna de títulos alinha, o chevron da direita continua
-          sendo a única marca de "isto navega", e o ícone volta a significar
-          uma coisa só: a seção. */}
       <LinhaLista
-        href="/menu/assinatura"
+        href="/barco/fotos"
         variant="cartao"
         className="mt-2"
-        titulo="Assinatura"
+        titulo="Fotos"
+        subtitulo="Os álbuns do barco"
       />
-
-      <SecaoPagina icone="embarcacao">Minhas embarcações</SecaoPagina>
       <LinhaLista
-        href="/onboarding"
+        href="/barco/documentos"
         variant="cartao"
-        titulo="Cadastrar outra embarcação"
-        subtitulo="Troque entre elas pelo nome no topo da tela Início"
+        className="mt-2"
+        titulo="Documentos"
+        subtitulo="Validade e arquivos — o semáforo avisa antes de vencer"
       />
+      <LinhaLista
+        href="/barco/ocorrencias"
+        variant="cartao"
+        className="mt-2"
+        titulo="Ocorrências"
+        subtitulo={
+          ocorrenciasAbertas > 0
+            ? <>{num(ocorrenciasAbertas)} {ocorrenciasAbertas === 1 ? "aberta" : "abertas"}</>
+            : "Problemas apontados no Diário ou registrados direto, por setor"
+        }
+      />
+      {/* Saiu de "Minhas embarcações" (seção que acabou: cadastrar outra
+          embarcação é ajuste e mora em /menu/ajustes): o Connect é área do
+          barco, não ajuste. */}
       <LinhaLista
         href="/barco/connect"
         variant="cartao"
@@ -69,15 +145,16 @@ export default async function MenuPage({
         subtitulo="Em breve — conectividade NMEA 2000"
       />
 
-      {/* Onda 42 (PRD §9) — o Menu é a lista de tudo que o app tem (gate de
-          descoberta, docs/CONTRIBUTING.md): Financeiro e Carteira também
-          chegam por /barco, mas nada pode depender de um link único. */}
       <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
       <LinhaLista
         href="/financeiro"
         variant="cartao"
         titulo="Financeiro"
-        subtitulo="Despesas, entradas, recorrentes e relatórios"
+        subtitulo={
+          totalMesCentavos > 0
+            ? <><span className="font-mono-instr tabular-nums">{formatarReais(totalMesCentavos)}</span> este mês</>
+            : "Despesas, entradas, recorrentes e relatórios"
+        }
       />
       <LinhaLista
         href="/carteira"
@@ -87,62 +164,41 @@ export default async function MenuPage({
         subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
       />
 
-      <SecaoPagina icone="imagem">Aparência</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
-        <ThemeToggle />
-        <p className="apoio mt-2 text-dim">
-          O modo claro é o padrão — feito para leitura sob sol forte na marina.
-        </p>
-      </div>
-
-      {/* Agenda (onda 43, PRD §8) — segundo caminho de descoberta, além do
-          atalho na Início. Só aparece pra quem pode ver: desde a onda 46 a
-          Agenda tem área PRÓPRIA na matriz (`AREA_AGENDA` em
-          lib/domain/agenda.ts), não pega mais carona em "diario". */}
-      {painel != null && podeVerAgenda(painel.permissoes) && (
-        <>
-          <SecaoPagina icone="calendario">Agenda</SecaoPagina>
-          <LinhaLista
-            href="/agenda"
-            variant="cartao"
-            titulo="Agenda"
-            subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
-          />
-        </>
+      <SecaoPagina icone="pessoas">Gente</SecaoPagina>
+      {painel?.papel === "PROP" && (
+        <LinhaLista
+          href="/tripulacao"
+          variant="cartao"
+          titulo="Tripulação"
+          subtitulo="Convide comandantes e ajuste as permissões"
+        />
       )}
-
-      <SecaoPagina icone="alerta">Avisos</SecaoPagina>
       <LinhaLista
-        href="/notificacoes"
+        href="/comandantes"
         variant="cartao"
-        titulo="Configurar avisos"
-        subtitulo="Ative os avisos por aparelho e veja o histórico"
+        className={painel?.papel === "PROP" ? "mt-2" : undefined}
+        titulo="Comandantes"
+        subtitulo="Disponíveis para contratar direto pelo WhatsApp"
       />
 
-      {painel?.papel === "PROP" && (
-        <>
-          <SecaoPagina icone="pessoas">Tripulação</SecaoPagina>
-          <LinhaLista
-            href="/menu/tripulacao"
-            variant="cartao"
-            titulo="Tripulação"
-            subtitulo="Convide comandantes e ajuste as permissões"
-          />
-        </>
-      )}
-
       {/* Onda 39 — segundo caminho até as telas da rede profissional
-          (RedeNav já cruza entre elas, mas o Menu é a lista de tudo que o
-          app tem — gate de descoberta pede que nada fique só dependendo de
-          um único link, ver CONTRIBUTING.md).
-          Onda 46: eram quatro linhas; a de "Serviços" saiu porque o PRD FINAL
-          eliminou a aba (§10) e cobra explicitamente que "nenhum menu
-          principal deve usar a antiga aba 'Serviços'" (§27.2). A busca por
-          especialidade que ela fazia mora agora em Prestadores. */}
-      <SecaoPagina icone="pessoas">Rede profissional</SecaoPagina>
+          (RedeNav já cruza entre elas; gate de descoberta, ver
+          docs/CONTRIBUTING.md). Agenda (onda 43, PRD §8) continua só pra quem
+          pode ver: desde a onda 46 ela tem área PRÓPRIA na matriz
+          (`AREA_AGENDA` em lib/domain/agenda.ts). */}
+      <SecaoPagina icone="chat">Rede</SecaoPagina>
       <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
       <LinhaLista href="/marketplace" variant="cartao" className="mt-2" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
       <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
+      {painel != null && podeVerAgenda(painel.permissoes) && (
+        <LinhaLista
+          href="/agenda"
+          variant="cartao"
+          className="mt-2"
+          titulo="Agenda"
+          subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
+        />
+      )}
 
       <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
       <LinhaLista
@@ -171,15 +227,15 @@ export default async function MenuPage({
         </>
       )}
 
-      <SecaoPagina icone="documento">Legal</SecaoPagina>
-      <LinhaLista href="/termos" variant="cartao" titulo="Termos de Uso" />
-      <LinhaLista href="/privacidade" variant="cartao" className="mt-2" titulo="Política de Privacidade" />
-
-      <form action={sair} className="mt-8">
-        <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">
-          Sair da conta
-        </button>
-      </form>
+      {/* A única linha que não é destino do produto — e por isso fica no fim,
+          fora de seção: é a porta pra TUDO que saiu daqui (spec §4.2). */}
+      <LinhaLista
+        href="/menu/ajustes"
+        variant="cartao"
+        className="mt-6"
+        titulo="Ajustes"
+        subtitulo="Conta, assinatura, aparência e avisos do aparelho"
+      />
     </main>
   )
 }
