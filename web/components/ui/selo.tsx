@@ -25,8 +25,14 @@ export function rotuloDoSelo(estado: EstadoSelo): string {
 
 export function Selo({ estado, children }: { estado: EstadoSelo; children?: React.ReactNode }) {
   return (
+    // 11px e não 10px (revisão da onda 57): `globals.css` diz "nada abaixo de
+    // 11px" e o commit que removeu a exceção de 9,5px da barra de baixo
+    // declarou que a barra inteira voltava ao piso. Este componente nasceu,
+    // no MESMO branch, a 10px — fora da escala `11·12·14·16·20·26·34` — e
+    // substituiu a pílula escrita à mão do boletim do mar, que estava a 11px:
+    // o selo de estado ficou MENOR do que a coisa que ele veio padronizar.
     <span
-      className={`inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[.09em] ${COR[estado]}`}
+      className={`inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[.09em] ${COR[estado]}`}
     >
       {children ?? ROTULO[estado]}
     </span>

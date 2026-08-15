@@ -379,8 +379,21 @@ export default async function HojePage({
         }
       >
         {estadoSaude != null ? (
-          <p className="apoio font-mono-instr tabular-nums text-dim">
-            {contagemDaSaude(saude) ?? "Nenhum item monitorado com data ou leitura."}
+          /* A fonte de instrumento é do NÚMERO, não da frase (revisão da onda
+             57). Este parágrafo inteiro era `font-mono-instr tabular-nums`:
+             no caminho normal, oito palavras em monoespaçada ao lado dos
+             números; no caminho vazio — barco com uma ocorrência ativa e
+             nenhum item com horas ou data, que é alcançável —, a frase de
+             reserva inteira. Mesmo defeito que a onda 56 tirou do hero.
+             Agora `contagemDaSaude` devolve as partes e só o numeral leva a
+             mono, como o cartão da Tripulação logo abaixo já fazia. */
+          <p className="apoio text-dim">
+            {contagemDaSaude(saude)?.map((parte, i) => (
+              <span key={parte.rotulo}>
+                {i > 0 && " · "}
+                <span className="font-mono-instr tabular-nums">{parte.numero}</span> {parte.rotulo}
+              </span>
+            )) ?? "Nenhum item monitorado com data ou leitura."}
           </p>
         ) : (
           <p className="apoio text-dim">

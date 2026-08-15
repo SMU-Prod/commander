@@ -33,10 +33,16 @@
   --raio-cartao: 14px;    /* cartão, painel, bloco */
   --raio-pilula: 999px;   /* pílula, avatar, selo */
 
-  /* Sombra existe para dizer "isto flutua", nunca para embelezar. A
-     maioria das superfícies é plana. */
-  --elev-cartao: 0 1px 2px rgba(11, 29, 45, .06);
-  --elev-flutuante: 0 12px 32px rgba(4, 14, 24, .28);
+  /* ELEVAÇÃO NÃO MORA AQUI — mora em `--sombra-1`/`--sombra-2`, mais abaixo,
+     que é o que o app inteiro consome (`.sombra-1`, `.sombra-2`).
+     A onda 57 criou aqui um par `--elev-cartao`/`--elev-flutuante` que
+     ninguém chegou a usar: dois nomes pra mesma coisa, com VALORES
+     diferentes dos que estavam em uso (uma camada de sombra contra duas) e
+     sem versão no tema escuro — no dia em que alguém escrevesse
+     `var(--elev-cartao)`, o escuro ganharia sombra de tema claro. A revisão
+     apagou os dois. Se precisar de elevação, use `--sombra-1` (separa do
+     fundo) ou `--sombra-2` (isto flutua); "plano" é a ausência das duas, e é
+     o padrão da maioria das superfícies (docs/DESIGN.md §5). */
 }
 
 [data-theme="dark"] {
@@ -149,9 +155,21 @@ body {
    do mapa — então SÓ nesta tela (classe alternada por navegar-mapa.tsx no
    mount/unmount) o body fica transparente; o <html> vira o piso, com o
    MESMO navy fixo dos instrumentos, pra nunca sobrar branco no lugar do
-   véu escuro. */
+   véu escuro.
+
+   Revisão da onda 57 — o hexadecimal saiu, o token entrou: era `#0b1d2d`
+   escrito à mão, o navy que a onda 57 aposentou como CHÃO do tema escuro
+   (--fundo virou #0a0e12). No escuro, /navegar ficava com o piso de antes e
+   todas as outras telas com o de agora.
+   O token é `--meter` e NÃO `--fundo`, e o motivo está duas frases acima:
+   este piso existe pra nunca sobrar branco atrás do mapa. `--fundo` no tema
+   CLARO é #f5f7fa — usá-lo aqui devolveria exatamente o branco que esta
+   regra foi escrita pra impedir. `--meter` é o navy fixo de instrumento:
+   #0b1d2d no claro (byte a byte o que já estava) e #060d16 no escuro, ou
+   seja, a família de chão da onda 57. Conferido no navegador nos dois temas
+   e nos três estilos de carta: o mapa não mudou de aparência. */
 html:has(body.fundo-tela-mapa) {
-  background: #0b1d2d;
+  background: var(--meter);
 }
 body.fundo-tela-mapa {
   background: transparent;

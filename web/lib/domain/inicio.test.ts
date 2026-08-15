@@ -88,19 +88,31 @@ describe("seloDoMar", () => {
 })
 
 describe("contagemDaSaude", () => {
-  it("conta em uma linha só, do melhor pro pior", () => {
+  it("conta do melhor pro pior", () => {
     expect(contagemDaSaude(saude({ emDia: 5, atencao: 1, vencido: 2, total: 8 })))
-      .toBe("5 em dia · 1 em atenção · 2 vencidos")
+      .toEqual([
+        { numero: 5, rotulo: "em dia" },
+        { numero: 1, rotulo: "em atenção" },
+        { numero: 2, rotulo: "vencidos" },
+      ])
   })
 
   it("omite o que é zero — '0 vencidos' é ruído, não informação", () => {
-    expect(contagemDaSaude(saude({ emDia: 5, total: 5 }))).toBe("5 em dia")
-    expect(contagemDaSaude(saude({ atencao: 2, total: 2 }))).toBe("2 em atenção")
+    expect(contagemDaSaude(saude({ emDia: 5, total: 5 }))).toEqual([{ numero: 5, rotulo: "em dia" }])
+    expect(contagemDaSaude(saude({ atencao: 2, total: 2 }))).toEqual([{ numero: 2, rotulo: "em atenção" }])
   })
 
   it("concorda em número na única palavra que varia", () => {
-    expect(contagemDaSaude(saude({ vencido: 1, total: 1 }))).toBe("1 vencido")
-    expect(contagemDaSaude(saude({ vencido: 3, total: 3 }))).toBe("3 vencidos")
+    expect(contagemDaSaude(saude({ vencido: 1, total: 1 }))).toEqual([{ numero: 1, rotulo: "vencido" }])
+    expect(contagemDaSaude(saude({ vencido: 3, total: 3 }))).toEqual([{ numero: 3, rotulo: "vencidos" }])
+  })
+
+  it("separa número de palavra — a fonte de instrumento é só do número", () => {
+    // A garantia do achado: nenhuma parte carrega o numeral dentro do texto,
+    // senão a tela volta a ter palavra em monoespaçada.
+    for (const parte of contagemDaSaude(saude({ emDia: 5, atencao: 1, vencido: 2, total: 8 })) ?? []) {
+      expect(parte.rotulo).not.toMatch(/\d/)
+    }
   })
 
   it("sem item com informação suficiente, não inventa contagem", () => {

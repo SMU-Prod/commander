@@ -45,7 +45,13 @@ export function EstadoVazio({
   enfase?: "acao" | "discreta"
   className?: string
 }) {
-  const base = variant === "cartao" ? "sombra-1 rounded-[14px] border border-line bg-panel p-4" : "py-6"
+  // `var(--raio-cartao)` e não `14px` cravado (revisão da onda 57): este
+  // componente compõe a Início DENTRO de um `Cartao`, que lê o token. Hoje os
+  // dois valem 14px; no dia em que o token mudar, metade dos cartões da mesma
+  // tela mudaria e a outra metade não.
+  const base = variant === "cartao"
+    ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
+    : "py-6"
   const corDaAcao = enfase === "discreta"
     ? "text-texto underline underline-offset-2"
     : "text-accent-forte"

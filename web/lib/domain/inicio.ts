@@ -75,22 +75,31 @@ export function rotuloDaSaude(estado: EstadoSaude | null): string {
  * A contagem que sobrou do anel: "5 em dia · 1 em atenção · 2 vencidos".
  *
  * Uma linha só, e não três com bolinha colorida do lado, porque o estado já
- * está dito em cima pelo selo — aqui embaixo o que falta é a leitura, e
- * leitura é uma fileira de números em fonte de instrumento (a tela põe
- * `font-mono-instr tabular-nums` na linha inteira).
+ * está dito em cima pelo selo — aqui embaixo o que falta é a leitura.
  *
  * O que é zero não aparece: "0 vencidos" ocupa o mesmo espaço de uma
  * informação sem ser uma.
+ *
+ * DEVOLVE PARTES E NÃO UMA FRASE (revisão da onda 57). Enquanto era string, a
+ * tela punha `font-mono-instr tabular-nums` no parágrafo inteiro e as OITO
+ * PALAVRAS iam em monoespaçada junto com os números — e no caminho vazio,
+ * onde a tela caía num texto de reserva, uma frase inteira. É exatamente o
+ * defeito que a onda 56 tirou do hero ("S e m   d a d o s" ao lado de
+ * "612,0h"): fonte de instrumento é para NÚMERO (docs/DESIGN.md §5). Com as
+ * partes separadas, quem renderiza põe a mono só no numeral, como o cartão
+ * da Tripulação já faz.
  */
 export function contagemDaSaude(
   saude: Pick<SaudeEmbarcacao, "emDia" | "atencao" | "vencido" | "total">,
-): string | null {
+): { numero: number; rotulo: string }[] | null {
   if (saude.total === 0) return null
-  const partes: string[] = []
-  if (saude.emDia > 0) partes.push(`${saude.emDia} em dia`)
-  if (saude.atencao > 0) partes.push(`${saude.atencao} em atenção`)
-  if (saude.vencido > 0) partes.push(`${saude.vencido} ${saude.vencido === 1 ? "vencido" : "vencidos"}`)
-  return partes.length > 0 ? partes.join(" · ") : null
+  const partes: { numero: number; rotulo: string }[] = []
+  if (saude.emDia > 0) partes.push({ numero: saude.emDia, rotulo: "em dia" })
+  if (saude.atencao > 0) partes.push({ numero: saude.atencao, rotulo: "em atenção" })
+  if (saude.vencido > 0) {
+    partes.push({ numero: saude.vencido, rotulo: saude.vencido === 1 ? "vencido" : "vencidos" })
+  }
+  return partes.length > 0 ? partes : null
 }
 
 /** Leitura do horímetro, com a casa decimal que o horímetro tem. Sem leitura

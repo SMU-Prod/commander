@@ -164,7 +164,9 @@ export function TrilhoLateral({
                 já é `z-20`, então ela cobre o conteúdo da página sem passar
                 por cima do toast (`z-40`).
                 `sombra-2` é a elevação de "isto flutua" que o resto do app
-                usa em menu e pastilha (`--elev-flutuante`, spec §2.3) — a
+                usa em menu e pastilha (`--sombra-2` em `globals.css`, o
+                token de verdade — o `--elev-flutuante` que este comentário
+                citava nunca teve consumidor e foi apagado na revisão) — a
                 mesma do menu do SeletorEmbarcacao. */}
             <span
               aria-hidden="true"

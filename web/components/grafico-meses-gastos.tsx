@@ -33,5 +33,8 @@ export function GraficoMesesGastos({
     </div>
   )
   if (!comMoldura) return barras
-  return <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">{barras}</div>
+  // `var(--raio-cartao)` e não `14px` cravado: com moldura, este gráfico é um
+  // cartão como qualquer outro e tem que dobrar o canto junto com eles
+  // (revisão da onda 57).
+  return <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">{barras}</div>
 }
