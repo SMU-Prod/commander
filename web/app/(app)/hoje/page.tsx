@@ -515,7 +515,7 @@ export default async function HojePage({
             { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
             { href: "/agenda", rotulo: "Agenda", aba: "diario", icone: "calendario" },
             { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
-            { href: "/diario", rotulo: "Diário", aba: "diario", icone: "relatorio" },
+            { href: "/diario", rotulo: "Diário", icone: "relatorio" },
             { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
           ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
         )
