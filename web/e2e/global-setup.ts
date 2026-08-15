@@ -7,7 +7,19 @@ import { createClient } from "@supabase/supabase-js"
 export const ARQUIVO_SESSAO = path.join(__dirname, ".auth", "usuario-teste.json")
 export const ARQUIVO_ID_USUARIO = path.join(__dirname, ".auth", "usuario-teste-id.txt")
 
-const EMAIL_TESTE = process.env.E2E_TEST_EMAIL ?? "e2e-tests@soumardivers.com"
+// E-mail ÚNICO por execução, não fixo. Com um e-mail compartilhado, duas
+// rodadas simultâneas (CI + local, ou dois agentes) derrubam a sessão uma da
+// outra no meio do caminho: a segunda falha em `createUser` com "already
+// registered", não grava `storageState`, e a suíte inteira passa a fotografar
+// a tela de login achando que está medindo o app. Três frentes perderam
+// varredura assim em 15/08/2026 antes de alguém perceber que o problema não
+// era o app — era o teste.
+//
+// `E2E_TEST_EMAIL` continua tendo prioridade pra quem quiser fixar de
+// propósito (depurar uma conta específica, por exemplo).
+const EMAIL_TESTE =
+  process.env.E2E_TEST_EMAIL ??
+  `e2e-${process.pid}-${Date.now().toString(36)}@soumardivers.com`
 
 /**
  * `/navegar` é rota protegida (ver middleware.ts) — pra testar de verdade
