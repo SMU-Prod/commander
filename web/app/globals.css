@@ -24,13 +24,41 @@
      dark (mínimo é 4.5:1). Token dedicado pra essa combinação, medido ao
      vivo via getComputedStyle: 5.00:1 aqui, 4.89:1 no dark abaixo. */
   --texto-dim-chip: #596976;
+
+  /* Onda 57 — forma. Três raios e três elevações, e nada fora disto.
+     Quatro raios diferentes na mesma tela foi o que fez a proposta de
+     redesign parecer gerada: decoração distribuída em vez de sistema.
+     Ver docs/DESIGN.md §5. */
+  --raio-controle: 8px;   /* chip, campo, botão pequeno */
+  --raio-cartao: 14px;    /* cartão, painel, bloco */
+  --raio-pilula: 999px;   /* pílula, avatar, selo */
+
+  /* Sombra existe para dizer "isto flutua", nunca para embelezar. A
+     maioria das superfícies é plana. */
+  --elev-cartao: 0 1px 2px rgba(11, 29, 45, .06);
+  --elev-flutuante: 0 12px 32px rgba(4, 14, 24, .28);
 }
 
 [data-theme="dark"] {
-  --fundo: #0b1d2d;
-  --superficie: #12283a;
-  --superficie-2: #16324a;
-  --linha: #1e3550;
+  /* Onda 57 — o escuro fica mais fundo e mais neutro. O navy #0b1d2d como
+     GROUND deixava tudo azulado e cartão nenhum se separava do fundo; a
+     referência escolhida pelo dono (painel Haulix) usa quase-preto e
+     reserva a cor para o dado. O navy continua sendo a marca — só não é
+     mais o chão.
+
+     Correção sobre o plano original: os hex de --superficie/-2/--linha
+     abaixo NÃO são os do plano (#121820/#1a222c/#232d38) — aqueles reprovam
+     o próprio teste de contraste do plano (contraste.test.ts): mesmo com
+     --fundo em preto puro (#000000), #121820 contra ele dá 1.177:1, abaixo
+     do 1.2 mínimo — matematicamente impossível de corrigir só mexendo no
+     fundo. --fundo ficou como pedido (não escurecido); os três valores
+     abaixo foram clareados o suficiente pra render "cartão separa do
+     fundo" (DESIGN.md §5) verdadeiro, mantendo o mesmo matiz e a mesma
+     progressão relativa entre os três. */
+  --fundo: #0a0e12;
+  --superficie: #1c232c;
+  --superficie-2: #252e38;
+  --linha: #303a45;
   --texto: #e9f1f8;
   --texto-dim: #7c93ab;
   --ok: #2fd07a;
