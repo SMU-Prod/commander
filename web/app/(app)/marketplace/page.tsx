@@ -115,6 +115,11 @@ export default async function MarketplacePage() {
         <Link href="/marketplace/disponibilidades" className="apoio inline-flex items-center gap-1 text-accent-forte">
           <Icone nome="pessoas" className="size-4" /> Profissionais disponíveis
         </Link>
+        {/* §14 — a avaliação nasce do negócio fechado aqui, então a porta de
+            entrada dela é esta tela, não um item solto no menu. */}
+        <Link href="/avaliacoes" className="apoio inline-flex items-center gap-1 text-accent-forte">
+          <Icone nome="estrela" className="size-4" /> Avaliações
+        </Link>
       </div>
 
       {minhas.length > 0 && (
