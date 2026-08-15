@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -139,22 +140,17 @@ export default async function RelatoriosPage({
       {/* §9.3 — o filtro de embarcação só aparece pra quem tem frota. Com um
           barco só não há o que consolidar, e um seletor de um item é ruído. */}
       {frotaTemMaisDeUm && consolidadoLiberado && (
-        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {[{ id: TODAS, nome: "Todas" }, ...frota].map((e) => {
-            const ativo = e.id === TODAS ? verTodas : !verTodas && e.id === barcoAtual
-            return (
-              <Link
-                key={e.id}
-                href={`/financeiro/relatorios?modo=${modo}&barco=${e.id}`}
-                className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-                  ativo ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-                }`}
-              >
-                {e.nome}
-              </Link>
-            )
-          })}
-        </div>
+        <ChipLinha className="mt-4">
+          {[{ id: TODAS, nome: "Todas" }, ...frota].map((e) => (
+            <Chip
+              key={e.id}
+              href={`/financeiro/relatorios?modo=${modo}&barco=${e.id}`}
+              ativo={e.id === TODAS ? verTodas : !verTodas && e.id === barcoAtual}
+            >
+              {e.nome}
+            </Chip>
+          ))}
+        </ChipLinha>
       )}
 
       {/* §24, "limite atingido": quem tem mais de uma embarcação e não é Pro

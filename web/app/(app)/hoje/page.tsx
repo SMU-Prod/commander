@@ -9,6 +9,7 @@ import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
 import { SinoNotificacoes } from "@/components/sino-notificacoes"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import {
   calcularSemaforo,
   PESO,
@@ -277,13 +278,17 @@ export default async function HojePage({
   )
   const sozinhoNoBarco = tripulantes.length <= 1
   const podeConvidar = papel === "PROP"
+  // Mesmo motivo do cartão de despesas mais abaixo: barco sem tripulação é um
+  // estado vazio, e estado vazio nesta tela tem uma cara só.
+  const cascaTripulacao = sozinhoNoBarco
+    ? "block"
+    : "sombra-1 block rounded-[14px] border border-line bg-panel p-4"
   const conteudoTripulacao = sozinhoNoBarco ? (
-    <>
-      <p className="titulo-card">Só você tem acesso a este barco</p>
-      <p className="apoio mt-0.5 text-dim">
-        {podeConvidar ? "Convide comandantes de confiança pra dividir o controle." : "Nenhum outro comandante convidado ainda."}
-      </p>
-    </>
+    <EstadoVazio
+      icone="pessoas"
+      titulo="Só você tem acesso a este barco"
+      descricao={podeConvidar ? "Convide comandantes de confiança pra dividir o controle." : "Nenhum outro comandante convidado ainda."}
+    />
   ) : (
     <>
       <div className="flex items-center -space-x-2">
@@ -347,15 +352,18 @@ export default async function HojePage({
             Nenhum vencimento na margem. Bom vento e mar calmo.
           </div>
         ) : (
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4 text-center">
-            <Icone nome="relogio" className="mx-auto size-7 text-dim" />
-            <p className="corpo mt-2 font-medium">Ainda sem informação suficiente</p>
-            <p className="apoio mt-1 text-dim">
-              Nenhum motor tem leitura de horas real nem vencimento com data informada — não dá pra
-              dizer se está tudo em dia. Complete em Embarcação para o farol valer de verdade.
-            </p>
-            <Link href="/barco" className="apoio mt-3 inline-block text-accent-forte">Completar em Embarcação</Link>
-          </div>
+          /* Onda 56 — este bloco era uma cópia à mão do `EstadoVazio` (mesmo
+             ícone centralizado, mesmo título, mesma descrição, mesma ação),
+             com o ícone um tamanho maior que o do componente. Era essa cópia
+             que segurava a correção de alvo de toque da onda 54 enquanto o
+             componente compartilhado seguia com o CTA de 17px — a correção
+             agora mora lá dentro, e esta tela volta a ser cliente dele. */
+          <EstadoVazio
+            icone="relogio"
+            titulo="Ainda sem informação suficiente"
+            descricao="Nenhum motor tem leitura de horas real nem vencimento com data informada — não dá pra dizer se está tudo em dia. Complete em Embarcação para o farol valer de verdade."
+            acao={{ href: "/barco", rotulo: "Completar em Embarcação" }}
+          />
         )
       )}
       <div className="space-y-2">
@@ -478,9 +486,20 @@ export default async function HojePage({
               </div>
             </Link>
           ) : (
-            <Link href="/financeiro/novo?tipo=despesa" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
-              <p className="titulo-card">Nenhuma despesa paga este mês</p>
-              <p className="apoio mt-0.5 text-dim">Toque para registrar a primeira — vaga, combustível, manutenção.</p>
+            /* Onda 56 — este cartão era o único estado vazio da Início escrito
+               à mão: texto encostado à esquerda, sem ícone, enquanto os dois
+               blocos logo acima ("Ainda sem dados pro status geral", "Ainda
+               sem informação suficiente") usam `EstadoVazio` — ícone, texto
+               centralizado, caminho. Na mesma rolagem apareciam dois idiomas
+               de "não tem nada aqui". O cartão inteiro continua sendo o link
+               (por isso `EstadoVazio` entra sem `acao`: a ação é tocar em
+               qualquer lugar), só passa a falar o idioma dos irmãos. */
+            <Link href="/financeiro/novo?tipo=despesa" className="block">
+              <EstadoVazio
+                icone="cifrao"
+                titulo="Nenhuma despesa paga este mês"
+                descricao="Toque para registrar a primeira — vaga, combustível, manutenção."
+              />
             </Link>
           )}
         </>
@@ -489,12 +508,14 @@ export default async function HojePage({
       <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
         <Icone nome="pessoas" className="size-3.5" /> Tripulação
       </p>
+      {/* Vazio, o `EstadoVazio` já traz a própria casca de cartão (ícone,
+          centro, borda) — a casca daqui ficaria dobrada em cima da dele. */}
       {podeConvidar ? (
-        <Link href="/menu/tripulacao" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+        <Link href="/menu/tripulacao" className={cascaTripulacao}>
           {conteudoTripulacao}
         </Link>
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <div className={cascaTripulacao}>
           {conteudoTripulacao}
         </div>
       )}

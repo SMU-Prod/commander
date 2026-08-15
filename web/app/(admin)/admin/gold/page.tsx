@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { hojeISO } from "@/lib/consultas-gold"
@@ -118,19 +119,13 @@ export default async function AdminGoldPage({
       {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <ChipLinha className="mt-4">
         {ABAS.map((a) => (
-          <Link
-            key={a.chave}
-            href={`/admin/gold?filtro=${a.chave}`}
-            className={`rounded-full border px-3 py-1.5 apoio ${
-              filtro === a.chave ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={a.chave} href={`/admin/gold?filtro=${a.chave}`} ativo={filtro === a.chave}>
             {a.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
         {linhas.length === 0 ? (

@@ -33,7 +33,24 @@ export function EstadoVazio({
       <Icone nome={icone} className="mx-auto size-6 text-dim" />
       <p className="corpo mt-2 font-medium">{titulo}</p>
       {descricao && <p className="apoio mt-1 text-dim">{descricao}</p>}
-      {acao && <Link href={acao.href} className="apoio mt-3 inline-block text-accent-forte">{acao.rotulo}</Link>}
+      {/* Onda 56 — era `apoio mt-3 inline-block`, que dá 17px de altura de
+          alvo. A onda 54 já tinha diagnosticado e consertado exatamente isto,
+          mas na CÓPIA à mão deste cartão que existe em /hoje ("Completar em
+          Embarcação") — o componente compartilhado, que serve as outras ~48
+          telas, ficou pra trás. Por isso "Resolver" (Selos), "Cadastrar item"
+          (Segurança), "Cadastrar recorrente" (Financeiro) e companhia
+          continuavam sendo linhas de texto de 17px fingindo ser botão.
+          Mesma solução de lá: `min-h-11` (a régua de toque do app) com
+          `inline-flex` pra altura valer, e `mt-1` no lugar de `mt-3` porque a
+          altura nova já traz o respiro que o `mt-3` dava. */}
+      {acao && (
+        <Link
+          href={acao.href}
+          className="apoio mt-1 inline-flex min-h-11 items-center px-2 text-accent-forte"
+        >
+          {acao.rotulo}
+        </Link>
+      )}
     </div>
   )
 }

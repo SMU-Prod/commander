@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -103,19 +104,13 @@ export default async function InteressesPage({
       </div>
 
       <SecaoPagina icone="mais">Adicionar interesse</SecaoPagina>
-      <div className="mb-3 flex flex-wrap gap-2">
+      <ChipLinha quebra className="mb-3">
         {TIPOS_DEMANDA.map((t) => (
-          <a
-            key={t}
-            href={`/marketplace/interesses?tipo=${t}`}
-            className={`rounded-full border px-3 py-1.5 apoio ${
-              tipo === t ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={t} href={`/marketplace/interesses?tipo=${t}`} ativo={tipo === t} nivel="secundario">
             {ROTULO_TIPO_DEMANDA[t]}
-          </a>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       <form action={salvarInteresse} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
         <input type="hidden" name="tipo_demanda" value={tipo} />

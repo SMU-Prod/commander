@@ -1,4 +1,3 @@
-import { Icone } from "@/components/icone"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LinhaLista } from "@/components/ui/linha-lista"
@@ -38,11 +37,20 @@ export default async function MenuPage({
         titulo={user?.email ?? "—"}
         subtitulo="Proprietário"
       />
+      {/* Onda 56 — as linhas do Menu perderam o ícone da ESQUERDA (só cinco
+          das quinze tinham um). O efeito na tela era uma borda esquerda
+          serrilhada: "Cadastrar outra embarcação" começava 28px à direita de
+          "Agenda", logo abaixo, sem nenhuma razão visível. E o ícone repetia
+          o que o cabeçalho da seção já dizia — "DINHEIRO 💲" seguido de
+          "💲 Financeiro" — quando não contradizia: a linha "Assinatura",
+          dentro de CONTA, carregava o cifrão que é o símbolo de DINHEIRO.
+          Sem eles a coluna de títulos alinha, o chevron da direita continua
+          sendo a única marca de "isto navega", e o ícone volta a significar
+          uma coisa só: a seção. */}
       <LinhaLista
         href="/menu/assinatura"
         variant="cartao"
         className="mt-2"
-        leading={<Icone nome="cifrao" className="size-4 shrink-0 text-dim" />}
         titulo="Assinatura"
       />
 
@@ -50,7 +58,6 @@ export default async function MenuPage({
       <LinhaLista
         href="/onboarding"
         variant="cartao"
-        leading={<Icone nome="mais" className="size-4 shrink-0 text-dim" />}
         titulo="Cadastrar outra embarcação"
         subtitulo="Troque entre elas pelo nome no topo da tela Início"
       />
@@ -58,7 +65,6 @@ export default async function MenuPage({
         href="/barco/connect"
         variant="cartao"
         className="mt-2"
-        leading={<Icone nome="sinal" className="size-4 shrink-0 text-dim" />}
         titulo="Commander Connect"
         subtitulo="Em breve — conectividade NMEA 2000"
       />
@@ -70,7 +76,6 @@ export default async function MenuPage({
       <LinhaLista
         href="/financeiro"
         variant="cartao"
-        leading={<Icone nome="cifrao" className="size-4 shrink-0 text-dim" />}
         titulo="Financeiro"
         subtitulo="Despesas, entradas, recorrentes e relatórios"
       />
@@ -78,7 +83,6 @@ export default async function MenuPage({
         href="/carteira"
         variant="cartao"
         className="mt-2"
-        leading={<Icone nome="carteira" className="size-4 shrink-0 text-dim" />}
         titulo="Carteira da Tripulação"
         subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
       />

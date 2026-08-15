@@ -1,5 +1,5 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
@@ -86,40 +86,23 @@ export default async function LancamentosPage({
       <FinanceiroNav atual="lancamentos" className="mt-4" />
       <AcoesUniversais className="mt-3" />
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {FILTROS.map((f) => (
-          <Link
-            key={f.valor}
-            href={href(f.valor, categoria)}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              filtro === f.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
-          >
+          <Chip key={f.valor} href={href(f.valor, categoria)} ativo={filtro === f.valor}>
             {f.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        <Link
-          href={href(filtro, null)}
-          className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-            categoria === null ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-          }`}
-        >
+      </ChipLinha>
+      <ChipLinha className="mt-2">
+        <Chip href={href(filtro, null)} ativo={categoria === null} nivel="secundario">
           Todas
-        </Link>
+        </Chip>
         {CATEGORIAS_FINANCEIRAS.map((c) => (
-          <Link
-            key={c}
-            href={href(filtro, c)}
-            className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-              categoria === c ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={c} href={href(filtro, c)} ativo={categoria === c} nivel="secundario">
             {ROTULO_CATEGORIA[c]}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {grupos.length === 0 && (
         <EstadoVazio

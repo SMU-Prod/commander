@@ -146,6 +146,21 @@ body.fundo-tela-mapa {
   .sombra-1 { box-shadow: var(--sombra-1); }
   .sombra-2 { box-shadow: var(--sombra-2); }
 
+  /* Onda 56 — fila que rola na horizontal (as pílulas de filtro do
+     `ChipLinha`, ver components/ui/chip.tsx). Sem isto a fila era cortada em
+     seco na borda direita, no meio de uma palavra: "Hidrá", "Manutenç" — o
+     olho lê isso como texto quebrado, não como "continua pro lado". A máscara
+     desvanece os últimos 20px e transforma o corte em transbordo.
+     Escolhido `mask-image` fixo no lado direito (e não algo ligado ao scroll)
+     de propósito: a máscara é relativa à CAIXA, não ao conteúdo, então quando
+     a fila cabe inteira não sobra nada na borda pra desvanecer e o efeito
+     simplesmente não aparece — sem depender de `animation-timeline`, que
+     ainda não é seguro no WebView que empacota o app. */
+  .rolagem-lateral {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+  }
+
   /* Escala tipográfica — 4 vozes, nada abaixo de 11px.
      Exceção documentada: a nav inferior (components/bottom-nav.tsx) roda a
      9.5px. Medido ao vivo: 5 abas dividem 375px em 75px cada, sobrando 71px

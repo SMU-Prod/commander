@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { atualizarItemTaxonomia, criarItemTaxonomia } from "@/lib/acoes/admin-taxonomia"
@@ -62,19 +63,13 @@ export default async function AdminTaxonomiaPage({
       {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="mt-5 flex flex-wrap gap-1.5">
+      <ChipLinha quebra className="mt-5">
         {TIPOS_TAXONOMIA.map((t) => (
-          <Link
-            key={t}
-            href={`/admin/taxonomia?tipo=${t}`}
-            className={`rotulo rounded-full border px-3 py-1.5 ${
-              t === tipoAtivo ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
-          >
+          <Chip key={t} href={`/admin/taxonomia?tipo=${t}`} ativo={t === tipoAtivo}>
             {ROTULO_TIPO_TAXONOMIA[t]}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       <p className="rotulo mt-6 mb-2 text-dim">Novo item em {ROTULO_TIPO_TAXONOMIA[tipoAtivo]}</p>
       <form action={criarItemTaxonomia} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">

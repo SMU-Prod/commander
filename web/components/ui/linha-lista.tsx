@@ -51,10 +51,20 @@ export function LinhaLista({
   variant?: "grupo" | "cartao"
   className?: string
 }) {
+  // Onda 56 — era `truncate` (uma linha + reticências) nos dois. Num app de
+  // 390px de largura isso matava justamente a informação que a linha existe
+  // pra dar: o Menu mostrava "Peça profissional, tripulação, peça, vaga ou
+  // caminh…", "Repasse, gasto e devolução — controle contá…", e um título
+  // inteiro virava "É marina, posto, pousada, restaurante ou lo…". Reticência
+  // faz sentido quando o resto é dispensável (um nome longo ao lado de um
+  // valor); não faz quando o texto É a explicação do destino.
+  // `line-clamp-2` em vez de deixar solto: o teto de duas linhas preserva o
+  // ritmo da lista (nenhuma linha vira parágrafo) e a altura só cresce no
+  // caso que realmente precisa — a maioria continua em uma linha.
   const meio = (
     <div className="min-w-0 flex-1">
-      <p className="titulo-card truncate">{titulo}</p>
-      {subtitulo && <p className="apoio mt-0.5 truncate text-dim">{subtitulo}</p>}
+      <p className="titulo-card line-clamp-2">{titulo}</p>
+      {subtitulo && <p className="apoio mt-0.5 line-clamp-2 text-dim">{subtitulo}</p>}
     </div>
   )
   const direita = trailing ?? (valor != null && (

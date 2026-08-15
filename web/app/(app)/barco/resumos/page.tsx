@@ -4,6 +4,7 @@ import { BotaoExportarPdf } from "@/components/botao-exportar-pdf"
 import { Farol } from "@/components/farol"
 import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
@@ -98,32 +99,20 @@ export default async function ResumosPage({
         </div>
       </div>
 
-      <div className="no-imprimir mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="no-imprimir mt-4">
         {TIPOS.map((t) => (
-          <Link
-            key={t.valor}
-            href={comFiltro(t.valor)}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              tipo === t.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
-          >
+          <Chip key={t.valor} href={comFiltro(t.valor)} ativo={tipo === t.valor}>
             {t.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
-      <div className="no-imprimir mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      </ChipLinha>
+      <ChipLinha className="no-imprimir mt-2">
         {opcoes.map((o) => (
-          <Link
-            key={o.chave}
-            href={comFiltro(tipo, o.chave)}
-            className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-              chave === o.chave ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={o.chave} href={comFiltro(tipo, o.chave)} ativo={chave === o.chave} nivel="secundario">
             {o.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {vazio && (
         <p className="mt-4 rounded-lg border border-line bg-panel px-3 py-2.5 corpo text-dim">

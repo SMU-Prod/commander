@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
@@ -112,19 +113,17 @@ export default async function DiarioPage({
       )}
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {FILTROS.map((f) => (
-          <Link
+          <Chip
             key={f.valor}
             href={f.valor === "tudo" ? "/diario" : `/diario?filtro=${f.valor}`}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              filtro === f.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
+            ativo={filtro === f.valor}
           >
             {f.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {grupos.length === 0 && (
         <EstadoVazio

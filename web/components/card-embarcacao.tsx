@@ -108,18 +108,27 @@ export function CardEmbarcacao({
             <p className="apoio mb-2.5 text-dim">Última atualização: {ultimaAtualizacao}</p>
           )}
           <div className="grid grid-cols-3 gap-2">
-            {metricas.map((m) => (
-              <div key={m.rotulo} className="min-w-0">
-                <p className="truncate font-mono-instr text-[10px] uppercase tracking-[.08em] text-dim">{m.rotulo}</p>
-                <p
-                  className={`mt-0.5 truncate font-mono-instr text-[15px] font-semibold tabular-nums ${
-                    m.status === "vencido" ? "text-crit" : m.status === "atencao" ? "text-warn" : ""
-                  }`}
-                >
-                  {m.valor}
-                </p>
-              </div>
-            ))}
+            {metricas.map((m) => {
+              // Onda 56 — o valor saía SEMPRE em mono tabular, e nem todo valor
+              // é leitura: quando não há dado o texto é "Sem dados", "sem
+              // leitura" ou "—", e a fonte de instrumento soletrava a palavra
+              // ("S e m   d a d o s") ao lado de um "612,0h" legítimo. Mono +
+              // tabular existe pra alinhar DÍGITO em coluna; sem dígito não há
+              // o que alinhar, e a palavra fica melhor na fonte do app.
+              const eLeitura = /\d/.test(m.valor)
+              return (
+                <div key={m.rotulo} className="min-w-0">
+                  <p className="truncate font-mono-instr text-[10px] uppercase tracking-[.08em] text-dim">{m.rotulo}</p>
+                  <p
+                    className={`mt-0.5 truncate text-[15px] font-semibold ${
+                      eLeitura ? "font-mono-instr tabular-nums" : ""
+                    } ${m.status === "vencido" ? "text-crit" : m.status === "atencao" ? "text-warn" : ""}`}
+                  >
+                    {m.valor}
+                  </p>
+                </div>
+              )
+            })}
           </div>
           <Link
             href="/barco"

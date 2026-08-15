@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
@@ -93,32 +94,29 @@ export default async function HistoricoPage({
       <h1 className="titulo-pagina">Histórico</h1>
       <p className="apoio mt-1 text-dim">Tudo que aconteceu no barco — diário, manutenções e ocorrências, num lugar só.</p>
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {FILTROS_SETOR.map((f) => (
-          <Link
+          <Chip
             key={f.valor}
+            ativo={setor === f.valor}
             href={f.valor === "tudo" && status === "tudo" ? "/barco/historico" : `/barco/historico?setor=${f.valor}${status !== "tudo" ? `&status=${status}` : ""}`}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              setor === f.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
           >
             {f.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      </ChipLinha>
+      <ChipLinha className="mt-2">
         {FILTROS_STATUS.map((f) => (
-          <Link
+          <Chip
             key={f.valor}
+            nivel="secundario"
+            ativo={status === f.valor}
             href={f.valor === "tudo" && setor === "tudo" ? "/barco/historico" : `/barco/historico?status=${f.valor}${setor !== "tudo" ? `&setor=${setor}` : ""}`}
-            className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-              status === f.valor ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-            }`}
           >
             {f.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {grupos.length === 0 && (
         <EstadoVazio

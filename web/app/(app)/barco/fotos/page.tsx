@@ -1,7 +1,7 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -74,21 +74,17 @@ export default async function FotosPage({
         </div>
       </div>
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {ALBUNS.map((a) => (
-          <Link
+          <Chip
             key={a}
             href={a === "exterior" ? "/barco/fotos" : `/barco/fotos?album=${a}`}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-2 font-mono-instr text-[11px] ${
-              a === albumAtivo
-                ? "border-accent bg-accent font-semibold text-acao-texto"
-                : "border-line bg-panel text-dim"
-            }`}
+            ativo={a === albumAtivo}
           >
             {ROTULO_ALBUM[a]}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {doAlbum.length === 0 ? (
         <EstadoVazio

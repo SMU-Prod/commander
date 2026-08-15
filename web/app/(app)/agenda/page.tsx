@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -253,7 +254,12 @@ export default async function AgendaPage({
             key={vv}
             href={link({ v: vv })}
             aria-current={visualizacao === vv ? "page" : undefined}
-            className={`flex-1 rounded-full border py-1.5 text-center font-mono-instr text-[11.5px] tracking-wide ${
+            /* Onda 56 — mesmas medidas do `Chip` (h-11, sans, px-4). Este
+               seletor não usa o componente porque as três opções dividem a
+               largura em partes iguais (`flex-1`), e não rolam numa fila; o
+               que importa é que ele deixe de ser a quarta altura de pílula
+               desta mesma tela. */
+            className={`flex h-11 flex-1 items-center justify-center rounded-full border text-sm ${
               visualizacao === vv ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
             }`}
           >
@@ -283,25 +289,18 @@ export default async function AgendaPage({
           camadas que têm fonte de dado viram chip: prometer "Financeiro"
           antes de o módulo existir seria porta pra sala vazia. */}
       <SecaoPagina icone="ferramenta">Agenda detalhada</SecaoPagina>
-      <div className="flex flex-wrap gap-1.5">
+      <ChipLinha quebra>
         {CAMADAS.filter(camadaTemFonte).map((c) => (
-          <Link
-            key={c}
-            href={alternarCamada(c)}
-            aria-pressed={camadas.includes(c)}
-            className={`rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-              camadas.includes(c) ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={c} href={alternarCamada(c)} ativo={camadas.includes(c)} nivel="secundario">
             {ROTULO_CAMADA[c]}
-          </Link>
+          </Chip>
         ))}
         {detalhada && (
-          <Link href={link({ c: "" })} className="rounded-full border border-line px-3 py-1 font-mono-instr text-[11px] tracking-wide text-dim">
+          <Chip href={link({ c: "" })} ativo={false} nivel="secundario">
             Limpar
-          </Link>
+          </Chip>
         )}
-      </div>
+      </ChipLinha>
       {!detalhada && (
         <p className="apoio mt-2 text-dim">
           Toque em uma camada para trazer manutenções, documentos, segurança e tarefas do barco

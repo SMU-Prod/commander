@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { carregarPainel } from "@/lib/consultas"
 import { formatarCarimbo } from "@/lib/domain/datas"
@@ -62,40 +63,23 @@ export default async function OcorrenciasPage({
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
       {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 corpo">{ok}</p>}
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {ESTADO_FILTROS.map((f) => (
-          <Link
-            key={f.valor}
-            href={comFiltro({ estado: f.valor })}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              estado === f.valor ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
-          >
+          <Chip key={f.valor} href={comFiltro({ estado: f.valor })} ativo={estado === f.valor}>
             {f.rotulo}
-          </Link>
+          </Chip>
         ))}
-      </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        <Link
-          href={comFiltro({ setor: "tudo" })}
-          className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-            setor === "tudo" ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-          }`}
-        >
+      </ChipLinha>
+      <ChipLinha className="mt-2">
+        <Chip href={comFiltro({ setor: "tudo" })} ativo={setor === "tudo"} nivel="secundario">
           Todos os setores
-        </Link>
+        </Chip>
         {ABAS_OCORRENCIA.map((aba) => (
-          <Link
-            key={aba}
-            href={comFiltro({ setor: aba })}
-            className={`whitespace-nowrap rounded-full border px-3 py-1 font-mono-instr text-[11px] tracking-wide ${
-              setor === aba ? "border-accent-forte text-accent-forte" : "border-line text-dim"
-            }`}
-          >
+          <Chip key={aba} href={comFiltro({ setor: aba })} ativo={setor === aba} nivel="secundario">
             {ROTULO_ABA[aba]}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {ocorrencias.length === 0 && (
         <EstadoVazio

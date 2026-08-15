@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { AtivarAlertas } from "@/components/ativar-alertas"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
@@ -131,22 +132,16 @@ export default async function NotificacoesPage({
         <AtivarAlertas />
       </div>
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      <ChipLinha className="mt-4">
         {filtros.map((f) => (
-          <Link
-            key={f.valor}
-            href={linkCategoria(f.valor)}
-            className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
-              categoria === f.valor
-                ? "border-accent bg-accent font-semibold text-acao-texto"
-                : "border-line bg-panel text-dim"
-            }`}
-          >
+          <Chip key={f.valor} href={linkCategoria(f.valor)} ativo={categoria === f.valor}>
             {f.rotulo}
-            {f.total > 0 && <span className="ml-1 tabular-nums">{f.total}</span>}
-          </Link>
+            {/* A contagem é número: fica em mono tabular mesmo com o rótulo
+                em sans — é exatamente a divisão que o app faz em toda lista. */}
+            {f.total > 0 && <span className="ml-1.5 font-mono-instr tabular-nums">{f.total}</span>}
+          </Chip>
         ))}
-      </div>
+      </ChipLinha>
 
       {visiveis.length === 0 && (
         <EstadoVazio

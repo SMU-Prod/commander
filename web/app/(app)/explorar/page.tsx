@@ -196,7 +196,7 @@ export default async function ExplorarPage({
           Chips são links (sem JS no cliente) e preservam os outros filtros. */}
       <nav
         aria-label="Tipo de parceiro"
-        className="-mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1"
+        className="rolagem-lateral -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1"
         style={{ scrollbarWidth: "none" }}
       >
         {[FILTRO_TODOS, ...TIPOS_PARTNER].map((valor) => {
@@ -207,8 +207,8 @@ export default async function ExplorarPage({
               key={valor}
               href={hrefTipo(valor)}
               aria-current={ativo ? "true" : undefined}
-              className={`flex h-10 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-medium ${
-                ativo ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel text-dim"
+              className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm ${
+                ativo ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
               }`}
             >
               {rotulo}
