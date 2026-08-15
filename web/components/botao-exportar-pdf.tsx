@@ -1,5 +1,6 @@
 "use client"
 import { Icone } from "@/components/icone"
+import { SLOT_ACAO_FLUTUANTE } from "@/lib/ui/superficies"
 
 /**
  * Exportação em PDF do Resumo (onda 37) — usa a impressão nativa do
@@ -17,7 +18,13 @@ export function BotaoExportarPdf() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="print:hidden fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+      // ONDA 54 — a posição vem de `SLOT_ACAO_FLUTUANTE`, não mais escrita à
+      // mão aqui. Escrita à mão ela era IDÊNTICA à do "+ Registrar", e os
+      // dois botões ficavam empilhados no mesmo ponto em /barco/resumos: o
+      // "+ Registrar" por cima comia o toque e exportar PDF virou impossível
+      // no celular. Agora quem decide quem ocupa o slot em cada tela é
+      // `mostrarRegistroRapido`, num lugar só.
+      className={`print:hidden inline-flex items-center gap-1.5 ${SLOT_ACAO_FLUTUANTE}`}
     >
       <Icone nome="relatorio" className="size-4" /> Exportar PDF
     </button>

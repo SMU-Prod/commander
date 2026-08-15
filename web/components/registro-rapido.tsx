@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { Campo } from "@/components/ui/campo"
 import { registrarVoltaAoMar } from "@/lib/acoes/registro"
+import { mostrarRegistroRapido, SLOT_ACAO_FLUTUANTE } from "@/lib/ui/superficies"
 
 export function RegistroRapido({
   motores,
@@ -12,9 +13,15 @@ export function RegistroRapido({
   const [aberto, setAberto] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const pathname = usePathname()
-  // no mapa o FAB cobria os controles de navegacao — la o registro de horas
-  // ja tem casa propria (a sugestao pos-trilha do Livro de Bordo)
-  if (pathname === "/navegar") return null
+  // ONDA 54 — onde este botão pode flutuar é uma regra só, em
+  // `lib/ui/superficies.ts`, com teste. Ela guarda a exceção antiga do mapa
+  // (`/navegar`, onde o FAB cobria os controles de navegação) e acrescenta
+  // a desta onda: nada de FAB em tela de formulário, onde ele tapava campo
+  // de verdade — o "Horas no último serviço" de `/barco/itens/novo` era o
+  // caso confirmado em imagem. `MolduraApp` usa a MESMA função para decidir
+  // a folga inferior do conteúdo; se as duas divergirem, volta a sobrar
+  // espaço morto ou a faltar folga.
+  if (!mostrarRegistroRapido(pathname)) return null
 
   async function enviar(formData: FormData) {
     if (enviando) return
@@ -31,7 +38,7 @@ export function RegistroRapido({
     <>
       <button
         onClick={() => setAberto(true)}
-        className="no-imprimir fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+        className={`no-imprimir ${SLOT_ACAO_FLUTUANTE}`}
       >
         + Registrar
       </button>

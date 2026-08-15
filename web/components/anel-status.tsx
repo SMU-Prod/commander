@@ -48,7 +48,9 @@ export function AnelStatus({ saude }: { saude: SaudeEmbarcacao }) {
         <p className="apoio mt-1 text-dim">
           Cadastre motores com horas ou vencimentos com data pra saber como está a embarcação.
         </p>
-        <Link href="/barco" className="apoio mt-3 inline-block text-accent-forte">Completar em Embarcação</Link>
+        {/* ONDA 54 — mesma correção do estado vazio de /hoje: única ação do
+            card, precisa dos 44px de alvo de toque. */}
+        <Link href="/barco" className="apoio mt-1 inline-flex min-h-11 items-center px-2 text-accent-forte">Completar em Embarcação</Link>
       </div>
     )
   }

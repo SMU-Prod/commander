@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { BottomNav } from "@/components/bottom-nav"
+import { MolduraApp } from "@/components/moldura-app"
 import { RegistroRapido } from "@/components/registro-rapido"
 import { RegistrarSw } from "@/components/registrar-sw"
 import { Toast } from "@/components/toast"
@@ -49,11 +50,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // filtrado por permissão: tripulante não vê contador subir por causa de
   // um hub que ele não pode abrir.
   const avisos = painel ? contadorSino(await carregarNotificacoes()) : 0
-  // pb-36 e não pb-24: o botão "+ Registrar" flutua a 5rem do rodapé e tem
-  // ~3rem de altura, então o conteúdo precisa de ~8rem de folga — com pb-24
-  // (6rem) ele cobria o último item da tela.
+
+  // ONDA 54 — a folga inferior saiu daqui (era um `pb-36` fixo) e virou
+  // `MolduraApp`. O comentário antigo dizia "pb-36 e não pb-24 porque o
+  // '+ Registrar' flutua a 5rem do rodapé e tem ~3rem de altura" — a conta
+  // estava certa e mesmo assim o botão de salvar aparecia coberto no
+  // celular do dono, porque ela supunha safe-area zero (o app declara
+  // `viewportFit: "cover"`, então num aparelho com barra de gestos tudo o
+  // que é `fixed` sobe ~34px) e supunha o FAB presente em toda tela. Agora a
+  // folga é derivada do que de fato flutua — ver `lib/ui/superficies.ts`.
   return (
-    <div className="mx-auto min-h-dvh max-w-[430px] px-4 pb-36 pt-5 print:max-w-full print:px-0 print:pb-0 print:pt-0">
+    <MolduraApp temFab={motores.length > 0}>
       <RegistrarSw />
       <Suspense fallback={null}>
         <Toast />
@@ -61,6 +68,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {children}
       {motores.length > 0 && <RegistroRapido motores={motores} />}
       <BottomNav avisos={avisos} />
-    </div>
+    </MolduraApp>
   )
 }

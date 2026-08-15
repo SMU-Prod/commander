@@ -30,6 +30,26 @@ export default async function ParceiroLayout({ children }: { children: React.Rea
         {meu && <span className="apoio text-dim">{ROTULO_TIPO_PARTNER[meu.parceiro.categoria]}</span>}
       </div>
 
+      {/* ONDA 54 — QUEM AINDA NÃO TEM CADASTRO ESTAVA PRESO AQUI.
+          `menuDoPartner` só devolve itens depois que o cadastro existe, e
+          este layout não tem a bottom-nav do barco (decisão do §13, mantida).
+          Resultado: quem tocou em "Commander Partner" no /menu do app caía
+          numa tela com o logo, um formulário e NENHUM caminho de volta — sem
+          botão de voltar do navegador no app instalado, o único jeito de sair
+          era fechar o aplicativo. A varredura marcou as 5 telas de /parceiro
+          como "SEM SAÍDA" e estava certa.
+          O link só aparece enquanto não há menu: com o cadastro feito, quem
+          faz esse papel é o próprio menu (que tem "Explorar", já dentro do
+          app). */}
+      {itens.length === 0 && (
+        <Link
+          href="/menu"
+          className="-ml-1 mb-4 inline-flex min-h-11 items-center gap-1 px-1 rotulo text-accent-forte"
+        >
+          <Icone nome="voltar" className="size-4" /> Voltar ao Commander
+        </Link>
+      )}
+
       {itens.length > 0 && (
         <nav
           aria-label="Menu do parceiro"

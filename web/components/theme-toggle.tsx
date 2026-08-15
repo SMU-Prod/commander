@@ -32,7 +32,12 @@ export function ThemeToggle() {
           key={o.valor}
           onClick={() => trocar(o.valor)}
           aria-pressed={tema === o.valor}
-          className={`rounded-lg px-4 py-1.5 text-sm font-medium ${
+          // ONDA 54 — `py-1.5` dava 32px de altura. É botão de verdade (não
+          // texto), então vale a régua `min-h-11` do app. Aqui NÃO cabe
+          // margem negativa como no `SecaoPagina`: o par de botões vive
+          // dentro de uma moldura com `p-1`, e encolher por fora faria o
+          // fundo do grupo cortar o botão ativo.
+          className={`flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${
             tema === o.valor ? "bg-accent text-acao-texto" : "text-dim-chip"
           }`}
         >
