@@ -87,9 +87,9 @@ export default async function MenuPage({
       </div>
 
       {/* Agenda (onda 43, PRD §8) — segundo caminho de descoberta, além do
-          atalho na Início. Só aparece pra quem pode ver: o acesso da Agenda
-          ainda pega carona na área "diario" (ver AREA_AGENDA em
-          lib/domain/agenda.ts, TODO onda 44). */}
+          atalho na Início. Só aparece pra quem pode ver: desde a onda 46 a
+          Agenda tem área PRÓPRIA na matriz (`AREA_AGENDA` em
+          lib/domain/agenda.ts), não pega mais carona em "diario". */}
       {painel != null && podeVerAgenda(painel.permissoes) && (
         <>
           <SecaoPagina icone="calendario">Agenda</SecaoPagina>
@@ -122,13 +122,16 @@ export default async function MenuPage({
         </>
       )}
 
-      {/* Onda 39 — segundo caminho até as 5 telas da rede profissional
+      {/* Onda 39 — segundo caminho até as telas da rede profissional
           (RedeNav já cruza entre elas, mas o Menu é a lista de tudo que o
           app tem — gate de descoberta pede que nada fique só dependendo de
-          um único link, ver CONTRIBUTING.md). */}
+          um único link, ver CONTRIBUTING.md).
+          Onda 46: eram quatro linhas; a de "Serviços" saiu porque o PRD FINAL
+          eliminou a aba (§10) e cobra explicitamente que "nenhum menu
+          principal deve usar a antiga aba 'Serviços'" (§27.2). A busca por
+          especialidade que ela fazia mora agora em Prestadores. */}
       <SecaoPagina icone="pessoas">Rede profissional</SecaoPagina>
-      <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Mecânico, eletricista, fibra e outros profissionais" />
-      <LinhaLista href="/servicos" variant="cartao" className="mt-2" titulo="Serviços" subtitulo="Encontre quem resolve um problema no barco" />
+      <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
       <LinhaLista href="/marketplace" variant="cartao" className="mt-2" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
       <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
 

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
+import { ESPECIALIDADES_PRESTADOR, ICONE_POR_ESPECIALIDADE, type EspecialidadePrestador } from "@/lib/domain/prestadores"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
@@ -11,14 +12,45 @@ import type { PerfilComandante } from "@/lib/db/types"
  *  (migration 037) — mesma tabela/RLS/trigger anti-autoverificação de
  *  Comandantes (§47), não uma arquitetura nova.
  *
- *  Diferença pra /servicos: aqui é o DIRETÓRIO completo (like /comandantes);
- *  /servicos é a busca orientada por categoria/problema. As duas telas
- *  mostram o mesmo dado, ângulos diferentes — ver RedeNav no topo das duas. */
-export default async function PrestadoresPage() {
+ *  ONDA 46 — ESTA TELA ABSORVEU A ABA "SERVIÇOS". O PRD FINAL manda eliminar
+ *  Serviços (§10, e de novo como critério de aceite em §27.2: "Nenhum menu
+ *  principal deve usar a antiga aba 'Serviços'"), e o dono autorizou em
+ *  15/08/2026. Até a onda 45 existiam DUAS telas lendo exatamente a mesma
+ *  consulta: `/prestadores` (diretório plano) e `/servicos` (a mesma lista,
+ *  filtrada por categoria). A única coisa que `/servicos` fazia a mais era o
+ *  filtro por especialidade — então ele veio pra cá em vez de ser perdido, e
+ *  `/servicos?categoria=X` redireciona pra `/prestadores?categoria=X`
+ *  preservando o filtro (`app/(app)/servicos/page.tsx`).
+ *
+ *  Por que aqui e não em `/explorar`, que é o destino que o §10 cita: Explorar
+ *  é o mapa de LUGARES parceiros (marina, posto, pousada, restaurante) e
+ *  prestador é PESSOA, não lugar — não tem ponto no mapa. A consolidação
+ *  completa de §10 ("Explorar Parceiros" com cards de Partner por tipo,
+ *  §13) é um módulo que ainda não existe (ver
+ *  docs/auditoria/2026-08-15-prd-final-vs-codigo.md §3); o que o critério de
+ *  aceite cobra HOJE é que a aba Serviços não exista, e ela não existe mais.
+ *  A outra função de `/servicos` — publicar o que você precisa — foi pro
+ *  Marketplace, que é onde o PRD põe demanda. */
+function categoriaValida(v: string | undefined): EspecialidadePrestador | null {
+  return (ESPECIALIDADES_PRESTADOR as readonly string[]).includes(v ?? "") ? (v as EspecialidadePrestador) : null
+}
+
+export default async function PrestadoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ categoria?: string }>
+}) {
+  const { categoria: categoriaBruta } = await searchParams
+  const categoria = categoriaValida(categoriaBruta)
+
   const supabase = await supabaseServer()
-  const { data: perfis, error } = await supabase
-    .from("perfis_comandante").select("*").eq("tipo", "prestador").eq("visivel", true).order("created_at")
+  const query = supabase.from("perfis_comandante").select("*").eq("tipo", "prestador").eq("visivel", true)
+  const { data: perfis, error } = categoria
+    ? await query.ilike("categoria", categoria).order("created_at")
+    : await query.order("created_at")
   if (error) throw new Error("Não foi possível carregar os prestadores. Recarregue a página.")
+
+  const lista = (perfis ?? []) as PerfilComandante[]
 
   return (
     <main>
@@ -26,18 +58,55 @@ export default async function PrestadoresPage() {
       <p className="apoio mt-1 text-dim">
         Mecânico, eletricista, fibra e outros profissionais náuticos disponíveis para contratar direto pelo WhatsApp.
       </p>
+      <p className="apoio mt-1 text-dim">
+        São PESSOAS. Marinas, postos, pousadas e restaurantes ficam em{" "}
+        <Link href="/explorar" className="text-accent-forte">Explorar</Link>, no mapa.
+      </p>
       <RedeNav atual="prestadores" className="mt-4" />
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
-        {((perfis ?? []) as PerfilComandante[]).length === 0 && (
+      {/* Vindo da antiga aba Serviços (onda 46): achar quem resolve um
+          problema começando pela categoria, não pelo nome de quem atende. */}
+      <p className="rotulo mt-6 mb-2 text-dim">Por especialidade</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        <Link
+          href="/prestadores"
+          aria-current={categoria === null ? "page" : undefined}
+          className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[14px] border px-3 py-4 text-center ${
+            categoria === null ? "border-accent bg-accent/10" : "border-line bg-panel"
+          }`}
+        >
+          <Icone nome="pessoas" className="size-6 text-accent-forte" />
+          <span className="titulo-card">Todas</span>
+        </Link>
+        {ESPECIALIDADES_PRESTADOR.map((c) => (
+          <Link
+            key={c}
+            href={`/prestadores?categoria=${encodeURIComponent(c)}`}
+            aria-current={categoria === c ? "page" : undefined}
+            className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[14px] border px-3 py-4 text-center ${
+              categoria === c ? "border-accent bg-accent/10" : "border-line bg-panel"
+            }`}
+          >
+            <Icone nome={ICONE_POR_ESPECIALIDADE[c]} className="size-6 text-accent-forte" />
+            <span className="titulo-card">{c}</span>
+          </Link>
+        ))}
+      </div>
+
+      <p className="rotulo mt-6 mb-2 text-dim">
+        {categoria ? `Prestadores — ${categoria}` : "Todos os prestadores"}
+      </p>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        {lista.length === 0 && (
           <EstadoVazio
             variant="linha"
             icone="ferramenta"
-            titulo="Ainda não há prestadores cadastrados na sua região"
-            descricao="Assim que houver, eles aparecem aqui. Enquanto isso, publique o que precisa no Marketplace."
+            titulo={categoria ? "Ninguém cadastrado nessa especialidade ainda" : "Ainda não há prestadores cadastrados na sua região"}
+            descricao="Publique o que precisa no Marketplace — quem atende sua região responde direto."
+            acao={{ href: "/marketplace/nova", rotulo: "Publicar no Marketplace" }}
           />
         )}
-        {((perfis ?? []) as PerfilComandante[]).map((p) => (
+        {lista.map((p) => (
           <div key={p.usuario_id} className="border-b border-line py-3.5 last:border-0">
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-sm text-accent-forte">

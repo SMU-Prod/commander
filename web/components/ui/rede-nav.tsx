@@ -1,11 +1,10 @@
 import Link from "next/link"
 
-export type DestinoRede = "comandantes" | "prestadores" | "servicos" | "marketplace" | "explorar"
+export type DestinoRede = "comandantes" | "prestadores" | "marketplace" | "explorar"
 
 const DESTINOS: { valor: DestinoRede; href: string; rotulo: string }[] = [
   { valor: "comandantes", href: "/comandantes", rotulo: "Comandantes" },
   { valor: "prestadores", href: "/prestadores", rotulo: "Prestadores" },
-  { valor: "servicos", href: "/servicos", rotulo: "Serviços" },
   // Onda 45 — "Oportunidades" virou "Marketplace": o PRD FINAL (§0, §3.1,
   // §11) nomeia oficialmente a área de demandas assim, e o motivo do apelido
   // da onda 39 (evitar confusão com a vitrine de perfis) caiu quando o mesmo
@@ -15,19 +14,24 @@ const DESTINOS: { valor: DestinoRede; href: string; rotulo: string }[] = [
 ]
 
 /**
- * Navegação entre as 5 telas da rede profissional do Commander (onda 39) —
- * cinco conceitos do PRD que o nome sozinho não deixa óbvio serem
- * diferentes (ver docs/CONTRIBUTING.md, Glossário):
+ * Navegação entre as 4 telas da rede profissional do Commander (onda 39) —
+ * conceitos do PRD que o nome sozinho não deixa óbvio serem diferentes
+ * (ver docs/CONTRIBUTING.md, Glossário):
  * - Comandantes: vitrine de perfis pra contratar via WhatsApp (§47).
- * - Prestadores: mecânico/eletricista/fibra... perfil por especialidade (§50).
- * - Serviços: achar quem resolve um problema — categorias + prestadores (§51).
+ * - Prestadores: mecânico/eletricista/fibra... perfil por especialidade,
+ *   com busca por especialidade (§50).
  * - Marketplace: pedidos estruturados (profissional, tripulação, produto,
  *   vaga, caminhão) com proposta e fechamento bilateral (PRD FINAL §11).
  * - Explorar: mapa de marina/posto/pousada/restaurante (§52).
  *
- * Fica no topo de cada uma das 5 telas — a distinção fica visível na
+ * Eram CINCO até a onda 45: "Serviços" ocupava o segundo lugar e mostrava a
+ * mesma consulta de Prestadores filtrada por categoria. O PRD FINAL eliminou
+ * a aba (§10, cobrado em §27.2) e o filtro foi absorvido por Prestadores —
+ * ver o cabeçalho de `app/(app)/prestadores/page.tsx`. Não recrie o destino.
+ *
+ * Fica no topo de cada uma das 4 telas — a distinção fica visível na
  * própria interface, não só documentada. Satisfaz também o gate de
- * descoberta (nenhuma das 5 fica a mais de 1 toque das outras 4).
+ * descoberta (nenhuma das 4 fica a mais de 1 toque das outras 3).
  *
  * `variant="mapa"` usa a paleta de instrumento (navy translúcido) pro uso
  * dentro de ExplorarMapa, flutuando por cima do canvas do Mapbox.

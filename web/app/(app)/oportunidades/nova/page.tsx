@@ -1,14 +1,18 @@
 import { redirect } from "next/navigation"
 
-// Onda 45 — alias de compatibilidade, par do `/oportunidades`. Existe por um
-// motivo concreto: `/servicos` linka pra cá ("Publicar em Oportunidades", em
-// app/(app)/servicos/page.tsx), e a aba Serviços está congelada aguardando
-// decisão do dono (o PRD FINAL §10/§27.2 manda eliminá-la; a auditoria de
-// 15/08 listou isso como decisão pendente). Sem este redirecionamento, aquele
-// botão viraria 404 no dia em que a rota antiga saiu.
+// Onda 45 — alias de compatibilidade, par do `/oportunidades`.
 //
-// Quando a decisão sobre Serviços sair, o texto de lá passa a dizer
-// "Marketplace" e este arquivo pode ir junto com ele.
+// Onda 46: o motivo original acabou. Ele existia porque `/servicos` linkava
+// pra cá com o texto "Publicar em Oportunidades", e a aba Serviços estava
+// congelada aguardando decisão do dono. A decisão saiu em 15/08/2026: a aba
+// foi eliminada (PRD FINAL §10/§27.2) e o botão, agora em `/prestadores`,
+// aponta direto pra `/marketplace/nova` com o nome certo. Nenhuma tela do app
+// chega mais aqui.
+//
+// O arquivo FICA assim mesmo, e de propósito: o nome velho circulou fora do
+// app (push, e-mail, conversa) e apagar três linhas transformaria esses links
+// em 404 sem ganhar nada. É o mesmo raciocínio de `/oportunidades`, `/rede` e
+// `/barco/selo`. Se um dia sair, sai junto com o pai.
 export default function NovaOportunidadePage() {
   redirect("/marketplace/nova")
 }
