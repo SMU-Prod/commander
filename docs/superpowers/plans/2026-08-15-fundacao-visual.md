@@ -44,6 +44,7 @@ Valem para toda tarefa; não se repetem em cada uma.
 |---|---|
 | `web/app/globals.css` | *(modificar)* tokens: raio, elevação, paleta escura |
 | `web/lib/ui/superficies.ts` | *(modificar)* larguras e folgas por breakpoint |
+| `web/lib/ui/contraste.test.ts` | *(criar)* o escuro novo passa AA |
 | `web/components/ui/cartao.tsx` | *(criar)* cartão de anatomia única |
 | `web/components/ui/kpi.tsx` | *(criar)* rótulo + valor de instrumento |
 | `web/components/ui/selo.tsx` | *(criar)* pílula de estado (cor **e** palavra) |
@@ -94,18 +95,60 @@ Valem para toda tarefa; não se repetem em cada uma.
   --linha: #232d38;
 ```
 
-- [ ] **Passo 3: conferir que o dark ainda passa contraste**
+- [ ] **Passo 3: provar que o escuro novo passa contraste**
 
-Rode e leia a saída; nenhum par abaixo de 4.5:1:
+`lib/ui/superficies.test.ts` mede folga, não contraste — não serve aqui. Crie
+`web/lib/ui/contraste.test.ts`, que calcula a razão a partir dos hex e falha
+sozinho se alguém escurecer o texto ou clarear o fundo depois:
+
+```ts
+import { describe, expect, it } from "vitest"
+
+/** Luminância relativa (WCAG 2.1). */
+function luminancia(hex: string): number {
+  const c = [1, 3, 5].map((i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+}
+
+function razao(a: string, b: string): number {
+  const [x, y] = [luminancia(a), luminancia(b)].sort((m, n) => n - m)
+  return (x + 0.05) / (y + 0.05)
+}
+
+// Os valores do tema escuro da onda 57. Se globals.css mudar, mude aqui —
+// e o teste dirá se a mudança quebrou a legibilidade.
+const FUNDO = "#0a0e12"
+const SUPERFICIE = "#121820"
+const TEXTO = "#e8eef4"
+const TEXTO_FRACO = "#8fa2b3"
+
+describe("contraste do tema escuro", () => {
+  it("texto sobre cartao passa AA (4.5:1)", () => {
+    expect(razao(TEXTO, SUPERFICIE)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("texto fraco sobre cartao passa AA — e o par que mais reprova na pratica", () => {
+    expect(razao(TEXTO_FRACO, SUPERFICIE)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("o cartao se separa do fundo, senao o escuro vira uma mancha so", () => {
+    expect(razao(SUPERFICIE, FUNDO)).toBeGreaterThan(1.2)
+  })
+})
+```
 
 ```bash
-cd web && npx vitest run lib/ui
+cd web && npx vitest run lib/ui/contraste.test.ts
 ```
+Se algum par reprovar, **clareie o token do texto** — não escureça mais o fundo.
 
 - [ ] **Passo 4: commit**
 
 ```bash
-git add web/app/globals.css
+git add web/app/globals.css web/lib/ui/contraste.test.ts
 git commit -m "feat(tokens): tres raios, duas elevacoes e um escuro mais fundo"
 ```
 

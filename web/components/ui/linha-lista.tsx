@@ -73,8 +73,10 @@ export function LinhaLista({
       {valorSecundario && <p className="apoio font-mono-instr tabular-nums text-dim">{valorSecundario}</p>}
     </span>
   ))
+  // `var(--raio-cartao)`, não `14px` cravado — mesma razão do `Cartao`, que
+  // esta linha acompanha dentro da Início (revisão da onda 57).
   const base = variant === "cartao"
-    ? "sombra-1 rounded-[14px] border border-line bg-panel p-3.5"
+    ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
     : "border-b border-line py-3 last:border-0"
   const cls = `flex items-center gap-3 ${base} ${className}`
 

@@ -19,7 +19,12 @@ export function GraficoMesesGastos({
       {meses.map((m) => (
         <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
           <div
-            className={`w-full rounded-t ${m.mes === mesAtual ? "bg-accent-forte" : "bg-panel2 border border-line"}`}
+            /* Onda 57 — a barra do mês corrente era dourada. Dourado é ação
+               principal e marca (docs/DESIGN.md §5), e aqui ele estava só
+               marcando "este é o mês de agora" — trabalho que o contraste
+               faz igual, sem gastar o acento que a tela reserva pro botão
+               que importa. */
+            className={`w-full rounded-t ${m.mes === mesAtual ? "bg-texto" : "bg-panel2 border border-line"}`}
             style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
           />
           <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
@@ -28,5 +33,8 @@ export function GraficoMesesGastos({
     </div>
   )
   if (!comMoldura) return barras
-  return <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">{barras}</div>
+  // `var(--raio-cartao)` e não `14px` cravado: com moldura, este gráfico é um
+  // cartão como qualquer outro e tem que dobrar o canto junto com eles
+  // (revisão da onda 57).
+  return <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">{barras}</div>
 }

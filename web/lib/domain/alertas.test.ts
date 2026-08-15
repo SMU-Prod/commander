@@ -94,4 +94,22 @@ describe("lembreteMotorParado", () => {
     expect(a).not.toBeNull()
     expect(a!.corpo).toContain("38 dias")
   })
+  it("leitura da noite conta o dia NA MARINA, nao o dia em UTC", () => {
+    // 01:00 UTC do dia 02/07 e 22:00 do dia 01/07 no Brasil: quem leu o
+    // horimetro depois das 21h tinha um dia a menos na conta, porque o
+    // atalho antigo cortava os 10 primeiros caracteres do ISO (data em UTC)
+    // e comparava com `hoje`, que ja vem em America/Sao_Paulo (hojeISO).
+    const a = lembreteMotorParado("2026-07-02T01:00:00+00:00", "2026-08-08")
+    expect(a).not.toBeNull()
+    expect(a!.corpo).toContain("38 dias") // 01/07 -> 08/08, nao 37
+  })
+  it("a margem dos 30 dias nao escorrega por causa do fuso", () => {
+    // 09/07 as 22:00 SP = 10/07 01:00 UTC. Sao 30 dias exatos ate 08/08 —
+    // na margem, nao incomoda. Pelo atalho antigo virava 29 e tambem calava,
+    // mas por um dia errado; o caso que vazava e o de baixo.
+    expect(lembreteMotorParado("2026-07-10T01:00:00+00:00", "2026-08-08")).toBeNull()
+    const a = lembreteMotorParado("2026-07-09T01:00:00+00:00", "2026-08-08")
+    expect(a).not.toBeNull() // 08/07 na marina -> 31 dias, passa da margem
+    expect(a!.corpo).toContain("31 dias")
+  })
 })

@@ -69,8 +69,10 @@ test.describe("formulário no celular", () => {
       await page.goto(rota, { waitUntil: "domcontentloaded" })
       await page.waitForLoadState("networkidle").catch(() => {})
       return page.evaluate(() => {
-        const nav = document.querySelector("nav.fixed")
-        const moldura = nav?.parentElement // a moldura de `(app)` envolve a bottom-nav
+        // `data-moldura` é o gancho estável da `<div>` de conteúdo (ver
+        // `components/moldura-app.tsx`) — achar por ele não depende de
+        // quantos `nav.fixed` existem na página nem da ordem deles.
+        const moldura = document.querySelector("[data-moldura]")
         return moldura ? parseFloat(getComputedStyle(moldura).paddingBottom) : -1
       })
     }
@@ -96,7 +98,11 @@ test.describe("formulário no celular", () => {
       await page.waitForTimeout(300)
 
       const salvar = page.getByRole("button", { name: botao })
-      const nav = page.locator("nav.fixed").first()
+      // `:visible` porque a página agora tem dois `nav.fixed` (a bottom-nav
+      // e o trilho de desktop, escondido em mobile via `hidden lg:flex`) —
+      // sem o filtro, `.first()` dependeria da ordem deles no DOM em vez de
+      // pegar a barra de baixo, que é a única visível nesta largura.
+      const nav = page.locator("nav.fixed:visible").first()
       const rSalvar = await salvar.boundingBox()
       const rNav = await nav.boundingBox()
       expect(rSalvar, `${rota}: botão "${botao}" não encontrado`).not.toBeNull()
@@ -109,5 +115,71 @@ test.describe("formulário no celular", () => {
         `${rota}: "${botao}" continua embaixo da barra de baixo mesmo com a página rolada até o fim`,
       ).toBeLessThanOrEqual(rNav!.y)
     }
+  })
+})
+
+/**
+ * ONDA 57 (revisão) — A CASCA DO DESKTOP, MEDIDA.
+ *
+ * Dois valores que a leitura de código não consegue provar e que, se
+ * quebrarem, quebram TODO o desktop de uma vez — sem a varredura reclamar,
+ * porque nenhum dos dois é sobreposição, estouro ou alvo pequeno:
+ *
+ * 1. `OFFSET_TRILHO` (`lg:pl-[88px]`) tem que vencer o `px-4` da mesma
+ *    `<div>`. Se perder, o padding-left cai pra 16px e o conteúdo passa POR
+ *    BAIXO do trilho de 72px em toda tela a partir de 1024px.
+ * 2. A ação flutuante ("+ Registrar", "Exportar PDF") mora a 5rem do rodapé
+ *    no celular porque a barra de baixo ocupa esse espaço. No desktop a barra
+ *    é `lg:hidden`, e o botão ficava pairando sobre 80px de nada.
+ *
+ * 1440×900 e não 1024: 1024 é a fronteira do breakpoint e um teste em cima
+ * dela mede o caso limite, não o caso comum. O `data-moldura` é o mesmo
+ * gancho estável usado acima.
+ */
+test.describe("casca no desktop", () => {
+  test.skip(!temSessao, "sem SUPABASE_SERVICE_ROLE_KEY — precisa de sessão real")
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test("o conteúdo não passa por baixo do trilho: o pl do trilho vence o px-4", async ({ page }) => {
+    await page.goto("/barco", { waitUntil: "domcontentloaded" })
+    await page.waitForLoadState("networkidle").catch(() => {})
+
+    const caixa = await page.evaluate(() => {
+      const moldura = document.querySelector("[data-moldura]")
+      if (!moldura) return null
+      const cs = getComputedStyle(moldura)
+      return {
+        esquerda: parseFloat(cs.paddingLeft),
+        direita: parseFloat(cs.paddingRight),
+      }
+    })
+    expect(caixa, "[data-moldura] não encontrada").not.toBeNull()
+    // 88 = 72 do trilho + 16 de gutter (ver `OFFSET_TRILHO`). Se o `px-4`
+    // vencesse, este número seria 16 e o conteúdo estaria embaixo do trilho.
+    expect(caixa!.esquerda, "lg:pl-[88px] perdeu do px-4").toBe(88)
+    expect(caixa!.direita).toBe(16)
+
+    // O trilho de fato ocupa a faixa que o padding reserva.
+    const trilho = await page.locator('nav[aria-label="Navegação principal"]').boundingBox()
+    expect(trilho, "trilho não encontrado a 1440px").not.toBeNull()
+    expect(trilho!.x + trilho!.width).toBeLessThanOrEqual(caixa!.esquerda)
+  })
+
+  test("a ação flutuante não paira sobre a barra que não existe no desktop", async ({ page }) => {
+    await page.goto("/barco", { waitUntil: "domcontentloaded" })
+    await page.waitForLoadState("networkidle").catch(() => {})
+
+    const fab = page.getByRole("button", { name: "+ Registrar" })
+    await expect(fab).toBeVisible()
+    const folga = await page.evaluate(() => {
+      const b = [...document.querySelectorAll("button")]
+        .find((x) => x.textContent?.trim() === "+ Registrar")
+      return b ? window.innerHeight - b.getBoundingClientRect().bottom : -1
+    })
+    // 24px é o que `SLOT_ACAO_FLUTUANTE` reserva a partir de `lg`. O valor de
+    // celular (80px) é a regressão que este teste existe pra pegar; a folga
+    // de 0 seria o outro extremo (botão colado no rodapé).
+    expect(folga, "o FAB voltou a flutuar à altura da bottom-nav no desktop").toBeLessThanOrEqual(32)
+    expect(folga).toBeGreaterThanOrEqual(16)
   })
 })

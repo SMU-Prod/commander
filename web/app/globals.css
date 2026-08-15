@@ -24,13 +24,47 @@
      dark (mínimo é 4.5:1). Token dedicado pra essa combinação, medido ao
      vivo via getComputedStyle: 5.00:1 aqui, 4.89:1 no dark abaixo. */
   --texto-dim-chip: #596976;
+
+  /* Onda 57 — forma. Três raios e três elevações, e nada fora disto.
+     Quatro raios diferentes na mesma tela foi o que fez a proposta de
+     redesign parecer gerada: decoração distribuída em vez de sistema.
+     Ver docs/DESIGN.md §5. */
+  --raio-controle: 8px;   /* chip, campo, botão pequeno */
+  --raio-cartao: 14px;    /* cartão, painel, bloco */
+  --raio-pilula: 999px;   /* pílula, avatar, selo */
+
+  /* ELEVAÇÃO NÃO MORA AQUI — mora em `--sombra-1`/`--sombra-2`, mais abaixo,
+     que é o que o app inteiro consome (`.sombra-1`, `.sombra-2`).
+     A onda 57 criou aqui um par `--elev-cartao`/`--elev-flutuante` que
+     ninguém chegou a usar: dois nomes pra mesma coisa, com VALORES
+     diferentes dos que estavam em uso (uma camada de sombra contra duas) e
+     sem versão no tema escuro — no dia em que alguém escrevesse
+     `var(--elev-cartao)`, o escuro ganharia sombra de tema claro. A revisão
+     apagou os dois. Se precisar de elevação, use `--sombra-1` (separa do
+     fundo) ou `--sombra-2` (isto flutua); "plano" é a ausência das duas, e é
+     o padrão da maioria das superfícies (docs/DESIGN.md §5). */
 }
 
 [data-theme="dark"] {
-  --fundo: #0b1d2d;
-  --superficie: #12283a;
-  --superficie-2: #16324a;
-  --linha: #1e3550;
+  /* Onda 57 — o escuro fica mais fundo e mais neutro. O navy #0b1d2d como
+     GROUND deixava tudo azulado e cartão nenhum se separava do fundo; a
+     referência escolhida pelo dono (painel Haulix) usa quase-preto e
+     reserva a cor para o dado. O navy continua sendo a marca — só não é
+     mais o chão.
+
+     Correção sobre o plano original: os hex de --superficie/-2/--linha
+     abaixo NÃO são os do plano (#121820/#1a222c/#232d38) — aqueles reprovam
+     o próprio teste de contraste do plano (contraste.test.ts): mesmo com
+     --fundo em preto puro (#000000), #121820 contra ele dá 1.177:1, abaixo
+     do 1.2 mínimo — matematicamente impossível de corrigir só mexendo no
+     fundo. --fundo ficou como pedido (não escurecido); os três valores
+     abaixo foram clareados o suficiente pra render "cartão separa do
+     fundo" (DESIGN.md §5) verdadeiro, mantendo o mesmo matiz e a mesma
+     progressão relativa entre os três. */
+  --fundo: #0a0e12;
+  --superficie: #1c232c;
+  --superficie-2: #252e38;
+  --linha: #303a45;
   --texto: #e9f1f8;
   --texto-dim: #7c93ab;
   --ok: #2fd07a;
@@ -121,9 +155,21 @@ body {
    do mapa — então SÓ nesta tela (classe alternada por navegar-mapa.tsx no
    mount/unmount) o body fica transparente; o <html> vira o piso, com o
    MESMO navy fixo dos instrumentos, pra nunca sobrar branco no lugar do
-   véu escuro. */
+   véu escuro.
+
+   Revisão da onda 57 — o hexadecimal saiu, o token entrou: era `#0b1d2d`
+   escrito à mão, o navy que a onda 57 aposentou como CHÃO do tema escuro
+   (--fundo virou #0a0e12). No escuro, /navegar ficava com o piso de antes e
+   todas as outras telas com o de agora.
+   O token é `--meter` e NÃO `--fundo`, e o motivo está duas frases acima:
+   este piso existe pra nunca sobrar branco atrás do mapa. `--fundo` no tema
+   CLARO é #f5f7fa — usá-lo aqui devolveria exatamente o branco que esta
+   regra foi escrita pra impedir. `--meter` é o navy fixo de instrumento:
+   #0b1d2d no claro (byte a byte o que já estava) e #060d16 no escuro, ou
+   seja, a família de chão da onda 57. Conferido no navegador nos dois temas
+   e nos três estilos de carta: o mapa não mudou de aparência. */
 html:has(body.fundo-tela-mapa) {
-  background: #0b1d2d;
+  background: var(--meter);
 }
 body.fundo-tela-mapa {
   background: transparent;
@@ -162,14 +208,12 @@ body.fundo-tela-mapa {
   }
 
   /* Escala tipográfica — 4 vozes, nada abaixo de 11px.
-     Exceção documentada: a nav inferior (components/bottom-nav.tsx) roda a
-     9.5px. Medido ao vivo: 5 abas dividem 375px em 75px cada, sobrando 71px
-     de texto por aba; "COMANDANTES" maiúsculo precisa de 81px a 11px/tracking
-     zero — não cabe. Testado em canvas: 9.5px é o maior tamanho que ainda
-     cabe (9.75px já estoura pra 71.8px). Ficou fora da escala de conteúdo de
-     propósito — é chrome global (5 abas fixas, rótulos curtos, papel de
-     ícone com legenda, não de texto de leitura), mais perto da convenção
-     nativa de tab bar (iOS usa 10pt) do que da escala de corpo/rótulo. */
+     Onda 57 — a nav inferior (components/bottom-nav.tsx) teve, até aqui,
+     exceção documentada rodando a 9.5px: 5 abas dividem 375px em 75px cada,
+     sobrando 71px de texto por aba, e "COMANDANTES" maiúsculo precisava de
+     81px a 11px/tracking zero — não cabia. A troca de Comandantes por
+     Diário nesta onda tirou o rótulo que forçava a exceção; a barra inteira
+     volta ao piso de 11px como as outras 4 vozes. */
   .titulo-pagina {
     font-size: 1.5rem;      /* 24px */
     font-weight: 600;
@@ -195,6 +239,21 @@ body.fundo-tela-mapa {
   outline-offset: 2px;
 }
 [data-theme="dark"] :focus-visible { outline-color: var(--acao); }
+
+/* Foco POR DENTRO — para o alvo que preenche uma superfície com
+   `overflow-hidden` em volta. Hoje é um só: o convite "Adicionar foto da
+   embarcação", que ocupa a área inteira da foto dentro do cartão recortado
+   de `components/card-embarcacao.tsx`. O anel acima é desenhado 2px PRA FORA
+   da caixa, ou seja, exatamente na faixa que o cartão recorta — medido com e
+   sem foco, 0 de 74.088 pixels mudavam, nos dois temas: o teclado não tinha
+   como saber onde estava. Trazido pra dentro, o anel volta a pintar.
+
+   Mora aqui, e não numa classe do Tailwind, porque `:focus-visible` acima
+   está FORA de camada: declaração sem camada ganha de qualquer
+   `@layer utilities`, por mais específica que a utilitária seja. Um
+   `focus-visible:-outline-offset-2` no elemento é silenciosamente ignorado —
+   foi o que aconteceu na primeira tentativa. */
+.foco-por-dentro:focus-visible { outline-offset: -2px; }
 
 /* Onda 24 (passe de arte, bloco 3) — skin dos controles NATIVOS do Mapbox
    (zoom, bússola, locate — e o botão "Camadas" do próprio Commander, que já

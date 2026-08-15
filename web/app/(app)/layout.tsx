@@ -60,7 +60,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // que é `fixed` sobe ~34px) e supunha o FAB presente em toda tela. Agora a
   // folga é derivada do que de fato flutua — ver `lib/ui/superficies.ts`.
   return (
-    <MolduraApp temFab={motores.length > 0}>
+    // ONDA 57 (revisão) — `permissoes` e `avisos` descem até aqui porque o
+    // trilho de desktop precisa das duas: as permissões pra não anunciar
+    // porta que o backend fecha (o `redirect` de `/financeiro` e `/agenda`),
+    // e o contador porque a barra de baixo, que o carregava, é `lg:hidden`.
+    // São os MESMOS valores que a Início e a bottom-nav já usam — nada é
+    // recalculado, nada é buscado de novo.
+    <MolduraApp
+      temFab={motores.length > 0}
+      permissoes={painel?.permissoes ?? null}
+      avisos={avisos}
+    >
       <RegistrarSw />
       <Suspense fallback={null}>
         <Toast />

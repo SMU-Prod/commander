@@ -88,9 +88,19 @@ describe("ehTelaDeFormulario", () => {
 
 describe("mostrarRegistroRapido", () => {
   it("mostra o FAB nos hubs e listas, onde ele serve", () => {
-    for (const r of ["/hoje", "/barco", "/diario", "/financeiro", "/comandantes", "/menu"]) {
+    for (const r of ["/barco", "/diario", "/financeiro", "/comandantes", "/menu"]) {
       expect(mostrarRegistroRapido(r), r).toBe(true)
     }
+  })
+
+  it("cede o lugar para a ação principal que já está no conteúdo", () => {
+    // Onda 57: a Início ganhou o cartão "Diário de Bordo" com o botão
+    // "Registrar saída", que leva ao mesmo registro. Com os dois, a tela de
+    // casa tinha duas ações principais douradas, uma delas flutuando por
+    // cima do conteúdo.
+    expect(mostrarRegistroRapido("/hoje")).toBe(false)
+    // e continua sendo tela de leitura, não de formulário — o motivo é outro
+    expect(ehTelaDeFormulario("/hoje")).toBe(false)
   })
 
   it("esconde o FAB em toda tela de formulário", () => {
