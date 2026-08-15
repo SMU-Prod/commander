@@ -79,6 +79,29 @@ const TEM_ACAO_FLUTUANTE_PROPRIA = new Set([
   "/barco/resumos", // BotaoExportarPdf
 ])
 
+/**
+ * Telas cuja AÇÃO PRINCIPAL já está no conteúdo, à vista, sem flutuar.
+ *
+ * Onda 57, e por enquanto só a Início. Lá o Diário de Bordo virou cartão com
+ * o botão "Registrar saída" — que leva ao MESMO lugar que o "+ Registrar"
+ * (um registro no diário, com as horas do motor: ver `/diario/novo`). Com os
+ * dois, a tela tinha duas ações principais, as duas douradas, uma delas por
+ * cima do conteúdo. `docs/DESIGN.md` §6 regra 2 ("uma ação principal por
+ * tela") e §5 ("no máximo dois usos de dourado por tela") reprovam as duas
+ * coisas — e a que sobra é a que está no lugar onde o assunto mora.
+ *
+ * Diferente de `TEM_ACAO_FLUTUANTE_PROPRIA` de propósito: lá o motivo é
+ * físico (dois botões no mesmo pixel, um come o toque do outro), aqui é de
+ * produto. Misturar os dois casos numa lista só apagaria a diferença pra
+ * quem vier depois.
+ *
+ * Efeito colateral que é bom conhecer: sem FAB, a Início passa a usar
+ * `FOLGA_SEM_FAB` — some o vazio de ~90px que sobrava no fim da tela.
+ */
+const TEM_ACAO_PRINCIPAL_NO_CONTEUDO = new Set([
+  "/hoje", // cartão "Diário de Bordo" -> "Registrar saída"
+])
+
 /** Normaliza `/a/b/` → `/a/b` para a comparação não depender da barra final. */
 function normalizar(pathname: string): string {
   const p = pathname.split("?")[0].split("#")[0]
@@ -96,18 +119,21 @@ export function ehTelaDeFormulario(pathname: string): boolean {
 /**
  * O botão flutuante "+ Registrar" deve aparecer nesta rota?
  *
- * Três exceções, nesta ordem:
+ * Quatro exceções, nesta ordem:
  * 1. `/navegar` — no mapa o FAB cobria os controles de navegação, e lá o
  *    registro de horas já tem casa própria (a sugestão pós-trilha do Livro
  *    de Bordo). Regra que já existia antes desta onda, preservada.
  * 2. Telas que já têm ação flutuante própria — ver
  *    `TEM_ACAO_FLUTUANTE_PROPRIA`.
- * 3. Telas de formulário — ver o cabeçalho deste arquivo.
+ * 3. Telas cuja ação principal já está no conteúdo — ver
+ *    `TEM_ACAO_PRINCIPAL_NO_CONTEUDO`.
+ * 4. Telas de formulário — ver o cabeçalho deste arquivo.
  */
 export function mostrarRegistroRapido(pathname: string): boolean {
   const p = normalizar(pathname)
   if (p === "/navegar") return false
   if (TEM_ACAO_FLUTUANTE_PROPRIA.has(p)) return false
+  if (TEM_ACAO_PRINCIPAL_NO_CONTEUDO.has(p)) return false
   return !ehTelaDeFormulario(p)
 }
 
