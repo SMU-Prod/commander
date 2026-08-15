@@ -122,13 +122,42 @@ export function estadoFinal(estado: EstadoSolicitacaoGold): boolean {
   return TRANSICOES_VALIDAS[estado].length === 0
 }
 
-/** 1 metro = 3.28084 pés — sugestão de faixa a partir do comprimento já
- *  cadastrado na embarcação. Sempre uma SUGESTÃO: quem solicita pode
- *  corrigir (embarcação "outra" não tem comprimento cadastrado no Commander
- *  nenhuma vez, então a faixa entra sempre manual nesse caso). */
-export function sugerirFaixaPorte(comprimentoM: number | null | undefined): FaixaPorteGold | null {
-  if (comprimentoM == null || comprimentoM <= 0) return null
-  const pes = comprimentoM * 3.28084
+/**
+ * Um pé são 0,3048 m, por definição — não 1/3,28084, que é a mesma conta
+ * arredondada e erra pra cima. A diferença não é acadêmica: uma embarcação de
+ * 9,144 m (exatamente 30 pés) dava 30,00000096 pés com o fator arredondado e
+ * caía na faixa "31–40", R$ 500 mais cara. Um erro de ponto flutuante não
+ * pode cobrar meio milhar a mais de ninguém.
+ */
+export const METROS_POR_PE = 0.3048
+
+/**
+ * Comprimento em metros -> PÉS INTEIROS.
+ *
+ * ARREDONDAMENTO ESCOLHIDO: para o pé inteiro mais próximo (0,5 pé sobe).
+ * A tabela do §16 é escrita em pés inteiros e com um degrau entre as faixas
+ * ("Até 30 pés", depois "31–40 pés") — quem a escreveu pensa em barco de
+ * "32 pés", não em 32,4. Os outros dois caminhos foram descartados:
+ *  · truncar (`Math.floor`) faria um barco de 30,9 pés pagar como 30, e a
+ *    faixa "até 30" passaria a valer até quase 31;
+ *  · arredondar sempre pra cima (`Math.ceil`) faria 30,04 pés — 1 cm a mais
+ *    na ficha — custar R$ 500, que é exatamente o problema que a constante
+ *    acima resolve.
+ * Meio pé pra cima muda de faixa, e é o único caso em que a régua favorece o
+ * valor maior; está declarado aqui e visível na tela, não escondido na conta.
+ *
+ * Vale lembrar o que esta função É: uma SUGESTÃO. Quem solicita confirma ou
+ * corrige a faixa no formulário, e a medida que vale de verdade é a do
+ * consultor na avaliação presencial.
+ */
+export function pesDeMetros(comprimentoM: number): number {
+  return Math.round(comprimentoM / METROS_POR_PE)
+}
+
+/** Faixa a partir de pés inteiros. Espelha os `limite_pes` semeados em
+ *  `gold_precos` (migration 033): o PREÇO de cada faixa é configurável pelo
+ *  Admin (§20), as faixas em si são o enum do banco. */
+export function faixaPorteDePes(pes: number): FaixaPorteGold {
   if (pes <= 30) return "ate_30"
   if (pes <= 40) return "31_40"
   if (pes <= 50) return "41_50"
@@ -137,9 +166,42 @@ export function sugerirFaixaPorte(comprimentoM: number | null | undefined): Faix
   return "81_mais"
 }
 
+/** Sugestão de faixa a partir do comprimento já cadastrado na embarcação.
+ *  `null` quando não há comprimento — embarcação "outra" (§16: pode ser
+ *  solicitada para barco ainda não cadastrado) nunca tem, então ali a faixa
+ *  entra sempre à mão. */
+export function sugerirFaixaPorte(comprimentoM: number | null | undefined): FaixaPorteGold | null {
+  if (comprimentoM == null || !Number.isFinite(comprimentoM) || comprimentoM <= 0) return null
+  return faixaPorteDePes(pesDeMetros(comprimentoM))
+}
+
 export function precoDaFaixa(precos: GoldPreco[], faixa: FaixaPorteGold): GoldPreco | null {
   return precos.find((p) => p.faixa === faixa) ?? null
 }
+
+/**
+ * §16, última linha da tabela: "81+ pés — Sob consulta".
+ *
+ * `valor_centavos = null` não é preço faltando nem preço zero: é um ESTADO do
+ * produto. Barco grande tem avaliação sob medida, e o valor sai de uma
+ * conversa. Por isso a tela não pode oferecer "pagar" nesse caso — e a action
+ * de pagamento recusa gerar cobrança (`iniciarPagamentoGold`). Um R$ 0,00
+ * exibido ali, ou um botão que abre uma cobrança vazia, seria pior que a
+ * ausência do preço.
+ *
+ * Vale também quando o Admin apaga o valor de qualquer faixa em
+ * /admin/gold/precos: apagar é justamente a forma de dizer "essa faixa passou
+ * a ser sob consulta" (§20 — preço é dado configurável, não constante).
+ */
+export function precoSobConsulta(preco: GoldPreco | null | undefined): boolean {
+  return preco?.valor_centavos == null
+}
+
+/** O que a tela diz quando a faixa está sob consulta — honesto sobre o que
+ *  acontece a seguir, sem prometer prazo. */
+export const TEXTO_SOB_CONSULTA =
+  "O valor desta faixa é definido caso a caso. A equipe Commander entra em contato para combinar " +
+  "a avaliação e o valor — nenhuma cobrança é gerada automaticamente."
 
 /** `null` = "sob consulta" (faixa 81+ ou preço zerado pelo admin) — nunca
  *  formata como R$ 0,00, que pareceria grátis. */

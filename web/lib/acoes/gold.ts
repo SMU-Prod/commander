@@ -95,7 +95,15 @@ export async function criarSolicitacaoGold(formData: FormData) {
     redirect(`/barco/selos/gold/${inserida![0].id}`)
   }
 
-  // Outra embarcação — Correção 09, não precisa estar cadastrada no Commander.
+  // Outra embarcação — Correção 09 e §16 ("pode ser solicitado por
+  // proprietário, vendedor ou interessado/comprador, inclusive para
+  // embarcação ainda não cadastrada"). O vendedor é o corretor/dono que quer
+  // o Gold pra vender melhor um barco que não está no Commander; até a
+  // migration 050 ele era obrigado a se declarar "interessado", o que
+  // falseava o relatório de quem pede avaliação.
+  const papelSolicitante = String(formData.get("papel_solicitante") ?? "") === "vendedor"
+    ? "vendedor"
+    : "interessado"
   const nomeEmbarcacao = String(formData.get("embarcacao_externa_nome") ?? "").trim()
   if (!nomeEmbarcacao) erroLista("Informe o nome ou identificação da embarcação a avaliar.")
   const local = String(formData.get("embarcacao_externa_local") ?? "").trim() || null
@@ -108,7 +116,7 @@ export async function criarSolicitacaoGold(formData: FormData) {
     embarcacao_externa_obs: obs,
     faixa_porte: faixaBruta,
     solicitante_id: user.id,
-    papel_solicitante: "interessado",
+    papel_solicitante: papelSolicitante,
     quem_paga: quemPaga,
   }).select("id")
   if (error || !inserida?.length) erroLista("Não foi possível registrar o pedido. Tente de novo.")

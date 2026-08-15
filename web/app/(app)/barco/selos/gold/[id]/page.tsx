@@ -6,10 +6,11 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { asaasConfigurado } from "@/lib/asaas"
 import { cancelarSolicitacaoGold, iniciarPagamentoGold } from "@/lib/acoes/gold"
-import { carregarDetalheSolicitacaoGold, carregarPainel } from "@/lib/consultas-gold"
+import { carregarDetalheSolicitacaoGold, carregarPainel, carregarPrecosGold } from "@/lib/consultas-gold"
 import {
-  DESCRICAO_ESTADO_SOLICITACAO, HUBS_PROTOCOLO_GOLD, PASSOS_GOLD, podeCancelarGold,
-  ROTULO_ESTADO_ITEM, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE, ROTULO_HUB_GOLD, TEXTO_MODAL_GOLD,
+  DESCRICAO_ESTADO_SOLICITACAO, formatarPrecoGold, HUBS_PROTOCOLO_GOLD, PASSOS_GOLD, podeCancelarGold,
+  precoDaFaixa, precoSobConsulta, ROTULO_ESTADO_ITEM, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE,
+  ROTULO_HUB_GOLD, TEXTO_MODAL_GOLD, TEXTO_SOB_CONSULTA,
 } from "@/lib/domain/gold"
 
 const INDICE_PASSO: Record<string, number> = {
@@ -44,6 +45,12 @@ export default async function DetalheSolicitacaoGoldPage({
   const passoAtual = INDICE_PASSO[solicitacao.estado] ?? 0
   const chaveComAsaas = asaasConfigurado()
 
+  // §16/§20 — o preço vem da tabela configurável (`gold_precos`), nunca de uma
+  // constante. `null` ali é "sob consulta": um ESTADO, não um valor faltando —
+  // e nesse estado a tela não pode oferecer pagamento nenhum.
+  const preco = precoDaFaixa(await carregarPrecosGold(), solicitacao.faixa_porte)
+  const sobConsulta = precoSobConsulta(preco)
+
   return (
     <main>
       <CabecalhoDetalhe voltarHref="/barco/selos/gold" voltarRotulo="Commander Gold" titulo={nomeEmbarcacao} />
@@ -77,10 +84,20 @@ export default async function DetalheSolicitacaoGoldPage({
         <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Pagamento da avaliação</p>
           <p className="corpo">
-            {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]} — {solicitacao.quem_paga === "proprio" ? "você paga" : "você vai gerar um link para outra pessoa pagar"}
+            {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]} —{" "}
+            {solicitacao.quem_paga === "proprio" ? "você paga" : "você vai gerar um link para outra pessoa pagar"}
+          </p>
+          <p className="corpo mt-1 font-mono-instr tabular-nums text-accent-forte">
+            {formatarPrecoGold(preco?.valor_centavos ?? null)}
           </p>
 
-          {pagamento?.link_pagamento && pagamento.status === "pendente" ? (
+          {sobConsulta ? (
+            /* §16, "81+ pés: Sob consulta". Nenhuma cobrança é gerada aqui —
+               nem um botão que finja que dá. */
+            <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+              {TEXTO_SOB_CONSULTA}
+            </p>
+          ) : pagamento?.link_pagamento && pagamento.status === "pendente" ? (
             solicitacao.quem_paga === "interessado" ? (
               <div className="mt-3 space-y-2">
                 <p className="apoio text-dim">Envie este link para quem vai pagar. Ele mostra Pix e cartão, com QR Code na própria página.</p>

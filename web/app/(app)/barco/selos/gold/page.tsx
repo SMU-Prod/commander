@@ -136,9 +136,17 @@ export default async function GoldPage({
             <form action={criarSolicitacaoGold} className="sombra-1 mt-3 space-y-3 rounded-[14px] border border-line bg-panel p-4">
               <input type="hidden" name="tipo" value="outra" />
               <p className="apoio text-dim">
-                Vai comprar um barco e quer a avaliação presencial antes de fechar negócio? A
-                embarcação não precisa estar cadastrada no Commander.
+                Vai comprar um barco e quer a avaliação presencial antes de fechar negócio? Ou está
+                vendendo e quer o Gold no anúncio? A embarcação não precisa estar cadastrada no
+                Commander.
               </p>
+              {/* §16: "pode ser solicitado por proprietário, vendedor ou
+                  interessado/comprador". O papel muda quem é a pessoa no
+                  relatório e nada mais — não dá acesso a ficha nenhuma. */}
+              <CampoSelect label="Você é" id="papel_solicitante" name="papel_solicitante" defaultValue="interessado">
+                <option value="interessado">Interessado / comprador</option>
+                <option value="vendedor">Vendedor</option>
+              </CampoSelect>
               <Campo label="Nome ou identificação da embarcação" id="embarcacao_externa_nome" name="embarcacao_externa_nome" required />
               <Campo label="Onde ela está (marina, cidade)" id="embarcacao_externa_local" name="embarcacao_externa_local" />
               <CampoTextarea label="Observações (opcional)" id="embarcacao_externa_obs" name="embarcacao_externa_obs" rows={2} />
