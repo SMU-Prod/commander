@@ -222,6 +222,21 @@ body.fundo-tela-mapa {
 }
 [data-theme="dark"] :focus-visible { outline-color: var(--acao); }
 
+/* Foco POR DENTRO — para o alvo que preenche uma superfície com
+   `overflow-hidden` em volta. Hoje é um só: o convite "Adicionar foto da
+   embarcação", que ocupa a área inteira da foto dentro do cartão recortado
+   de `components/card-embarcacao.tsx`. O anel acima é desenhado 2px PRA FORA
+   da caixa, ou seja, exatamente na faixa que o cartão recorta — medido com e
+   sem foco, 0 de 74.088 pixels mudavam, nos dois temas: o teclado não tinha
+   como saber onde estava. Trazido pra dentro, o anel volta a pintar.
+
+   Mora aqui, e não numa classe do Tailwind, porque `:focus-visible` acima
+   está FORA de camada: declaração sem camada ganha de qualquer
+   `@layer utilities`, por mais específica que a utilitária seja. Um
+   `focus-visible:-outline-offset-2` no elemento é silenciosamente ignorado —
+   foi o que aconteceu na primeira tentativa. */
+.foco-por-dentro:focus-visible { outline-offset: -2px; }
+
 /* Onda 24 (passe de arte, bloco 3) — skin dos controles NATIVOS do Mapbox
    (zoom, bússola, locate — e o botão "Camadas" do próprio Commander, que já
    entra no mesmo grupo visual, ver ControleCamadas em mapa-nautico.tsx) pra

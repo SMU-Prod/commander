@@ -64,21 +64,38 @@ export function CardEmbarcacao({
           <img src={urlCapa} alt={`Foto de ${embarcacao.nome}`} className="h-44 w-full object-cover lg:h-64" />
         ) : (
           /* SEM FOTO NÃO PODE SER UM BURACO. A tela inteira foi desenhada em
-             volta desta imagem: sem ela, o lugar dela tem que virar o convite
-             mais claro do app — por isso este é o segundo (e último) uso do
-             dourado da Início. O bloco todo é o link; a pílula dourada é só o
-             alvo visível dentro dele. */
+             volta desta imagem: sem ela, o lugar dela tem que continuar sendo
+             um convite claro, com alvo de 44px e o bloco todo clicável.
+             O CONVITE NÃO É DOURADO. O orçamento da Início é dois (docs/
+             DESIGN.md §5) e já tem dono: o burgee (pertencimento à marca) e
+             "Registrar saída" (a ação principal). Num barco recém-cadastrado
+             — a tela do dia 1 — esta pílula era o terceiro, e duas ações
+             douradas disputando a mesma tela é exatamente o que a regra
+             existe pra impedir. Subir foto é bem-vindo; o hábito que o app
+             quer criar é registrar a saída, então quem cede é o convite da
+             foto. Em tom dos tokens do cartucho escuro (`--meter-texto` sobre
+             véu translúcido, os mesmos nos dois temas, porque esta área é
+             navy fixo) — continua legível e clicável, só não grita. O foco
+             visível segue valendo: quem o desenha é o `:focus-visible` global
+             sobre o próprio <Link>, não a pílula. */
           <Link
             href={podeEditarFotos ? "/barco/fotos" : "/barco"}
             /* `pb-16` porque o nome do barco fica em `absolute bottom-0` por
-               cima desta área: sem a folga, o convite cai em cima dele. */
-            className="flex h-44 w-full flex-col items-center justify-center gap-2 pb-16 lg:h-64"
+               cima desta área: sem a folga, o convite cai em cima dele.
+               `foco-por-dentro` (app/globals.css) porque este link preenche a
+               área inteira da foto e o cartão em volta tem `overflow-hidden`:
+               o anel global de foco é desenhado PRA FORA da caixa, caía na
+               faixa recortada e não pintava um pixel sequer — medido com e
+               sem foco, 0 de 74.088 pixels mudavam. Já era assim antes desta
+               onda; só ficou grave agora, que o convite deixou de ser dourado
+               e o anel é o que sobrou pra dizer "você está aqui". */
+            className="foco-por-dentro flex h-44 w-full flex-col items-center justify-center gap-2 pb-16 lg:h-64"
             style={{ backgroundImage: "radial-gradient(ellipse 90% 70% at 50% 15%, #16324a 0%, #0b1d2d 70%)" }}
           >
             <Icone nome="camera" className="size-6 text-meter-dim" />
             {podeEditarFotos ? (
               <>
-                <span className="inline-flex min-h-11 items-center rounded-[var(--raio-pilula)] bg-accent px-5 text-sm font-semibold text-acao-texto">
+                <span className="inline-flex min-h-11 items-center rounded-[var(--raio-pilula)] border border-[rgb(233_241_248/.30)] bg-[rgb(233_241_248/.12)] px-5 text-sm font-semibold text-meter-texto">
                   Adicionar foto da embarcação
                 </span>
                 <span className="apoio text-meter-dim">É ela que abre o seu Commander</span>
