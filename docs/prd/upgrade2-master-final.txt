@@ -1,0 +1,627 @@
+COMMANDER
+PRD MASTER — UPGRADE 2
+Product Requirements Document — versão consolidada para desenvolvimento
+Status: FEATURE FREEZE FUNCIONAL DO UPGRADE 2 — novas ideias funcionais devem ir para o backlog do Upgrade 3, salvo correção de inconsistência ou requisito técnico indispensável.
+Versão 2.0 • Agosto de 2026
+Documento destinado ao programador, produto, design e operação interna do Commander.
+0. Como usar este PRD
+Este documento é a fonte de verdade funcional do Commander Upgrade 2. Decisões anteriores que conflitem com este PRD devem ser consideradas substituídas. O objetivo é impedir que brainstorming antigo seja implementado por engano.
+Nomenclatura oficial: existem apenas COMMANDER VERIFIED e COMMANDER GOLD. Não existe produto ou menu chamado “Commander Review”. A avaliação presencial é parte do processo de obtenção do Gold.
+A aba “Serviços” foi eliminada. Prestadores e empresas são encontrados em EXPLORAR PARCEIROS; demandas e oportunidades ficam no MARKETPLACE.
+Jet Ski, cotas/cotistas e definição funcional de Commander Enterprise ficam fora do Upgrade 2 e pertencem ao Upgrade 3.
+Sumário executivo
+1. Visão e princípios do produto
+2. Perfis, planos e paywalls
+3. Navegação principal e dashboards
+4. Embarcação e hubs técnicos
+5. Saúde, alertas e notificações
+6. Diário de Bordo
+7. Histórico, ocorrências e memória técnica
+8. Agenda
+9. Financeiro e Carteira da Tripulação
+10. Explorar Parceiros
+11. Marketplace e fechamento de negócios
+12. Captain e carreira profissional
+13. Commander Partner por tipo
+14. Avaliações e contestações
+15. Commander Verified
+16. Commander Gold
+17. Transferência de propriedade
+18. Resumos e relatórios
+19. Permissões e delegação de acesso
+20. Publicidade e destaques
+21. Admin Commander
+22. Dados, auditoria e segurança funcional
+23. Fluxo de assinatura e ciclo de cobrança
+24. Estados vazios, erros e padrões UX
+25. Entidades de backend sugeridas
+26. Fora do escopo / Upgrade 3
+27. Critérios de aceite e ordem de implementação
+1. Visão e princípios do produto
+Commander é uma plataforma de gestão e ecossistema náutico. O produto deve centralizar a vida operacional e técnica da embarcação e conectar o proprietário a pessoas, parceiros e oportunidades do mercado náutico.
+Princípio de arquitetura: a EMBARCAÇÃO é uma entidade própria. Usuários recebem acesso a ela; o histórico técnico não deve ser tratado como simples conteúdo da conta do proprietário.
+Gestão técnica: motores, casco, elétrica, hidráulica, segurança, equipamentos e documentação.
+Operação: Diário de Bordo, Agenda, ocorrências, manutenção e histórico.
+Gestão econômica: Financeiro, recorrentes, relatórios e Carteira da Tripulação.
+Ecossistema: Explorar Parceiros, Marketplace, Captain e Commander Partner.
+Confiança: Commander Verified e Commander Gold.
+Administração interna: CEO Admin e funções operacionais segmentadas.
+1.1 Princípios de UX
+Nunca usar porcentagem para “Saúde da Embarcação”.
+Vermelho + “!” é reservado para alerta crítico, principalmente Segurança.
+Evitar linguagem interna de software (“gerar checkout”, CRUD, objeto). Usar linguagem de cliente.
+Registros importantes devem preservar autoria e data/hora.
+Evitar dupla digitação: quando um Hub já conhece um dado, outras áreas devem reutilizá-lo.
+Free deve funcionar como demonstração interativa, não como versão paralela do aplicativo.
+2. Perfis, planos e paywalls
+Perfil / Plano
+Preço
+Capacidade / regra principal
+Proprietário Free
+R$ 0
+1 embarcação cadastrável; 2 Diários completos; restante em demonstração/paywall.
+Commander
+R$ 49,90/mês
+1 embarcação; até 2 acessos de tripulação por embarcação; gestão completa.
+Commander Pro
+R$ 69,90/mês
+Até 4 embarcações; até 2 acessos de tripulação por embarcação; visão consolidada.
+Captain Free
+R$ 0
+Acesso operacional a embarcações conforme permissões; carreira profissional bloqueada.
+Captain Pro
+R$ 24,90/mês
+Perfil profissional, Marketplace, candidaturas, disponibilidade e Explorar completo.
+Commander Partner — Prestador
+R$ 24,90/mês
+Perfil ativo, Explorar, oportunidades, propostas e histórico comercial.
+Commander Partner — Loja Náutica
+R$ 24,90/mês
+Perfil ativo, Explorar, demandas de produto e atividades complementares.
+Commander Partner — Marina
+Grátis
+Perfil completo + Marketplace de vagas. Destaques pagos à parte.
+Commander Partner — Posto
+Grátis
+Perfil completo + Solicitações de Caminhão. Destaques pagos à parte.
+Commander Partner — Restaurante
+Grátis inicialmente
+Perfil no Explorar + cardápio em imagens.
+Commander Partner — Pousada/Hotel
+Grátis inicialmente
+Perfil no Explorar + acomodações e informações náuticas.
+Commander Enterprise
+A definir
+Exibir apenas como reservado/Em breve. Definição no Upgrade 3.
+2.1 Promoção de migração
+Cliente comprovadamente vindo de aplicativo concorrente: R$ 24,90/mês por 3 meses no Commander.
+Durante os mesmos 3 meses: 20% de desconto na avaliação para Commander Gold.
+Após o período: cobrança normal do Commander vigente.
+Benefícios promocionais de migração não acumulam com a oferta de entrada direta pelo Gold.
+2.2 Entrada direta pelo Gold
+Cliente não assinante contrata a avaliação Gold no preço integral.
+Se a embarcação for aprovada, recebe 6 meses do plano Commander incluídos.
+Ao fim dos 6 meses, passa para cobrança normal se continuar.
+2.3 Free — comportamento detalhado
+Pode cadastrar 1 embarcação e preencher dados básicos.
+Pode criar e consultar exatamente 2 Diários de Bordo completos.
+Pode navegar pelos hubs, porém sem consumir a gestão: telas/ações mostram cadeado e proposta de upgrade.
+Explorar: alguns Partners aleatórios mostram somente foto + nome; todo o restante do perfil e qualquer contato/ação ficam bloqueados.
+Marketplace: pode preencher o fluxo de uma demanda, mas o botão Publicar aciona o paywall.
+Agenda e Financeiro podem ser visualizados como estrutura, mas criação/lançamento ficam bloqueados.
+Não pode adicionar tripulação.
+3. Navegação principal e dashboards
+3.1 Proprietário
+Dashboard
+Embarcação
+Agenda
+Financeiro
+Explorar
+Marketplace
+Minha Conta / Assinatura / Acessos
+3.2 Captain
+Início / Dashboard
+Embarcações
+Diário
+Agenda
+Marketplace
+Explorar
+Perfil Profissional
+Minha Conta
+3.3 Commander Partner
+O menu muda conforme o tipo principal do Partner. O nome exibido no Dashboard é o tipo real — “Prestador de Serviço”, “Loja Náutica”, “Marina” etc. “Commander Partner” é o nome do plano/ecossistema B2B.
+3.4 Dashboard do proprietário
+Cabeçalho da embarcação: foto, nome, modelo e base/marina.
+Saúde: SAUDÁVEL / ATENÇÃO / AÇÃO NECESSÁRIA. Sem porcentagem.
+Bloco “Precisa da sua atenção”, ordenado por criticidade.
+Cards: Motores, Casco, Elétrica, Hidráulica, Segurança, Documentação, Equipamentos.
+Última navegação, ocorrências abertas, próxima manutenção, próximo vencimento e atividade recente.
+Ações rápidas: Novo Diário, Registrar manutenção, Registrar ocorrência, Atualizar horas.
+Publicidade: no máximo uma unidade visível por vez, carrossel de até 5 patrocinadores, sempre abaixo da área operacional prioritária.
+4. Embarcação e hubs técnicos
+4.1 Dados gerais
+Nome, foto, ano, estaleiro, modelo, comprimento, boca, calado, material/número do casco, TIE, capitania, propulsão, marina/base.
+4.2 Motores
+Cada motor é entidade independente (ex.: BB e BE).
+Identificação: marca, modelo, serial, identificação interna, ano, potência, combustível e posição.
+Horas atuais e histórico de leituras são informados manualmente ou por integração futura; Diário nunca soma horas automaticamente.
+Próxima revisão possui data e horas independentes; vence quando qualquer limite for atingido primeiro.
+Óleo e filtros podem ter especificação, última troca, próxima troca e status próprio.
+Histórico: data, horas, serviço, prestador, valor opcional, observação e anexos.
+Anexos: NF, relatório, manual, garantia e fotos.
+4.3 Casco
+Categorias: Deck, Fibra, Inox, Vidros, Estofados e Outros. Cada categoria possui estado, intervenção, avaria, manutenção, ocorrência, anexos e histórico.
+4.4 Elétrica
+Baterias, gerador, sistemas/painel de bordo e histórico. Gerador pode utilizar a regra horas OU data quando aplicável.
+4.5 Hidráulica
+Água doce, Grey Water, Black Water e componentes cadastráveis. Cada componente pode ter estado, manutenção, ocorrência, observação e histórico.
+4.6 Segurança
+Itens podem ter quantidade, validade, último teste, manutenção, estado, anexos e ocorrências.
+Qualquer alerta crítico de Segurança deve usar vermelho + “!” e subir para o Dashboard.
+4.7 Equipamentos
+Cadastro flexível de equipamentos: nome, categoria, marca, modelo, serial, instalação, estado, manutenção, prestador, observações, fotos/documentos e histórico.
+4.8 Documentação
+Tipos: TIE, seguro, vistoria, licenças, certificados, propriedade e outros cadastráveis.
+Campos: tipo, número, emissor, emissão, validade, arquivo, observação e status.
+Alertas: 30 dias, 15 dias, 5 dias e vencido.
+4.9 Fotos e contatos
+Fotos organizadas por álbuns; armazenamento pode ser limitado conforme plano em fase posterior.
+Contatos pessoais/de confiança: nome, empresa, especialidade, telefone, e-mail, observações, avaliação pessoal e histórico de serviços.
+5. Saúde, alertas e notificações
+Estado
+Regra
+SAUDÁVEL
+Nenhum item crítico vencido e nenhuma ocorrência crítica aberta.
+ATENÇÃO
+Existe item próximo do limite ou pendência não crítica.
+AÇÃO NECESSÁRIA
+Existe ao menos uma pendência crítica. O pior estado relevante prevalece.
+Status de Saúde é baseado somente nas informações registradas/acompanhadas no Commander e não representa declaração de navegabilidade.
+5.1 Manutenção por horas
+Antecedência é configurável pelo usuário/prestador; 50 horas pode ser sugestão padrão, não regra universal.
+5.2 Central de Notificações
+Sino no topo com contador; filtros: Todas, Embarcação, Agenda, Marketplace, Financeiro.
+Críticas: in-app + push, com destaque visual.
+Importantes: in-app + push quando exigem ação ou envolvem outra pessoa.
+Informativas: normalmente somente in-app.
+E-mail: principalmente conta, segurança, assinatura, Gold e comunicações formais.
+Notificações sempre respeitam permissões do usuário.
+Oportunidades semelhantes devem ser agrupadas para evitar spam.
+6. Diário de Bordo
+Campos de abertura: data, hora de saída, local, destino/rota, comandante, tripulação/ajudante, passageiros.
+Checklist operacional: Motores, Casco, Elétrica, Hidráulica e Segurança; permitir “Tudo OK”.
+Durante a navegação: ocorrência, foto, abastecimento e observação.
+Encerramento: hora/local de chegada, observações, abastecimento, checklist final e ocorrências.
+O Commander calcula somente o TEMPO DE PASSEIO entre abertura e encerramento.
+No fechamento: “Deseja atualizar as horas dos motores? SIM/NÃO”. Se SIM, usuário digita manualmente os horímetros e confirma.
+Nunca inferir ou somar horas do motor pela duração do passeio.
+Ocorrências do Diário são encaminhadas ao Hub correspondente e mantêm referência ao Diário de origem.
+Cada Diário finalizado possui relatório independente permanente.
+Existe Relatório Mensal específico do Diário de Bordo, separado do Resumo Mensal geral da embarcação.
+7. Histórico, ocorrências e memória técnica
+Histórico possui duas visualizações: Linha do Tempo e Ocorrências.
+Ocorrência: ABERTA → EM ACOMPANHAMENTO → RESOLVIDA; pode também ser anulada com registro quando criada por engano.
+Ocorrência pode gerar manutenção/reparo, custo e resolução.
+Cada Hub mostra uma visão filtrada do mesmo histórico central; não duplicar dados.
+Registros finalizados relevantes não são apagados silenciosamente; rascunhos não finalizados podem ser descartados.
+Remover o acesso de um usuário nunca apaga registros que ele criou. Autoria e data permanecem no histórico da embarcação.
+8. Agenda
+Agenda é aba oficial; o usuário não “cria uma agenda”, cria eventos/compromissos.
+Agenda normal mostra somente eventos criados pelo usuário ou compartilhados com ele.
+Agenda Detalhada adiciona camadas técnicas/operacionais: manutenções programadas, documentos, segurança, tarefas, serviços e financeiro, com filtros.
+Histórico de coisas já realizadas não polui a Agenda normal.
+Visualizações: Mês, Semana e Lista.
+Evento pode ser particular, compartilhado ou atribuído a alguém.
+Proprietário pode criar “Saída sábado — 08:00” e compartilhar com Captain/tripulação; o mesmo evento aparece nas agendas selecionadas.
+Captain só pode criar/compartilhar eventos da embarcação se tiver permissão “Gerenciar eventos da embarcação”.
+Receber um evento não concede acesso ao Hub relacionado.
+9. Financeiro e Carteira da Tripulação
+9.1 Financeiro — aba oficial
+Subabas: Visão Geral | Lançamentos | Recorrentes | Relatórios.
+Ações universais: + Despesa e + Entrada. Portanto o Financeiro nunca depende de integração de Hub.
+Campos de lançamento: categoria, descrição, valor, data, pago/pendente ou recebido/pendente, fornecedor/origem opcional, forma de pagamento opcional, comprovante e observação.
+Categorias sugeridas: Marina/Vaga, Combustível, Manutenção, Tripulação, Seguro, Documentação/Taxas, Limpeza/Conservação, Peças/Equipamentos, Transporte e Outros.
+Hubs onde fizer sentido mostram “Adicionar ao Financeiro” ou equivalente; a ação cria o mesmo lançamento central, não uma cópia.
+Orçamento/proposta não é despesa. Somente gasto efetivado/confirmado pode ser registrado como despesa.
+9.2 Recorrentes
+Despesas e entradas recorrentes: semanal, mensal, trimestral, semestral ou anual.
+Um vencimento não é automaticamente “pago”; usuário marca como pago.
+Alteração de valor permite “somente este lançamento” ou “este e os próximos”.
+9.3 Relatórios financeiros
+Mensal, anual e período personalizado.
+Despesas, entradas, saldo, recorrentes, variáveis, categoria, média mensal, maior categoria e comparação entre períodos.
+Commander Pro: visão consolidada de todas as embarcações + filtro individual.
+9.4 Carteira da Tripulação
+A Carteira é um controle contábil de valores informados. O Commander não guarda, transfere ou movimenta dinheiro.
+Somente o proprietário cria/libera uma Carteira para um tripulante específico em uma embarcação específica.
+Independe de Captain Free ou Captain Pro.
+Repasse registrado não vira despesa; vira saldo sob responsabilidade do tripulante.
+Tripulante registra gastos; cada gasto reduz o saldo da Carteira e alimenta o Financeiro da embarcação.
+Proprietário pode exigir comprovante obrigatório ou opcional.
+Proprietário pode escolher Registro Direto ou Aprovação do Proprietário.
+Pode existir devolução de saldo, confirmada pelo proprietário.
+Financeiro completo e Carteira são permissões independentes.
+10. Explorar Parceiros
+Não existe aba “Serviços”. Prestadores e empresas são encontrados em EXPLORAR PARCEIROS.
+Experiência principal: cards quadrados/visuais com foto, nome, categoria e localização básica. Clique abre perfil completo para usuários elegíveis.
+Filtros: Todos, tipo de Partner, categoria/atividade, região e outros filtros específicos.
+Categorias e regiões são padronizadas e compartilhadas com o Marketplace.
+Partner pode possuir um tipo principal e atividades complementares sem duplicar perfil.
+Free proprietário/Captain: alguns Partners aleatórios mostram somente foto + nome; qualquer detalhe, contato ou ação comercial permanece bloqueado.
+11. Marketplace e fechamento de negócios
+Marketplace é orientado por DEMANDA. Não é feed para empresas anunciarem produtos aleatórios.
+11.1 Tipos de demanda do proprietário
+Tipo
+Exemplo
+Quem recebe
+Preciso de profissional
+Preciso de eletricista em Angra
+Partners/Prestadores compatíveis por categoria + região
+Preciso de tripulação
+Preciso de marinheiro sábado
+Captains/profissionais compatíveis
+Compro / Procuro
+Procuro rádio VHF
+Lojas e Partners que vendem a categoria
+Vaga para embarcação
+Procuro vaga molhada para 80 pés
+Marinas compatíveis por região e capacidade
+Solicitar caminhão
+Preciso de 1.500 L de diesel
+Postos/fornecedores compatíveis por combustível + região
+11.2 Formulários estruturados
+O sistema fornece categorias, funções, regiões e campos padronizados. Texto livre é apenas observação curta complementar.
+O Commander gera o título/cartão final do anúncio a partir dos campos.
+Publicações sem data específica podem expirar por padrão em 30 dias; quando existe data/período, usar o próprio prazo da demanda.
+11.3 Ofereço / Estou disponível
+Somente Captain Pro pode publicar disponibilidade profissional estruturada.
+Função, região, período, tipo de trabalho, experiência, porte e certificações vêm de campos padronizados/perfil.
+11.4 Matching
+Distribuição simples e determinística: categoria/atividade + região + requisitos específicos (ex.: porte máximo, combustível, função).
+Parceiro escolhe no cadastro suas regiões e áreas de interesse/atuação.
+Explorar permite “Todos” e filtros livres; matching do Marketplace prioriza compatibilidade.
+11.5 Propostas e candidaturas
+Serviço: disponibilidade, data possível, valor estimado/a combinar, necessidade de visita e observação curta.
+Tripulação: perfil profissional, disponibilidade, valor quando aplicável e observação curta.
+Produto: marca/modelo, condição, valor, fotos, entrega/retirada e prazo.
+Marina: tipo de vaga, disponibilidade, diária/mensal/período, valor/sob consulta, água/energia e observação curta.
+Posto: preço/L, quantidade, data/período, taxa de deslocamento e valor estimado.
+11.6 Fechamento e histórico comercial
+Fluxo: Solicitação → Proposta/Candidatura → Em negociação → Negócio realizado → Confirmação bilateral.
+Um lado marca como realizado; o outro confirma ou nega.
+Valor final é opcional e pode ser diferente do valor inicialmente proposto.
+Após confirmação bilateral, liberar avaliação e oferecer “Adicionar ao Financeiro”.
+Admin acumula negócios confirmados, volume financeiro informado, ticket médio, conversão, Partner, categoria e região.
+Não cobrar comissão sobre transações no Upgrade 2. Primeiro construir histórico comprovável de valor gerado.
+12. Captain e carreira profissional
+Quando proprietário convida um comandante, a conta vinculada funciona como Captain Free. Se já existir conta, apenas vincular embarcação; não duplicar usuário.
+Captain Free pode operar a embarcação conforme permissões do proprietário; isso não depende de Captain Pro.
+Captain Pro R$24,90 desbloqueia camada profissional: perfil ativo, Explorar completo, Marketplace, candidaturas, disponibilidade, avaliações e histórico de trabalhos.
+Captain Pro nunca concede acesso adicional à embarcação por si só.
+Perfil profissional: foto, função, região, experiência, certificações, embarcações/portes, disponibilidade, avaliações e trabalhos confirmados.
+13. Commander Partner por tipo
+Commander Partner é o plano/ecossistema B2B. O Dashboard e o perfil exibem o tipo real do parceiro. Um Partner possui UM tipo principal e pode ter atividades complementares.
+13.1 Prestador de Serviço — R$24,90
+Menu: Início | Marketplace | Explorar | Meu Perfil | Minha Conta.
+Dashboard: oportunidades compatíveis, propostas, negociações, visualizações e atalhos.
+Pode ativar “Também vendo produtos” e selecionar categorias de produto.
+13.2 Loja Náutica — R$24,90
+Menu: Início | Marketplace | Explorar | Minha Loja | Minha Conta.
+Não há catálogo/estoque/carrinho no Upgrade 2.
+Loja cadastra categorias e marcas; responde a demandas de compra.
+Pode ativar “Também presto serviços” e selecionar serviços oferecidos.
+13.3 Marina — grátis
+Perfil: fotos, contato, acesso náutico, estrutura, atracação, combustível quando aplicável e informações atualizadas.
+Vagas secas/molhadas: total, disponíveis informadas manualmente, porte máximo, diária/mensal e preços opcionais/sob consulta.
+Informação de disponibilidade é declarada pela Marina; não é estoque/reserva transacional.
+Marketplace da Marina mostra apenas demandas de VAGAS e suas próprias propostas.
+Pode responder “Tenho vaga” com formulário estruturado.
+13.4 Posto Náutico — grátis
+Perfil: localização, fotos, combustível, preço opcional, horário, contato e última atualização.
+Função especial: Solicitações de Caminhão.
+Resposta: preço/L, quantidade, data/período, taxa de deslocamento e estimativa total.
+Não precisa receber o Marketplace geral.
+13.5 Restaurante — grátis inicialmente
+Perfil no Explorar com informações básicas e náuticas pertinentes.
+Fotos separadas em estabelecimento e Cardápio; cardápio é galeria de imagens, não cadastro de pratos.
+Sem reserva, pagamento ou pedido interno no Upgrade 2.
+13.6 Pousada/Hotel — grátis inicialmente
+Perfil, fotos, acomodações, valores opcionais, check-in/out e informações de acesso pelo mar.
+Sem calendário de disponibilidade, Booking interno ou pagamento no Upgrade 2.
+14. Avaliações e contestações
+Avaliação somente após negócio confirmado bilateralmente no Commander.
+1 a 5 estrelas + comentário opcional.
+Perfil mostra média, quantidade e indicação “Negócio confirmado pelo Commander”.
+Uma resposta por avaliação; respostas do avaliado são padronizadas.
+Cliente pode editar a própria avaliação por até 30 dias.
+1 ou 2 estrelas liberam botão “Contestar avaliação”.
+Contestação não remove avaliação automaticamente; Admin analisa e pode Manter ou Ocultar por violação. Admin nunca altera a nota.
+Avaliado pode marcar “Problema solucionado”; cliente confirma ou nega. A nota não muda automaticamente.
+14.1 Respostas prontas
+Para avaliações positivas:
+Agradecemos pela avaliação e pela confiança em nosso trabalho.
+Obrigado pela preferência. Será um prazer atendê-lo novamente.
+Agradecemos pelo reconhecimento. Seguimos à disposição.
+Para avaliações intermediárias:
+Agradecemos pelo feedback. Sua opinião nos ajuda a melhorar nosso atendimento.
+Obrigado pela avaliação. Seguiremos trabalhando para oferecer uma experiência cada vez melhor.
+Agradecemos pelas observações e vamos considerá-las para aprimorar nosso atendimento.
+Para avaliações negativas:
+Entraremos em contato para entender melhor o ocorrido e buscar uma solução.
+A situação será analisada por nossa equipe e entraremos em contato para os devidos esclarecimentos.
+Lamentamos que sua experiência não tenha atendido às expectativas. Vamos analisar o ocorrido.
+Nossa equipe possui uma compreensão diferente sobre o ocorrido e permanece disponível para esclarecimentos.
+O ocorrido não dependeu diretamente de nossa atuação, mas permanecemos disponíveis para esclarecer a situação.
+A situação já foi tratada diretamente com o cliente e permanecemos à disposição.
+14.2 Motivos de contestação
+A avaliação não corresponde ao serviço/produto negociado.
+As informações apresentadas são incorretas.
+O problema relatado não foi causado por nossa atuação.
+O cliente não cumpriu as condições previamente acordadas.
+A avaliação contém conteúdo ofensivo ou inadequado.
+A situação já havia sido solucionada.
+Suspeito de uso indevido do sistema de avaliações.
+Outro motivo.
+15. Commander Verified
+Verified é verificação DIGITAL de cadastro e acompanhamento. Não representa inspeção presencial, certificação técnica ou navegabilidade.
+Pilares: Motores cadastrados; Manutenções acompanhadas; Segurança cadastrada; Documentação acompanhada; Histórico ativo.
+Sem porcentagem; mostrar requisitos atendidos e o que falta.
+Visual: navy/preto + prata; escudo + check; sem dourado.
+Se requisito deixar de ser atendido: “Atualização necessária — 15 dias”.
+Se regularizar dentro dos 15 dias: mantém o selo. Se não regularizar: Verified suspenso. Ao corrigir, reavaliação automática e reativação.
+Ter ocorrência aberta não remove Verified automaticamente; o selo mede acompanhamento, não ausência de defeitos.
+16. Commander Gold
+Somente dois selos: Verified e Gold. A avaliação presencial é parte do processo Gold; não criar “Commander Review”.
+Fluxo: Solicitar Commander Gold → pagamento → agendamento → avaliação presencial → Protocolo Commander → análise → aprovado/reprovado → Gold ativo quando aprovado.
+Pode ser solicitado por proprietário, vendedor ou interessado/comprador, inclusive para embarcação ainda não cadastrada.
+Quem pagará? EU → pagamento; INTERESSADO → link/QR de pagamento.
+Gold não depende de Verified.
+Modal Gold: itens avaliados, data, validade, consultor, versão/identificação do protocolo e botão Ver Relatório.
+O checklist técnico detalhado do Protocolo Commander será desenvolvido separadamente pelo fundador e não precisa ser inventado pelo programador.
+Porte
+Preço de referência
+Até 30 pés
+R$ 1.990
+31–40 pés
+R$ 2.490
+41–50 pés
+R$ 3.490
+51–60 pés
+R$ 4.490
+61–80 pés
+R$ 5.990
+81+ pés
+Sob consulta
+17. Transferência de propriedade
+Ação: Gerenciar embarcação → Transferir propriedade.
+Podem acompanhar o barco quando autorizado: dados técnicos, motores, horas, manutenções, ocorrências técnicas, relatórios, Gold e documentos técnicos compartilháveis.
+Não transferir automaticamente: dados pessoais, passageiros, custos privados, informações financeiras pessoais e dados sensíveis do proprietário anterior.
+Objetivo: preservar a memória técnica da embarcação sem transferir a vida privada do proprietário anterior.
+18. Resumos e relatórios
+Área Resumos: Mensal, Semestral e Anual. Um único modelo excelente inicialmente.
+Pode consolidar: Diários/uso, horas, manutenções, ocorrências, Casco, Elétrica, Hidráulica, Segurança, Equipamentos, Documentação, abastecimentos e gastos disponíveis.
+Relatório Mensal do Diário é separado do Resumo Mensal geral.
+Financeiro possui relatórios próprios.
+19. Permissões e delegação de acesso
+Hierarquia: Proprietário → Comandante principal → Tripulante operacional.
+Proprietário concede por Hub: Sem acesso | Visualizar | Editar.
+Proprietário possui funções exclusivas: plano/assinatura, transferência, gestão final de acessos, criação de Carteira e permissões sensíveis.
+Se o proprietário ativar “Gerenciar tripulação”, o Captain pode adicionar um Tripulante Operacional SOMENTE à embarcação à qual já tem acesso.
+Limite: até 2 acessos de tripulação por embarcação. Convite pendente ocupa vaga.
+Ninguém pode delegar uma permissão maior que a própria. Algumas permissões são não delegáveis mesmo quando o Captain as possui.
+Captain não pode delegar Financeiro completo, Carteira, plano, Gold, transferência, gestão do proprietário ou criação de outro Captain com poder superior.
+Tripulante Operacional pode receber Diário, visualização/edição operacional de Hubs permitidos, ocorrências, fotos/anexos, Agenda/tarefas.
+Proprietário pode criar Carteira diretamente para qualquer tripulante autorizado, inclusive operacional.
+Remover vínculo apenas remove acesso; todo histórico permanece com autoria.
+20. Publicidade e destaques
+Regra única para qualquer Commander Partner, pago ou gratuito.
+Produtos: Destaque no Explorar; Destaque superior; Patrocínio no Dashboard.
+Preço não deve ser hardcoded; configurável no Admin/Comercial.
+Patrocínio no Dashboard: um único espaço visível por vez, carrossel de até 5 patrocinadores, abaixo da área operacional e identificado como “Patrocinado”.
+Segmentação mínima recomendada: região; categoria quando aplicável.
+Publicidade nunca interfere na nota/reputação do Partner.
+21. Admin Commander
+Admin é painel interno separado do aplicativo de cliente. O CEO/Super Admin é a conta-mãe que cria e gerencia os demais administradores.
+Função Admin
+Escopo
+CEO / Super Admin
+Acesso total; cria/edita/suspende administradores; métricas executivas; configurações críticas.
+Suporte
+Usuários, embarcações, planos/status, chamados e operação de suporte; sem configurações estratégicas críticas.
+Comercial
+Partners, destaques, campanhas, publicidade e métricas comerciais.
+Gold / Vistoriador
+Vistorias atribuídas somente às regiões autorizadas; agenda e registros de visita. Não concede acesso nacional irrestrito.
+21.1 Dashboard CEO
+Receita/MRR, assinantes, novos, cancelamentos/churn.
+Embarcações ativas.
+Commander / Pro / Captain Pro / Partner por status.
+Partners ativos e gratuitos.
+Pedidos, propostas, negócios confirmados, volume financeiro informado e ticket médio.
+Gold solicitados, pagos, agendados, ativos e expirados.
+Publicidade ativa, impressões e cliques quando implementado.
+Regiões e categorias com maior atividade.
+21.2 Gestão de conteúdo padronizado
+Admin controla categorias de serviço/produto, marcas, regiões, funções profissionais, tipos de Partner e demais taxonomias. Usuário pode solicitar inclusão de marca/categoria ausente; evitar duplicatas livres.
+21.3 Logs administrativos
+Toda ação administrativa relevante registra quem, quando, função, ação, entidade afetada e mudança de status.
+Logs não são apagáveis por administradores comuns.
+22. Dados, auditoria e segurança funcional
+Toda alteração relevante registra usuário e data/hora.
+Anexos ficam vinculados ao registro correto (ex.: NF da revisão pertence à manutenção do Motor BB).
+Isolamento entre embarcações e contas deve ser obrigatório no backend.
+Dados financeiros pessoais não devem ser expostos por padrão a Captains/tripulantes.
+Carteira da Tripulação registra responsabilidade contábil, nunca saldo bancário.
+Partner não recebe telefone/dados sensíveis do proprietário antes do ponto de liberação previsto no fluxo.
+Admin deve operar por permissões de função, não por simples “admin=true”.
+Sessões, uploads, permissões e ações sensíveis devem seguir práticas de segurança compatíveis com aplicação de produção.
+23. Fluxo de assinatura e ciclo de cobrança
+Este fluxo deve ser implementado mesmo que o gateway definitivo ainda seja escolhido. O gateway deve permitir cobrança recorrente e tratamento de estados de pagamento.
+Usuário escolhe plano e vê preço/benefícios.
+Seleciona forma de pagamento disponível e confirma.
+Pagamento aprovado → assinatura ativa → recursos liberados imediatamente.
+Renovação recorrente na data de ciclo.
+Pagamento recusado → notificação + status “problema de pagamento” + tentativa/reprocessamento conforme gateway.
+Período de tolerância recomendado deve ser configurável, não hardcoded; durante tolerância, avisar claramente antes de bloquear recursos pagos.
+Falha persistente/cancelamento → conta volta ao nível Free aplicável, preservando dados e histórico; recursos pagos ficam bloqueados, não apagados.
+Reativação posterior restabelece o acesso aos dados existentes.
+Downgrade Commander Pro → Commander: não apagar embarcações excedentes; bloquear gestão das excedentes e exigir seleção da embarcação ativa até regularização/mudança de plano.
+Histórico de faturas/cobranças disponível em Minha Conta.
+Gateway definitivo pode ser escolhido pelo time técnico/comercial, mas estados de assinatura devem ser modelados independentemente do fornecedor.
+24. Estados vazios, erros e padrões UX
+Situação
+Comportamento esperado
+Sem dados
+Explicar o valor da área e oferecer a ação principal adequada.
+Limite atingido
+Explicar o limite e mostrar CTA de upgrade; nunca falhar silenciosamente.
+Sem permissão
+Mostrar mensagem de acesso não autorizado sem revelar dados.
+Convite pendente
+Exibir status e permitir reenviar/cancelar por quem possui autoridade.
+Arquivo inválido
+Informar formato/tamanho aceito e preservar o restante do formulário.
+Sair sem salvar
+Confirmar descarte quando houver alterações.
+Exclusão de rascunho
+Confirmar exclusão.
+Registro técnico finalizado
+Preferir anular/corrigir com histórico em vez de exclusão silenciosa.
+Sem resultados Marketplace/Explorar
+Manter filtros visíveis e sugerir ampliar região/categoria.
+Erro de rede
+Preservar dados do formulário quando possível e permitir tentar novamente.
+25. Entidades de backend sugeridas
+User
+UserRole/Profile
+Subscription
+Vessel
+VesselAccess
+Permission
+Invitation
+Engine
+EngineHourReading
+Component
+Maintenance
+Occurrence
+Document
+SafetyItem
+Equipment
+Logbook
+LogbookEntry
+Attachment
+AgendaEvent
+AgendaShare/Assignee
+FinancialTransaction
+RecurringTransaction
+CrewWallet
+CrewWalletTransfer
+CrewWalletExpense
+Contact
+SummaryReport
+VerifiedStatus
+GoldApplication
+GoldEvaluation
+GoldStatus
+VesselTransfer
+ProfessionalProfile
+Partner
+PartnerType
+PartnerActivity
+Region
+Category
+Brand
+MarketplacePost
+MarketplaceProposal/Application
+Deal
+DealConfirmation
+Review
+ReviewContest
+Advertisement/Campaign
+Notification
+AdminRole
+AdminScope
+AdminLog
+Nomes técnicos podem mudar. O essencial é preservar as relações e não transformar cada tela em tabela isolada.
+26. Fora do escopo / Upgrade 3
+Jet Ski.
+Embarcações em cota e cotistas.
+Fluxos específicos para administradoras de cotas.
+Definição funcional/comercial completa do Commander Enterprise.
+Commander Connected / hardware / telemetria automática.
+Pagamento e split de transações do Marketplace / comissão automática.
+E-commerce completo, estoque, carrinho e catálogo de Loja Náutica.
+Reservas internas completas de restaurantes, hotéis e marinas.
+Protocolo técnico detalhado do Commander Gold (documento operacional separado).
+27. Critérios de aceite e ordem de implementação
+27.1 Ordem recomendada
+1. Fundação: autenticação, perfis, planos, embarcação, acessos, permissões e convites.
+2. Hubs técnicos e histórico: Motores, Casco, Elétrica, Hidráulica, Segurança, Equipamentos, Documentação, ocorrências e manutenções.
+3. Diário de Bordo e relatórios de Diário.
+4. Dashboard, Saúde e alertas.
+5. Agenda.
+6. Financeiro, recorrentes e Carteira da Tripulação.
+7. Explorar e Commander Partner.
+8. Marketplace, propostas, matching e fechamento bilateral.
+9. Captain Pro e perfil profissional.
+10. Avaliações/contestações.
+11. Verified e Gold (fluxo do app).
+12. Publicidade/Destaques.
+13. Admin Commander.
+14. Polimento: estados vazios, notificações, erros, auditoria e relatórios.
+27.2 Critérios gerais de aceite
+Nenhuma funcionalidade marcada como Upgrade 3 deve aparecer como fluxo funcional concluído no Upgrade 2.
+Nenhum texto de cliente deve usar “Commander Review”.
+Nenhum menu principal deve usar a antiga aba “Serviços”.
+Diário nunca altera horímetro sem confirmação e entrada manual.
+Saúde nunca exibe porcentagem.
+Alertas críticos de Segurança usam vermelho + “!”.
+Remoção de acesso nunca apaga histórico.
+Free bloqueia valor, mas preserva dados já criados e apresenta upgrade de forma clara.
+Permissões devem ser aplicadas tanto na interface quanto no backend/API.
+Financeiro deve funcionar mesmo sem integrações de Hub, via lançamento manual universal.
+Negócio só libera avaliação após confirmação bilateral.
+Admin deve respeitar papel e escopo regional quando aplicável.
+28. Decisões congeladas — referência rápida
+Tema
+Decisão congelada
+Saúde
+Sem porcentagem; Saudável / Atenção / Ação necessária.
+Segurança
+Crítico = vermelho + !.
+Diário
+2 no Free; duração de passeio automática; horímetro somente manual.
+Commander
+R$49,90; 1 embarcação; 2 acessos por embarcação.
+Commander Pro
+R$69,90; até 4 embarcações; 2 acessos por embarcação.
+Captain Pro
+R$24,90.
+Partner Prestador/Loja
+R$24,90.
+Marina/Posto
+Partner grátis.
+Restaurante/Pousada
+Partner grátis inicialmente.
+Explorar
+Vitrine dos Partners.
+Marketplace
+Demandas estruturadas + matching categoria/região.
+Agenda
+Aba oficial; normal limpa; detalhada com camadas técnicas.
+Financeiro
+Aba oficial + lançamento manual universal + recorrentes + relatórios.
+Carteira
+Criada pelo proprietário; não movimenta dinheiro.
+Verified
+Digital; 15 dias para regularização antes de suspensão.
+Gold
+Presencial; sem “Commander Review”.
+Avaliação
+Somente após negócio confirmado bilateralmente.
+Comissão Marketplace
+Não no Upgrade 2; acumular histórico/volume primeiro.
+Enterprise/cotas/jet
+Upgrade 3.
+FIM DO PRD MASTER — COMMANDER UPGRADE 2
+Qualquer nova funcionalidade deve ser registrada no backlog do Upgrade 3, salvo correção de requisito ou necessidade técnica para completar um fluxo já aprovado.

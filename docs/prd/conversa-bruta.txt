@@ -1,0 +1,226 @@
+COMMANDER — CONVERSA BRUTA DISPONÍVEL
+Arquivo-fonte cronológico • Upgrade 2 e decisões relacionadas
+IMPORTANTE: este não é o export oficial da interface do ChatGPT. Ele reúne, sem tentar completar por invenção, os trechos da conversa que estão disponíveis no contexto desta sessão e as decisões recuperáveis do projeto. Onde uma mensagem anterior não está disponível literalmente, ela não é recriada como se fosse transcrição.
+1. Trechos brutos recuperados — decisões anteriores do Upgrade 2
+USUÁRIO
+exato . e alertas criticos de seguranca aparecem vermelho com exclamacao ... e claro nada de porcentagem como ja tinhamos falado
+USUÁRIO
+### E. Horas dos motoresJá tínhamos essa inteligência.Se o usuário informar horas finais:**Motor BB: 438,2h → 442,4h**o Commander atualiza o Motor BB. ( negado )definimos que NAO MEXE COM HORA ... OU ELE COLOCA OU NAO ALTERA NADA ... a unica informacao que pode fazer é registrar o periodo de passeio ! iniciou diario x hora , retornou e finalizou x hora .. registra 5 horas de passeio por exemplo ou 3 horas etc... por ai vai calculando tempo de abrir e fechar diario . hora de motor SOMENTE SE PREENCHER MANUALMENTE , ocpao quer alterar horars de motor ?sim - nao ! se ssim ... bota o campo pra ir direto pros motores atualizaando hroaE Sim . diario deve ter um Relatorio independente salvo , ele envia sim para a hub onde deu o problema ... mas quero poder gerar relatorio mensal de diario de bordo ...n entendi sobre o mar agr q vc citou
+USUÁRIO
+ja tinhamos falado sobre 15 dias algo assim ...
+USUÁRIO
+**Commander:** quantas embarcações + quantos acessos? 1 49,99**Commander Pro:** quantas embarcações + quantos acessos? ate 4**Preço do Pro:** qual ficou? 69,99enterprise upgrade 3 mas deixa ela ali cOMMNADER ENTERPRISE (VAZIO)preço para quem tem app concorrente 24,99 , por 3 meses. 20% DE DESCONTO NO SELO DE OURO. se adquirir o selo de ouro antes do plano 30% de desconto... o q acha ?
+USUÁRIO
+na verdade essa porcentagens precisam conversar ... quero 6 meses de assinatura pra qm entrar ja pagando o gold.... e se for da concorrencia , a gnt da 20% off do gold , ou seja , se o cara se cadastrar , ele tera como beneficio 29,99 e ainda 20% off do gold .... somente durante esses 3 meses q ele tiver na migraçao
+USUÁRIO
+otimo só vamos reajustar tudo para ,90 centavos tb
+USUÁRIO
+acesso é exatamente isso !prop 1 para 2 trip . e no PROprio anuncio ja explicar o pq de poucos acessos.... ! voce nao da achave da sua casa para todos... algo assim....o de 5 embarcacoes vai ser igual ... ele so tem direito a mais cadastros... entende ? jaja vamos rebater isso no upgrade 3 mas deixa assim por enquanto
+USUÁRIO
+entao na vdd sobre explorar acho q seria os parceiros nao ?
+USUÁRIO
+exato n ocaso ter 3ABA EXPLORAR PARCEIROS AI ABRE PARCEIROS ABRE OS CARDS DELES QUADRADINHOS COM FOTOS Q ELES COLOCAM PRA APARECER , É LA Q ELES APARECEM , E ALI ELES ESCREVEM O BASICO ! TIPO LOJA TAL , NEDERECO ETC...SE HOUVER PATROCINADORES , COLOCAMOS SEMPRE NA ABA SUPERIOR DANDO DESTAQUES , TIPO , UMA PROPAGANDINHA DELE SACA ... DESTACADO , OU OS Q PAGAREM MAIS APARECEM NA PRIMEIRA PAGINA .
+USUÁRIO
+EXATO e para pagamentos maiores tipo 200 300 por mes , propaganda em dash board oq acha ?talvez umas 5 rodando no dashboard dos proprietarios , exemplo , um slide q roda pro lado d fotos. obvio q sem poluir ! o dash
+USUÁRIO
+serviços negativo ?pq acho q esse lance de aparecer o prestador poderia estar no parceiros nao ? explorar ?
+USUÁRIO
+exatamente ! o market place q seria o outro
+USUÁRIO
+no caso do market , o propr colocar preciso de marinheiro ou procuro eletrictista etc ,,,, precisamos definar as abas desse preenchimento e quem visualiza tb precisamos definar as opcoes q tem q de se candidatar
+USUÁRIO
+quero , só se forem PRO , tem q preencher formularios prontos, nada de escreverem oq querem.
+USUÁRIO
+CAPTAIN PRO PODEMOS usar de nomeQuem vê o quê na verdade é simples , qnd cada usuario for cadastrar , dos parceiros, eles vao dizer oq tem de interesse , eletrica, blablabal e ai aparece pra eles , e a regiao tb manda cadastrar de onde sao , e ai aparecce pra eles tb ... mas no explorar no filtro , pode botar opcao pra aparecer tudo tb , ou ticar onde quer local e tb o que quer de servico. abas de eletrica , estofadsos balblablabla
+USUÁRIO
+FREE para propri ( cadastrar barco ter 2 diario d bordo ) mas n cosnegue acessar nnada , somente no diario de bordo verificar os 2 q ele fez .... na parte do market place deixar ele visualizar estrutura , mas n consegue ver parceiros, consegue mexer para anunciar um pedido de algo , mas na hora dele enviar , tb n consegue ... algo assim ... e acho q é isso . ele consegue navegar por todos os hubs , mas n enxerga nada , somente um cadeado pedindo pra ele virar plano .... se tiver alguma ideia de dar um gostinho a ele ok ... o mapa talvez a gnt deixe ele ver , mas na hora q começar a mexer tb podemos travar ele ....os prestadores n entendemos aindo o menu deles ne ?, mas acho q pra eles o mais itneressante serio o market e o explorar , podem ver q tb tem outros concorrentes , mas deixar tudo bloqueado pra ele, e tb deixar ele tentar fazer uma busca por pedidos , mas travar eles na hora ...comandantes , a gnt pode liberar tb cadastrar um barco todo , mas dps travar igual prop. o acesso ao markt fazer igual parceiros. algo assim tb...cotas upgrade 3
+USUÁRIO
+24,90 .... pro captain ! n sei n sei , mas acho q gostaria ja de cobrar esses parceiros , porem restaurantes e pousadas talvez gratis no inicio ne? mas lojas e prestadores acho q tem q pagar desde o inicio ´, é mt vantange m pra eles, mas podem se conectar free sim , porem com as abas bloqueadas !!!! e vamos discutir como seria os hub desses outros ne ???
+USUÁRIO
+| Captain || ------- || demonstração + 1 barco + 2 Diários + Marketplace bloqueado ( e todo resto) <br><br>prestador tm 24,90 <br><br>loja nautica tb 24,90<br><br>marinas serao parceiras free <br><br>entao no caso pro captain , só muda o dash board tb , ne <br><br> <br><br>Vamos por partes igual estamos fazendo vai |
+USUÁRIO
+exatamente , o captain pro tem todos os acessos , adicionar comandantes pelo proprietario vira uma captain free a conta ...
+USUÁRIO
+otiomo quero partner , e o nome la no dash pode aparecer prestador de serviço .. ou LOJA NAUTICA etc...
+USUÁRIO
+Uma **Commander Partner — Loja Náutica** pode ter também **serviços oferecidos**.sim vamos dar a opcao de qnd FOR LOJA , eles poderem criar opcao de FAÇO PRESTACAO DE SERVIÇO , POIS AI ELES VAO PODER SE CANDIDATAR AO PEDIDO , E PRESTADORES , QUE TIVEREM ALGO PRA VENDER , PODERIAM TER UMA OPÇAO DE , TENHO PRODUTOS PARA VENDER , GOSTARIA DE ME CANDIDATAR AS COMPRADORES. AI ELE TB PODERIA OFERECER OQ ACHA ?OU ISSO MEIO Q MATA QM É LOJA OU PRESTADOR ????
+USUÁRIO
+na verdade acho q a marina pode ter acesso ao marketplace , porem somente nas abas de VAGAS DE BARCO .... q podemos criar ,. entao se alguem queruma marina pra 80 pes , pergunta la no market. ela consegue visualizar e disponibilizar a vaga , nromal igual o prestador. e assim , pegar o cliente .. ela tb pode dizer qnts vagas tem seca e qnts tem molhada , e se tem vaga para diaria. pode ja colocar os vlores se quiser , ou nao ! ...
+USUÁRIO
+para postos , gostaria de um Solicitar caminhao só
+USUÁRIO
+pode deixar ele botar em fotos , uma opcao de cardapios ne...
+USUÁRIO
+pronto ... QUALQUER UM Q QUEIRA DESTACAR A REGRA É A MSM
+USUÁRIO
+preciso encaixar uma AGENDA ! E ESSA AGENDA PODERIA TER PARA TODOS NE ?
+USUÁRIO
+BELEZA , vc acha q bota a agenda aberta , ou como opcao de criar agenda ?
+USUÁRIO
+agr a agenda do prop , pode coexistir com a agenda do comndt q ele cadastra . só q ele tera essa opcao , compartilhar tarefa com tripulacao.
+USUÁRIO
+pq ele pode querer sair no sabado . e botar o evento SAIDA SABADO , ja aparece pro CMDT
+USUÁRIO
+na vdd a agenda n pode ta poluida com os afazeres do cotidiano , se n vai ta smp ali dizendo q tal data fez tal coisa . isso pode aparecer qnd ele clicar em ABRIR AGENDA DETALHADA. AI sim aparece tb as manutencoes ... mas se ele deixar correr a agenda normal .. so aparece os eventos e ELE criar.
+USUÁRIO
+segunda coisa é O FINANCEIRO ! ONSAILING É FORTE NO FINANCEIRO , PRECISAMOS SER BOM TB , N PRECISAMOS SER MELHOR MAS NO MINIMO IGUAL
+USUÁRIO
+vc acha q criar um ngocinho tipo valor etc pra cada produto ? ou vc acha q seria melhor no dashboard dele ter , cadastrar despesas e entradas ( algo assim) , ou tipo no dia a dia ir prenchendo msm seria melhor ?
+USUÁRIO
+pode ter uma aba de cadastrar despesas fixas... tb ... etc
+USUÁRIO
+entao de todas hubq fizer sentido , vc bota um tag de acrescentar despesa sei la como poderia vir escrito , e ja cria tb um FINANCEIRO NO MENu com dashboard todo programado e bom pro cara preencher , despesas fixas , etc etc etc etc ,, boraaaaa
+USUÁRIO
+e smp q a gnt esquecer de ter na hub , ele pode entrar no financeiro e lancar ! feito
+USUÁRIO
+se ELE DA ALGUM DINHEIRO PRO CMTD . ELE PODE CADASTRAR ISSO TB ... e obrigatoriamente ja cai na conta do CMDT o valor q ele mandou pro cara ... e ai o cmdt vai ter q ir dizendo pra onde ta indo a grana no perfil dele msm ... adicionando gastos tb etc... vale criar uma aba de vis, ou permitira tarefa pro comdt de controle financeiro somente do que o prop manda pra lee
+USUÁRIO
+isso ai , n depende do pro , DEPENDE do prop disponibilizar essa carteira , e tem q ter uma ! de infos , explicando coisas pro propr de como ele deve conduzir isso ne
+2. Conversa bruta disponível — trecho recente consolidado
+USUÁRIO
+agr vamos falar sobre cupons , sera q consigo pegar % de algumas coisas desse market place ?
+ASSISTENTE
+Sim — e acho que aqui tem uma oportunidade de receita bem maior do que os R$24,90 dos Partners, mas eu não faria o Commander processar todos os pagamentos agora.Eu criaria uma camada de Commander Benefits / Cupons Commander dentro do Marketplace e do Explorar. A ideia é o Partner cadastrar uma oferta exclusiva para usuários Commander, podendo existir desconto ao cliente e, futuramente, comissão ao Commander. No Upgrade 2, a recomendação foi priorizar rastreamento e prova de geração de negócio antes de construir split de pagamento.
+USUÁRIO
+mas no caso se eu conseguir tipo criar esse historico c esse cliente ? como eu cobro esse parceiro pra ter o dinheiro ?pedindo ?kkkkk
+ASSISTENTE
+Se depender de pedir comissão manualmente ao Partner, vira uma operação de cobrança. Para o Upgrade 2, a recomendação foi não cobrar comissão por venda ainda; usar cupons/rastreamento para provar geração de valor. Como alternativa futura, poderia existir saldo/fatura mensal do Partner ou split automático quando pagamentos fossem processados dentro do Commander.
+USUÁRIO
+entao vamos fazer assim , dar um jeito de saber q a venda foi efetivada ... ate msm pleo prop , e partner pra poder das as estrelinhas pra aaquela pessoa... e ai a gnt vai acumulando historico , pra poder chegar no partner dps e cobrar ou comissao , ou aumentar o valor mensal deles.
+ASSISTENTE
+Fechado: Marketplace passa a ter fechamento da negociação com status, confirmação bilateral de negócio realizado, avaliação liberada somente depois da confirmação e valor final opcional. O Admin acumula histórico de negócios confirmados, volume informado, ticket médio, conversão, Partner, região e categoria. Sem comissão no Upgrade 2.
+USUÁRIO
+perfeito !
+ASSISTENTE
+Marketplace → proposta → negociação → confirmação bilateral → negócio realizado → avaliação → valor final opcional → Financeiro → histórico de negócios gerados pelo Commander. Sem comissão no Upgrade 2; primeiro provar valor.
+USUÁRIO
+e agora
+ASSISTENTE
+Próximo passo proposto: auditoria final do Upgrade 2, consolidando Agenda, Financeiro + Carteira, fechamento de negócios + avaliações e todos os demais módulos, procurando contradições, telas sem destino, permissões faltando e fluxos incompletos.
+USUÁRIO
+bora
+ASSISTENTE
+Auditoria inicial consolidou Hubs, Diário, Agenda, Financeiro, Carteira, Planos, Captain, Partner, Explorar e Marketplace. Pendências identificadas: avaliações, notificações, matriz de permissões e Admin Commander.
+USUÁRIO
+caralho vc leu minha mente, eu ia falar sobre um usuario administrador pqp ...
+ASSISTENTE
+Foi definido o COMMANDER ADMIN como painel interno separado, com Dashboard, Usuários, Embarcações, Partners, Marketplace, Gold, Financeiro Commander, Publicidade, Avaliações, Conteúdo/Cadastros e Suporte; com papéis Super Admin, Suporte, Comercial e Gold.
+USUÁRIO
+exato ! Quero o meu admin CEO , e as outras categorias ... ja deixa criado no caso ne ... na verdade vc vai criar o meu Ceo e eu vou poder adicionar os admin suport comercial ou o gold .. q no caso seriam os meus funcionarios de cada estado trab so nas visitas.
+ASSISTENTE
+Estrutura fechada: CEO/Super Admin como conta-mãe com acesso total e criação de administradores; Admin Suporte; Admin Comercial; Gold/Vistoriador com escopo geográfico limitado por estado/região. Vistoriador conclui vistoria, mas aprovação final do Gold fica com autoridade superior. Ações administrativas relevantes geram log.
+USUÁRIO
+beleza
+ASSISTENTE
+Commander Admin entra oficialmente no Upgrade 2. Restavam avaliações, notificações e consolidação da matriz de permissões.
+USUÁRIO
+bora
+ASSISTENTE
+Avaliações: somente após negócio confirmado; 1–5 estrelas; comentário opcional; selo de negócio confirmado; Partner pode responder uma vez; edição por prazo; denúncia/moderação; Captain também recebe reputação profissional.
+USUÁRIO
+é isso , e em relacao a estrela , se por acaso receber 1 estrela o partner tem ocpao de contestar? e as responstas todas prontas oq acha ? pq se dizer nao fiquei satisfeito , servico mal assessorado , ai o outro tem , sera solucionado via telefone , ou nao temos culpa ou etc ... ja deixar as respostar protnas oq acha ?
+ASSISTENTE
+Foi definida contestação para avaliações baixas e respostas padronizadas. Contestação vai ao Admin e não remove a avaliação automaticamente. Respostas prontas evitam conflito público. Também foi criado fluxo “Problema solucionado”, com confirmação do cliente; a nota original só muda se o próprio cliente editar.
+USUÁRIO
+pronto
+ASSISTENTE
+Avaliações fechadas: negócio confirmado, 1–5 estrelas, comentário opcional, respostas padronizadas, contestação de notas baixas, análise Admin, fluxo de solução e confirmação do cliente.
+USUÁRIO
+ja fez os textos entao ?das estrelinhas ? respost prontas?
+ASSISTENTE
+Foram fechados textos oficiais de respostas positivas, intermediárias e negativas; motivos de contestação; mensagem de envio de contestação; e respostas do Admin para manter ou ocultar avaliação. A lógica evita linguagem agressiva e mantém registro para auditoria.
+USUÁRIO
+ok
+ASSISTENTE
+Avaliações encerradas inclusive com textos de interface. Próximo: notificações e matriz final de permissões.
+USUÁRIO
+bora
+ASSISTENTE
+Central de Notificações: sino no topo; categorias Todas, Embarcação, Agenda, Marketplace e Financeiro; níveis crítica, importante e informativa. Alertas críticos usam vermelho + !; Agenda notifica eventos compartilhados; Marketplace notifica propostas/candidaturas/negócios; Financeiro notifica ações necessárias; Carteira notifica repasses/aprovações; avaliações e Gold têm notificações próprias. Push controlável; alertas essenciais permanecem dentro do app; e-mail reservado a administrativo/formal.
+USUÁRIO
+ok
+ASSISTENTE
+Notificações fechadas. Em seguida foi consolidada a matriz Proprietário → Tripulação, com permissões por Hub, Agenda por compartilhamento, Financeiro separado da Carteira, Diário operacional e histórico persistente.
+USUÁRIO
+isso no caso , o historico fica ele so perde acesso msm .... sobre o comdt do prop , ele poderia tb adicionar tripulante ... acho q seria bom , n daria dor de cabeça pro proprietari , mas qm criar primeiro , criar mais sera blok , identifca q ja tem 3 e n deixa criar. o q acha ?
+ASSISTENTE
+Foi aceita a delegação: o Comandante principal pode adicionar tripulante se o proprietário conceder “Gerenciar tripulação”, somente na embarcação vinculada. O limite é global da embarcação/plano; convite pendente ocupa vaga. Remover acesso nunca remove histórico.
+USUÁRIO
+sim no caso ele so poderia criar vinculado aquela embarcacao q ele ja tem permissao. e no caso , o outro acesso q ele for criar . ele nem poderia tocar em financeiro , seria mais outras coisas das hubs e etc... nada q definisse algo prejudicial pro barco do tripulante... tipo somente um diario de bordo ou algo do tipo ...
+ASSISTENTE
+Foi definida a classe Tripulante Operacional: permissões delegáveis apenas operacionais, como Diário, visualização/registro em Hubs, ocorrências, anexos e tarefas. Financeiro, Carteira, plano, Gold, propriedade e permissões sensíveis não são delegáveis pelo Captain. Ninguém pode conceder permissão maior do que possui.
+USUÁRIO
+exato
+ASSISTENTE
+Permissões fechadas: Proprietário → Comandante principal → Tripulante operacional; histórico permanece; limite global; delegação somente operacional.
+USUÁRIO
+e agr
+ASSISTENTE
+Próximo passo: auditoria final de consistência de todos os perfis e módulos antes do PRD Master.
+USUÁRIO
+ok
+ASSISTENTE
+Auditoria de Proprietário Free, Commander e Commander Pro. Free: 1 embarcação, 2 Diários, estrutura navegável com paywalls; Commander R$49,90: 1 embarcação e até 2 acessos; Commander Pro R$69,90: até 4 embarcações e visão consolidada. Pontos levantados: teaser do Explorar Free e se acessos do Pro seriam por conta ou por embarcação.
+USUÁRIO
+pode tentar deixar ele ver partner aleatorios e outros blok
+ASSISTENTE
+Explorar Free definido como vitrine demonstrativa com alguns Partners parcialmente visíveis e outros bloqueados.
+USUÁRIO
+mas qnd ele clicar visive , ele so ver oq o cara quer por exemplio... e nao da acesso ao cara ... entenddeu ?tipo mais no visual msm nessapegada sua
+ASSISTENTE
+Ajuste: visível significa apenas amostra visual; nenhum contato ou ação comercial é liberado.
+USUÁRIO
+na verdade acho q so talvez um nome e uma foto msm e o resto tudo bloq
+ASSISTENTE
+Fechado: no Free, alguns Partners aleatórios mostram somente foto + nome; todo o restante fica bloqueado.
+USUÁRIO
+ok
+ASSISTENTE
+Ponto 1 fechado; sugestão mantida de 2 acessos por embarcação no Commander Pro.
+USUÁRIO
+ok bora
+ASSISTENTE
+Commander Pro fechado com até 2 acessos por embarcação. Auditoria Captain Free, Captain Pro e Tripulante: Captain Pro R$24,90 libera camada profissional, sem aumentar autoridade dentro do barco.
+USUÁRIO
+a gnt ja n tinha batido essa meta ?mantem a logica para os outros e game
+ASSISTENTE
+Confirmado: não reabrir decisões já tomadas. Free = demonstração/bloqueios; plano pago correspondente = acesso completo aos recursos daquele perfil. Auditoria futura só para contradições ou buracos novos.
+USUÁRIO
+sim sim
+ASSISTENTE
+Auditoria Partners: Prestador R$24,90; Loja Náutica R$24,90; Marina Free; Posto Free; Restaurante Free inicialmente; Pousada/Hotel Free inicialmente; Destaques pagos; histórico de negócios e avaliações verificados. Atividade complementar não cria perfil duplicado.
+USUÁRIO
+ja sai varrendo tudo de uma vez amigo
+ASSISTENTE
+Varredura final completa do Upgrade 2: contas/planos, permissões, Hubs, Saúde/Alertas, Diário, Agenda, Financeiro, Carteira, Explorar, Marketplace, fechamento bilateral, avaliações, Partners, publicidade, benefícios/cupons, notificações, Gold, Admin, dados e histórico. Conclusão: funcionalmente fechado; restavam especificações técnicas/UX e fluxo de assinatura/pagamento. Enterprise, cotas e jet ficam no Upgrade 3.
+USUÁRIO
+ok lança o prd q chama ne ? dessse upgrade , tudo bem detalhadinho pro meu programador
+ASSISTENTE
+Foi criado o PRD MASTER — COMMANDER UPGRADE 2, consolidado para desenvolvimento.
+USUÁRIO
+tudo q falamos ta nesse arquivo ai ?so isso?
+ASSISTENTE
+Foi esclarecido que o PRD consolida o Upgrade 2, mas não é uma transcrição integral de toda a conversa; para uma IA implementar sem preencher lacunas seria útil uma especificação funcional ainda mais detalhada.
+USUÁRIO
+mas se meu programador manda isso pra uma ia , ela vai entender oq eu e vc restamos conversando ?
+ASSISTENTE
+Foi explicado que uma IA entenderá produto, perfis, módulos e regras principais, mas não necessariamente todas as nuances da conversa; recomendou-se uma especificação funcional completa, tela por tela, campo por campo, com regras e proibições explícitas.
+USUÁRIO
+entao exporta toda nossa conversa me manda aqui
+ASSISTENTE
+Foi informado que não há acesso ao export literal da interface do ChatGPT, mas é possível gerar um DOCX bruto com a conversa sobre Commander disponível no contexto, sem inventar trechos ausentes.
+USUÁRIO
+isso gera um doc bruto
+3. Decisões recuperadas de materiais anteriores (não apresentadas como transcrição literal)
+PRD Master definido como fonte de verdade funcional do Upgrade 2 e status de feature freeze funcional.
+Escopo central inclui: embarcação como entidade própria; Hubs Motores, Casco, Elétrica, Hidráulica, Segurança, Equipamentos e Documentação; Diário; Histórico/Ocorrências/Manutenções; Dashboard/Saúde/Alertas; Agenda; Financeiro; Carteira; Explorar; Marketplace; Captain; Partner; Avaliações; Verified; Gold; Transferência; Resumos; Permissões; Publicidade; Admin.
+Saúde sem porcentagem; estados qualitativos e alerta crítico vermelho com exclamação.
+Diário Free limitado a 2; duração de passeio calculada automaticamente; horímetro apenas manual.
+Commander R$49,90; Commander Pro R$69,90; Captain Pro R$24,90; Partner Prestador/Loja R$24,90; Marina/Posto gratuitos; Enterprise reservado ao Upgrade 3.
+Explorar é vitrine de Partners; Marketplace é orientado por demanda e matching por categoria/região.
+Agenda oficial; Financeiro com lançamento manual universal, recorrentes e relatórios; Carteira não movimenta dinheiro.
+Verified é digital; Gold é presencial; “Commander Review” não deve aparecer na interface final.
+Avaliação só após negócio confirmado bilateralmente; comissão do Marketplace fica fora do Upgrade 2.
+Remoção de acesso não apaga histórico; permissões precisam valer na interface e no backend/API.
+Enterprise, cotas/cotistas e jet ficam no Upgrade 3.
+Nota de integridade: mensagens antigas que não estão disponíveis literalmente nesta sessão não foram reconstruídas palavra por palavra. Este arquivo serve como arquivo-fonte bruto do material recuperável, não como export oficial integral da conta.

@@ -1,3 +1,6 @@
 .superpowers/
 node_modules/
 scripts/.cache/
+
+# Dados nauticos oficiais (CHM/DPC) — gigas de PDF/ZIP, baixados por script; nao versionar
+dados-nauticos/
