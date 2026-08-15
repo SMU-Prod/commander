@@ -69,8 +69,10 @@ test.describe("formulário no celular", () => {
       await page.goto(rota, { waitUntil: "domcontentloaded" })
       await page.waitForLoadState("networkidle").catch(() => {})
       return page.evaluate(() => {
-        const nav = document.querySelector("nav.fixed")
-        const moldura = nav?.parentElement // a moldura de `(app)` envolve a bottom-nav
+        // `data-moldura` é o gancho estável da `<div>` de conteúdo (ver
+        // `components/moldura-app.tsx`) — achar por ele não depende de
+        // quantos `nav.fixed` existem na página nem da ordem deles.
+        const moldura = document.querySelector("[data-moldura]")
         return moldura ? parseFloat(getComputedStyle(moldura).paddingBottom) : -1
       })
     }
@@ -96,7 +98,11 @@ test.describe("formulário no celular", () => {
       await page.waitForTimeout(300)
 
       const salvar = page.getByRole("button", { name: botao })
-      const nav = page.locator("nav.fixed").first()
+      // `:visible` porque a página agora tem dois `nav.fixed` (a bottom-nav
+      // e o trilho de desktop, escondido em mobile via `hidden lg:flex`) —
+      // sem o filtro, `.first()` dependeria da ordem deles no DOM em vez de
+      // pegar a barra de baixo, que é a única visível nesta largura.
+      const nav = page.locator("nav.fixed:visible").first()
       const rSalvar = await salvar.boundingBox()
       const rNav = await nav.boundingBox()
       expect(rSalvar, `${rota}: botão "${botao}" não encontrado`).not.toBeNull()

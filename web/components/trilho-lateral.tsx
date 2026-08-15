@@ -59,7 +59,7 @@ export function TrilhoLateral() {
             // longo, mede 54px e a coluna tem 64px. Com um `px-1` aqui
             // sobrariam 0,8px de folga — qualquer ajuste de fonte depois
             // truncaria o rótulo sem ninguém perceber.
-            className={`flex w-full flex-col items-center justify-center gap-0.5 rounded-[var(--raio-controle)] py-2 text-[9px] uppercase tracking-[.06em] ${
+            className={`flex w-full flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] py-2 text-[9px] uppercase tracking-[.06em] ${
               ativo ? "bg-accent/12 text-accent-forte" : "text-dim hover:bg-panel2"
             }`}
           >
