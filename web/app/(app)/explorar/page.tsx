@@ -6,9 +6,14 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
 import { carregarNivelPlano } from "@/lib/consultas"
 import { carregarTaxonomia } from "@/lib/consultas-marketplace"
-import { cardAmostraFree, cardCompleto, carregarVitrine } from "@/lib/consultas-partner"
+import {
+  cardAmostraFree,
+  cardCompleto,
+  carregarElegibilidadeExplorar,
+  carregarVitrine,
+} from "@/lib/consultas-partner"
 import { hojeISO } from "@/lib/domain/datas"
-import { amostraExplorarFree, ehPago } from "@/lib/domain/plano-acesso"
+import { amostraExplorarFree } from "@/lib/domain/plano-acesso"
 import {
   FILTRO_TODOS,
   filtrarVitrine,
@@ -56,11 +61,16 @@ export default async function ExplorarPage({
   const { vista, tipo: tipoBruto, regiao, atividade } = await searchParams
   const noMapa = vista === "mapa"
 
-  const [nivel, { parceiros, atividadesPorParceiro }] = await Promise.all([
+  const [nivel, pago, { parceiros, atividadesPorParceiro }] = await Promise.all([
     carregarNivelPlano(),
+    // "Elegível" (§10) não é o mesmo que "proprietário pago": Captain Pro e
+    // qualquer Partner cadastrado também entram — ver
+    // `explorarCompletoLiberado` em lib/domain/partner.ts. Sem isso, uma
+    // Marina clicaria no "Explorar" do próprio menu (§13) e tomaria o
+    // paywall de gestão de barco, que não é o produto dela.
+    carregarElegibilidadeExplorar(),
     carregarVitrine(),
   ])
-  const pago = ehPago(nivel)
 
   // --- Vista de mapa: exatamente o comportamento da onda 39/47 -------------
   if (noMapa) {

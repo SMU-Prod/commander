@@ -1,6 +1,8 @@
 import { cache } from "react"
+import { carregarAssinatura, carregarNivelPlano } from "@/lib/consultas"
 import { carregarMapaTaxonomia, nomeDaRegiao } from "@/lib/consultas-marketplace"
-import { ROTULO_TIPO_PARTNER, type TipoPartner } from "@/lib/domain/partner"
+import { ehPago } from "@/lib/domain/plano-acesso"
+import { explorarCompletoLiberado, ROTULO_TIPO_PARTNER, type TipoPartner } from "@/lib/domain/partner"
 import { supabaseServer } from "@/lib/supabase/server"
 import type {
   Parceiro,
@@ -64,6 +66,27 @@ export const carregarMeuPartner = cache(async (): Promise<MeuPartner | null> => 
     vagas: (vagas as ParceiroVaga[] | null) ?? [],
     acomodacoes: (acomodacoes as ParceiroAcomodacao[] | null) ?? [],
   }
+})
+
+/**
+ * O sinal do §10 já resolvido: esta pessoa vê o Explorar completo?
+ *
+ * Junta as três leituras (degrau de proprietário, plano da assinatura, tem
+ * perfil de Partner?) e entrega pra regra pura `explorarCompletoLiberado`
+ * decidir — mesmo padrão de `carregarNivelPlano`: quem lê o banco não é quem
+ * decide.
+ */
+export const carregarElegibilidadeExplorar = cache(async (): Promise<boolean> => {
+  const [nivel, { plano }, meu] = await Promise.all([
+    carregarNivelPlano(),
+    carregarAssinatura(),
+    carregarMeuPartner(),
+  ])
+  return explorarCompletoLiberado({
+    proprietarioPago: ehPago(nivel),
+    plano,
+    temPerfilPartner: meu != null,
+  })
 })
 
 // ===========================================================================

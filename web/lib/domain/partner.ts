@@ -513,6 +513,34 @@ export function filtroTipoValido(v: unknown): FiltroTipoPartner {
   return ehTipoPartner(v) ? v : FILTRO_TODOS
 }
 
+/**
+ * Quem tem direito ao Explorar COMPLETO (§10: "Clique abre perfil completo
+ * para usuários ELEGÍVEIS").
+ *
+ * `ehPago` sozinho não responde isso, e por um motivo estrutural: aquela régua
+ * é do PROPRIETÁRIO (`NivelPlano` só tem Free/Commander/Commander Pro), e um
+ * Partner não é proprietário de embarcação nenhuma. Sem esta função, uma
+ * Marina cadastrada clicaria em "Explorar" — item do MENU DELA no §13 — e
+ * tomaria o paywall de gestão de barco, que não é o produto dela.
+ *
+ * As três portas, cada uma com a linha que a sustenta:
+ *   · proprietário em plano pago — §2.3, por exclusão (o corte é do Free);
+ *   · Captain Pro — §2 e §12 dizem, com estas palavras, "Explorar completo";
+ *   · ter perfil de Partner — §13 põe "Explorar" no menu de TODOS os tipos,
+ *     inclusive os gratuitos. Quem está do lado de dentro da rede não é
+ *     tratado como visitante dela.
+ *
+ * O que continua bloqueado é exatamente quem o §2.3 nomeia: "Free
+ * proprietário/Captain".
+ */
+export function explorarCompletoLiberado(sinal: {
+  proprietarioPago: boolean
+  plano: PlanoId
+  temPerfilPartner: boolean
+}): boolean {
+  return sinal.proprietarioPago || sinal.plano === "captain_pro" || sinal.temPerfilPartner
+}
+
 export interface PartnerParaVitrine {
   id: string
   categoria: TipoPartner

@@ -7,6 +7,7 @@ import {
   demandasDoPartner,
   demandasParaPartner,
   ehTipoPartner,
+  explorarCompletoLiberado,
   FILTRO_TODOS,
   filtrarVitrine,
   filtroTipoValido,
@@ -399,6 +400,38 @@ describe("matching pelo cadastro do Partner (§11.4)", () => {
       { id: "c", ...demanda({ categoria_id: "mecanica" }) },
     ]
     expect(demandasParaPartner(lista, p).map((d) => d.id)).toEqual(["a", "c"])
+  })
+})
+
+describe("quem vê o Explorar completo (§10, §2.3, §12)", () => {
+  it("libera proprietário em plano pago", () => {
+    expect(explorarCompletoLiberado({
+      proprietarioPago: true, plano: "commander", temPerfilPartner: false,
+    })).toBe(true)
+  })
+
+  it("libera Captain Pro — §2 e §12 dizem 'Explorar completo' com estas palavras", () => {
+    expect(explorarCompletoLiberado({
+      proprietarioPago: false, plano: "captain_pro", temPerfilPartner: false,
+    })).toBe(true)
+  })
+
+  it("libera qualquer Partner cadastrado, inclusive os tipos gratuitos", () => {
+    // §13 põe "Explorar" no menu de TODOS os tipos. Uma Marina (plano grátis,
+    // sem assinatura, sem embarcação) que tomasse paywall no próprio menu
+    // seria o bug que esta função existe pra impedir.
+    expect(explorarCompletoLiberado({
+      proprietarioPago: false, plano: "proprietario_free", temPerfilPartner: true,
+    })).toBe(true)
+  })
+
+  it("bloqueia exatamente quem o §2.3 nomeia: Free proprietário/Captain", () => {
+    expect(explorarCompletoLiberado({
+      proprietarioPago: false, plano: "proprietario_free", temPerfilPartner: false,
+    })).toBe(false)
+    expect(explorarCompletoLiberado({
+      proprietarioPago: false, plano: "captain_free", temPerfilPartner: false,
+    })).toBe(false)
   })
 })
 

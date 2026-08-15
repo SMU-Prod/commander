@@ -2,12 +2,11 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { carregarNivelPlano } from "@/lib/consultas"
 import { carregarMapaTaxonomia, nomeDaRegiao } from "@/lib/consultas-marketplace"
-import { urlFotoParceiro } from "@/lib/consultas-partner"
+import { carregarElegibilidadeExplorar, urlFotoParceiro } from "@/lib/consultas-partner"
 import { formatarReais } from "@/lib/domain/gastos"
 import { tempoDesde } from "@/lib/domain/navegacao"
-import { ehPago, mensagemBloqueio } from "@/lib/domain/plano-acesso"
+import { mensagemBloqueio } from "@/lib/domain/plano-acesso"
 import {
   AVISO_DISPONIBILIDADE_MARINA,
   perfilTem,
@@ -40,9 +39,11 @@ export default async function PerfilParceiroPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const nivel = await carregarNivelPlano()
+  // §10, "usuários elegíveis" — proprietário pago, Captain Pro ou quem tem
+  // perfil de Partner. Ver `explorarCompletoLiberado` em lib/domain/partner.ts.
+  const elegivel = await carregarElegibilidadeExplorar()
 
-  if (!ehPago(nivel)) {
+  if (!elegivel) {
     const { titulo, descricao } = mensagemBloqueio("explorar_perfil_completo")
     return (
       <main>
