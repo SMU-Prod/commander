@@ -168,9 +168,18 @@ que um "sem dados" honesto.
 ## 7. Como isso é cobrado
 
 Não vale como intenção. A varredura `web/e2e/varredura-mobile.spec.ts` abre
-todas as telas em 390×844 e mede sobreposição, estouro horizontal, falta de
-saída e alvo abaixo de 40px. É o instrumento que provou que o problema existia,
-e é ele que prova que sumiu.
+todas as telas em **390×844 e em 1440×900** e mede sobreposição, estouro
+horizontal, falta de saída e alvo abaixo de 40px. É o instrumento que provou
+que o problema existia, e é ele que prova que sumiu. Grava um relatório por
+largura em `web/.varredura/` e **não** quebra a suíte quando acha defeito: o
+objetivo é medir e priorizar a próxima onda, não empilhar cento e tantos
+vermelhos sem ordem.
 
-O que ele **não** mede — hierarquia, densidade, se o dourado virou confete — é
-revisão humana, com esta página na mão.
+A regra "nenhuma cor literal nova" tem cobrança própria e barata:
+`web/lib/ui/tokens.test.ts` conta os hexadecimais escritos à mão em `.tsx` e
+reprova se o número subir — e reprova também se ele **descer** sem que o teto
+desça junto, senão a folga vira crédito pra próxima cor. É Vitest, roda no
+`npm test`, então essa deriva morre antes do commit.
+
+O que eles **não** medem — hierarquia, densidade, se o dourado virou confete —
+é revisão humana, com esta página na mão.
