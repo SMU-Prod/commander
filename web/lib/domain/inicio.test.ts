@@ -117,6 +117,13 @@ describe("horasDoMotor", () => {
   it("sem leitura, um traço — nunca zero, que seria mentira de motor novo", () => {
     expect(horasDoMotor({ horas_atuais: null })).toBe("—")
   })
+
+  it("motor legitimamente zerado mostra 0,0 h — o traço é de FALTA de dado, não de zero", () => {
+    // Motor novo com horímetro em zero é uma leitura de verdade: alguém
+    // digitou 0. Confundir isso com "sem dado" apagaria a única informação
+    // que separa "motor recém-instalado" de "ninguém nunca leu o horímetro".
+    expect(horasDoMotor({ horas_atuais: 0 })).toBe("0,0 h")
+  })
 })
 
 describe("apoioDaRevisao", () => {
@@ -138,6 +145,26 @@ describe("apoioDaRevisao", () => {
     expect(apoioDaRevisao(null)).toBe("Sem revisão programada")
     expect(apoioDaRevisao({ status: "ok", horasRestantes: null, diasRestantes: null })).toBe("Sem revisão programada")
   })
+
+  it("revisão vencida há pouco NÃO pode aparecer como 'Revisão em 0h'", () => {
+    // O bug: quem decidia "vencida" era o SINAL do número arredondado, e
+    // `Math.round(-0.4)` é `-0` — e `-0 < 0` é `false`. Uma revisão vencida
+    // há 24 minutos virava "Revisão em 0h", o oposto do fato, no cartão que
+    // existe pra avisar. Quem decide é o `status`, que vem no mesmo objeto.
+    expect(apoioDaRevisao({ status: "vencido", horasRestantes: -0.4, diasRestantes: null }))
+      .toBe("Revisão vencida")
+    expect(apoioDaRevisao({ status: "vencido", horasRestantes: -0.4, diasRestantes: null }))
+      .not.toMatch(/Revisão em/)
+  })
+
+  it("vencida por DATA com horímetro folgado fala da data, não das horas", () => {
+    // `calcularSemaforo` devolve o PIOR dos dois prazos: um item com data
+    // fixa vencida e horas sobrando sai `status: "vencido"` com
+    // `horasRestantes` positivo. Citar as horas aqui ("Revisão em 200h")
+    // esconderia exatamente o vencimento que fez o status ser vencido.
+    expect(apoioDaRevisao({ status: "vencido", horasRestantes: 200, diasRestantes: -5 }))
+      .toBe("Revisão vencida há 5 dias")
+  })
 })
 
 describe("textoUltimaSaida", () => {
@@ -149,6 +176,35 @@ describe("textoUltimaSaida", () => {
   it("sem horário, só a data — nunca uma duração inventada", () => {
     expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: null, hora_retorno: null }, "2026"))
       .toBe("Última saída em 12/08")
+  })
+
+  it("com só um dos dois horários, omite a duração — nunca NaN nem um zero inventado", () => {
+    // O <input type="time"> deixa gravar só a saída (quem registra antes de
+    // voltar). Sem os dois lados não existe duração: a frase tem que ficar
+    // só com a data, e não virar "NaN h no mar" nem "0 h no mar".
+    const sóSaída = textoUltimaSaida({ data: "2026-08-12", hora_saida: "08:00", hora_retorno: null }, "2026")
+    expect(sóSaída).toBe("Última saída em 12/08")
+    const sóRetorno = textoUltimaSaida({ data: "2026-08-12", hora_saida: null, hora_retorno: "12:30" }, "2026")
+    expect(sóRetorno).toBe("Última saída em 12/08")
+    for (const frase of [sóSaída, sóRetorno]) {
+      expect(frase).not.toMatch(/NaN/)
+      expect(frase).not.toMatch(/no mar/)
+    }
+  })
+
+  it("saída que atravessa a meia-noite diz isso em voz alta", () => {
+    // "22:00 → 01:30" são 3,5 h de verdade (`duracaoHoras` já conta a
+    // virada), mas sem a marca a conta parece errada — a frase vira "saiu
+    // às 22h e ficou 3,5 h no mar" num dia que acabou às 24h. A mesma
+    // palavra que /diario/[id] usa, pela regra 6 do DESIGN: duas telas que
+    // dizem a mesma coisa dizem com as mesmas palavras.
+    expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: "22:00", hora_retorno: "01:30" }, "2026"))
+      .toBe("Última saída em 12/08 · 3,5 h no mar · retorno no dia seguinte")
+  })
+
+  it("saída no mesmo dia não ganha a marca de virada", () => {
+    expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: "08:00", hora_retorno: "12:30" }, "2026"))
+      .not.toMatch(/dia seguinte/)
   })
 
   it("sem saída, diz o ano de que está falando", () => {

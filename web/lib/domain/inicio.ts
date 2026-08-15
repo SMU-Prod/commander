@@ -1,4 +1,4 @@
-import { duracaoHoras } from "@/lib/domain/bordo"
+import { duracaoHoras, retornoNoDiaSeguinte } from "@/lib/domain/bordo"
 import type { EstadoSelo } from "@/components/ui/selo"
 import type { SeloMar } from "@/lib/domain/mar"
 import { ROTULO_ESTADO_SAUDE, type EstadoSaude, type FatorSaude, type SaudeEmbarcacao } from "@/lib/domain/saude"
@@ -110,18 +110,34 @@ export function horasDoMotor(motor: { horas_atuais: number | null }): string {
  * "Revisão" o "37h" ao lado de "612,0 h" vira dois números sem dono.
  * Horas mandam sobre dias pelo mesmo motivo de sempre: é o prazo mais
  * preciso que um motor tem.
+ *
+ * QUEM DECIDE "VENCIDA" É O `status`, NÃO O SINAL DO NÚMERO. Até a onda 57
+ * esta função olhava o número arredondado — e `Math.round(-0.4)` é `-0`, com
+ * `-0 < 0` valendo `false`: uma revisão vencida há 24 minutos aparecia como
+ * "Revisão em 0h", o oposto do fato, no cartão que existe justamente pra
+ * avisar. O `status` vem no mesmo objeto e já é a decisão do semáforo.
+ *
+ * E, vencida, a frase cita o prazo que de fato ESTOUROU: `calcularSemaforo`
+ * devolve o pior dos dois lados, então um item com data fixa vencida e
+ * horímetro folgado sai `vencido` com `horasRestantes` positivo — citar as
+ * horas ali esconderia o vencimento que causou o estado.
  */
 export function apoioDaRevisao(r: ResultadoCalc | null): string {
   if (r == null) return "Sem revisão programada"
-  if (r.horasRestantes != null) {
-    const h = Math.round(r.horasRestantes)
-    return h < 0 ? `Revisão vencida há ${-h}h` : `Revisão em ${h}h`
+  if (r.status === "vencido") {
+    if (r.horasRestantes != null && r.horasRestantes < 0) {
+      const h = Math.round(-r.horasRestantes)
+      // Menos de meia hora arredonda pra zero: "vencida há 0h" é um número
+      // que não diz nada. O fato — vencida — basta sozinho.
+      return h > 0 ? `Revisão vencida há ${h}h` : "Revisão vencida"
+    }
+    if (r.diasRestantes != null && r.diasRestantes < 0) {
+      return `Revisão vencida há ${-r.diasRestantes} dias`
+    }
+    return "Revisão vencida"
   }
-  if (r.diasRestantes != null) {
-    return r.diasRestantes < 0
-      ? `Revisão vencida há ${-r.diasRestantes} dias`
-      : `Revisão em ${r.diasRestantes} dias`
-  }
+  if (r.horasRestantes != null) return `Revisão em ${Math.round(r.horasRestantes)}h`
+  if (r.diasRestantes != null) return `Revisão em ${r.diasRestantes} dias`
   return "Sem revisão programada"
 }
 
@@ -132,6 +148,13 @@ export function apoioDaRevisao(r: ResultadoCalc | null): string {
  * cartão cobre o ano corrente (é a mesma de "Seu ano no mar"), então um
  * "Nenhuma saída registrada" seco seria falso pra quem navegou em dezembro
  * passado. Dizer o ano custa três palavras e mantém a frase verdadeira.
+ *
+ * A VIRADA DA MEIA-NOITE É DITA EM VOZ ALTA. "22:00 → 01:30" são 3,5 h de
+ * verdade — `duracaoHoras` já conta o retorno como dia seguinte — mas sem a
+ * marca a frase soa como conta errada, porque o dia da saída não tem 3,5 h
+ * depois das 22h. `bordo.ts` já pedia isso de quem exibe a duração, e
+ * /diario/[id] já usa exatamente estas palavras: duas telas que dizem a
+ * mesma coisa dizem com as mesmas palavras (docs/DESIGN.md §6, regra 6).
  */
 export function textoUltimaSaida(
   saida: { data: string; hora_saida: string | null; hora_retorno: string | null } | null,
@@ -142,7 +165,10 @@ export function textoUltimaSaida(
   const tempo = horas != null
     ? ` · ${horas.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h no mar`
     : ""
-  return `Última saída em ${formatarDataCurta(saida.data)}${tempo}`
+  const virada = retornoNoDiaSeguinte(saida.hora_saida, saida.hora_retorno)
+    ? " · retorno no dia seguinte"
+    : ""
+  return `Última saída em ${formatarDataCurta(saida.data)}${tempo}${virada}`
 }
 
 /**

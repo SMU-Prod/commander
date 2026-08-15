@@ -121,9 +121,8 @@ export default async function HojePage({
       const calc = itemMonitoradoToItemCalc(i)
       const r = calcularSemaforo(calc, eq?.horas_atuais ?? null, hoje)
       const temInformacao = temInformacaoSuficiente(calc, eq?.horas_atuais ?? null)
-      const onde = eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome
       const aba = abaDoItem(i, equipamentos)
-      return { item: i, eq, r, onde, temInformacao, aba }
+      return { item: i, eq, r, temInformacao, aba }
     })
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
 
@@ -142,9 +141,15 @@ export default async function HojePage({
     motores.map((m) => [m.id, avaliados.find((a) => a.eq?.id === m.id && a.temInformacao)?.r ?? null]),
   )
 
-  const leiturasEquipamentos = equipamentos.map((e) => e.ultima_leitura).filter((d): d is string => d != null).sort()
-  const ultimaLeitura = leiturasEquipamentos.length > 0
-    ? formatarCarimbo(leiturasEquipamentos[leiturasEquipamentos.length - 1])
+  // "Última leitura" é renderizada DENTRO do cartão "Motores" e rotulada
+  // assim — então ela só pode olhar para motores. Até a onda 57 era o máximo
+  // de `ultima_leitura` de TODOS os equipamentos: a data podia vir de uma
+  // bateria e ser lida como leitura de horímetro, e um barco sem motor
+  // cadastrado mas com leitura em outro equipamento simplesmente perdia a
+  // informação (o bloco onde ela mora nem é renderizado).
+  const leiturasMotores = motores.map((m) => m.ultima_leitura).filter((d): d is string => d != null).sort()
+  const ultimaLeitura = leiturasMotores.length > 0
+    ? formatarCarimbo(leiturasMotores[leiturasMotores.length - 1])
     : null
 
   // "Tudo em dia" só pode ser dito quando existe dado real por trás: alguma
@@ -184,22 +189,29 @@ export default async function HojePage({
   // Seu ano no mar (onda 18, Pilar Strava do Mar) — totais pessoais a partir
   // das saídas já registradas no diário, sem coleta nova nenhuma.
   const podeVerDiario = podeVer(permissoes, "diario")
+  // A ORDEM É DA CONSULTA, NÃO DO ACASO. Até a onda 57 a saída mais recente
+  // saía de um `reduce` com `>` estrito sobre uma consulta SEM `order`: com
+  // duas saídas na mesma data, qual delas ditava a frase do cartão dependia
+  // da ordem que o Postgres devolveu naquela requisição — a mesma tela,
+  // recarregada, podia trocar de frase. Desempate por hora de saída, com
+  // `nullsFirst: false` pra que a saída COM horário ganhe da que não tem
+  // (ela é a única das duas que consegue dizer o tempo no mar).
   const { data: eventosSaida } = podeVerDiario
     ? await supabase
         .from("eventos").select("tipo, data, hora_saida, hora_retorno, trilha")
         .eq("embarcacao_id", embarcacao.id).eq("tipo", "navegacao")
         .gte("data", `${anoAtual}-01-01`)
+        .order("data", { ascending: false })
+        .order("hora_saida", { ascending: false, nullsFirst: false })
     : { data: [] as EventoParaResumoAno[] }
   const saidasDoAno = (eventosSaida ?? []) as EventoParaResumoAno[]
   const totaisAno = resumoAno(saidasDoAno, Number(anoAtual))
   // A saída mais recente sai da MESMA consulta do resumo do ano (nada de ida
-  // extra ao banco só pra uma data). Por isso a frase do cartão diz o ano em
-  // voz alta quando não há nenhuma: a janela é o ano corrente, e um "nenhuma
-  // saída registrada" seco seria falso pra quem navegou em dezembro passado.
-  const ultimaSaida = saidasDoAno.reduce<EventoParaResumoAno | null>(
-    (mais, e) => (mais == null || e.data > mais.data ? e : mais),
-    null,
-  )
+  // extra ao banco só pra uma data) — e, ordenada acima, é simplesmente a
+  // primeira. Por isso a frase do cartão diz o ano em voz alta quando não há
+  // nenhuma: a janela é o ano corrente, e um "nenhuma saída registrada" seco
+  // seria falso pra quem navegou em dezembro passado.
+  const ultimaSaida = saidasDoAno[0] ?? null
 
   // Próximas paradas (onda 19, Pilar Strava do Mar) — a PRÓXIMA viagem
   // planejada (data futura mais perto), com 2-3 paradas visíveis. Mesma
@@ -519,7 +531,7 @@ export default async function HojePage({
           ) : (
             <EstadoVazio
               variant="linha"
-            enfase="discreta"
+              enfase="discreta"
               icone="cifrao"
               titulo="Nenhuma despesa paga este mês"
               descricao="Vaga, combustível, manutenção — o que sai do bolso fica registrado aqui."
@@ -540,7 +552,22 @@ export default async function HojePage({
             acao={{ href: "/barco/local", rotulo: "Definir posição" }}
           />
         ) : (
-          <Suspense fallback={<div className="h-[46px] animate-pulse rounded-[var(--raio-controle)] bg-panel2" />}>
+          // Esqueleto MEDIDO, não chutado. Era uma barra de `h-[46px]` — fora
+          // da escala (docs/DESIGN.md §5) e 31px mais curta que o conteúdo:
+          // o boletim renderizado mede 77px, tanto em 390 quanto em 1440
+          // (a fileira de números quebra em duas linhas nas duas larguras,
+          // porque o cartão "Mar agora" é estreito também na grade de três
+          // colunas), e embaixo dela vem a linha da maré estimada. Esqueleto
+          // curto demais troca a espera por um salto de layout.
+          // Duas barras, todas em degraus da escala: 48 + 12 + 16 = 76px.
+          <Suspense
+            fallback={
+              <div className="animate-pulse">
+                <div className="h-12 rounded-[var(--raio-controle)] bg-panel2" />
+                <div className="mt-3 h-4 w-2/3 rounded-[var(--raio-controle)] bg-panel2" />
+              </div>
+            }
+          >
             <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
           </Suspense>
         )}
@@ -623,7 +650,7 @@ export default async function HojePage({
             .filter((a) => !a.aba || podeVer(permissoes, a.aba))
             .map((a) => (
               <Link key={a.href} href={a.href}
-                className="flex min-h-11 flex-col items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2">
+                className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2">
                 <Icone nome={a.icone} className="size-5 text-dim" />
                 <span className="text-[11px] font-medium">{a.rotulo}</span>
               </Link>
