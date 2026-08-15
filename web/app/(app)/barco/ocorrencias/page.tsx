@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Farol } from "@/components/farol"
+import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { carregarPainel } from "@/lib/consultas"
 import { formatarCarimbo } from "@/lib/domain/datas"
-import { ABAS_OCORRENCIA, ESTADOS_OCORRENCIA, faroDoEstado, ROTULO_ESTADO, type EstadoOcorrencia } from "@/lib/domain/ocorrencias"
+import { ABAS_OCORRENCIA, ESTADOS_OCORRENCIA, ROTULO_ESTADO, type EstadoOcorrencia } from "@/lib/domain/ocorrencias"
 import { ROTULO_ABA, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Ocorrencia } from "@/lib/db/types"
@@ -107,21 +107,28 @@ export default async function OcorrenciasPage({
         />
       )}
 
+      {/* Anuladas continuam na lista — "registros finalizados relevantes não
+          são apagados silenciosamente" (PRD §7) — mas apagadas: título
+          riscado e o cartão inteiro em meio-tom. Some do caminho sem sumir
+          do histórico. */}
       <div className="mt-4 space-y-2">
-        {ocorrencias.map((o) => (
-          <Link key={o.id} href={`/barco/ocorrencias/${o.id}`}
-            className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5">
-            <Farol status={faroDoEstado(o.estado)} />
-            <div className="min-w-0 flex-1">
-              <p className="titulo-card truncate">{o.titulo}</p>
-              <p className="apoio mt-0.5 truncate text-dim">
-                {ROTULO_ABA[o.aba]} · {formatarCarimbo(o.created_at)}
-              </p>
-            </div>
-            <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{ROTULO_ESTADO[o.estado]}</span>
-            <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-          </Link>
-        ))}
+        {ocorrencias.map((o) => {
+          const anulada = o.estado === "anulada"
+          return (
+            <Link key={o.id} href={`/barco/ocorrencias/${o.id}`}
+              className={`sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5 ${anulada ? "opacity-60" : ""}`}>
+              <FarolOcorrencia estado={o.estado} />
+              <div className="min-w-0 flex-1">
+                <p className={`titulo-card truncate ${anulada ? "line-through decoration-dim/60" : ""}`}>{o.titulo}</p>
+                <p className="apoio mt-0.5 truncate text-dim">
+                  {ROTULO_ABA[o.aba]} · {formatarCarimbo(o.created_at)}
+                </p>
+              </div>
+              <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{ROTULO_ESTADO[o.estado]}</span>
+              <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+            </Link>
+          )
+        })}
       </div>
     </main>
   )

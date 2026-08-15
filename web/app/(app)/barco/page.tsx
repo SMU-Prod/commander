@@ -6,6 +6,7 @@ import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
 import { SeloGold } from "@/components/selos/selo-gold"
 import { SeloVerified } from "@/components/selos/selo-verified"
+import { SituacaoVerified } from "@/components/selos/situacao-verified"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -255,23 +256,21 @@ export default async function BarcoPage({
         href="/barco/selos"
         className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5"
       >
-        <div className="flex items-center justify-between">
-          <p className="titulo-card inline-flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="titulo-card inline-flex min-w-0 items-center gap-1.5">
             <SeloVerified size={18} /> Commander Verified
           </p>
-          {verified && (
-            <span className="font-mono-instr text-xs tabular-nums text-dim">
-              {verified.completos} de {verified.total}
-            </span>
-          )}
+          {verified && <SituacaoVerified selo={verified.selo} />}
         </div>
+        {/* Requisitos atendidos e o que falta — contagem, nunca barra de
+            progresso: barra é porcentagem desenhada, e o PRD §15 proíbe
+            porcentagem no selo. */}
         {verified && (
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
-            <div
-              className="h-full rounded-full bg-dim"
-              style={{ width: `${Math.max(2, verified.percentual)}%` }}
-            />
-          </div>
+          <p className="apoio mt-1 text-dim">
+            {verified.completos} de {verified.total} requisitos atendidos
+            {verified.pendentes.length > 0 && ` · falta ${verified.pendentes[0].rotulo.toLowerCase()}`}
+            {verified.pendentes.length > 1 && ` +${verified.pendentes.length - 1}`}
+          </p>
         )}
         <p className="apoio mt-2 inline-flex items-center gap-1.5 text-dim">
           <SeloGold size={16} variant={seloGold ? "ativo" : "convite"} /> Commander Gold — avaliação

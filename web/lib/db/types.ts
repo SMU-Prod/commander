@@ -134,7 +134,9 @@ export interface Evento {
 }
 
 // Ocorrências (onda 32) — entidade com estado, ver web/lib/domain/ocorrencias.ts.
-export type EstadoOcorrenciaDb = "aberta" | "em_acompanhamento" | "resolvida"
+// "anulada" entrou na onda 44 (PRD §7, migration 045) — não é exclusão: a
+// linha fica, com motivo, autor e data nas três colunas `*_anulacao/anulada_*`.
+export type EstadoOcorrenciaDb = "aberta" | "em_acompanhamento" | "resolvida" | "anulada"
 export type AbaOcorrenciaDb =
   | "embarcacao" | "motores" | "eletrica" | "casco" | "hidraulica" | "seguranca" | "equipamentos" | "documentos"
 export type GravidadeOcorrenciaDb = "baixa" | "media" | "alta"
@@ -153,6 +155,12 @@ export interface Ocorrencia {
   anexo_path: string | null
   criado_por: string | null
   resolvida_em: string | null
+  /** Preenchidas juntas, e só quando `estado = 'anulada'` — o banco garante
+   *  isso num check constraint (migration 045): anular "com registro" (PRD §7)
+   *  não pode depender de o app lembrar de preencher. */
+  anulada_em: string | null
+  anulada_por: string | null
+  motivo_anulacao: string | null
   created_at: string
 }
 
@@ -318,6 +326,22 @@ export interface AlertaEnviado {
   ciclo_ref: string
   titulo: string
   enviado_em: string
+}
+
+/**
+ * Estado do selo Commander Verified por embarcação (onda 44, PRD §15,
+ * migration 045). Duas datas e nada mais — é o mínimo que o prazo de 15 dias
+ * exige pra existir; QUAL pilar caiu é sempre recalculado dos dados reais do
+ * barco (ver `lib/domain/verified.ts`), nunca guardado aqui, pra não criar
+ * uma segunda verdade que saia de sincronia com a primeira.
+ */
+export interface VerifiedEstado {
+  embarcacao_id: string
+  /** primeira vez que os cinco pilares ficaram de pé; null = nunca conquistado */
+  conquistado_em: string | null
+  /** quando o pilar caiu — é o relógio dos 15 dias; null = sem pendência */
+  pendencia_desde: string | null
+  atualizado_em: string
 }
 
 export type AlbumFoto = "exterior" | "interior" | "conves" | "documentacao" | "outros"

@@ -3,7 +3,10 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
-import { ABAS_OCORRENCIA, podeTransicionar, proximaResolvidaEm, type EstadoOcorrencia } from "@/lib/domain/ocorrencias"
+import {
+  ABAS_OCORRENCIA, ESTADOS_OCORRENCIA, podeTransicionar, proximaResolvidaEm, registroDaAnulacao,
+  ROTULO_ESTADO, validarMotivoAnulacao, type EstadoOcorrencia,
+} from "@/lib/domain/ocorrencias"
 import { podeEditar, ROTULO_ABA, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Ocorrencia } from "@/lib/db/types"
@@ -139,16 +142,35 @@ export async function transicionarOcorrencia(formData: FormData) {
   if (!podeEditar(painel.permissoes, ocorrencia.aba)) {
     erroDetalhe(id, `Seu acesso não permite alterar ocorrências em ${ROTULO_ABA[ocorrencia.aba]}.`)
   }
-  if (!["aberta", "em_acompanhamento", "resolvida"].includes(novoEstado)) {
+  if (!(ESTADOS_OCORRENCIA as readonly string[]).includes(novoEstado)) {
     erroDetalhe(id, "Estado inválido.")
   }
   if (!podeTransicionar(ocorrencia.estado, novoEstado)) {
-    erroDetalhe(id, `Uma ocorrência ${ocorrencia.estado === "resolvida" ? "resolvida" : "aberta"} não pode virar isso diretamente.`)
+    erroDetalhe(
+      id,
+      `Uma ocorrência ${ROTULO_ESTADO[ocorrencia.estado].toLowerCase()} não pode virar "${ROTULO_ESTADO[novoEstado].toLowerCase()}" diretamente.`,
+    )
+  }
+
+  // "Pode ser anulada COM REGISTRO quando criada por engano" (PRD §7) — o
+  // motivo é o registro. Sem ele a anulação viraria exclusão silenciosa, que
+  // é justamente o que o §7 proíbe; por isso barra aqui antes de escrever
+  // qualquer coisa (o banco também barra, no check constraint da migration
+  // 045 — duas travas, porque essa é a parte que importa da funcionalidade).
+  // O campo reaproveita a caixa de "Observação" que a tela já tinha: ao
+  // anular ela deixa de ser opcional.
+  const motivo = novoEstado === "anulada" ? validarMotivoAnulacao(observacao) : null
+  if (novoEstado === "anulada" && !motivo) {
+    erroDetalhe(id, "Pra anular, escreva o motivo — o registro fica no histórico, a ocorrência não é apagada.")
   }
 
   const agora = new Date().toISOString()
   const { data: salva, error } = await supabase.from("ocorrencias")
-    .update({ estado: novoEstado, resolvida_em: proximaResolvidaEm(novoEstado, agora) })
+    .update({
+      estado: novoEstado,
+      resolvida_em: proximaResolvidaEm(novoEstado, agora),
+      ...registroDaAnulacao(novoEstado, agora, user.id, motivo ?? ""),
+    })
     .eq("id", id).select("id")
   if (error || !salva?.length) erroDetalhe(id, "Não foi possível salvar agora. Tente de novo em instantes.")
 

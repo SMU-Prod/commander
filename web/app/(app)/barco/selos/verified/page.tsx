@@ -2,9 +2,13 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { SeloGold } from "@/components/selos/selo-gold"
 import { SeloVerified } from "@/components/selos/selo-verified"
+import { SituacaoVerified } from "@/components/selos/situacao-verified"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, carregarVerified } from "@/lib/consultas"
+import { formatarCarimbo } from "@/lib/domain/datas"
+import { DIAS_REGULARIZACAO_VERIFIED, type ItemVerified } from "@/lib/domain/verified"
 
 /**
  * Checklist do Commander Verified — verificação DIGITAL (cadastro +
@@ -16,12 +20,45 @@ import { carregarPainel, carregarVerified } from "@/lib/consultas"
  *
  * Sem CTA de "solicitar avaliação" aqui — esse pedido é o primeiro passo do
  * fluxo do Gold, não do Verified (Correção 02), então mora na tela do Gold.
+ *
+ * Onda 44 (PRD §15): saiu a barra de "completude" e entraram as duas listas
+ * que o PRD pede — o que está atendido e o que falta —, mais a situação do
+ * selo e o prazo de regularização. Nenhuma porcentagem, nem escrita nem
+ * desenhada: uma barra de progresso é uma porcentagem sem o símbolo.
  */
+function LinhaPilar({ item }: { item: ItemVerified }) {
+  return (
+    <LinhaLista
+      key={item.chave}
+      leading={
+        <span
+          className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+            item.ok ? "border-ok bg-ok/15" : "border-line"
+          }`}
+          aria-hidden="true"
+        >
+          {item.ok && <span className="size-2 rounded-full bg-ok" />}
+        </span>
+      }
+      titulo={<span className={item.ok ? "" : "text-dim"}>{item.rotulo}</span>}
+      subtitulo={!item.ok ? item.dica : undefined}
+      trailing={
+        !item.ok ? (
+          <Link href={item.href} className="shrink-0 text-sm text-texto underline underline-offset-2">
+            Resolver
+          </Link>
+        ) : undefined
+      }
+    />
+  )
+}
+
 export default async function VerifiedPage() {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const verified = await carregarVerified()
   if (!verified) redirect("/onboarding")
+  const { selo } = verified
 
   return (
     <main>
@@ -35,46 +72,67 @@ export default async function VerifiedPage() {
       </p>
 
       <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
-        <div className="flex items-baseline justify-between">
-          <p className="rotulo text-dim">Completude</p>
-          <p className="font-mono-instr text-xs tabular-nums text-dim">
-            {verified.completos} de {verified.total}
+        <div className="flex items-center justify-between gap-2">
+          <p className="rotulo text-dim">Situação do selo</p>
+          <SituacaoVerified selo={selo} />
+        </div>
+        <p className="apoio mt-2 font-mono-instr tabular-nums text-dim">
+          {verified.completos} de {verified.total} requisitos atendidos
+        </p>
+
+        {selo.situacao === "regularizacao" && (
+          <p className="corpo mt-2">
+            Um requisito deixou de ser atendido. Você tem {DIAS_REGULARIZACAO_VERIFIED} dias pra
+            regularizar — até {selo.prazoAte && formatarCarimbo(selo.prazoAte)} — e o selo continua
+            valendo nesse período. Passando disso, ele fica suspenso.
           </p>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
-          <div
-            className="h-full rounded-full bg-dim"
-            style={{ width: `${Math.max(2, verified.percentual)}%` }}
-          />
-        </div>
+        )}
+        {selo.situacao === "suspenso" && (
+          <p className="corpo mt-2">
+            O prazo de {DIAS_REGULARIZACAO_VERIFIED} dias terminou
+            {selo.prazoAte ? ` em ${formatarCarimbo(selo.prazoAte)}` : ""} e o selo está suspenso.
+            Resolva o que falta abaixo: a reavaliação é automática e o selo volta sozinho.
+          </p>
+        )}
+        {selo.situacao === "nao_conquistado" && (
+          <p className="corpo mt-2">
+            Faltam requisitos pro selo. Não há prazo correndo — o relógio dos{" "}
+            {DIAS_REGULARIZACAO_VERIFIED} dias só existe pra quem já conquistou e deixou algo cair.
+          </p>
+        )}
+        {selo.situacao === "ativo" && (
+          <p className="corpo mt-2">
+            Os cinco pilares estão de pé. Se algum deixar de ser atendido, você recebe o aviso e tem{" "}
+            {DIAS_REGULARIZACAO_VERIFIED} dias pra regularizar antes de qualquer suspensão.
+          </p>
+        )}
+
+        {/* A regra que não pode escapar (PRD §15) — precisa estar escrita na
+            tela, não só no código: o dono que abre uma ocorrência não pode
+            temer perder o selo por ter sido honesto. */}
+        <p className="apoio mt-3 text-dim">
+          Ter ocorrência aberta não remove o Verified. O selo mede acompanhamento, não ausência de
+          defeitos.
+        </p>
       </div>
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
-        {verified.itens.map((item) => (
-          <LinhaLista
-            key={item.chave}
-            leading={
-              <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                  item.ok ? "border-ok bg-ok/15" : "border-line"
-                }`}
-                aria-hidden="true"
-              >
-                {item.ok && <span className="size-2 rounded-full bg-ok" />}
-              </span>
-            }
-            titulo={<span className={item.ok ? "" : "text-dim"}>{item.rotulo}</span>}
-            subtitulo={!item.ok ? item.dica : undefined}
-            trailing={
-              !item.ok ? (
-                <Link href={item.href} className="shrink-0 text-sm text-texto underline underline-offset-2">
-                  Resolver
-                </Link>
-              ) : undefined
-            }
-          />
-        ))}
-      </div>
+      {verified.pendentes.length > 0 && (
+        <>
+          <SecaoPagina icone="alerta">O que falta — {verified.pendentes.length}</SecaoPagina>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            {verified.pendentes.map((item) => <LinhaPilar key={item.chave} item={item} />)}
+          </div>
+        </>
+      )}
+
+      {verified.atendidos.length > 0 && (
+        <>
+          <SecaoPagina icone="escudo">Requisitos atendidos — {verified.atendidos.length}</SecaoPagina>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            {verified.atendidos.map((item) => <LinhaPilar key={item.chave} item={item} />)}
+          </div>
+        </>
+      )}
 
       <Link
         href="/barco/selos/gold"

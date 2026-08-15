@@ -1,10 +1,24 @@
 import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
-import { normalizarPermissoes, type Permissoes } from "@/lib/domain/permissoes"
+import { itemMonitoradoToItemCalc as itemMonitoradoToItemCalcInterno } from "@/lib/domain/conversores"
+import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
+import {
+  filtrarPorPermissao, nivelDaOcorrencia, nivelDoStatusItem, ordenarNotificacoes,
+  type Notificacao,
+} from "@/lib/domain/notificacoes"
+import {
+  ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO, ROTULO_GRAVIDADE,
+  type EstadoOcorrencia, type Gravidade,
+} from "@/lib/domain/ocorrencias"
+import { calcularSemaforo, textoRestante } from "@/lib/domain/semaforo"
+import { normalizarPermissoes, podeEditar, type Aba, type Permissoes } from "@/lib/domain/permissoes"
 import { nivelPlano, type NivelPlano } from "@/lib/domain/plano-acesso"
-import { avaliarVerified, type ResultadoVerified } from "@/lib/domain/verified"
+import {
+  avaliarSeloVerified, avaliarVerified,
+  type ResultadoVerified, type SeloVerifiedAvaliado,
+} from "@/lib/domain/verified"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
-import type { Embarcacao, Equipamento, ItemMonitorado, Viagem } from "@/lib/db/types"
+import type { Embarcacao, Equipamento, ItemMonitorado, VerifiedEstado, Viagem } from "@/lib/db/types"
 import { hojeISO } from "@/lib/domain/datas"
 
 export const carregarPainel = cache(async (): Promise<{
@@ -78,20 +92,41 @@ export const carregarProximaViagem = cache(async (): Promise<Viagem | null> => {
   return (data as Viagem | null) ?? null
 })
 
-/** Commander Verified: busca o que `carregarPainel` não traz (fotos, eventos
- *  do diário, contatos — documentos com validade já vêm no `painel.itens`) e
- *  entrega pronto ao domínio puro — `avaliarVerified` nunca consulta o
- *  banco. Usado pelo card em `/barco` e pela tela `/barco/selos/verified`;
- *  o `cache()` evita repetir a consulta na mesma renderização. */
-export const carregarVerified = cache(async (): Promise<ResultadoVerified | null> => {
+/**
+ * Commander Verified: busca o que `carregarPainel` não traz (a contagem de
+ * eventos do diário — motores, manutenções, segurança e documentos já vêm em
+ * `painel.equipamentos`/`painel.itens`) e entrega pronto ao domínio puro:
+ * `avaliarVerified` nunca consulta o banco. Usado pelo card em `/barco`, pelo
+ * hub `/barco/selos` e pela tela `/barco/selos/verified`; o `cache()` evita
+ * repetir a consulta na mesma renderização.
+ *
+ * ONDA 44 — o prazo de regularização (PRD §15) precisa de memória: sem saber
+ * DESDE QUANDO um pilar está caído, não existe "15 dias". As duas datas
+ * moram em `verified_estado` (migration 045) e são atualizadas aqui, no
+ * único lugar que já calcula o selo.
+ *
+ * Por que a gravação acontece durante a leitura, e não num cron: o relógio
+ * só precisa estar correto quando alguém OLHA o selo — a situação
+ * (regularização/suspenso) é derivada de `pendencia_desde` na hora, então
+ * nenhuma tela mostra dado velho por falta de um job. O efeito colateral é
+ * que a contagem começa na primeira visita depois da queda do pilar, não no
+ * instante exato dela; na prática o dono abre o app bem antes dos 15 dias, e
+ * o erro é sempre a favor dele.
+ *
+ * `podeEditar(..., "embarcacao")` guarda a escrita porque é o que a RLS de
+ * `verified_estado` exige. Tripulação com acesso só de leitura vê o selo
+ * calculado sobre o que já está gravado — nunca toma erro de permissão por
+ * causa de um efeito colateral que não pediu.
+ */
+export const carregarVerified = cache(async (): Promise<
+  (ResultadoVerified & { selo: SeloVerifiedAvaliado }) | null
+> => {
   const painel = await carregarPainel()
   if (!painel) return null
   const supabase = await supabaseServer()
   const { embarcacao } = painel
 
-  const [{ count: totalFotos }, { count: totalEventosDiario }, { count: totalContatos }] = await Promise.all([
-    supabase.from("fotos").select("id", { count: "exact", head: true })
-      .eq("embarcacao_id", embarcacao.id),
+  const [{ count: totalEventosDiario }, { data: estadoBruto }] = await Promise.all([
     // Pedidos de Commander Gold vivem em `gold_solicitacoes` desde a onda 35
     // (nao mais um evento marcador no diario) — entao a contagem de eventos
     // do Verified nunca precisou de exclusao: o pedido do Gold nao toca
@@ -99,19 +134,37 @@ export const carregarVerified = cache(async (): Promise<ResultadoVerified | null
     // Verified) continua valendo por construcao, nao por filtro aqui.
     supabase.from("eventos").select("id", { count: "exact", head: true })
       .eq("embarcacao_id", embarcacao.id),
-    supabase.from("contatos").select("id", { count: "exact", head: true })
-      .eq("embarcacao_id", embarcacao.id),
+    supabase.from("verified_estado").select("conquistado_em, pendencia_desde")
+      .eq("embarcacao_id", embarcacao.id).maybeSingle(),
   ])
 
-  return avaliarVerified({
-    embarcacao,
+  const resultado = avaliarVerified({
     equipamentos: painel.equipamentos,
     itens: painel.itens,
     hoje: hojeISO(),
-    totalFotos: totalFotos ?? 0,
     totalEventosDiario: totalEventosDiario ?? 0,
-    totalContatos: totalContatos ?? 0,
   })
+
+  const estado = estadoBruto as Pick<VerifiedEstado, "conquistado_em" | "pendencia_desde"> | null
+  const selo = avaliarSeloVerified(
+    resultado,
+    { conquistadoEm: estado?.conquistado_em ?? null, pendenciaDesde: estado?.pendencia_desde ?? null },
+    new Date().toISOString(),
+  )
+
+  if (selo.estadoParaGravar && podeEditar(painel.permissoes, "embarcacao")) {
+    await supabase.from("verified_estado").upsert(
+      {
+        embarcacao_id: embarcacao.id,
+        conquistado_em: selo.estadoParaGravar.conquistadoEm,
+        pendencia_desde: selo.estadoParaGravar.pendenciaDesde,
+        atualizado_em: new Date().toISOString(),
+      },
+      { onConflict: "embarcacao_id" },
+    )
+  }
+
+  return { ...resultado, selo }
 })
 
 /**
@@ -174,6 +227,85 @@ export const carregarUsoFotos = cache(async (): Promise<number> => {
     .select("id", { count: "exact", head: true }).eq("embarcacao_id", painel.embarcacao.id)
   return count ?? 0
 })
+
+/**
+ * CENTRAL DE NOTIFICAÇÕES (onda 44, PRD §5.2) — monta a lista viva de avisos
+ * desta pessoa, neste barco.
+ *
+ * Uma função só, com `cache()`, porque tanto a tela `/notificacoes` quanto o
+ * contador do sino precisam do MESMO número: um badge dizendo "3" que abre
+ * numa lista de 5 é pior que não ter badge. Como layout e página renderizam
+ * na mesma request, o `cache()` faz a consulta acontecer uma vez.
+ *
+ * Duas travas de permissão, de propósito (PRD §5.2: "Notificações sempre
+ * respeitam permissões do usuário"):
+ *   1. a RLS já corta o que a pessoa não pode ver no banco (ocorrências);
+ *   2. `filtrarPorPermissao` corta de novo aqui, porque os itens monitorados
+ *      chegam pelo `carregarPainel` e a aba de cada um é decidida no front
+ *      (`abaDoItem`) — sem esta segunda passada, um tripulante sem acesso a
+ *      Documentos veria "Seguro vencido" na lista de avisos.
+ *
+ * Hoje só a categoria "embarcacao" tem fonte. Agenda, Marketplace e
+ * Financeiro entram aqui quando existirem — sem mudar nada do resto.
+ */
+export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
+  const painel = await carregarPainel()
+  if (!painel) return []
+  const { embarcacao, equipamentos, itens, permissoes } = painel
+  const hoje = hojeISO()
+  const supabase = await supabaseServer()
+
+  const { data: ocorrenciasBrutas } = await supabase
+    .from("ocorrencias").select("id, titulo, aba, estado, gravidade, created_at")
+    .eq("embarcacao_id", embarcacao.id)
+    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE])
+    .order("created_at", { ascending: false })
+
+  const deItens: Notificacao[] = itens
+    .map((i) => {
+      const eq = equipamentos.find((e) => e.id === i.equipamento_id) ?? null
+      const r = calcularSemaforo(itemMonitoradoToItemCalcInterno(i), eq?.horas_atuais ?? null, hoje)
+      const aba = abaDoItem(i, equipamentos)
+      return { i, eq, r, aba }
+    })
+    .filter(({ r }) => r.status !== "ok")
+    .map(({ i, eq, r, aba }) => ({
+      id: `item:${i.id}`,
+      titulo: eq ? `${i.nome} — ${nomeDoEquipamento(eq)}` : i.nome,
+      detalhe: textoRestante(r),
+      categoria: "embarcacao" as const,
+      nivel: nivelDoStatusItem(r.status),
+      aba,
+      href: `/barco/itens/${i.id}/editar`,
+      quando: null,
+      // Agrupa por hub + severidade: "3 documentos vencidos" numa linha em
+      // vez de três linhas quase iguais (PRD §5.2, evitar spam).
+      grupo: `item:${aba}:${r.status}`,
+    }))
+
+  const deOcorrencias: Notificacao[] = ((ocorrenciasBrutas ?? []) as OcorrenciaParaNotificacao[]).map((o) => ({
+    id: `ocorrencia:${o.id}`,
+    titulo: o.titulo,
+    detalhe: `${ROTULO_ESTADO[o.estado]}${o.gravidade ? ` · gravidade ${ROTULO_GRAVIDADE[o.gravidade]}` : ""}`,
+    categoria: "embarcacao" as const,
+    nivel: nivelDaOcorrencia(o.estado, o.gravidade),
+    aba: o.aba,
+    href: `/barco/ocorrencias/${o.id}`,
+    quando: o.created_at,
+    grupo: `ocorrencia:${o.aba}`,
+  }))
+
+  return ordenarNotificacoes(filtrarPorPermissao([...deItens, ...deOcorrencias], permissoes))
+})
+
+interface OcorrenciaParaNotificacao {
+  id: string
+  titulo: string
+  aba: Aba
+  estado: EstadoOcorrencia
+  gravidade: Gravidade | null
+  created_at: string
+}
 
 export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 export { hojeISO } from "@/lib/domain/datas"

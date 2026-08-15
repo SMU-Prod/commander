@@ -34,13 +34,20 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
   },
 ]
 
-export function BottomNav() {
+/**
+ * `avisos` é o contador do sino (PRD §5.2), calculado no layout e já
+ * filtrado por permissão — ver `carregarNotificacoes`. Fica no rodapé
+ * porque a aba Avisos é a única superfície de notificação presente em TODA
+ * tela; o sino em si mora no topo da Início.
+ */
+export function BottomNav({ avisos = 0 }: { avisos?: number }) {
   const pathname = usePathname()
   return (
     <nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)
+          const badge = a.href === "/notificacoes" && avisos > 0
           return (
             <Link
               key={a.href}
@@ -50,7 +57,17 @@ export function BottomNav() {
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >
-              <Icone nome={a.icone} className="size-[21px]" />
+              <span className="relative">
+                <Icone nome={a.icone} className="size-[21px]" />
+                {badge && (
+                  <span
+                    aria-label={`${avisos} avisos que pedem atenção`}
+                    className="absolute -right-2 -top-1 flex min-w-[16px] items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[9px] font-semibold leading-4 tabular-nums text-white"
+                  >
+                    {avisos > 9 ? "9+" : avisos}
+                  </span>
+                )}
+              </span>
               {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação",
                   "Comandantes") estouram o flex-1 e encostam um no outro em
                   tela de 375px — foi o que aconteceu ao trocar Marketplace por
