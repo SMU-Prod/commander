@@ -4,8 +4,10 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { sair } from "@/lib/acoes/auth"
+import { meusPapeisAdmin } from "@/lib/admin"
 import { carregarPainel } from "@/lib/consultas"
 import { podeVerAgenda } from "@/lib/domain/agenda"
+import { resumoPapeis } from "@/lib/domain/admin-papeis"
 import { supabaseServer } from "@/lib/supabase/server"
 
 export default async function MenuPage({
@@ -17,6 +19,9 @@ export default async function MenuPage({
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   const painel = await carregarPainel()
+  // `cache()` no `meusPapeisAdmin` — a mesma consulta que o layout de (admin)
+  // faz; aqui não custa uma ida a mais ao banco.
+  const papeisAdmin = await meusPapeisAdmin()
 
   return (
     <main>
@@ -142,6 +147,25 @@ export default async function MenuPage({
         titulo="É marina, posto, pousada, restaurante ou loja náutica?"
         subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
       />
+
+      {/* Admin Commander (§21). Só aparece pra quem tem papel — pra todo mundo
+          mais a seção nem existe, porque anunciar a porta é meio caminho pra
+          alguém tentar a maçaneta. A decisão de acesso continua sendo do
+          servidor (`exigirAdmin` no layout de `(admin)` + RLS por papel); isto
+          aqui é só descoberta. Sem esta entrada, a única forma de chegar no
+          painel era digitar /admin na barra de endereço — e num app dentro de
+          WebView nativo não existe barra de endereço. */}
+      {papeisAdmin.length > 0 && (
+        <>
+          <SecaoPagina icone="escudo">Commander (interno)</SecaoPagina>
+          <LinhaLista
+            href="/admin"
+            variant="cartao"
+            titulo="Admin Commander"
+            subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
+          />
+        </>
+      )}
 
       <SecaoPagina icone="documento">Legal</SecaoPagina>
       <LinhaLista href="/termos" variant="cartao" titulo="Termos de Uso" />

@@ -60,6 +60,32 @@ export default async function globalSetup(config: FullConfig) {
   }
   writeFileSync(ARQUIVO_ID_USUARIO, criado.user.id, "utf8")
 
+  // Embarcação de teste (onda 54). Sem ela, TODA tela do dossiê redireciona
+  // pra /onboarding e a varredura de layout mede a mesma tela 35 vezes em vez
+  // do app. É semeada pelo service role porque o objetivo aqui é ter o app
+  // POVOADO pra medir; o fluxo de onboarding em si tem spec próprio.
+  // Some junto com o usuário no teardown (cascade em embarcacoes/vinculos).
+  const { data: barco } = await admin
+    .from("embarcacoes")
+    .insert({
+      nome: "Barco de Teste",
+      estaleiro: "Azimut", modelo: "55", ano: 2020,
+      comprimento_m: 16.7, boca_m: 4.8, calado_m: 1.35,
+      marina: "Marina da Glória", marina_lat: -22.9186, marina_lon: -43.1686,
+    })
+    .select("id")
+    .single()
+  if (barco) {
+    await admin.from("vinculos").insert({
+      usuario_id: criado.user.id, embarcacao_id: barco.id, papel: "PROP", nivel: "completo",
+    })
+    await admin.from("equipamentos").insert([
+      { embarcacao_id: barco.id, tipo: "motor", posicao: "BB", marca: "Volvo Penta", modelo: "D6-400", horas_atuais: 612 },
+      { embarcacao_id: barco.id, tipo: "motor", posicao: "BE", marca: "Volvo Penta", modelo: "D6-400", horas_atuais: 608 },
+    ])
+    console.log("[e2e] embarcação de teste semeada.")
+  }
+
   const baseURL = config.projects[0]?.use?.baseURL as string | undefined
   const browser = await chromium.launch()
   try {

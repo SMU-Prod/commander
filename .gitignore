@@ -4,3 +4,6 @@ scripts/.cache/
 
 # Dados nauticos oficiais (CHM/DPC) — gigas de PDF/ZIP, baixados por script; nao versionar
 dados-nauticos/
+
+# Varredura de tela (onda 54) — screenshots e relatorio sao gerados, nao versionados
+web/.varredura/
