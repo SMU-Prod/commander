@@ -87,6 +87,7 @@ const ATALHOS: { area: AreaAdmin; href: string; titulo: string; apoio: string; i
   { area: "gold", href: "/admin/gold", titulo: "Commander Gold", apoio: "Solicitações, agenda e avaliações", icone: "selo" },
   { area: "gold_precos", href: "/admin/gold/precos", titulo: "Preços do Gold", apoio: "Tabela por porte da embarcação", icone: "cifrao" },
   { area: "marketplace", href: "/admin/marketplace", titulo: "Marketplace", apoio: "Pedidos, propostas e negócios", icone: "marketplace" },
+  { area: "avaliacoes", href: "/admin/avaliacoes", titulo: "Avaliações contestadas", apoio: "Manter no ar ou ocultar por violação", icone: "estrela" },
   { area: "logs", href: "/admin/logs", titulo: "Logs administrativos", apoio: "Quem fez o quê e quando", icone: "documento" },
 ]
 

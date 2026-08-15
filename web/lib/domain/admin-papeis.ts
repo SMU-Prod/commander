@@ -55,6 +55,7 @@ export type AreaAdmin =
   | "gold_precos"
   | "marketplace"
   | "parceiros"
+  | "avaliacoes"
 
 /**
  * Quem alcança cada área. O CEO não aparece em nenhuma lista porque ele é
@@ -73,6 +74,11 @@ const ALCANCE: Record<AreaAdmin, readonly PapelAdmin[]> = {
   gold_precos: ["comercial"],
   marketplace: ["comercial"],
   parceiros: ["comercial"],
+  // Moderar avaliação é atendimento a cliente, não gestão comercial: o §21
+  // dá ao Suporte "chamados e operação de suporte", e uma contestação é
+  // exatamente isso. Fora do Comercial de propósito — quem vende destaque
+  // pro parceiro não deveria decidir se a nota ruim dele fica no ar.
+  avaliacoes: ["suporte"],
 }
 
 /** CEO implica todo papel — "Acesso total" (§21). Sem isso a conta-mãe

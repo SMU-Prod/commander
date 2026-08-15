@@ -27,7 +27,7 @@ const FONTES_CHEIAS: FontesDashboard = {
   pessoas: { ok: true, dados: { usuarios: 2, usuarios_30d: 2, embarcacoes: 2, embarcacoes_ativas_90d: 1 } },
   assinaturas: {
     ok: true,
-    dados: { total: 10, ativas: 8, inadimplentes: 1, canceladas: 2, novas_30d: 3, canceladas_30d: 2, mrr_centavos: 49900 },
+    dados: { total: 10, ativas: 8, pendentes: 1, problema_pagamento: 1, canceladas: 2, novas_30d: 3, canceladas_30d: 2, mrr_centavos: 49900 },
   },
   gold: { ok: true, dados: { solicitados: 4, pagos: 3, agendados: 2, selos_ativos: 1, selos_expirados: 0 } },
   parceiros: { ok: true, dados: { total: 5, visiveis: 4, cortesia: 3 } },

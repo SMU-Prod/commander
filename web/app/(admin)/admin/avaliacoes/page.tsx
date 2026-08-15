@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Estrelas } from "@/components/avaliacoes/estrelas"
 import { Icone } from "@/components/icone"
 import { moderarAvaliacao } from "@/lib/acoes/avaliacoes-admin"
-import { exigirAdmin } from "@/lib/admin"
+import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarContestacoesPendentes } from "@/lib/consultas-avaliacoes"
 import { textoDoMotivo } from "@/lib/domain/avaliacoes"
 
@@ -15,16 +15,18 @@ import { textoDoMotivo } from "@/lib/domain/avaliacoes"
  * moderação não a menciona (migration 050). Aqui só existem os dois botões
  * que o §14 autoriza.
  *
- * TODO (§21): quando o modelo de papéis do Admin assentar, esta é uma tela do
- * Suporte, e o link deve entrar no índice de /admin. Hoje ela usa
- * `exigirAdmin()`/`eh_admin()`, que é o conceito de admin que existe.
+ * Área do SUPORTE (§21): contestação é atendimento a cliente, não gestão
+ * comercial — quem vende destaque pro parceiro não decide se a nota ruim dele
+ * fica no ar. `exigirAreaAdmin("avaliacoes")` fecha a porta antes da tela: com
+ * o `exigirAdmin()` genérico, um vistoriador entrava e via lista vazia (a RLS
+ * filtrava), o que parece app quebrado em vez de acesso negado.
  */
 export default async function AdminAvaliacoesPage({
   searchParams,
 }: {
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
-  await exigirAdmin()
+  await exigirAreaAdmin("avaliacoes")
   const { ok, erro } = await searchParams
   const fila = await carregarContestacoesPendentes()
 

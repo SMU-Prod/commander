@@ -97,7 +97,13 @@ export interface FontePessoas {
 export interface FonteAssinaturas {
   total: number
   ativas: number
-  inadimplentes: number
+  pendentes: number
+  /** Nome espelhando o status real da tabela (§23). Era `inadimplentes`, que
+   *  ficou órfão quando a onda 47 renomeou o status pra `problema_pagamento`:
+   *  a função no banco contava um valor que o check já não aceitava e devolvia
+   *  0 pra sempre — e zero num painel executivo lê-se como "ninguém está com
+   *  problema de pagamento", que é o oposto de "não sei". */
+  problema_pagamento: number
   canceladas: number
   novas_30d: number
   canceladas_30d: number
@@ -175,7 +181,12 @@ export function montarDashboard(f: FontesDashboard): GrupoMetricas[] {
           },
           SEM_ASSINATURA,
         ),
-        daLeitura("Com problema de pagamento", f.assinaturas, (d) => ({ valor: NUM(d.inadimplentes) }), SEM_ASSINATURA),
+        daLeitura(
+          "Com problema de pagamento",
+          f.assinaturas,
+          (d) => ({ valor: NUM(d.problema_pagamento), apoio: `${NUM(d.pendentes)} aguardando 1º pagamento` }),
+          SEM_ASSINATURA,
+        ),
       ],
     },
     {
