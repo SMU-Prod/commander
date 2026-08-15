@@ -231,7 +231,11 @@ export default async function BarcoPage({
         {(
           [
             { href: "/barco/documentos", rotulo: "Documentos", desc: "validade e arquivos", aba: "documentos" },
-            { href: "/barco/gastos", rotulo: "Gastos", desc: "custos por mês", aba: "gastos" },
+            // Onda 42: "Gastos" virou "Financeiro" (PRD §9.1) — mesma área de
+            // permissão (`gastos`), tela nova. /barco/gastos continua existindo
+            // como redirect pra quem tiver o link velho.
+            { href: "/financeiro", rotulo: "Financeiro", desc: "despesas, entradas e saldo", aba: "gastos" },
+            { href: "/carteira", rotulo: "Carteira", desc: "repasse à tripulação", aba: "carteira" },
             { href: "/diario", rotulo: "Diário de Bordo", desc: "registrar saídas e serviços" },
             { href: "/barco/ocorrencias", rotulo: "Ocorrências", desc: "abertas, em curso, resolvidas" },
             { href: "/barco/historico", rotulo: "Histórico", desc: "tudo, num lugar só", aba: "historico" },

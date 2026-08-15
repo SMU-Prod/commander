@@ -230,18 +230,21 @@ export default async function HojePage({
   // `cache()`: o badge e a lista nunca podem discordar.
   const contadorAvisos = contadorSino(await carregarNotificacoes())
 
-  // Gastos do mês (onda 16) — mesma janela de 6 meses e mesma lógica de
-  // /barco/gastos (lib/domain/gastos.ts), só que resumida pro cartão de /hoje.
+  // Despesas do mês (onda 16; fonte trocada na onda 42) — mesma janela de 6
+  // meses e a mesma `lib/domain/gastos.ts` de sempre, mas lendo de
+  // `lancamentos_financeiros` em vez de `eventos.custo_centavos`. É a mesma
+  // decisão da migration 042: o Financeiro é a fonte do dinheiro, e somar as
+  // duas contaria o mesmo gasto duas vezes. Só `status = 'pago'` entra — uma
+  // conta a vencer não é dinheiro que saiu.
   const podeVerGastos = podeVer(permissoes, "gastos")
   const inicioJanelaGastos = `${Number(hoje.slice(0, 4)) - 1}-01-01`
-  const { data: eventosGastos } = podeVerGastos
+  const { data: despesasMes } = podeVerGastos
     ? await supabase
-        .from("eventos").select("data, custo_centavos").eq("embarcacao_id", embarcacao.id)
-        .not("custo_centavos", "is", null).gte("data", inicioJanelaGastos)
-    : { data: [] as { data: string; custo_centavos: number | null }[] }
-  const entradasGastos = (eventosGastos ?? [])
-    .filter((e) => (e.custo_centavos ?? 0) > 0)
-    .map((e) => ({ data: e.data, custoCentavos: e.custo_centavos as number, grupo: "" }))
+        .from("lancamentos_financeiros").select("data, valor_centavos").eq("embarcacao_id", embarcacao.id)
+        .eq("tipo", "despesa").eq("status", "pago").gte("data", inicioJanelaGastos)
+    : { data: [] as { data: string; valor_centavos: number }[] }
+  const entradasGastos = (despesasMes ?? [])
+    .map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" }))
   const resumoMes = resumoGastos(entradasGastos, hoje)
   const variacaoGastos = variacaoPercentual(resumoMes.meses[5].totalCentavos, resumoMes.meses[4].totalCentavos)
 
@@ -451,10 +454,10 @@ export default async function HojePage({
       {podeVerGastos && (
         <>
           <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-            <Icone nome="cifrao" className="size-3.5" /> Gastos do mês
+            <Icone nome="cifrao" className="size-3.5" /> Despesas do mês
           </p>
           {resumoMes.totalMesCentavos > 0 ? (
-            <Link href="/barco/gastos" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+            <Link href="/financeiro" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="min-w-0 truncate font-mono-instr text-2xl font-semibold tabular-nums">{formatarReais(resumoMes.totalMesCentavos)}</p>
                 {variacaoGastos != null && (
@@ -472,9 +475,9 @@ export default async function HojePage({
               </div>
             </Link>
           ) : (
-            <Link href="/diario/novo" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
-              <p className="titulo-card">Nenhum gasto este mês</p>
-              <p className="apoio mt-0.5 text-dim">Registre custos nos eventos do diário e eles aparecem aqui.</p>
+            <Link href="/financeiro/novo?tipo=despesa" className="sombra-1 block rounded-[14px] border border-line bg-panel p-4">
+              <p className="titulo-card">Nenhuma despesa paga este mês</p>
+              <p className="apoio mt-0.5 text-dim">Toque para registrar a primeira — vaga, combustível, manutenção.</p>
             </Link>
           )}
         </>

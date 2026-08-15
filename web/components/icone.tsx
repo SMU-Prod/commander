@@ -69,6 +69,16 @@ const PATHS = {
   // "troca de posse", nunca confundir com "compartilhar" (uma seta só, saindo
   // de uma caixa) porque aqui o barco muda de dono, não ganha um segundo dono.
   transferir: <><path d="M4 8h13M13 4l4 4-4 4" /><path d="M20 16H7M11 12l-4 4 4 4" /></>,
+  // Onda 42 (Carteira da Tripulação): carteira física com o fecho à direita
+  // — objeto que se entrega na mão de alguém, que é literalmente o que o
+  // módulo registra. Não é "cifrao" (esse é o dinheiro da embarcação, no
+  // Financeiro) nem "guardado" (caixa/arquivo, fila de sondagem): a
+  // distinção importa porque as duas telas vivem lado a lado no menu.
+  carteira: <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><circle cx="16.5" cy="14.5" r="1.2" /></>,
+  // Onda 42 (Recorrentes): duas setas fechando um ciclo — "isto volta a
+  // acontecer". Distinto de "transferir" (setas opostas, troca de posse) e
+  // de "relogio" (um instante, não uma repetição).
+  repetir: <><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5" /><path d="M20 4v4.5h-4.5" /><path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5" /><path d="M4 20v-4.5h4.5" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

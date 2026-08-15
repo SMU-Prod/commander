@@ -8,6 +8,7 @@ import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "
 import { duracaoHoras, horasSugeridas, lerPassageiros } from "@/lib/domain/bordo"
 import { abaDoHubChecklist, itensQueViramOcorrencia, lerChecklistDoFormulario, ROTULO_HUB_CHECKLIST } from "@/lib/domain/checklist-diario"
 import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
+import { categoriaFinanceiraDoEvento } from "@/lib/domain/financeiro"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
@@ -141,6 +142,38 @@ export async function criarEvento(formData: FormData) {
     erroNovo("Não foi possível salvar o evento. Tente de novo.")
   }
 
+  // Onda 42 (PRD FINAL §9.1) — o custo lançado no Diário nasce TAMBÉM como
+  // lançamento central no Financeiro, ligado a este evento (`evento_id`), que
+  // é o "cria o mesmo lançamento central, não uma cópia" do PRD. Sem isto, o
+  // Financeiro (fonte do dinheiro desde a migration 042) ignoraria tudo que
+  // entra pelo Diário e as duas telas discordariam sobre quanto o barco
+  // gastou. `custo_centavos` continua gravado no evento como histórico DELE —
+  // nenhuma tela soma as duas fontes.
+  //
+  // Falha aqui não desfaz a saída já registrada: mesmo padrão do item
+  // monitorado e da leitura de horas logo abaixo — avisa, não perde o que já
+  // foi salvo.
+  if (custoCentavos != null && custoCentavos > 0) {
+    const { error: erroLancamento } = await supabase.from("lancamentos_financeiros").insert({
+      embarcacao_id: painel.embarcacao.id,
+      tipo: "despesa",
+      categoria: categoriaFinanceiraDoEvento({ tipo, categoria }),
+      descricao: texto("descricao") ?? TIPO_ROTULO[tipo] ?? "Gasto registrado no Diário",
+      valor_centavos: custoCentavos,
+      data,
+      // Custo lançado no Diário é gasto que já aconteceu — o PRD só admite
+      // no Financeiro o que foi efetivado.
+      status: "pago",
+      comprovante_path: anexoPath,
+      evento_id: inserido!.id,
+      criado_por: user.id,
+    }).select("id")
+    if (erroLancamento) {
+      revalidatePath("/diario")
+      redirect(`/diario?erro=${encodeURIComponent("Registro salvo, mas o custo não entrou no Financeiro. Lance por lá para não perder o valor.")}`)
+    }
+  }
+
   if (item) {
     const eq = painel.equipamentos.find((e) => e.id === item.equipamento_id)
     const atualizacao = zerarCiclo(item, { data, horas: horas ?? eq?.horas_atuais ?? null })
@@ -201,6 +234,10 @@ export async function criarEvento(formData: FormData) {
   revalidatePath("/diario")
   revalidatePath("/barco")
   revalidatePath("/hoje")
+  // O custo do registro pode ter virado lançamento — as telas do Financeiro
+  // mostram o mesmo dinheiro e precisam sair do cache junto.
+  revalidatePath("/financeiro")
+  revalidatePath("/financeiro/lancamentos")
 
   // A sinergia: saida de navegacao com duracao relevante manda pra tela de
   // sugestao de horas do motor, antes de voltar pro diario — essa tela ja
