@@ -745,7 +745,7 @@ export function MapaNautico({
         </div>
       )}
 
-      {/* o aviso legal "auxílio à navegação" vive no painel de trilha do
+      {/* o aviso legal (o Commander NÃO é auxílio à navegação — é estimativa) vive no painel de trilha do
           /navegar — flutuando aqui ele cobria escala e atribuição */}
     </div>
   )

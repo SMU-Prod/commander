@@ -1555,7 +1555,8 @@ export function NavegarMapa({
             <div className="border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
               <p className="apoio text-meter-dim">
                 Mantenha o app aberto durante o passeio — a trilha vira um evento no Diário de Bordo.
-                Auxílio à navegação: não substitui as cartas náuticas oficiais.
+                O Commander NÃO é auxílio à navegação: serve para estimar sua posição e registrar
+                o passeio. Navegue pela carta náutica oficial.
               </p>
               {msg && <p className="mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
               {estado === "parado" && (
@@ -2010,7 +2011,8 @@ export function NavegarMapa({
             )}
             {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "fina" && (
               <p className="apoio mt-2 border-t border-mapa-instrumento-borda pt-2 text-meter-dim">
-                Rota pela água — contorna a costa. Auxílio à navegação, não substitui a carta náutica.
+                Rota pela água — contorna a costa. É estimativa, não auxílio à navegação:
+                confira na carta náutica oficial antes de seguir.
               </p>
             )}
             {posAtual && estadoRotaAtual.tipo === "rota" && estadoRotaAtual.precisao === "nacional" && (

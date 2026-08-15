@@ -261,7 +261,8 @@ export function VerViagemMapa({
         {/* Mesmos disclaimers do /navegar (web/components/mapa/navegar-mapa.tsx) — a rota
             planejada herda a mesma honestidade, não repete pior nem inventa um texto novo. */}
         <p className="apoio mt-3 border-t border-line pt-3 text-dim">
-          Rota pela água — contorna a costa. Auxílio à navegação, não substitui a carta náutica.
+          Rota pela água — contorna a costa. É estimativa, não auxílio à navegação:
+          confira na carta náutica oficial antes de seguir.
         </p>
         {avisoCalado && (
           <p className={`apoio mt-2 ${avisoCalado.tom === "aviso" ? "text-warn" : "text-dim"}`}>

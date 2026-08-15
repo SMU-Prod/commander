@@ -132,10 +132,11 @@ export default function TermosPage() {
       <SecaoLegal titulo="6. Limitação de responsabilidade náutica">
         <DestaqueLegal>
           <p>
-            <strong>Isto é o mais importante destes Termos.</strong> O Commander é uma
-            ferramenta de apoio ao planejamento e ao registro da navegação —{" "}
-            <strong>não substitui carta náutica oficial</strong>, publicação náutica ou o
-            julgamento do comandante.
+            <strong>Isto é o mais importante destes Termos.</strong> O Commander{" "}
+            <strong>não é auxílio à navegação</strong>. Ele é uma ferramenta de gestão da
+            embarcação: estima a sua posição, ajuda a planejar e registra o que aconteceu.
+            Quem navega é você, pela <strong>carta náutica oficial</strong>, pelas
+            publicações náuticas e pelo julgamento do comandante.
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
