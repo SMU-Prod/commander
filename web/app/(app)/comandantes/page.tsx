@@ -1,7 +1,10 @@
 import Link from "next/link"
+import { SeloReputacao } from "@/components/avaliacoes/reputacao"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
+import { carregarReputacoes } from "@/lib/consultas-avaliacoes"
+import { calcularReputacao } from "@/lib/domain/avaliacoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
@@ -16,6 +19,11 @@ export default async function ComandantesPage() {
     .from("perfis_comandante").select("*").eq("tipo", "comandante").eq("visivel", true).order("created_at")
   if (error) throw new Error("Não foi possível carregar os comandantes. Recarregue a página.")
 
+  // §14: "Perfil mostra média, quantidade". Uma consulta só pra todos os
+  // perfis da lista — nota no cartão é o que ajuda a escolher antes de abrir.
+  const lista = (perfis ?? []) as PerfilComandante[]
+  const reputacoes = await carregarReputacoes(lista.map((p) => p.usuario_id))
+
   return (
     <main>
       <h1 className="titulo-pagina">Comandantes</h1>
@@ -23,7 +31,7 @@ export default async function ComandantesPage() {
       <RedeNav atual="comandantes" className="mt-4" />
 
       <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
-        {((perfis ?? []) as PerfilComandante[]).length === 0 && (
+        {lista.length === 0 && (
           <EstadoVazio
             variant="linha"
             icone="pessoas"
@@ -31,7 +39,7 @@ export default async function ComandantesPage() {
             descricao="Assim que houver, eles aparecem aqui."
           />
         )}
-        {((perfis ?? []) as PerfilComandante[]).map((p) => (
+        {lista.map((p) => (
           <div key={p.usuario_id} className="border-b border-line py-3.5 last:border-0">
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-sm text-accent-forte">
@@ -52,9 +60,15 @@ export default async function ComandantesPage() {
               )}
             </div>
             {p.bio && <p className="apoio mt-2 text-dim">{p.bio}</p>}
-            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
-              {p.verificado ? "Verificado" : "Documentação declarada"}
-            </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
+                {p.verificado ? "Verificado" : "Documentação declarada"}
+              </span>
+              <SeloReputacao
+                reputacao={reputacoes.get(p.usuario_id) ?? calcularReputacao([])}
+                href={`/avaliacoes/${p.usuario_id}`}
+              />
+            </div>
           </div>
         ))}
       </div>

@@ -1,4 +1,9 @@
 import type {
+  DecisaoModeracao,
+  RespostaSolucao,
+  VisibilidadeAvaliacao,
+} from "@/lib/domain/avaliacoes"
+import type {
   CondicaoProduto,
   DecisaoConfirmacao,
   FormaEntrega,
@@ -11,6 +16,7 @@ import type {
   TipoTrabalho,
   TipoVaga,
 } from "@/lib/domain/marketplace"
+import type { PlanoId, PromocaoId } from "@/lib/domain/planos"
 import type { NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 
 export interface Embarcacao {
@@ -522,6 +528,61 @@ export interface Disponibilidade {
   criado_em: string
 }
 
+// AVALIAÇÕES E CONTESTAÇÕES (onda 49, PRD §14) — ver web/lib/domain/avaliacoes.ts
+// e a migration 050. A linha só nasce a partir de um `negocio` confirmado
+// pelos dois lados; isso é RLS, não convenção.
+export interface Avaliacao {
+  id: string
+  negocio_id: string
+  avaliador_id: string
+  avaliado_id: string
+  avaliador_nome: string
+  avaliado_nome: string
+  nota: number
+  comentario: string | null
+  visibilidade: VisibilidadeAvaliacao
+  ocultada_em: string | null
+  ocultada_por: string | null
+  ocultacao_nota: string | null
+  criado_em: string
+  atualizado_em: string
+}
+
+/** Uma por avaliação (é a PK), e sempre um código da lista do §14.1 — nunca
+ *  texto que o avaliado escreveu. */
+export interface AvaliacaoResposta {
+  avaliacao_id: string
+  autor_id: string
+  resposta_codigo: string
+  criado_em: string
+}
+
+export interface AvaliacaoContestacao {
+  id: string
+  avaliacao_id: string
+  autor_id: string
+  motivo_codigo: string
+  detalhe: string | null
+  status: "pendente" | "analisada"
+  decisao: DecisaoModeracao | null
+  decidido_por: string | null
+  decidido_em: string | null
+  nota_admin: string | null
+  criado_em: string
+}
+
+/** "Problema solucionado" (§14): o avaliado marca, o cliente confirma ou
+ *  nega. Repare que não existe coluna de nota aqui — a nota não muda por
+ *  causa disto, e a ausência da coluna é a garantia. */
+export interface AvaliacaoSolucao {
+  avaliacao_id: string
+  marcado_por: string
+  descricao: string | null
+  marcado_em: string
+  resposta: RespostaSolucao | null
+  respondido_em: string | null
+}
+
 export interface PushAssinatura {
   id: string
   usuario_id: string
@@ -705,25 +766,55 @@ export interface GoldSelo {
 export interface PremiumConcessao {
   id: string
   usuario_id: string
-  origem: "gold"
+  /** onda 47: `migracao`/`cortesia` entraram junto com as promoções do §2.1. */
+  origem: "gold" | "migracao" | "cortesia"
   origem_id: string | null
   valido_ate: string
+  /** onda 47 — a concessão agora nomeia o plano que entrega (§2.2: "6 meses do
+   *  plano Commander"). Linhas antigas nascem com o default `commander`. */
+  plano_concedido: PlanoId
   criado_em: string
 }
 
-export type StatusAssinatura = "pendente" | "ativa" | "inadimplente" | "cancelada"
+/** Vocabulário do §23 — `inadimplente` virou `problema_pagamento` na onda 47
+ *  (migration 048). A SITUAÇÃO derivada (tolerância, bloqueio) é calculada em
+ *  `lib/domain/assinatura-ciclo.ts`, nunca gravada. */
+export type StatusAssinatura = "pendente" | "ativa" | "problema_pagamento" | "cancelada"
 
 export interface Assinatura {
   id: string
   usuario_id: string
   asaas_customer_id: string
   asaas_subscription_id: string
-  plano: "fundador_mensal" | "fundador_anual"
+  plano: PlanoId
   status: StatusAssinatura
   valor_centavos: number
-  fundador_numero: number | null
+  /** Desde quando o pagamento falha — gravado pelo trigger do banco, é o que
+   *  faz a tolerância do §23 ser contável. `null` fora do problema. */
+  problema_desde: string | null
   criado_em: string
   atualizado_em: string
+}
+
+/** Tolerância configurável do §23 — linha única, mudada por SQL do dono. */
+export interface AssinaturaParametros {
+  id: true
+  tolerancia_dias: number
+  atualizado_em: string
+}
+
+/** Promoção vigente de uma pessoa (§2.1 migração, §2.2 entrada pelo Gold).
+ *  O banco garante no máximo UMA vigente por usuário — não acumulam. */
+export interface AssinaturaPromocao {
+  id: string
+  usuario_id: string
+  promocao: PromocaoId
+  plano: PlanoId
+  valor_promocional_centavos: number
+  desconto_gold_percentual: number
+  valido_ate: string
+  origem_id: string | null
+  criado_em: string
 }
 
 // Sondagem colaborativa (onda 13) — ver web/lib/domain/sondagem.ts.

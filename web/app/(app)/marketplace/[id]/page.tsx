@@ -1,8 +1,13 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
+import { CartaoAvaliacao } from "@/components/avaliacoes/cartao-avaliacao"
+import { SeletorNota } from "@/components/avaliacoes/estrelas"
+import { SeloReputacao } from "@/components/avaliacoes/reputacao"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { publicarAvaliacao } from "@/lib/acoes/avaliacoes"
 import {
   enviarProposta,
   marcarNegocioRealizado,
@@ -11,7 +16,11 @@ import {
   retirarProposta,
   atualizarStatusDemanda,
 } from "@/lib/acoes/marketplace"
+import {
+  carregarAvaliacaoDoNegocio, carregarReputacoes, type AvaliacaoCompleta,
+} from "@/lib/consultas-avaliacoes"
 import { carregarMapaTaxonomia, nomeDaRegiao, nomeDe, tituloDeDemanda } from "@/lib/consultas-marketplace"
+import { calcularReputacao, podeAvaliar, SELO_NEGOCIO_CONFIRMADO } from "@/lib/domain/avaliacoes"
 import { hojeISO } from "@/lib/domain/datas"
 import { formatarReais } from "@/lib/domain/gastos"
 import {
@@ -110,6 +119,15 @@ export default async function DemandaPage({
     temNegocio: negocioDaAceita != null,
     confirmacoes: negocioDaAceita ? confirmacoesDe(negocioDaAceita.id) : [],
   })
+
+  // §14 — a avaliação nasce aqui, colada no negócio que a liberou. Quem
+  // gerencia respostas e contestações depois é /avaliacoes.
+  const avaliacaoDoNegocio = negocioDaAceita
+    ? await carregarAvaliacaoDoNegocio(negocioDaAceita.id)
+    : null
+  // A reputação de quem propôs, ao lado do nome: é neste momento — escolher
+  // entre três propostas — que a média do §14 vale alguma coisa.
+  const reputacoes = await carregarReputacoes(propostas.map((p) => p.autor_id))
 
   const substantivo = rotuloDaResposta(demanda.tipo)
   const podePropor = !ehAutor && viva && minhaProposta == null
@@ -241,6 +259,7 @@ export default async function DemandaPage({
           negocio={negocioDaAceita}
           confirmacoes={confirmacoesDe(negocioDaAceita.id)}
           usuarioId={user.id}
+          avaliacao={avaliacaoDoNegocio}
         />
       )}
 
@@ -259,7 +278,13 @@ export default async function DemandaPage({
               {propostas.map((p) => (
                 <div key={p.id} className="border-b border-line py-3.5 last:border-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="titulo-card">{p.autor_nome}</p>
+                    <p className="titulo-card inline-flex flex-wrap items-center gap-2">
+                      {p.autor_nome}
+                      <SeloReputacao
+                        reputacao={reputacoes.get(p.autor_id) ?? calcularReputacao([])}
+                        href={`/avaliacoes/${p.autor_id}`}
+                      />
+                    </p>
                     {p.status !== "enviada" && (
                       <span className="apoio shrink-0 text-dim">
                         {p.status === "aceita" ? "Aceita" : p.status === "recusada" ? "Recusada" : "Retirada"}
@@ -393,15 +418,23 @@ function BlocoNegocio({
   negocio,
   confirmacoes,
   usuarioId,
+  avaliacao,
 }: {
   demandaId: string
   negocio: Negocio
   confirmacoes: ConfirmacaoNegocio[]
   usuarioId: string
+  avaliacao: AvaliacaoCompleta | null
 }) {
   const estado = estadoDoNegocio(confirmacoes)
   const souParte = negocio.cliente_id === usuarioId || negocio.fornecedor_id === usuarioId
   const devoResponder = souParte && faltaConfirmacaoDe(confirmacoes, usuarioId)
+  const posso = podeAvaliar({
+    usuarioId,
+    clienteId: negocio.cliente_id,
+    confirmacoes,
+    jaAvaliou: avaliacao != null,
+  })
 
   return (
     <div
@@ -435,16 +468,65 @@ function BlocoNegocio({
         </div>
       )}
 
+      {/* §11.6 → §14: "Após confirmação bilateral, liberar avaliação". A
+          avaliação aparece exatamente aqui, no momento em que destrava.
+          TODO: "Adicionar ao Financeiro" (§11.6) — o módulo existe (onda 42),
+          falta a ponte; fica registrado como pendência da onda. */}
       {avaliacaoLiberada(confirmacoes) && (
-        <p className="apoio mt-3 text-dim">
-          {/* §11.6: "Após confirmação bilateral, liberar avaliação e oferecer
-              'Adicionar ao Financeiro'". A Avaliação (§14) e o Financeiro são
-              outras ondas — aqui fica só o aviso honesto de que destravou.
-              TODO: integrar com Financeiro (onda 42) */}
-          Avaliação liberada — ela chega numa próxima atualização, junto com &ldquo;Adicionar ao Financeiro&rdquo;.
-        </p>
+        <div className="mt-3 border-t border-line pt-3">
+          {avaliacao ? (
+            <>
+              <CartaoAvaliacao
+                item={avaliacao}
+                cabecalho={
+                  avaliacao.avaliacao.avaliador_id === usuarioId
+                    ? `Sobre ${avaliacao.avaliacao.avaliado_nome}`
+                    : undefined
+                }
+              />
+              <p className="apoio mt-2">
+                <Link href="/avaliacoes" className="text-accent-forte">
+                  {avaliacao.avaliacao.avaliado_id === usuarioId
+                    ? "Responder, contestar ou marcar como solucionado"
+                    : "Ver e editar em Avaliações"}
+                </Link>
+              </p>
+            </>
+          ) : posso ? (
+            <FormAvaliacao demandaId={demandaId} negocioId={negocio.id} />
+          ) : (
+            <p className="apoio text-dim">
+              Avaliação liberada — quem publicou o pedido pode avaliar quem atendeu.
+            </p>
+          )}
+        </div>
       )}
     </div>
+  )
+}
+
+/** §14 — o formulário só existe onde o negócio já está confirmado pelos dois
+ *  lados. Mesmo assim ele não é a trava: a policy de insert (migration 050)
+ *  recusa a linha se a confirmação bilateral não estiver lá. */
+function FormAvaliacao({ demandaId, negocioId }: { demandaId: string; negocioId: string }) {
+  return (
+    <form action={publicarAvaliacao} className="space-y-3">
+      <input type="hidden" name="negocio_id" value={negocioId} />
+      <input type="hidden" name="volta" value={`/marketplace/${demandaId}`} />
+      <p className="titulo-card">Como foi?</p>
+      <p className="apoio text-dim">
+        Sua avaliação fica no perfil de quem atendeu, com a marca “{SELO_NEGOCIO_CONFIRMADO}”. Você pode
+        editá-la por 30 dias.
+      </p>
+      <SeletorNota />
+      <CampoTextarea
+        label="Comentário (opcional)" id="comentario" name="comentario" rows={3} maxLength={800}
+        placeholder="O que funcionou, o que não funcionou."
+      />
+      <button className="h-11 w-full rounded-xl bg-accent text-sm font-semibold text-acao-texto">
+        Publicar avaliação
+      </button>
+    </form>
   )
 }
 
