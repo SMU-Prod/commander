@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { ContadorAvisos } from "./ui/contador-avisos"
 import { Icone, type NomeIcone } from "./icone"
 
 const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
@@ -74,7 +75,7 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)
-          const badge = a.href === "/notificacoes" && avisos > 0
+          const badge = a.href === "/notificacoes"
           return (
             <Link
               key={a.href}
@@ -86,14 +87,12 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
             >
               <span className="relative">
                 <Icone nome={a.icone} className="size-[21px]" />
-                {badge && (
-                  <span
-                    aria-label={`${avisos} avisos que pedem atenção`}
-                    className="absolute -right-2 -top-1 flex min-w-[16px] items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[9px] font-semibold leading-4 tabular-nums text-white"
-                  >
-                    {avisos > 9 ? "9+" : avisos}
-                  </span>
-                )}
+                {/* Onda 57 (revisão) — o badge saiu daqui pra
+                    `ui/contador-avisos.tsx`. Ele era escrito à mão neste
+                    arquivo e SÓ neste arquivo; quando o trilho de desktop
+                    nasceu, nasceu sem número. Agora os dois desenham o mesmo
+                    componente e nenhum dos dois pode divergir do outro. */}
+                {badge && <ContadorAvisos avisos={avisos} />}
               </span>
               {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação")
                   estouram o flex-1 e encostam um no outro em tela de 375px —

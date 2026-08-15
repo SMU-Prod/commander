@@ -1,5 +1,6 @@
 "use client"
 import { usePathname } from "next/navigation"
+import type { Permissoes } from "@/lib/domain/permissoes"
 import {
   FOLGA_COM_FAB,
   FOLGA_SEM_FAB,
@@ -41,17 +42,26 @@ import { TrilhoLateral } from "./trilho-lateral"
  */
 export function MolduraApp({
   temFab,
+  permissoes,
+  avisos = 0,
   children,
 }: {
   /** Há motor editável para o FAB registrar? Decidido no servidor, por permissão. */
   temFab: boolean
+  /** As permissões desta pessoa neste barco, direto de `painel.permissoes`.
+   *  Passam por aqui só para chegar ao trilho: quem decide o que ele mostra é
+   *  o `podeVer` de `lib/domain/permissoes.ts`, o MESMO do "Acesso rápido" da
+   *  Início e o mesmo dos gates de `/agenda` e `/financeiro`. `null` = PROP. */
+  permissoes: Permissoes | null
+  /** Contador do sino, já calculado e filtrado por permissão no layout. */
+  avisos?: number
   children: React.ReactNode
 }) {
   const pathname = usePathname()
   const fabVisivel = temFab && mostrarRegistroRapido(pathname)
   return (
     <>
-      <TrilhoLateral />
+      <TrilhoLateral permissoes={permissoes} avisos={avisos} />
       <div
         data-moldura
         className={`mx-auto min-h-dvh ${LARGURA_CONTEUDO} ${OFFSET_TRILHO} px-4 pt-5 print:max-w-full print:px-0 print:pb-0 print:pt-0 ${

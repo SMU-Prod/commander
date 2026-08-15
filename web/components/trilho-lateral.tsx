@@ -1,6 +1,9 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { AREA_AGENDA } from "@/lib/domain/agenda"
+import { podeVer, type Aba, type Permissoes } from "@/lib/domain/permissoes"
+import { ContadorAvisos } from "./ui/contador-avisos"
 import { Icone, type NomeIcone } from "./icone"
 
 /**
@@ -20,15 +23,34 @@ import { Icone, type NomeIcone } from "./icone"
  * POR QUE SETE DESTINOS E NÃO CINCO: a bottom-nav só cabe cinco por motivo
  * físico (71px por coluna, ver o comentário dela). Aqui cabe a coluna
  * inteira, então Diário, Agenda e Financeiro — que no celular vivem a um
- * toque de distância — ganham posição fixa. Todos conferidos contra
- * `app/(app)/`: rota que não existe vira 404 silencioso.
+ * toque de distância — ganham posição fixa.
+ *
+ * `aba` — A PORTA SÓ APARECE PRA QUEM PODE ENTRAR.
+ *
+ * A primeira versão desta lista era constante de módulo sem permissão
+ * nenhuma, e o comentário aqui dizia "todos conferidos contra `app/(app)/`".
+ * O que tinha sido conferido era EXISTÊNCIA DE ROTA, não acesso: um
+ * convidado sem `gastos` num notebook via "Financeiro" no trilho, clicava, e
+ * `app/(app)/financeiro/page.tsx` o devolvia pra `/hoje?erro=…` com faixa
+ * vermelha. Idem Agenda. No celular a mesma pessoa nunca via essas portas,
+ * porque o "Acesso rápido" da Início filtra por `podeVer` — ou seja, o
+ * desktop era a única superfície do app onde a interface discordava do
+ * backend, desfazendo a regra que a onda 52 fixou no layout de `(app)`.
+ *
+ * A `aba` é a MESMA chave que o gate do servidor usa, lida pelo MESMO
+ * `podeVer` do "Acesso rápido" (e `AREA_AGENDA` em vez da string, como lá):
+ * uma segunda regra de permissão escrita aqui seria só a próxima divergência
+ * esperando acontecer. Destino SEM `aba` é destino sem gate no servidor —
+ * `/diario`, `/barco` e `/notificacoes` não redirecionam ninguém, quem filtra
+ * o conteúdo deles é a RLS. Se um dia um deles ganhar um `redirect` por
+ * permissão, ele ganha `aba` aqui no mesmo commit.
  */
-const DESTINOS: { href: string; rotulo: string; icone: NomeIcone }[] = [
+const DESTINOS: { href: string; rotulo: string; icone: NomeIcone; aba?: Aba }[] = [
   { href: "/hoje", rotulo: "Início", icone: "inicio" },
   { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
   { href: "/diario", rotulo: "Diário", icone: "relatorio" },
-  { href: "/agenda", rotulo: "Agenda", icone: "calendario" },
-  { href: "/financeiro", rotulo: "Financeiro", icone: "cifrao" },
+  { href: "/agenda", rotulo: "Agenda", icone: "calendario", aba: AREA_AGENDA },
+  { href: "/financeiro", rotulo: "Financeiro", icone: "cifrao", aba: "gastos" },
   { href: "/notificacoes", rotulo: "Avisos", icone: "alerta" },
   { href: "/menu", rotulo: "Menu", icone: "menu" },
 ]
@@ -57,7 +79,16 @@ const DESTINOS: { href: string; rotulo: string; icone: NomeIcone }[] = [
  * É o padrão de trilho que Linear, GitHub e Vercel usam, e é o que permite
  * o rótulo voltar para um degrau legítimo da escala (12px, `text-xs`).
  */
-export function TrilhoLateral() {
+export function TrilhoLateral({
+  permissoes,
+  avisos = 0,
+}: {
+  /** As MESMAS do layout de `(app)` (`painel.permissoes`). `null` = PROP, vê
+   *  tudo — é o contrato de `podeVer`, não uma exceção deste componente. */
+  permissoes: Permissoes | null
+  /** Contador do sino (`contadorSino`), já filtrado por permissão no layout. */
+  avisos?: number
+}) {
   const pathname = usePathname()
   return (
     <nav
@@ -70,7 +101,7 @@ export function TrilhoLateral() {
       // seja `visible` neste <nav> corta o rótulo no meio da palavra.
       className="no-imprimir fixed inset-y-0 left-0 z-20 hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-4 lg:flex"
     >
-      {DESTINOS.map((d) => {
+      {DESTINOS.filter((d) => d.aba == null || podeVer(permissoes, d.aba)).map((d) => {
         // `startsWith` com a barra: sem ela `/barco` acenderia junto com
         // qualquer rota que só COMECE com essas letras.
         const ativo = pathname === d.href || pathname.startsWith(`${d.href}/`)
@@ -97,7 +128,22 @@ export function TrilhoLateral() {
               ativo ? "bg-accent/12 text-accent-forte" : "text-dim hover:bg-panel2"
             }`}
           >
-            <Icone nome={d.icone} className="size-5" />
+            {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.
+                Ancorado num `<span relative>` em volta do ÍCONE, e não no
+                <Link>, porque o alvo aqui tem 44px e o ícone 20px: pendurado
+                no alvo, o número ficaria flutuando longe do desenho que ele
+                anota. É a mesma anatomia da bottom-nav, que também ancora no
+                ícone e não na coluna inteira.
+                Sem ele, a partir de 1024px o app inteiro ficava sem indicador
+                de alerta: a barra de baixo (que carrega o contador) é
+                `lg:hidden`, o sino tem UM consumidor (/hoje) e a faixa de
+                topo do spec §3.3 ainda não existe — ou seja, no desktop, em
+                qualquer tela que não fosse a Início, o seguro vencido não
+                avisava em lugar nenhum. */}
+            <span className="relative flex">
+              <Icone nome={d.icone} className="size-5" />
+              {d.href === "/notificacoes" && <ContadorAvisos avisos={avisos} />}
+            </span>
             {/* A PASTILHA.
                 `left-full ml-[22px]`: o alvo tem 44px centrado nos 72px do
                 trilho, então sobram 14px até a borda direita — 14 + 8 de
