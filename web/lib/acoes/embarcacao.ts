@@ -40,6 +40,10 @@ export async function salvarDadosGerais(formData: FormData) {
       modelo: texto("modelo"),
       ano,
       marina: texto("marina"),
+      // Região da base (onda 52) — item da `taxonomia`. Vazio vira null, que
+      // significa "não informada": a segmentação de publicidade (§20) trata
+      // isso como desconhecimento e não serve campanha regional nenhuma.
+      regiao_id: texto("regiao_id"),
       comprimento_m: medida("comprimento_m", "o comprimento"),
       boca_m: medida("boca_m", "a boca"),
       calado_m: medida("calado_m", "o calado"),

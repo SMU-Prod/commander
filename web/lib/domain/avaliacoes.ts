@@ -331,6 +331,23 @@ export interface Reputacao {
  * quando e por quê, na própria linha).
  *
  * Contestação PENDENTE não muda nada aqui, de propósito.
+ *
+ * ---------------------------------------------------------------------------
+ * PUBLICIDADE NÃO ENTRA NESTA CONTA (onda 52, §20)
+ * ---------------------------------------------------------------------------
+ * O §20 fecha com *"Publicidade nunca interfere na nota/reputação do
+ * Partner"*, e o lugar de honrar isso é aqui, porque é aqui que a nota
+ * nasce. `AvaliacaoParaReputacao` tem DOIS campos — `nota` e `visibilidade` —
+ * e é assim que tem que continuar: campanha, destaque, patrocínio e valor
+ * pago não são argumentos desta função e não podem virar.
+ *
+ * Quem for acrescentar um campo aqui um dia: se ele vier de
+ * `publicidade_campanhas`, pare. Um Partner que compra destaque aparece
+ * primeiro na vitrine (`ordenarComDestaque`, lib/domain/publicidade.ts) e
+ * continua com a mesma média de antes — as duas ordenações são
+ * independentes de propósito. O teste
+ * "campanha não muda a reputação do Partner", em publicidade.test.ts, existe
+ * pra que essa mudança quebre alguma coisa em vez de passar batida.
  */
 export function calcularReputacao(avaliacoes: readonly AvaliacaoParaReputacao[]): Reputacao {
   const contam = avaliacoes.filter((a) => a.visibilidade === "publica")

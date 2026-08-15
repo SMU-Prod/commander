@@ -144,7 +144,10 @@ export interface FontesDashboard {
    *  sempre `sem_fonte`. */
   planos: Leitura<FontePlanos>
   /** Publicidade ativa, impressões e cliques — §20/§21.1, "quando
-   *  implementado". Nem tabela existe. */
+   *  implementado". Implementado na onda 52 (migration 053): a fonte é a RPC
+   *  `admin_metricas_publicidade`. Daqui em diante "0 impressões" é uma
+   *  MEDIÇÃO — o produto existe e ninguém viu anúncio —, e não a ausência
+   *  dela. É a diferença que este arquivo inteiro existe pra preservar. */
   publicidade: Leitura<FontePublicidade>
 }
 
@@ -265,7 +268,9 @@ const SEM_PLANOS = "Os sete planos do §2 ainda não estão modelados — não h
 const SEM_PARCEIROS = "Nenhum Partner cadastrado."
 const SEM_COMERCIAL = "Não foi possível ler o histórico comercial."
 const SEM_GOLD = "Não foi possível ler o Commander Gold."
-const SEM_PUBLICIDADE = "Publicidade (§20) ainda não foi implementada — não existe fonte para medir."
+// A fonte passou a existir na onda 52; este texto só aparece se a RPC
+// `admin_metricas_publicidade` falhar ou for chamada por quem não é CEO.
+const SEM_PUBLICIDADE = "Não foi possível ler as campanhas de publicidade."
 
 /** `true` quando NENHUMA métrica do grupo tem dado — a tela troca o grupo
  *  inteiro por uma frase, em vez de repetir a mesma explicação cinco vezes. */

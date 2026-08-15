@@ -76,6 +76,15 @@ const ROTULOS_ACAO: Record<string, string> = {
   "taxonomia.editar": "Item de taxonomia editado",
   "taxonomia.solicitacao.aprovar": "Pedido de inclusão aprovado",
   "taxonomia.solicitacao.recusar": "Pedido de inclusão recusado",
+  // Onda 52 — Comercial (§20/§21) e Suporte (§21).
+  "publicidade.preco.atualizar": "Preço de publicidade alterado",
+  "publicidade.campanha.criar": "Campanha criada",
+  "publicidade.campanha.status": "Campanha mudou de estado",
+  "publicidade.campanha.editar": "Veiculação da campanha ajustada",
+  "parceiro.suspender": "Partner suspenso do Explorar",
+  "parceiro.reativar": "Partner reativado no Explorar",
+  "suporte.atendimento": "Atendimento registrado",
+  "suporte.cortesia.conceder": "Acesso de cortesia concedido",
 }
 
 /** Ação desconhecida cai no código cru de propósito: um log é registro, e

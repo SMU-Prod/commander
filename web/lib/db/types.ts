@@ -36,6 +36,11 @@ export interface Embarcacao {
   marina: string | null
   marina_lat: number | null
   marina_lon: number | null
+  /** Região da base (`taxonomia` tipo `regiao`), onda 52. É o que permite a
+   *  segmentação regional da publicidade (§20) — sem isso o Dashboard só
+   *  poderia exibir campanha sem segmentação. Fica nula até o proprietário
+   *  escolher: ninguém deduz região a partir de lat/lon. */
+  regiao_id: string | null
   foto_capa_path: string | null
   created_at: string
 }

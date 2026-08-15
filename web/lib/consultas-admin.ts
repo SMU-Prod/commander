@@ -6,6 +6,7 @@ import type {
   FonteGold,
   FonteParceiros,
   FontePessoas,
+  FontePublicidade,
   FontesDashboard,
   Leitura,
 } from "@/lib/domain/admin-metricas"
@@ -84,12 +85,17 @@ async function lerComercial(): Promise<Leitura<FonteComercial>> {
 }
 
 export const carregarFontesDashboard = cache(async (): Promise<FontesDashboard> => {
-  const [pessoas, assinaturas, gold, parceiros, comercial] = await Promise.all([
+  const [pessoas, assinaturas, gold, parceiros, comercial, publicidade] = await Promise.all([
     lerRpc<FontePessoas>("admin_metricas_pessoas"),
     lerRpc<FonteAssinaturas>("admin_metricas_assinaturas"),
     lerRpc<FonteGold>("admin_metricas_gold"),
     lerRpc<FonteParceiros>("admin_metricas_parceiros"),
     lerComercial(),
+    // Onda 52: a publicidade do §20 ganhou tabela (migration 053), então a
+    // fonte deixou de ser ausente. Agora "0 impressões" É uma medição — o
+    // produto existe e ninguém viu anúncio ainda —, que é justamente a
+    // afirmação que não podia ser feita antes.
+    lerRpc<FontePublicidade>("admin_metricas_publicidade"),
   ])
 
   return {
@@ -98,12 +104,11 @@ export const carregarFontesDashboard = cache(async (): Promise<FontesDashboard> 
     gold,
     parceiros,
     comercial,
-    // As duas fontes abaixo são declaradas ausentes DE PROPÓSITO, não por
-    // falha: os sete planos do §2 estão sendo modelados em outra onda e a
-    // publicidade do §20 não tem nem tabela. Mostrar "0 anúncios ativos"
-    // afirmaria que o produto existe e ninguém comprou.
+    publicidade,
+    // Continua ausente DE PROPÓSITO, não por falha: os sete planos do §2
+    // estão sendo modelados em outra onda, e mostrar zero afirmaria uma
+    // contagem que ninguém fez.
     planos: { ok: false, motivo: "sem_fonte" },
-    publicidade: { ok: false, motivo: "sem_fonte" },
   }
 })
 

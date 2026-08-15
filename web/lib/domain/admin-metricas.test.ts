@@ -59,10 +59,31 @@ describe("zero e 'não existe' são coisas diferentes", () => {
     expect(todas.some((m) => m.valor === "0")).toBe(false)
   })
 
-  it("publicidade explica que a fonte não existe, não que ninguém anunciou", () => {
-    const publicidade = montarDashboard(TUDO_AUSENTE).find((g) => g.titulo === "Publicidade")!
+  /**
+   * Onda 52: a publicidade do §20 ganhou tabela (migration 053), então a
+   * fonte deixou de ser ausente. O que este teste protege MUDOU de assunto,
+   * e a mudança é a notícia: antes o requisito era "não diga 0, a fonte nem
+   * existe"; agora é "0 é uma medição legítima — o produto existe e ninguém
+   * viu anúncio ainda — mas falha de leitura continua não virando 0".
+   */
+  it("publicidade agora tem fonte: zero medido aparece como 0", () => {
+    const grupos = montarDashboard({
+      ...TUDO_AUSENTE,
+      publicidade: { ok: true, dados: { ativos: 0, impressoes: 0, cliques: 0 } },
+    })
+    const publicidade = grupos.find((g) => g.titulo === "Publicidade")!
+    expect(grupoVazio(publicidade)).toBe(false)
+    expect(publicidade.metricas.map((m) => m.valor)).toEqual(["0", "0", "0"])
+  })
+
+  it("publicidade que falha na leitura não vira 0", () => {
+    const grupos = montarDashboard({ ...TUDO_AUSENTE, publicidade: comErro() })
+    const publicidade = grupos.find((g) => g.titulo === "Publicidade")!
     expect(grupoVazio(publicidade)).toBe(true)
-    expect(publicidade.metricas[0].detalhe).toContain("ainda não foi implementada")
+    for (const m of publicidade.metricas) {
+      expect(m.valor).toBeNull()
+      expect(m.estado).toBe("erro")
+    }
   })
 
   it("planos por status admite que os sete planos ainda não estão modelados", () => {

@@ -7,6 +7,7 @@ import { Icone } from "@/components/icone"
 import { SeloGold } from "@/components/selos/selo-gold"
 import { SeloVerified } from "@/components/selos/selo-verified"
 import { SituacaoVerified } from "@/components/selos/situacao-verified"
+import { PatrocinioDashboard } from "@/components/publicidade/patrocinio-dashboard"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -17,6 +18,7 @@ import {
 } from "@/lib/consultas"
 import { mensagemDowngrade } from "@/lib/domain/assinatura-ciclo"
 import { carregarSeloGold } from "@/lib/consultas-gold"
+import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -30,10 +32,14 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const [verified, seloGold, acesso] = await Promise.all([
+  const [verified, seloGold, acesso, patrocinios] = await Promise.all([
     carregarVerified(),
     carregarSeloGold(embarcacao.id),
     carregarAcessoEmbarcacoes(),
+    // §20 — a segmentação mínima é a REGIÃO, e ela vem da embarcação aberta.
+    // Nula significa "não sei onde este barco está": nesse caso só entra
+    // campanha sem segmentação regional (ver `segmentacaoAtende`).
+    carregarPatrocinioDashboard(embarcacao.regiao_id),
   ])
   // Só avisa quando a embarcação ABERTA é uma das excedentes — um aviso
   // genérico em todo barco seria ruído pra quem está justamente no barco que
@@ -364,6 +370,20 @@ export default async function BarcoPage({
           }
         />
       )}
+
+      {/* §3.4, última linha do bloco do Dashboard: "Publicidade: no máximo
+          uma unidade visível por vez, carrossel de até 5 patrocinadores,
+          SEMPRE ABAIXO DA ÁREA OPERACIONAL PRIORITÁRIA."
+
+          Por isso está aqui embaixo, depois de tudo — saúde, atenção,
+          motores, casco, documentos, ferramentas, selos e dados gerais. O
+          proprietário paga assinatura e ainda assim vê anúncio: é o que o
+          §20 desenha, não uma liberdade tomada aqui. O que dá pra garantir
+          sem contrariar o PRD está garantido — o anúncio não empurra
+          nenhuma informação operacional pra baixo, se identifica como
+          "Patrocinado", não gira sozinho e não aparece em tela de
+          segurança/ocorrência (`TELAS_SEM_PUBLICIDADE`). */}
+      <PatrocinioDashboard anuncios={patrocinios} />
     </main>
   )
 }

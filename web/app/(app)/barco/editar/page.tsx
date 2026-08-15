@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { salvarDadosGerais } from "@/lib/acoes/embarcacao"
 import { carregarPainel } from "@/lib/consultas"
+import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarEmbarcacaoPage({
@@ -17,6 +18,7 @@ export default async function EditarEmbarcacaoPage({
     redirect(`/barco?erro=${encodeURIComponent("Só o proprietário edita os dados da embarcação.")}`)
   }
   const e = painel.embarcacao
+  const regioes = itensDoTipo(await carregarTaxonomia(), "regiao")
 
   return (
     <main>
@@ -53,6 +55,22 @@ export default async function EditarEmbarcacaoPage({
               <label className={rot} htmlFor="marina">Marina</label>
               <input id="marina" name="marina" defaultValue={e.marina ?? ""} className={campo} />
             </div>
+          </div>
+          {/* Região da base (onda 52). Serve pro Marketplace saber onde o
+              barco está e pra segmentação do §20 — sem ela, o Dashboard só
+              exibe patrocínio sem segmentação regional. É escolha do dono, e
+              não uma dedução a partir de lat/lon: "perto de Angra" e "atende
+              Angra" são coisas diferentes. */}
+          <div>
+            <label className={rot} htmlFor="regiao_id">Região</label>
+            <select id="regiao_id" name="regiao_id" defaultValue={e.regiao_id ?? ""} className={campo}>
+              <option value="">Não informar</option>
+              {regioes.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.uf ? `${r.nome} · ${r.uf}` : r.nome}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 

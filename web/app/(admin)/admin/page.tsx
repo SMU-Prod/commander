@@ -83,6 +83,9 @@ function Cartao({ metrica }: { metrica: Metrica }) {
 
 const ATALHOS: { area: AreaAdmin; href: string; titulo: string; apoio: string; icone: NomeIcone }[] = [
   { area: "administradores", href: "/admin/administradores", titulo: "Administradores", apoio: "Conceder, editar e suspender funções", icone: "pessoas" },
+  { area: "usuarios", href: "/admin/usuarios", titulo: "Usuários e embarcações", apoio: "Buscar pessoa, ver plano, status e barcos", icone: "pessoas" },
+  { area: "parceiros", href: "/admin/parceiros", titulo: "Partners", apoio: "Carteira, plano e suspensão do perfil", icone: "ancora" },
+  { area: "publicidade", href: "/admin/publicidade", titulo: "Publicidade e destaques", apoio: "Preços, campanhas, impressões e cliques", icone: "grafico" },
   { area: "taxonomia", href: "/admin/taxonomia", titulo: "Conteúdo padronizado", apoio: "Categorias, marcas, regiões e funções", icone: "guardado" },
   { area: "gold", href: "/admin/gold", titulo: "Commander Gold", apoio: "Solicitações, agenda e avaliações", icone: "selo" },
   { area: "gold_precos", href: "/admin/gold/precos", titulo: "Preços do Gold", apoio: "Tabela por porte da embarcação", icone: "cifrao" },

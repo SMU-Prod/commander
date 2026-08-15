@@ -56,6 +56,8 @@ export type AreaAdmin =
   | "marketplace"
   | "parceiros"
   | "avaliacoes"
+  | "publicidade"
+  | "usuarios"
 
 /**
  * Quem alcança cada área. O CEO não aparece em nenhuma lista porque ele é
@@ -79,6 +81,18 @@ const ALCANCE: Record<AreaAdmin, readonly PapelAdmin[]> = {
   // exatamente isso. Fora do Comercial de propósito — quem vende destaque
   // pro parceiro não deveria decidir se a nota ruim dele fica no ar.
   avaliacoes: ["suporte"],
+  // §21, Comercial: "Partners, destaques, campanhas, publicidade e métricas
+  // comerciais" — a lista inteira numa área só, porque preço, campanha e
+  // desempenho são a mesma conversa. Fora do Suporte de propósito: o §21 dá
+  // a ele "sem configurações estratégicas críticas", e preço de anúncio é
+  // exatamente isso.
+  publicidade: ["comercial"],
+  // §21, Suporte: "Usuários, embarcações, planos/status". Fora do Comercial
+  // de propósito e isso é o §22 na prática — quem vende destaque não precisa
+  // do telefone nem da embarcação de proprietário nenhum. A RLS da migration
+  // 053 diz o mesmo do lado do banco: `profiles`, `embarcacoes` e `vinculos`
+  // abrem pra `tem_papel_admin('suporte')`, nunca pra comercial.
+  usuarios: ["suporte"],
 }
 
 /** CEO implica todo papel — "Acesso total" (§21). Sem isso a conta-mãe
