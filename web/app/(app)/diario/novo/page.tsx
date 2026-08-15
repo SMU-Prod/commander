@@ -4,6 +4,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { criarEvento } from "@/lib/acoes/eventos"
 import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "@/lib/consultas"
+import { podeEditar } from "@/lib/domain/permissoes"
 import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -25,6 +26,14 @@ export default async function NovoEventoPage({
   const { erro, alvo, item, custo, tipo, data, descricao, horas, contato } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+
+  // §24 ("Sem permissão: mostrar mensagem de acesso não autorizado sem
+  // revelar dados") e §27.2 (permissão na interface E no backend). Volta
+  // antes de qualquer consulta: quem não pode escrever no Diário não pode
+  // nem ver a lista de contatos e de tripulação que o formulário carrega.
+  if (!podeEditar(painel.permissoes, "diario")) {
+    redirect(`/diario?erro=${encodeURIComponent("Seu acesso não permite registrar no Diário de Bordo.")}`)
+  }
 
   const [nivel, usoDiario] = await Promise.all([carregarNivelPlano(), carregarUsoDiario()])
   const liberado = recursoLiberado("diario_registros", nivel, usoDiario)

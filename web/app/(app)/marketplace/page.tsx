@@ -35,7 +35,17 @@ function avisoDePrazo(expiraEm: string, hoje: string): string | null {
   return null
 }
 
-export default async function MarketplacePage() {
+export default async function MarketplacePage({
+  searchParams,
+}: {
+  // §24, "nunca falhar silenciosamente" (onda 53): a ficha de um pedido
+  // (`/marketplace/[id]`) devolve pra cá com `?erro=` quando o pedido não
+  // existe mais ou já foi encerrado, e as actions de proposta usam
+  // `/marketplace` como rota de erro de último caso. Sem este parâmetro a
+  // pessoa era jogada na lista sem nenhuma explicação.
+  searchParams: Promise<{ erro?: string }>
+}) {
+  const { erro: aviso } = await searchParams
   const supabase = await supabaseServer()
   const hoje = hojeISO()
   const { data: { user } } = await supabase.auth.getUser()
@@ -99,6 +109,7 @@ export default async function MarketplacePage() {
       <p className="apoio mt-1 text-dim">
         O Commander não cobra comissão e não intermedeia pagamento: o combinado é direto entre vocês.
       </p>
+      {aviso && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{aviso}</p>}
       <RedeNav atual="marketplace" className="mt-4" />
 
       <Link

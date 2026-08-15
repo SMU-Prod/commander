@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -60,6 +61,7 @@ export default async function NovaCarteiraPage({
         />
       ) : (
         <form action={criarCarteira} className="mt-5 space-y-4">
+          <GuardaFormulario chave="carteira:nova" />
           <CampoSelect
             label="Para quem" id="tripulante_id" name="tripulante_id" required defaultValue=""
             dica="Só quem já está na tripulação desta embarcação aparece aqui."

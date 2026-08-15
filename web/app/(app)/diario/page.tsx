@@ -8,6 +8,7 @@ import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { resumoTrilha } from "@/lib/domain/geo"
+import { podeEditar } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Contato, Evento } from "@/lib/db/types"
 
@@ -27,6 +28,7 @@ export default async function DiarioPage({
 
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  const podeEscrever = podeEditar(painel.permissoes, "diario")
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
     supabase.from("eventos")
@@ -76,24 +78,38 @@ export default async function DiarioPage({
     <main>
       <div className="flex items-baseline justify-between">
         <h1 className="titulo-pagina">Diário de Bordo</h1>
-        <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-          <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Registrar
-          </span>
-        </Link>
+        {/* §27.2 — o botão só existe pra quem pode escrever. Até a onda 52
+            ele aparecia pra todo mundo e a recusa vinha três telas adiante,
+            depois de a pessoa preencher a saída inteira. Ler o Diário
+            continua liberado: quem tem `diario:ver` vê tudo abaixo. */}
+        {podeEscrever && (
+          <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
+            <span className="inline-flex items-center gap-1">
+              <Icone nome="mais" className="size-4" /> Registrar
+            </span>
+          </Link>
+        )}
       </div>
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
           Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
           Segunda acao discreta pra nao competir com "+ Registrar" (o gesto
           mais comum), mas ainda ≤3 toques a partir de /hoje. */}
-      <div className="mt-2 flex justify-end">
-        <Link
-          href="/diario/importar"
-          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
-        >
-          <Icone nome="guardado" className="size-3.5" /> Importar do plotter
-        </Link>
-      </div>
+      {podeEscrever ? (
+        <div className="mt-2 flex justify-end">
+          <Link
+            href="/diario/importar"
+            className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
+          >
+            <Icone nome="guardado" className="size-3.5" /> Importar do plotter
+          </Link>
+        </div>
+      ) : (
+        // §24: em vez de a área de ação sumir sem explicação, ela diz por quê.
+        <p className="apoio mt-2 text-dim">
+          Seu acesso ao Diário é de leitura. Quem registra saídas e manutenções é quem tem permissão de
+          editar — fale com o proprietário.
+        </p>
+      )}
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>

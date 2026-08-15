@@ -138,6 +138,7 @@ export type RecursoControlado =
   | "marketplace_publicar"
   | "agenda_criar"
   | "financeiro_lancar"
+  | "financeiro_consolidado"
   | "tripulacao_adicionar"
   | "explorar_perfil_completo"
 
@@ -184,6 +185,12 @@ const RECURSOS_TUDO_OU_NADA: readonly RecursoControlado[] = [
  * registro que já existe pode ser lido (§23, ver topo do arquivo).
  */
 export function recursoLiberado(recurso: RecursoControlado, nivel: NivelPlano, usoAtual = 0): boolean {
+  // O ÚNICO recurso em que não basta ser pago (onda 53, §9.3: "Commander
+  // Pro: visão consolidada de todas as embarcações + filtro individual").
+  // A checagem vem ANTES de `ehPago` de propósito: o Commander comum é pago
+  // e mesmo assim não tem consolidado — e não perde nada com isso, porque o
+  // plano dele cadastra 1 embarcação e não há o que consolidar.
+  if (recurso === "financeiro_consolidado") return nivel === "commander_pro"
   if (ehPago(nivel)) return true
   if (RECURSOS_TUDO_OU_NADA.includes(recurso)) return false
   switch (recurso) {
@@ -244,6 +251,14 @@ export function mensagemBloqueio(recurso: RecursoControlado, usoAtual?: number):
         descricao:
           "No Free o Financeiro fica visível para você conhecer a estrutura. Lançar despesas e entradas, " +
           "recorrentes e relatórios são do plano Commander.",
+      }
+    case "financeiro_consolidado":
+      return {
+        titulo: "Visão consolidada é do Commander Pro",
+        descricao:
+          `O Commander Pro reúne até ${PLANOS.commander_pro.limiteEmbarcacoes} embarcações num relatório só, ` +
+          "com filtro para olhar uma de cada vez. Cada barco continua com o Financeiro dele — o consolidado " +
+          "é uma leitura a mais, não uma mistura das contas.",
       }
     case "tripulacao_adicionar":
       return {

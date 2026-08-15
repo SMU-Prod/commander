@@ -2,21 +2,27 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarAcessoEmbarcacoes, carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
 import {
   compararPeriodos, periodoAnterior, periodoAnual, periodoMensal, periodoPersonalizado,
   resumoFinanceiro, type Periodo,
 } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
 import { podeVer } from "@/lib/domain/permissoes"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { LancamentoFinanceiro } from "@/lib/db/types"
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
+
+/** Valor de `?barco=` que quer dizer "todas". Palavra e não vazio, pra que o
+ *  link do chip continue legível e distinguível de "sem parâmetro". */
+const TODAS = "todas"
 
 /**
  * Financeiro · Relatórios (PRD FINAL §9.3): "Mensal, anual e período
@@ -24,15 +30,31 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/
  * categoria, média mensal, maior categoria e comparação entre períodos."
  * Os nove itens estão nesta tela, cada um saindo de `resumoFinanceiro`.
  *
- * O que o PRD pede e NÃO está aqui: "Commander Pro: visão consolidada de
- * todas as embarcações". Commander Pro é um dos sete planos do PRD §2 e o
- * código ainda tem um nível pago só — implementar o consolidado agora
- * exigiria decidir plano, que é decisão de produto em aberto.
+ * ONDA 53 — a décima linha do §9.3 entrou: "Commander Pro: visão consolidada
+ * de todas as embarcações + filtro individual". A onda 42 a deixou de fora
+ * porque o código tinha um nível pago só; a onda 47 fechou os sete planos, e
+ * `commander_pro` (até 4 embarcações) passou a existir de verdade.
+ *
+ * Três decisões que valem registro:
+ *
+ *  1. CONSOLIDADO É LEITURA, NÃO MISTURA. Nenhum lançamento muda de dono: a
+ *     consulta só amplia o `in(embarcacao_id, ...)`. Some uma embarcação do
+ *     plano e o consolidado encolhe sozinho — não há total gravado em lugar
+ *     nenhum pra ficar desatualizado.
+ *  2. SÓ ENTRA BARCO QUE O PLANO LIBERA. A lista vem de
+ *     `carregarAcessoEmbarcacoes().divisao.liberadas`, que é a mesma régua do
+ *     §23 ("não apagar embarcações excedentes; bloquear gestão das
+ *     excedentes"): quem caiu de Pro pra Commander não vê o dinheiro das
+ *     excedentes reaparecer por aqui.
+ *  3. A RLS CONTINUA MANDANDO. `lancamentos_financeiros` só devolve linha
+ *     onde `permissao(embarcacao_id, 'gastos', 'ver')` — um id colado na URL
+ *     não vaza nada, e por isso o filtro individual pode aceitar qualquer
+ *     id sem checagem extra: o pior caso é um relatório vazio.
  */
 export default async function RelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ modo?: string; ano?: string; mes?: string; de?: string; ate?: string }>
+  searchParams: Promise<{ modo?: string; ano?: string; mes?: string; de?: string; ate?: string; barco?: string }>
 }) {
   const sp = await searchParams
   const painel = await carregarPainel()
@@ -62,9 +84,29 @@ export default async function RelatoriosPage({
   }
   const anterior = periodoAnterior(periodo)
 
+  // --- §9.3, Commander Pro: consolidado + filtro individual ---------------
+  const [acesso, nivel] = await Promise.all([carregarAcessoEmbarcacoes(), carregarNivelPlano()])
+  const consolidadoLiberado = recursoLiberado("financeiro_consolidado", nivel)
+  // Frota = as embarcações onde a pessoa é PROP E que o plano dela libera.
+  // Barco de terceiro em que ela é tripulação nunca entra num consolidado
+  // que é sobre a frota DELA.
+  const nomeDe = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
+  const frota = acesso.divisao.liberadas
+    .map((id) => ({ id, nome: nomeDe.get(id) ?? "Embarcação" }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+  // Só faz sentido oferecer consolidado a quem tem mais de um barco. Com um
+  // só, o "consolidado" seria o mesmo relatório com outro nome — e um
+  // paywall pra isso seria vender fumaça.
+  const frotaTemMaisDeUm = frota.length > 1
+
+  const barcoPedido = sp.barco ?? ""
+  const verTodas = consolidadoLiberado && frotaTemMaisDeUm && barcoPedido === TODAS
+  const barcoAtual = frota.some((e) => e.id === barcoPedido) ? barcoPedido : painel.embarcacao.id
+  const idsDoRelatorio = verTodas ? frota.map((e) => e.id) : [barcoAtual]
+
   const supabase = await supabaseServer()
   const { data: brutos, error } = await supabase.from("lancamentos_financeiros")
-    .select("*").eq("embarcacao_id", painel.embarcacao.id)
+    .select("*").in("embarcacao_id", idsDoRelatorio)
     .gte("data", anterior.de).lte("data", periodo.ate)
   if (error) throw new Error("Não foi possível carregar o relatório. Recarregue a página.")
 
@@ -81,6 +123,11 @@ export default async function RelatoriosPage({
   const anoSelecionado = Number(sp.ano) || anoHoje
   const mesSelecionado = modo === "mensal" ? (Number(sp.mes) || mesHoje) : mesHoje
 
+  // O recorte escolhido acompanha toda troca de período — trocar de mês não
+  // pode devolver a pessoa em silêncio pra uma embarcação só.
+  const barcoNaUrl = verTodas ? TODAS : barcoAtual
+  const escopoAtual = verTodas ? "Todas as embarcações" : (nomeDe.get(barcoAtual) ?? painel.embarcacao.nome)
+
   return (
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
@@ -89,11 +136,39 @@ export default async function RelatoriosPage({
       <FinanceiroNav atual="relatorios" className="mt-4" />
       <AcoesUniversais className="mt-3" />
 
+      {/* §9.3 — o filtro de embarcação só aparece pra quem tem frota. Com um
+          barco só não há o que consolidar, e um seletor de um item é ruído. */}
+      {frotaTemMaisDeUm && consolidadoLiberado && (
+        <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[{ id: TODAS, nome: "Todas" }, ...frota].map((e) => {
+            const ativo = e.id === TODAS ? verTodas : !verTodas && e.id === barcoAtual
+            return (
+              <Link
+                key={e.id}
+                href={`/financeiro/relatorios?modo=${modo}&barco=${e.id}`}
+                className={`whitespace-nowrap rounded-full border px-3.5 py-1.5 font-mono-instr text-[11.5px] tracking-wide ${
+                  ativo ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
+                }`}
+              >
+                {e.nome}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+
+      {/* §24, "limite atingido": quem tem mais de uma embarcação e não é Pro
+          vê o convite, nunca o silêncio. Quem tem uma só não vê nada — não
+          se vende o que não teria efeito. */}
+      {frotaTemMaisDeUm && !consolidadoLiberado && (
+        <BloqueioPremium {...mensagemBloqueio("financeiro_consolidado")} className="mt-4" />
+      )}
+
       <div className="mt-4 flex gap-1.5">
         {([["mensal", "Mensal"], ["anual", "Anual"], ["livre", "Período"]] as const).map(([valor, rotulo]) => (
           <Link
             key={valor}
-            href={`/financeiro/relatorios?modo=${valor}`}
+            href={`/financeiro/relatorios?modo=${valor}&barco=${barcoNaUrl}`}
             className={`flex h-10 flex-1 items-center justify-center rounded-full border text-sm font-medium ${
               modo === valor ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel text-dim"
             }`}
@@ -106,6 +181,7 @@ export default async function RelatoriosPage({
       {modo === "mensal" && (
         <form className="mt-3 flex gap-2">
           <input type="hidden" name="modo" value="mensal" />
+          <input type="hidden" name="barco" value={barcoNaUrl} />
           <select name="mes" defaultValue={mesSelecionado}
             className="h-11 flex-1 rounded-[10px] border border-line bg-campo px-3 text-base">
             {meses.map((m) => (
@@ -123,6 +199,7 @@ export default async function RelatoriosPage({
       {modo === "anual" && (
         <form className="mt-3 flex gap-2">
           <input type="hidden" name="modo" value="anual" />
+          <input type="hidden" name="barco" value={barcoNaUrl} />
           <select name="ano" defaultValue={anoSelecionado}
             className="h-11 flex-1 rounded-[10px] border border-line bg-campo px-3 text-base">
             {anos.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -134,6 +211,7 @@ export default async function RelatoriosPage({
       {modo === "livre" && (
         <form className="mt-3 space-y-3">
           <input type="hidden" name="modo" value="livre" />
+          <input type="hidden" name="barco" value={barcoNaUrl} />
           <div className="grid grid-cols-2 gap-3">
             <Campo label="De" id="de" name="de" type="date" defaultValue={sp.de ?? periodo.de} />
             <Campo label="Até" id="ate" name="ate" type="date" defaultValue={sp.ate ?? periodo.ate} />
@@ -144,11 +222,24 @@ export default async function RelatoriosPage({
 
       <SecaoPagina icone="relatorio">{periodo.rotulo}</SecaoPagina>
 
+      {/* Qual recorte está na tela, sempre escrito. Um número de frota
+          inteira e um número de um barco só são muito parecidos pra ficarem
+          separados por um chip lá em cima. */}
+      {frotaTemMaisDeUm && consolidadoLiberado && (
+        <p className="apoio -mt-1 mb-3 text-dim">
+          {verTodas ? `${escopoAtual} · ${frota.length} embarcações somadas` : escopoAtual}
+        </p>
+      )}
+
       {r.totalLancamentos === 0 ? (
         <EstadoVazio
           icone="cifrao"
           titulo="Nenhum lançamento neste período"
-          descricao="Escolha outro período acima, ou registre uma despesa/entrada."
+          descricao={
+            verTodas
+              ? "Nenhuma das suas embarcações teve movimento neste período. Escolha outro acima."
+              : "Escolha outro período acima, ou registre uma despesa/entrada."
+          }
         />
       ) : (
         <>

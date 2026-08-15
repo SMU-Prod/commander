@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -100,6 +101,11 @@ export default async function NovaDemandaPage({
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={publicarDemanda} className="mt-5 space-y-4">
+        {/* §24 — o que foi preenchido sobrevive ao erro e ao paywall. A
+            cópia de `mensagemBloqueio("marketplace_publicar")` promete
+            literalmente "o que você preencheu não se perde"; até a onda 52
+            essa frase era falsa. */}
+        <GuardaFormulario chave="marketplace:nova" />
         <input type="hidden" name="tipo" value={tipo} />
 
         <CampoSelect

@@ -98,6 +98,14 @@ export default async function LancamentoPage({
         )}
       </div>
 
+      {/* §24 — sem permissão a área de ação some; sem uma linha
+          explicando, a pessoa acha que o app quebrou. */}
+      {!editavel && (
+        <p className="apoio mt-4 text-dim">
+          Seu acesso ao Financeiro é de leitura. Confirmar pagamento, corrigir e excluir são de quem
+          tem permissão de editar — fale com o proprietário.
+        </p>
+      )}
       {editavel && (
         <form action={alternarStatusLancamento} className="mt-3">
           <input type="hidden" name="lancamento_id" value={l.id} />

@@ -16,13 +16,15 @@ import type { EstadoOcorrencia, Gravidade } from "@/lib/domain/ocorrencias"
 
 /**
  * As quatro categorias do PRD §5.2 ("filtros: Todas, Embarcação, Agenda,
- * Marketplace, Financeiro"). Agenda, Marketplace e Financeiro são módulos
- * que ainda não existem no Commander — e mesmo assim as categorias existem
- * AQUI, desde já, de propósito: o filtro fica na tela e mostra um estado
- * vazio honesto ("ainda não há avisos de Agenda") em vez de sumir. Some da
- * tela seria pior: o dono aprende que o app não tem aquilo, e não repara
- * quando passar a ter. Quando o módulo chegar, ele só precisa produzir
- * `Notificacao` com a categoria certa — nada aqui muda.
+ * Marketplace, Financeiro").
+ *
+ * ONDA 53 — as três últimas passaram a ter FONTE. A onda 44 as declarou aqui
+ * mesmo sem módulo por trás, com estado vazio honesto ("a Agenda ainda não
+ * está no ar"), justamente pra que ligar a fonte não custasse nada além de
+ * produzir `Notificacao` com a categoria certa. Foi o que aconteceu: as
+ * fontes moram em `lib/consultas.ts` (`carregarNotificacoes`) e nada da
+ * mecânica deste arquivo mudou — só os textos de vazio, que agora falam de
+ * um módulo que existe.
  */
 export const CATEGORIAS_NOTIFICACAO = ["embarcacao", "agenda", "marketplace", "financeiro"] as const
 export type CategoriaNotificacao = (typeof CATEGORIAS_NOTIFICACAO)[number]
@@ -34,14 +36,14 @@ export const ROTULO_CATEGORIA_NOTIFICACAO: Record<CategoriaNotificacao, string> 
   financeiro: "Financeiro",
 }
 
-/** Texto do estado vazio de cada categoria. Honestidade acima de tudo: onde
- *  o módulo ainda não existe, a tela diz isso, em vez de fingir que está
- *  tudo em paz. */
+/** Texto do estado vazio de cada categoria. Agora que os quatro módulos
+ *  existem, todo vazio quer dizer a mesma coisa: não há nada pendente —
+ *  nunca "o módulo não está pronto". */
 export const VAZIO_CATEGORIA_NOTIFICACAO: Record<CategoriaNotificacao, string> = {
   embarcacao: "Nada vencido, nada na margem e nenhuma ocorrência aberta. Bom vento e mar calmo.",
-  agenda: "A Agenda ainda não está no ar. Quando estiver, os lembretes de compromisso aparecem aqui.",
-  marketplace: "Nenhum aviso de negócio agora. Propostas e oportunidades vão aparecer aqui.",
-  financeiro: "O Financeiro ainda não está no ar. Quando estiver, vencimentos e lançamentos aparecem aqui.",
+  agenda: "Nenhum compromisso à vista nos próximos dias, e ninguém compartilhou nada novo com você.",
+  marketplace: "Nenhum aviso de negócio agora. Propostas e confirmações pendentes aparecem aqui.",
+  financeiro: "Nenhuma conta vencendo e nada pendente de pagamento. O caixa está em dia.",
 }
 
 // --- Níveis ----------------------------------------------------------------
@@ -138,6 +140,62 @@ export function nivelDaOcorrencia(estado: EstadoOcorrencia, gravidade: Gravidade
   if (estado === "aberta" && gravidade === "alta") return "critica"
   if (estado === "aberta" || estado === "em_acompanhamento") return "importante"
   return "informativa"
+}
+
+// --- Agenda, Marketplace e Financeiro (onda 53) ----------------------------
+
+/**
+ * Quantos dias à frente cada módulo olha. Sete porque é a semana que a
+ * pessoa consegue reorganizar: aviso de conta que vence daqui a um mês não
+ * muda decisão nenhuma hoje, e vira ruído até virar cego.
+ */
+export const DIAS_AVISO_AGENDA = 7
+export const DIAS_AVISO_FINANCEIRO = 7
+
+/**
+ * Compromisso chegando (PRD §8 + §5.2). Nunca crítica — e isto é decisão,
+ * não esquecimento: no Commander "crítica" quer dizer que o BARCO tem um
+ * fato consumado (documento vencido, item de segurança vencido, ocorrência
+ * grave). Perder um almoço no iate clube não é da mesma família, e misturar
+ * as duas coisas ensina o dono a ignorar o vermelho.
+ *
+ * Hoje ou amanhã é `importante` ("exige ação"); mais longe é `informativa`.
+ */
+export function nivelDoCompromisso(diasAte: number): NivelNotificacao {
+  return diasAte <= 1 ? "importante" : "informativa"
+}
+
+/**
+ * Vencimento de dinheiro (PRD §9.2 + §5.2). Mesma régua e mesmo motivo do
+ * compromisso: conta atrasada pede ação hoje (`importante`), conta que ainda
+ * vai vencer é aviso (`informativa`). Dinheiro nunca é `crítica` aqui — o
+ * PRD reserva o destaque visual pro que ameaça a embarcação, e o Commander
+ * não sabe se a conta já foi paga por fora.
+ *
+ * `diasAte` negativo = já venceu.
+ */
+export function nivelDoVencimentoFinanceiro(diasAte: number): NivelNotificacao {
+  return diasAte <= 0 ? "importante" : "informativa"
+}
+
+/**
+ * Os avisos do Marketplace (PRD §11.5 e §11.6). §5.2 define `importante`
+ * como "exigem ação ou envolvem outra pessoa" — e é literalmente o caso de
+ * proposta recebida, proposta aceita e negócio esperando a sua confirmação:
+ * tem alguém do outro lado parado esperando você. Recusa não: já acabou,
+ * não há o que fazer, então é `informativa`.
+ */
+export type AvisoMarketplace =
+  | "proposta_recebida"
+  | "proposta_aceita"
+  | "proposta_recusada"
+  | "negocio_aguardando"
+
+export const NIVEL_AVISO_MARKETPLACE: Record<AvisoMarketplace, NivelNotificacao> = {
+  proposta_recebida: "importante",
+  proposta_aceita: "importante",
+  proposta_recusada: "informativa",
+  negocio_aguardando: "importante",
 }
 
 // --- Permissão, filtro, ordenação e agrupamento ----------------------------

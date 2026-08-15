@@ -7,8 +7,11 @@ import {
   filtrarPorCategoria,
   filtrarPorPermissao,
   nivelDaOcorrencia,
+  nivelDoCompromisso,
   nivelDoStatusItem,
+  nivelDoVencimentoFinanceiro,
   NIVEIS_NOTIFICACAO,
+  NIVEL_AVISO_MARKETPLACE,
   ordenarNotificacoes,
   PUSH_POR_NIVEL,
   VAZIO_CATEGORIA_NOTIFICACAO,
@@ -174,5 +177,78 @@ describe("contadorSino", () => {
   })
   it("informativa não entra no badge — badge que nunca zera perde o sentido", () => {
     expect(contadorSino([n({ id: "i", nivel: "informativa" })])).toBe(0)
+  })
+})
+
+// --- onda 53: as três categorias que ganharam fonte ------------------------
+
+describe("nivelDoCompromisso (Agenda)", () => {
+  it("hoje e amanhã pedem ação; mais longe é só aviso", () => {
+    expect(nivelDoCompromisso(0)).toBe("importante")
+    expect(nivelDoCompromisso(1)).toBe("importante")
+    expect(nivelDoCompromisso(2)).toBe("informativa")
+    expect(nivelDoCompromisso(7)).toBe("informativa")
+  })
+  it("compromisso NUNCA é crítica — crítica no Commander é sobre o barco", () => {
+    for (const dias of [-5, 0, 1, 2, 30]) {
+      expect(nivelDoCompromisso(dias)).not.toBe("critica")
+    }
+  })
+})
+
+describe("nivelDoVencimentoFinanceiro", () => {
+  it("vencido e vencendo hoje pedem ação; a vencer é aviso", () => {
+    expect(nivelDoVencimentoFinanceiro(-10)).toBe("importante")
+    expect(nivelDoVencimentoFinanceiro(0)).toBe("importante")
+    expect(nivelDoVencimentoFinanceiro(1)).toBe("informativa")
+    expect(nivelDoVencimentoFinanceiro(7)).toBe("informativa")
+  })
+  it("dinheiro NUNCA é crítica — o app não sabe se a conta foi paga por fora", () => {
+    for (const dias of [-90, -1, 0, 3]) {
+      expect(nivelDoVencimentoFinanceiro(dias)).not.toBe("critica")
+    }
+  })
+})
+
+describe("NIVEL_AVISO_MARKETPLACE", () => {
+  it("o que tem alguém esperando do outro lado é importante", () => {
+    expect(NIVEL_AVISO_MARKETPLACE.proposta_recebida).toBe("importante")
+    expect(NIVEL_AVISO_MARKETPLACE.proposta_aceita).toBe("importante")
+    expect(NIVEL_AVISO_MARKETPLACE.negocio_aguardando).toBe("importante")
+  })
+  it("recusa não pede nada de ninguém — informativa", () => {
+    expect(NIVEL_AVISO_MARKETPLACE.proposta_recusada).toBe("informativa")
+  })
+  it("nenhum aviso comercial é crítica", () => {
+    for (const nivel of Object.values(NIVEL_AVISO_MARKETPLACE)) {
+      expect(nivel).not.toBe("critica")
+    }
+  })
+})
+
+describe("vazio de categoria depois que os módulos existem (onda 53)", () => {
+  it("nenhum texto ainda diz que o módulo não está no ar", () => {
+    for (const c of CATEGORIAS_NOTIFICACAO) {
+      const texto = VAZIO_CATEGORIA_NOTIFICACAO[c].toLowerCase()
+      expect(texto).not.toContain("ainda não está no ar")
+      expect(texto).not.toContain("quando estiver")
+    }
+  })
+})
+
+describe("agrupamento das categorias novas", () => {
+  it("cinco propostas recebidas no mesmo pedido viram uma linha com +4", () => {
+    const grupo = "marketplace:recebida:d1"
+    const agrupadas = agruparSemelhantes(
+      ordenarNotificacoes(
+        Array.from({ length: 5 }, (_, i) =>
+          n({ id: `p${i}`, categoria: "marketplace", nivel: "importante", grupo, quando: `2026-08-0${i + 1}` }),
+        ),
+      ),
+    )
+    expect(agrupadas).toHaveLength(1)
+    expect(agrupadas[0].quantidade).toBe(5)
+    // A linha mostrada é a mais recente do grupo, porque ordena antes.
+    expect(agrupadas[0].id).toBe("p4")
   })
 })

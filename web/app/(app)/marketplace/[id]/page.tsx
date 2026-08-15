@@ -4,10 +4,13 @@ import { CartaoAvaliacao } from "@/components/avaliacoes/cartao-avaliacao"
 import { SeletorNota } from "@/components/avaliacoes/estrelas"
 import { SeloReputacao } from "@/components/avaliacoes/reputacao"
 import { Confirmar } from "@/components/confirmar"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { publicarAvaliacao } from "@/lib/acoes/avaliacoes"
+import { adicionarNegocioAoFinanceiro } from "@/lib/acoes/financeiro"
 import {
   enviarProposta,
   marcarNegocioRealizado,
@@ -16,6 +19,7 @@ import {
   retirarProposta,
   atualizarStatusDemanda,
 } from "@/lib/acoes/marketplace"
+import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import {
   carregarAvaliacaoDoNegocio, carregarReputacoes, type AvaliacaoCompleta,
 } from "@/lib/consultas-avaliacoes"
@@ -46,6 +50,8 @@ import {
   rotuloDaResposta,
   type ConfirmacaoNegocio,
 } from "@/lib/domain/marketplace"
+import { podeEditar } from "@/lib/domain/permissoes"
+import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
 import type {
   Demanda, DemandaContato, Negocio, NegocioConfirmacao, Proposta,
@@ -125,6 +131,23 @@ export default async function DemandaPage({
   const avaliacaoDoNegocio = negocioDaAceita
     ? await carregarAvaliacaoDoNegocio(negocioDaAceita.id)
     : null
+
+  // §11.6 → §9.1, "Adicionar ao Financeiro" (onda 53). Só faz sentido pra
+  // quem publicou o pedido: o lançamento é da EMBARCAÇÃO dele, e o Partner
+  // não tem embarcação (ver o cabeçalho da migration 054). Por isso o painel
+  // só é carregado nesse caso — um Partner nesta mesma tela nunca paga a
+  // consulta, e `carregarPainel()` devolve null pra ele de qualquer forma.
+  const painel = negocioDaAceita && ehAutor ? await carregarPainel() : null
+  const podeLancar = painel != null && podeEditar(painel.permissoes, "gastos")
+  const financeiroLiberado = podeLancar
+    ? recursoLiberado("financeiro_lancar", await carregarNivelPlano())
+    : false
+  // "Já lançado?" é pergunta de TELA (o botão vira aviso). A trava contra o
+  // segundo clique continua sendo o índice único do banco.
+  const { data: lancamentoDoNegocio } = podeLancar && negocioDaAceita
+    ? await supabase.from("lancamentos_financeiros")
+        .select("id").eq("negocio_id", negocioDaAceita.id).maybeSingle()
+    : { data: null }
   // A reputação de quem propôs, ao lado do nome: é neste momento — escolher
   // entre três propostas — que a média do §14 vale alguma coisa.
   const reputacoes = await carregarReputacoes(propostas.map((p) => p.autor_id))
@@ -260,6 +283,11 @@ export default async function DemandaPage({
           confirmacoes={confirmacoesDe(negocioDaAceita.id)}
           usuarioId={user.id}
           avaliacao={avaliacaoDoNegocio}
+          financeiro={
+            podeLancar
+              ? { liberado: financeiroLiberado, lancamentoId: lancamentoDoNegocio?.id ?? null }
+              : null
+          }
         />
       )}
 
@@ -419,12 +447,16 @@ function BlocoNegocio({
   confirmacoes,
   usuarioId,
   avaliacao,
+  financeiro,
 }: {
   demandaId: string
   negocio: Negocio
   confirmacoes: ConfirmacaoNegocio[]
   usuarioId: string
   avaliacao: AvaliacaoCompleta | null
+  /** `null` = esta pessoa não tem Financeiro de embarcação onde lançar
+   *  (é o Partner do negócio, ou não tem a permissão `gastos`). */
+  financeiro: { liberado: boolean; lancamentoId: string | null } | null
 }) {
   const estado = estadoDoNegocio(confirmacoes)
   const souParte = negocio.cliente_id === usuarioId || negocio.fornecedor_id === usuarioId
@@ -468,10 +500,21 @@ function BlocoNegocio({
         </div>
       )}
 
-      {/* §11.6 → §14: "Após confirmação bilateral, liberar avaliação". A
-          avaliação aparece exatamente aqui, no momento em que destrava.
-          TODO: "Adicionar ao Financeiro" (§11.6) — o módulo existe (onda 42),
-          falta a ponte; fica registrado como pendência da onda. */}
+      {/* §11.6: "Após confirmação bilateral, liberar avaliação E OFERECER
+          'Adicionar ao Financeiro'". As duas coisas destravam no mesmo
+          instante e por isso aparecem juntas aqui — o Financeiro primeiro,
+          porque o dinheiro é o que a pessoa acabou de gastar. */}
+      {avaliacaoLiberada(confirmacoes) && financeiro && (
+        <div className="mt-3 border-t border-line pt-3">
+          <BlocoAdicionarAoFinanceiro
+            demandaId={demandaId}
+            negocio={negocio}
+            liberado={financeiro.liberado}
+            lancamentoId={financeiro.lancamentoId}
+          />
+        </div>
+      )}
+
       {avaliacaoLiberada(confirmacoes) && (
         <div className="mt-3 border-t border-line pt-3">
           {avaliacao ? (
@@ -505,12 +548,81 @@ function BlocoNegocio({
   )
 }
 
+/**
+ * §11.6 → §9.1 — "Adicionar ao Financeiro" (onda 53).
+ *
+ * Três estados, e nenhum deles é o silêncio:
+ *  · já lançado    → diz que já está lá e leva pro lançamento (o §9.1 proíbe
+ *                    a cópia; então em vez de um segundo botão, um link);
+ *  · plano Free    → `BloqueioPremium` com o convite de upgrade, nunca o
+ *                    botão sumido (§24: "nunca falhar silenciosamente");
+ *  · liberado      → o formulário, com o VALOR FINAL do negócio já
+ *                    preenchido. §11.6 diz que esse valor é opcional, então
+ *                    quando ele não existe o campo vem vazio e a pessoa
+ *                    digita — a alternativa (lançar R$ 0,00) sujaria o
+ *                    relatório com uma despesa que não diz nada.
+ */
+function BlocoAdicionarAoFinanceiro({
+  demandaId,
+  negocio,
+  liberado,
+  lancamentoId,
+}: {
+  demandaId: string
+  negocio: Negocio
+  liberado: boolean
+  lancamentoId: string | null
+}) {
+  if (lancamentoId) {
+    return (
+      <p className="apoio text-dim">
+        Este negócio já está no Financeiro.{" "}
+        <Link href={`/financeiro/lancamentos/${lancamentoId}`} className="text-accent-forte">
+          Ver o lançamento
+        </Link>
+      </p>
+    )
+  }
+
+  if (!liberado) {
+    const bloqueio = mensagemBloqueio("financeiro_lancar")
+    return <BloqueioPremium titulo={bloqueio.titulo} descricao={bloqueio.descricao} />
+  }
+
+  return (
+    <form action={adicionarNegocioAoFinanceiro} className="space-y-3">
+      <input type="hidden" name="negocio_id" value={negocio.id} />
+      <input type="hidden" name="demanda_id" value={demandaId} />
+      <p className="titulo-card">Adicionar ao Financeiro</p>
+      <p className="apoio text-dim">
+        Vira uma despesa paga da sua embarcação, com a categoria do tipo do pedido. Entra uma vez só — e
+        você pode ajustar tudo depois em Financeiro.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <Campo
+          label="Valor" id="valor_financeiro" name="valor" inputMode="decimal" placeholder="1.850,00"
+          defaultValue={
+            negocio.valor_final_centavos != null
+              ? (negocio.valor_final_centavos / 100).toFixed(2).replace(".", ",")
+              : undefined
+          }
+        />
+        <Campo label="Data" id="data_financeiro" name="data" type="date" defaultValue={negocio.criado_em.slice(0, 10)} />
+      </div>
+      <button className="h-11 w-full rounded-xl border border-accent/40 text-sm font-semibold text-accent-forte">
+        Adicionar ao Financeiro
+      </button>
+    </form>
+  )
+}
+
 /** §14 — o formulário só existe onde o negócio já está confirmado pelos dois
  *  lados. Mesmo assim ele não é a trava: a policy de insert (migration 050)
  *  recusa a linha se a confirmação bilateral não estiver lá. */
 function FormAvaliacao({ demandaId, negocioId }: { demandaId: string; negocioId: string }) {
   return (
     <form action={publicarAvaliacao} className="space-y-3">
+      <GuardaFormulario chave={`marketplace:avaliacao:${negocioId}`} />
       <input type="hidden" name="negocio_id" value={negocioId} />
       <input type="hidden" name="volta" value={`/marketplace/${demandaId}`} />
       <p className="titulo-card">Como foi?</p>
@@ -540,6 +652,11 @@ function FormProposta({ demanda }: { demanda: Demanda }) {
 
   return (
     <form action={enviarProposta} className="mt-6 space-y-3">
+      {/* §24 — o formulário mais caro do app: até quinze campos, mais uma
+          observação de 400 caracteres. Um erro de rede apagava tudo, e a
+          pessoa que já digitou uma proposta inteira normalmente não digita a
+          segunda. */}
+      <GuardaFormulario chave={`marketplace:proposta:${demanda.id}`} />
       <input type="hidden" name="demanda_id" value={demanda.id} />
       <input type="hidden" name="tipo_demanda" value={tipo} />
       <p className="rotulo text-dim">Enviar {substantivo}</p>

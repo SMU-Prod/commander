@@ -2,6 +2,23 @@ export function hojeISO(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date())
 }
 
+/**
+ * Quantos dias faltam de `hojeISO` até `dataISO`: 0 = é hoje, negativo = já
+ * passou. Aritmética em UTC sobre as duas datas civis, nunca `new Date(iso)`
+ * direto — "2026-08-22" é lido como UTC pelo runtime e viraria 21/08 no
+ * Brasil.
+ *
+ * Existe aqui (onda 53) porque a Central de Notificações precisa da mesma
+ * conta pra Agenda e pro Financeiro, e a alternativa era uma quarta cópia
+ * dessa aritmética — já havia três (`alertas.ts`, `assinatura-ciclo.ts`,
+ * `marketplace.ts`), cada uma com um nome diferente pro mesmo cálculo.
+ */
+export function diasAteData(dataISO: string, hojeISO: string): number {
+  const [ay, am, ad] = dataISO.split("-").map(Number)
+  const [hy, hm, hd] = hojeISO.split("-").map(Number)
+  return Math.round((Date.UTC(ay, am - 1, ad) - Date.UTC(hy, hm - 1, hd)) / 86_400_000)
+}
+
 /** Epoch (segundos) -> "AAAA-MM-DD" no fuso America/Sao_Paulo — mesmo raciocinio
  *  de `hojeISO`, mas pra um instante qualquer no passado (onda 21: a data de
  *  uma saida importada de um GPX vem do primeiro ponto da trilha, nao de hoje). */

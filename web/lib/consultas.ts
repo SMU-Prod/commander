@@ -3,7 +3,9 @@ import { supabaseServer } from "@/lib/supabase/server"
 import { itemMonitoradoToItemCalc as itemMonitoradoToItemCalcInterno } from "@/lib/domain/conversores"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
-  filtrarPorPermissao, nivelDaOcorrencia, nivelDoStatusItem, ordenarNotificacoes,
+  DIAS_AVISO_AGENDA, DIAS_AVISO_FINANCEIRO, filtrarPorPermissao, nivelDaOcorrencia,
+  nivelDoCompromisso, nivelDoStatusItem, nivelDoVencimentoFinanceiro,
+  NIVEL_AVISO_MARKETPLACE, ordenarNotificacoes,
   type Notificacao,
 } from "@/lib/domain/notificacoes"
 import {
@@ -23,10 +25,13 @@ import {
   type ResultadoVerified, type SeloVerifiedAvaliado,
 } from "@/lib/domain/verified"
 import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
+import { ROTULO_FREQUENCIA, vencimentosNoIntervalo } from "@/lib/domain/financeiro"
+import { formatarReais } from "@/lib/domain/gastos"
 import type {
-  Assinatura, Embarcacao, Equipamento, ItemMonitorado, VerifiedEstado, Viagem,
+  Assinatura, Embarcacao, Equipamento, ItemMonitorado, RecorrenciaFinanceira,
+  VerifiedEstado, Viagem,
 } from "@/lib/db/types"
-import { hojeISO } from "@/lib/domain/datas"
+import { diasAteData, hojeISO } from "@/lib/domain/datas"
 
 export const carregarPainel = cache(async (): Promise<{
   embarcacao: Embarcacao
@@ -373,8 +378,21 @@ export const carregarUsoFotos = cache(async (): Promise<number> => {
  *      (`abaDoItem`) — sem esta segunda passada, um tripulante sem acesso a
  *      Documentos veria "Seguro vencido" na lista de avisos.
  *
- * Hoje só a categoria "embarcacao" tem fonte. Agenda, Marketplace e
- * Financeiro entram aqui quando existirem — sem mudar nada do resto.
+ * ONDA 53 — as outras três categorias ganharam fonte. A onda 44 as deixou
+ * declaradas com estado vazio honesto porque Agenda (§8), Financeiro (§9) e
+ * Marketplace (§11) ainda não existiam; agora existem (migrations 042, 044 e
+ * 046) e cada uma entra abaixo num bloco próprio. O contrato não mudou: tudo
+ * vira `Notificacao`, tudo passa por `filtrarPorPermissao`, tudo é agrupado
+ * por `grupo`.
+ *
+ * O que ficou de fora, dito em voz alta: o PUSH das três categorias novas.
+ * Quem dispara push é o cron `app/api/alertas/disparar/route.ts`, que dedupe
+ * por `alertas_enviados` (embarcação + janela + ciclo) — e proposta recebida
+ * no Marketplace não é evento de embarcação nenhuma. Fazer isso direito pede
+ * chave de dedupe própria, que é trabalho de outra onda; fabricar uma agora
+ * arriscaria mandar o mesmo push todo dia, exatamente o spam que o §5.2
+ * manda evitar. In-app, que é o canal que o §5.2 garante pras informativas,
+ * está completo.
  */
 export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const painel = await carregarPainel()
@@ -382,6 +400,8 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const { embarcacao, equipamentos, itens, permissoes } = painel
   const hoje = hojeISO()
   const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  const usuarioId = user?.id ?? ""
 
   const { data: ocorrenciasBrutas } = await supabase
     .from("ocorrencias").select("id, titulo, aba, estado, gravidade, created_at")
@@ -423,8 +443,252 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
     grupo: `ocorrencia:${o.aba}`,
   }))
 
-  return ordenarNotificacoes(filtrarPorPermissao([...deItens, ...deOcorrencias], permissoes))
+  const [deAgenda, deFinanceiro, deMarketplace] = await Promise.all([
+    notificacoesDaAgenda(embarcacao.id, usuarioId, hoje),
+    notificacoesDoFinanceiro(embarcacao.id, hoje),
+    notificacoesDoMarketplace(usuarioId),
+  ])
+
+  return ordenarNotificacoes(
+    filtrarPorPermissao([...deItens, ...deOcorrencias, ...deAgenda, ...deFinanceiro, ...deMarketplace], permissoes),
+  )
 })
+
+/**
+ * AGENDA (PRD §8 + §5.2): "compromisso próximo" e "compromisso compartilhado
+ * com você".
+ *
+ * A RLS da migration 044 já devolve só os MEUS e os que compartilharam
+ * comigo — por isso não existe filtro de dono na consulta. "Compartilhado
+ * comigo" é, então, simplesmente `criado_por !== eu`.
+ *
+ * `aba: "agenda"` faz `filtrarPorPermissao` cortar de novo, pra quem tem
+ * vínculo mas não tem a área Agenda liberada (§19).
+ */
+async function notificacoesDaAgenda(
+  embarcacaoId: string,
+  usuarioId: string,
+  hoje: string,
+): Promise<Notificacao[]> {
+  const supabase = await supabaseServer()
+  const limite = somarDiasISO(hoje, DIAS_AVISO_AGENDA)
+  const { data } = await supabase
+    .from("agenda_eventos")
+    .select("id, titulo, data, hora, criado_por")
+    // Concluído é histórico e "não polui a Agenda normal" (§8) — muito menos
+    // a lista de avisos.
+    .is("concluido_em", null)
+    .eq("embarcacao_id", embarcacaoId)
+    .gte("data", hoje).lte("data", limite)
+    .order("data")
+
+  return ((data ?? []) as CompromissoParaNotificacao[]).map((c) => {
+    const dias = diasAteData(c.data, hoje)
+    const deOutraPessoa = c.criado_por != null && c.criado_por !== usuarioId
+    const hora = c.hora ? ` às ${c.hora.slice(0, 5)}` : ""
+    return {
+      id: `agenda:${c.id}`,
+      titulo: c.titulo,
+      detalhe: deOutraPessoa
+        ? `Compartilhado com você · ${rotuloDeProximidade(dias)}${hora}`
+        : `${rotuloDeProximidade(dias)}${hora}`,
+      categoria: "agenda" as const,
+      // Compromisso que outra pessoa colocou na sua agenda "envolve outra
+      // pessoa" (§5.2) e por isso sobe pra importante mesmo estando longe:
+      // você ainda não sabia que ele existia.
+      nivel: deOutraPessoa ? ("importante" as const) : nivelDoCompromisso(dias),
+      aba: "agenda" as const,
+      href: `/agenda/${c.id}`,
+      quando: c.data,
+      // Agrupa por natureza, não por dia: "3 compromissos compartilhados"
+      // numa linha, em vez de três linhas quase iguais (§5.2).
+      grupo: deOutraPessoa ? "agenda:compartilhado" : "agenda:proximo",
+    }
+  })
+}
+
+/**
+ * FINANCEIRO (PRD §9.2 + §5.2): "recorrente vencendo" e "lançamento
+ * pendente".
+ *
+ * Os dois avisos são o mesmo fato visto de dois lados, e por isso saem
+ * juntos daqui: a série recorrente que ainda não virou linha (o §9.2 proíbe
+ * considerar pago o que ninguém confirmou, então o vencimento só existe
+ * calculado) e a linha que já existe e continua pendente.
+ *
+ * O vencimento calculado some da lista assim que vira lançamento — mesma
+ * regra da tela de Recorrentes (índice único `recorrencia_id + data`), senão
+ * a mesma conta apareceria duas vezes no sino.
+ */
+async function notificacoesDoFinanceiro(embarcacaoId: string, hoje: string): Promise<Notificacao[]> {
+  const supabase = await supabaseServer()
+  const limite = somarDiasISO(hoje, DIAS_AVISO_FINANCEIRO)
+  // 90 dias pra trás: conta vencida há três meses ainda é pendência real, e
+  // um corte em "hoje" esconderia justamente o que mais precisa de ação.
+  const inicio = somarDiasISO(hoje, -90)
+
+  const [{ data: pendentes }, { data: series }, { data: jaLancados }] = await Promise.all([
+    supabase.from("lancamentos_financeiros")
+      .select("id, descricao, tipo, valor_centavos, data")
+      .eq("embarcacao_id", embarcacaoId).eq("status", "pendente")
+      .gte("data", inicio).lte("data", limite),
+    supabase.from("recorrencias_financeiras").select("*")
+      .eq("embarcacao_id", embarcacaoId).eq("ativa", true),
+    supabase.from("lancamentos_financeiros").select("recorrencia_id, data")
+      .eq("embarcacao_id", embarcacaoId).not("recorrencia_id", "is", null)
+      .gte("data", inicio).lte("data", limite),
+  ])
+
+  const lancados = new Set(
+    ((jaLancados ?? []) as { recorrencia_id: string | null; data: string }[])
+      .map((l) => `${l.recorrencia_id}|${l.data}`),
+  )
+
+  const dePendentes: Notificacao[] = ((pendentes ?? []) as LancamentoParaNotificacao[]).map((l) => {
+    const dias = diasAteData(l.data, hoje)
+    return {
+      id: `lancamento:${l.id}`,
+      titulo: l.descricao,
+      detalhe: `${l.tipo === "entrada" ? "A receber" : "A pagar"} ${formatarReais(l.valor_centavos)} · ${rotuloDeProximidade(dias)}`,
+      categoria: "financeiro" as const,
+      nivel: nivelDoVencimentoFinanceiro(dias),
+      aba: "gastos" as const,
+      href: `/financeiro/lancamentos/${l.id}`,
+      quando: l.data,
+      grupo: dias <= 0 ? "financeiro:vencido" : "financeiro:a-vencer",
+    }
+  })
+
+  const deRecorrentes: Notificacao[] = []
+  for (const bruta of (series ?? []) as RecorrenciaFinanceira[]) {
+    for (const data of vencimentosNoIntervalo(
+      { inicio: bruta.inicio, fim: bruta.fim, frequencia: bruta.frequencia },
+      inicio,
+      limite,
+    )) {
+      if (lancados.has(`${bruta.id}|${data}`)) continue
+      const dias = diasAteData(data, hoje)
+      deRecorrentes.push({
+        id: `recorrente:${bruta.id}:${data}`,
+        titulo: bruta.descricao,
+        detalhe: `Recorrente ${ROTULO_FREQUENCIA[bruta.frequencia].toLowerCase()} · ${formatarReais(bruta.valor_centavos)} · ${rotuloDeProximidade(dias)}`,
+        categoria: "financeiro",
+        nivel: nivelDoVencimentoFinanceiro(dias),
+        aba: "gastos",
+        href: `/financeiro/recorrentes/${bruta.id}`,
+        quando: data,
+        grupo: dias <= 0 ? "financeiro:recorrente-vencida" : "financeiro:recorrente-a-vencer",
+      })
+    }
+  }
+
+  return [...dePendentes, ...deRecorrentes]
+}
+
+/**
+ * MARKETPLACE (PRD §11.5 e §11.6): "proposta recebida", "proposta
+ * aceita/recusada" e "negócio aguardando sua confirmação".
+ *
+ * `aba: null` de propósito — Marketplace não pertence a hub nenhum e nem
+ * sequer a uma embarcação: o Captain Pro e o Partner recebem estes avisos
+ * sem ter barco. Quem restringe é a RLS da migration 046, que só devolve
+ * demanda/proposta de quem é parte — por isso a consulta filtra por
+ * `autor_id` e não confia só nela: as duas travas, como no resto da função.
+ */
+async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao[]> {
+  if (usuarioId === "") return []
+  const supabase = await supabaseServer()
+
+  const { data: minhasDemandas } = await supabase
+    .from("demandas").select("id").eq("autor_id", usuarioId).in("status", ["aberta", "em_negociacao"])
+  const idsMinhasDemandas = ((minhasDemandas ?? []) as { id: string }[]).map((d) => d.id)
+
+  const [{ data: recebidas }, { data: minhasPropostas }] = await Promise.all([
+    idsMinhasDemandas.length > 0
+      ? supabase.from("propostas").select("id, demanda_id, autor_nome, criado_em")
+          .in("demanda_id", idsMinhasDemandas).eq("status", "enviada")
+      : Promise.resolve({ data: [] }),
+    supabase.from("propostas").select("id, demanda_id, status, atualizado_em")
+      .eq("autor_id", usuarioId).in("status", ["aceita", "recusada"]),
+  ])
+
+  const avisos: Notificacao[] = ((recebidas ?? []) as PropostaRecebidaParaNotificacao[]).map((p) => ({
+    id: `proposta-recebida:${p.id}`,
+    titulo: `${p.autor_nome} respondeu ao seu pedido`,
+    detalhe: "Abra para ver a proposta e aceitar ou recusar.",
+    categoria: "marketplace" as const,
+    nivel: NIVEL_AVISO_MARKETPLACE.proposta_recebida,
+    aba: null,
+    href: `/marketplace/${p.demanda_id}`,
+    quando: p.criado_em,
+    grupo: `marketplace:recebida:${p.demanda_id}`,
+  }))
+
+  for (const p of (minhasPropostas ?? []) as PropostaMinhaParaNotificacao[]) {
+    const aceita = p.status === "aceita"
+    avisos.push({
+      id: `proposta-${p.status}:${p.id}`,
+      titulo: aceita ? "Sua proposta foi aceita" : "Sua proposta não foi escolhida",
+      detalhe: aceita ? "O contato de quem publicou já está liberado." : "O pedido seguiu com outra resposta.",
+      categoria: "marketplace",
+      nivel: aceita ? NIVEL_AVISO_MARKETPLACE.proposta_aceita : NIVEL_AVISO_MARKETPLACE.proposta_recusada,
+      aba: null,
+      href: `/marketplace/${p.demanda_id}`,
+      quando: p.atualizado_em,
+      grupo: `marketplace:proposta-${p.status}`,
+    })
+  }
+
+  // §11.6 — "um lado marca como realizado; o outro confirma ou nega". O aviso
+  // é pro lado que ainda não se manifestou; quem já respondeu não é
+  // lembrado de novo (seria o spam que o §5.2 proíbe).
+  const { data: negocios } = await supabase
+    .from("negocios").select("id, demanda_id, cliente_id, fornecedor_id, criado_em")
+    .or(`cliente_id.eq.${usuarioId},fornecedor_id.eq.${usuarioId}`)
+  const idsNegocios = ((negocios ?? []) as NegocioParaNotificacao[]).map((n) => n.id)
+  const { data: confirmacoes } = idsNegocios.length > 0
+    ? await supabase.from("negocios_confirmacoes").select("negocio_id, usuario_id").in("negocio_id", idsNegocios)
+    : { data: [] }
+  const jaRespondi = new Set(
+    ((confirmacoes ?? []) as { negocio_id: string; usuario_id: string }[])
+      .filter((c) => c.usuario_id === usuarioId)
+      .map((c) => c.negocio_id),
+  )
+
+  for (const n of (negocios ?? []) as NegocioParaNotificacao[]) {
+    if (jaRespondi.has(n.id)) continue
+    avisos.push({
+      id: `negocio:${n.id}`,
+      titulo: "Um negócio espera a sua confirmação",
+      detalhe: "O outro lado marcou como realizado. Confirme ou diga que não reconhece.",
+      categoria: "marketplace",
+      nivel: NIVEL_AVISO_MARKETPLACE.negocio_aguardando,
+      aba: null,
+      href: `/marketplace/${n.demanda_id}`,
+      quando: n.criado_em,
+      grupo: "marketplace:negocio-aguardando",
+    })
+  }
+
+  return avisos
+}
+
+/** "hoje", "amanhã", "em 4 dias", "há 3 dias" — a frase que o cartão do aviso
+ *  mostra. Aqui e não no domínio porque é cópia de tela, e o domínio já
+ *  entrega o número. */
+function rotuloDeProximidade(dias: number): string {
+  if (dias === 0) return "hoje"
+  if (dias === 1) return "amanhã"
+  if (dias === -1) return "ontem"
+  return dias > 0 ? `em ${dias} dias` : `há ${Math.abs(dias)} dias`
+}
+
+/** Soma dias a uma data civil em UTC — mesma aritmética de `diasAteData`,
+ *  no sentido inverso. */
+function somarDiasISO(iso: string, dias: number): string {
+  const [a, m, d] = iso.split("-").map(Number)
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10)
+}
 
 interface OcorrenciaParaNotificacao {
   id: string
@@ -433,6 +697,44 @@ interface OcorrenciaParaNotificacao {
   estado: EstadoOcorrencia
   gravidade: Gravidade | null
   created_at: string
+}
+
+interface CompromissoParaNotificacao {
+  id: string
+  titulo: string
+  data: string
+  hora: string | null
+  criado_por: string | null
+}
+
+interface LancamentoParaNotificacao {
+  id: string
+  descricao: string
+  tipo: "despesa" | "entrada"
+  valor_centavos: number
+  data: string
+}
+
+interface PropostaRecebidaParaNotificacao {
+  id: string
+  demanda_id: string
+  autor_nome: string
+  criado_em: string
+}
+
+interface PropostaMinhaParaNotificacao {
+  id: string
+  demanda_id: string
+  status: "aceita" | "recusada"
+  atualizado_em: string
+}
+
+interface NegocioParaNotificacao {
+  id: string
+  demanda_id: string
+  cliente_id: string
+  fornecedor_id: string
+  criado_em: string
 }
 
 export { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"

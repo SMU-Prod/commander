@@ -11,6 +11,7 @@ import { TIPO_ROTULO, zerarCiclo } from "@/lib/domain/diario"
 import { categoriaFinanceiraDoEvento } from "@/lib/domain/financeiro"
 import { devePropagarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { podeEditar } from "@/lib/domain/permissoes"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -25,6 +26,16 @@ export async function criarEvento(formData: FormData) {
   if (!user) redirect("/login")
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+
+  // §27.2: "Permissões devem ser aplicadas tanto na interface quanto no
+  // backend/API". Até a onda 52 esta action só tinha o gate de PLANO — quem
+  // barrava tripulante sem `diario:editar` era a RLS sozinha (migration 010),
+  // e RLS sozinha recusa em silêncio: a tela dizia "salvo" pra um Diário que
+  // não existiu. PERMISSÃO ANTES DE PLANO, de propósito: quem não pode
+  // escrever no Diário não recebe convite pra assinar algo que não é dele.
+  if (!podeEditar(painel.permissoes, "diario")) {
+    erroNovo("Seu acesso não permite registrar no Diário de Bordo desta embarcação.")
+  }
 
   // Gate do plano Free (onda 38, PRD §43) — checado de novo aqui mesmo já
   // bloqueado na tela (`/diario/novo`): bloqueio só na interface é

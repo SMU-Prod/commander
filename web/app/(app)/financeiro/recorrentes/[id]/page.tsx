@@ -108,6 +108,14 @@ export default async function RecorrentePage({
         {!rec.ativa && <p className="apoio mt-3 text-dim">Série encerrada — não gera mais vencimentos.</p>}
       </div>
 
+      {/* §24 — sem permissão a área de ação some; sem uma linha
+          explicando, a pessoa acha que o app quebrou. */}
+      {!editavel && (
+        <p className="apoio mt-4 text-dim">
+          Seu acesso ao Financeiro é de leitura. Confirmar pagamento, corrigir e excluir são de quem
+          tem permissão de editar — fale com o proprietário.
+        </p>
+      )}
       {editavel && rec.ativa && abertos.length > 0 && (
         <>
           <SecaoPagina icone="cifrao">Mudar o valor</SecaoPagina>

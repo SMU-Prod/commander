@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -46,6 +47,7 @@ export default async function NovaRecorrentePage({
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={criarRecorrente} className="mt-5 space-y-4">
+        <GuardaFormulario chave="financeiro:recorrente-nova" />
         <CampoSelect label="Tipo" id="tipo" name="tipo" defaultValue="despesa">
           <option value="despesa">Despesa — sai do bolso</option>
           <option value="entrada">Entrada — entra por causa do barco</option>

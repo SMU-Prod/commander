@@ -25,9 +25,15 @@ const TODOS_OS_RECURSOS: RecursoControlado[] = [
   "marketplace_publicar",
   "agenda_criar",
   "financeiro_lancar",
+  "financeiro_consolidado",
   "tripulacao_adicionar",
   "explorar_perfil_completo",
 ]
+
+/** A única exceção da regra "pago libera tudo" (onda 53, §9.3): a visão
+ *  consolidada do Financeiro é do Commander PRO. Fica nomeada aqui pra que os
+ *  testes gerais possam excluí-la de propósito, e não por descuido. */
+const SO_DO_PRO: RecursoControlado[] = ["financeiro_consolidado"]
 
 describe("nivelPlano", () => {
   it("sem assinatura e sem concessao e o Free do proprietario", () => {
@@ -78,12 +84,21 @@ describe("nivelPlano", () => {
 })
 
 describe("recursoLiberado", () => {
-  it("Commander e Pro liberam tudo, sem contagem", () => {
+  it("Commander e Pro liberam tudo (fora o que e so do Pro), sem contagem", () => {
     for (const nivel of ["commander", "commander_pro"] as NivelPlano[]) {
-      for (const recurso of TODOS_OS_RECURSOS) {
+      for (const recurso of TODOS_OS_RECURSOS.filter((r) => !SO_DO_PRO.includes(r))) {
         expect(recursoLiberado(recurso, nivel, 999)).toBe(true)
       }
     }
+  })
+
+  it("§9.3: a visao consolidada e do Commander PRO — nem o Commander comum tem", () => {
+    expect(recursoLiberado("financeiro_consolidado", "commander_pro")).toBe(true)
+    expect(recursoLiberado("financeiro_consolidado", "commander")).toBe(false)
+    expect(recursoLiberado("financeiro_consolidado", "proprietario_free")).toBe(false)
+    // Nao e contagem: usoAtual nao muda nada nem pra cima nem pra baixo.
+    expect(recursoLiberado("financeiro_consolidado", "commander", 0)).toBe(false)
+    expect(recursoLiberado("financeiro_consolidado", "commander_pro", 999)).toBe(true)
   })
 
   it("§2.3: no Free, publicar, criar na Agenda/Financeiro, tripulacao e perfil do Explorar sao bloqueados", () => {

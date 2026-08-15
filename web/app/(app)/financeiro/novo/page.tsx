@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -83,6 +84,7 @@ export default async function NovoLancamentoPage({
       )}
 
       <form action={criarLancamento} className="mt-5 space-y-4" encType="multipart/form-data">
+        <GuardaFormulario chave="financeiro:novo" />
         <input type="hidden" name="tipo" value={tipo} />
         {eventoId && <input type="hidden" name="evento_id" value={eventoId} />}
 
@@ -151,7 +153,11 @@ export default async function NovoLancamentoPage({
             accept="application/pdf,image/jpeg,image/png,image/webp"
             className="corpo w-full rounded-[10px] border border-line bg-campo px-3 py-2.5"
           />
-          <p className="apoio mt-1 text-dim">Nota fiscal ou recibo, em PDF ou foto. Até 10 MB.</p>
+          <p className="apoio mt-1 text-dim">
+            Nota fiscal ou recibo, em PDF ou foto. Até 10 MB. Se algo der errado no envio, o navegador não
+            deixa o Commander guardar o arquivo — o resto do formulário volta preenchido, só este campo
+            precisa ser escolhido de novo.
+          </p>
         </div>
 
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={3} />

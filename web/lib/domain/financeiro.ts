@@ -1,4 +1,5 @@
 import { variacaoPercentual } from "@/lib/domain/gastos"
+import type { TipoDemanda } from "@/lib/domain/marketplace"
 
 /**
  * Financeiro (onda 42, PRD FINAL §9.1–9.3) — a aba oficial de dinheiro da
@@ -400,6 +401,43 @@ export function categoriaFinanceiraDoEvento(e: { tipo: string; categoria: string
   if (e.tipo === "abastecimento") return "combustivel"
   if (["manutencao", "avaria", "docagem"].includes(e.tipo)) return "manutencao"
   return "outros"
+}
+
+/**
+ * PONTE MARKETPLACE → FINANCEIRO (onda 53, PRD §11.6: "Após confirmação
+ * bilateral, liberar avaliação e oferecer 'Adicionar ao Financeiro'").
+ *
+ * Em que categoria cai um negócio fechado, a partir do tipo da demanda. Os
+ * cinco tipos do §11.1 são todos o dono GASTANDO — por isso o lançamento
+ * nascido daqui é sempre `despesa`, nunca entrada, e não existe função
+ * espelho pro fornecedor: o Commander Partner não tem embarcação, e o
+ * Financeiro é da embarcação (§9.1).
+ *
+ * Sem `default` de propósito: acrescentar um sexto tipo de demanda quebra a
+ * build aqui, e é exatamente onde alguém precisa parar pra decidir em que
+ * categoria ele cai — em vez de descobrir meses depois que tudo virou
+ * "Outros" no relatório.
+ */
+export function categoriaFinanceiraDaDemanda(tipo: TipoDemanda): CategoriaFinanceira {
+  switch (tipo) {
+    // Serviço de profissional (eletricista, mecânico, pintor) é manutenção do
+    // barco — a mesma categoria que o gasto equivalente lançado à mão.
+    case "profissional":
+      return "manutencao"
+    case "tripulacao":
+      return "tripulacao"
+    // "Compro / Procuro" é sempre coisa física pro barco (§11.1: rádio VHF,
+    // peça, equipamento).
+    case "produto":
+      return "pecas_equipamentos"
+    case "vaga_embarcacao":
+      return "marina_vaga"
+    // Caminhão-tanque = abastecimento. O frete/deslocamento vai junto porque
+    // é parte do preço daquele abastecimento, não um gasto de transporte do
+    // dono (a categoria "Transporte" é pra quando o BARCO se desloca).
+    case "caminhao":
+      return "combustivel"
+  }
 }
 
 /** Valor digitado em pt-BR → centavos. `null` quando não é número válido —

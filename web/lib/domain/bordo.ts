@@ -42,7 +42,19 @@ export function retornoNoDiaSeguinte(saida: string | null, retorno: string | nul
   return fim < inicio
 }
 
-/** Arredonda para o decimo de hora — e o que se lanca no horimetro. Saidas curtas demais (<0,3h) nao sugerem nada. */
+/**
+ * A duracao da saida arredondada ao decimo de hora, ou `null` quando a saida
+ * foi curta demais (<0,3 h) pra valer a conversa.
+ *
+ * ONDA 53 — LEIA O NOME COM CUIDADO: isto NAO e uma sugestao de horimetro, e
+ * nao pode voltar a ser. O PRD §6 e o criterio §27.2 proibem inferir ou somar
+ * horas de motor a partir da duracao do passeio, e ate a onda 52 esta funcao
+ * alimentava o `defaultValue` do campo — o que fazia o app gravar um numero
+ * que ninguem leu no painel. O unico uso legitimo que sobrou, e o que
+ * `lib/acoes/eventos.ts` e `lib/acoes/trilha.ts` fazem, e decidir SE VALE
+ * PERGUNTAR ("a saida foi longa o bastante?"). A resposta continua sendo
+ * digitada a mao, sempre.
+ */
 export function horasSugeridas(duracaoH: number | null): number | null {
   if (duracaoH == null || duracaoH < 0.3) return null
   return Math.round(duracaoH * 10) / 10

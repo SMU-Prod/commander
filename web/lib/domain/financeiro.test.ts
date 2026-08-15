@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   CATEGORIAS_FINANCEIRAS,
+  categoriaFinanceiraDaDemanda,
   categoriaFinanceiraDoEvento,
   compararPeriodos,
   mesesNoPeriodo,
@@ -17,6 +18,7 @@ import {
   vencimentosNoIntervalo,
   type LancamentoParaResumo,
 } from "./financeiro"
+import { TIPOS_DEMANDA } from "./marketplace"
 
 const base = {
   tipo: "despesa" as const,
@@ -173,6 +175,25 @@ describe("categoria vinda de um evento do Diário", () => {
   })
   it("a categoria do evento manda mais que o tipo (item de casco num evento de manutenção)", () => {
     expect(categoriaFinanceiraDoEvento({ tipo: "manutencao", categoria: "deck" })).toBe("limpeza_conservacao")
+  })
+})
+
+describe("categoria vinda de um negócio do Marketplace (§11.6)", () => {
+  it("cada tipo de demanda cai na categoria que o dono reconheceria no extrato", () => {
+    expect(categoriaFinanceiraDaDemanda("profissional")).toBe("manutencao")
+    expect(categoriaFinanceiraDaDemanda("tripulacao")).toBe("tripulacao")
+    expect(categoriaFinanceiraDaDemanda("produto")).toBe("pecas_equipamentos")
+    expect(categoriaFinanceiraDaDemanda("vaga_embarcacao")).toBe("marina_vaga")
+    expect(categoriaFinanceiraDaDemanda("caminhao")).toBe("combustivel")
+  })
+  it("todo tipo de demanda tem categoria, e nenhuma cai em Outros por descuido", () => {
+    for (const tipo of TIPOS_DEMANDA) {
+      const c = categoriaFinanceiraDaDemanda(tipo)
+      expect(CATEGORIAS_FINANCEIRAS).toContain(c)
+      // "Outros" aqui seria o app dizendo "não sei o que você comprou" sobre
+      // um negócio cujo tipo ele mesmo conhece — sempre há categoria melhor.
+      expect(c).not.toBe("outros")
+    }
   })
 })
 

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -177,6 +178,23 @@ export default async function CarteiraDetalhePage({
         </>
       )}
 
+      {/* §24, "sem permissão": a Carteira esconde repasse, gasto, devolução e
+          regras conforme o papel. Sem uma linha explicando, quem abre a
+          própria carteira e não vê botão nenhum conclui que o app quebrou —
+          e não dá pra revelar o que ela não pode ver, só POR QUE não pode. */}
+      {!podeMovimentar && (
+        <p className="apoio mt-4 text-dim">
+          Seu acesso a esta Carteira é de leitura: você acompanha saldo e movimentos, mas quem registra
+          gasto é quem tem permissão de editar a Carteira.
+        </p>
+      )}
+      {podeMovimentar && !ehProprietario && (
+        <p className="apoio mt-4 text-dim">
+          Repasse, devolução e regras são do proprietário (PRD §9.4) — você registra os gastos e ele
+          confirma.
+        </p>
+      )}
+
       {ehProprietario && carteira.ativa && (
         <>
           <SecaoPagina icone="carteira">Registrar repasse</SecaoPagina>
@@ -185,6 +203,10 @@ export default async function CarteiraDetalhePage({
               porque a pessoa que entrega R$ 2.000 espera ver isso no gasto do
               mês se ninguém explicar. */}
           <form action={registrarRepasse} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            {/* Quatro formulários dividem esta URL e o mesmo `?erro=`; por
+                isso cada um tem chave própria — uma só faria o rascunho de
+                um sobrescrever o do outro. */}
+            <GuardaFormulario chave="carteira:repasse" />
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Valor (R$)" id="valor_repasse" name="valor" inputMode="decimal" required placeholder="500,00" />
@@ -206,6 +228,7 @@ export default async function CarteiraDetalhePage({
         <>
           <SecaoPagina icone="cifrao">Registrar gasto</SecaoPagina>
           <form action={registrarGasto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4" encType="multipart/form-data">
+            <GuardaFormulario chave="carteira:gasto" />
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <Campo label="No que foi gasto" id="descricao_gasto" name="descricao" required placeholder="Diesel no posto da marina" />
             <CampoSelect label="Categoria" id="categoria_gasto" name="categoria" required defaultValue="">
@@ -228,9 +251,11 @@ export default async function CarteiraDetalhePage({
                 required={carteira.exige_comprovante}
                 className="corpo w-full rounded-[10px] border border-line bg-campo px-3 py-2.5"
               />
-              {carteira.exige_comprovante && (
-                <p className="apoio mt-1 text-dim">Esta carteira exige comprovante em todo gasto.</p>
-              )}
+              <p className="apoio mt-1 text-dim">
+                {carteira.exige_comprovante ? "Esta carteira exige comprovante em todo gasto. " : ""}
+                Se o envio falhar, valor e descrição voltam preenchidos — só o arquivo precisa ser
+                escolhido de novo (o navegador não deixa nenhum site guardá-lo por você).
+              </p>
             </div>
             <CampoTextarea label="Observação (opcional)" id="observacao_gasto" name="observacao" rows={2} />
             <p className="apoio text-dim">
@@ -244,6 +269,7 @@ export default async function CarteiraDetalhePage({
 
           <SecaoPagina icone="transferir">Devolver saldo</SecaoPagina>
           <form action={registrarDevolucao} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <GuardaFormulario chave="carteira:devolucao" />
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Valor (R$)" id="valor_dev" name="valor" inputMode="decimal" required placeholder="150,00" />

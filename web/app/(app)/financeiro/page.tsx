@@ -23,7 +23,17 @@ import type { LancamentoFinanceiro, RecorrenciaFinanceira } from "@/lib/db/types
  * existindo como histórico do evento no Diário, mas somar as duas fontes
  * contaria o mesmo gasto duas vezes (ver migration 042).
  */
-export default async function FinanceiroPage() {
+export default async function FinanceiroPage({
+  searchParams,
+}: {
+  // §24, "nunca falhar silenciosamente" (onda 53): `/financeiro/novo` e
+  // `/financeiro/recorrentes/nova` mandam a pessoa de volta pra cá com
+  // `?erro=` quando a permissão não permite. Sem este parâmetro a mensagem
+  // morria na URL e a pessoa voltava pra Visão Geral sem entender o que
+  // aconteceu — o silêncio que o §24 proíbe.
+  searchParams: Promise<{ erro?: string }>
+}) {
+  const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   if (!podeVer(painel.permissoes, "gastos")) {
@@ -82,6 +92,7 @@ export default async function FinanceiroPage() {
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
       <p className="apoio mt-1 text-dim">O dinheiro do barco: o que saiu, o que entrou e o que ainda vence.</p>
+      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <FinanceiroNav atual="visao" className="mt-4" />
       <AcoesUniversais className="mt-3" />

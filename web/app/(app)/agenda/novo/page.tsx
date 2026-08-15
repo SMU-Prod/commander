@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -72,6 +73,9 @@ export default async function NovoCompromissoPage({
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={criarCompromisso} className="mt-5 space-y-4">
+        {/* Inclui as caixas de quem recebe o compromisso: perder a lista
+            de participantes num erro era o pior desperdício desta tela. */}
+        <GuardaFormulario chave="agenda:novo" />
         <Campo label="O quê" id="titulo" name="titulo" required placeholder="Ex.: Saída sábado" />
         <div className="flex gap-3">
           <Campo label="Dia" id="data" name="data" type="date" required defaultValue={dataInicial} wrapperClassName="flex-1" />

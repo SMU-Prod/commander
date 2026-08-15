@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest"
-import { dataSP, formatarCarimbo, horaSP, tempoRelativo } from "./datas"
+import { dataSP, diasAteData, formatarCarimbo, horaSP, tempoRelativo } from "./datas"
+
+describe("diasAteData", () => {
+  it("0 é hoje, positivo é futuro, negativo é passado", () => {
+    expect(diasAteData("2026-08-15", "2026-08-15")).toBe(0)
+    expect(diasAteData("2026-08-22", "2026-08-15")).toBe(7)
+    expect(diasAteData("2026-08-10", "2026-08-15")).toBe(-5)
+  })
+  it("atravessa mês e ano sem escorregar", () => {
+    expect(diasAteData("2026-09-01", "2026-08-31")).toBe(1)
+    expect(diasAteData("2027-01-01", "2026-12-31")).toBe(1)
+    // 2028 é bissexto: 29/02 existe.
+    expect(diasAteData("2028-03-01", "2028-02-28")).toBe(2)
+  })
+  it("não perde um dia por causa de fuso — a conta é sobre datas civis", () => {
+    // `new Date("2026-08-22")` seria lido como UTC e viraria 21/08 no Brasil;
+    // este teste é a trava contra alguém "simplificar" pra isso.
+    expect(diasAteData("2026-08-22", "2026-08-21")).toBe(1)
+  })
+})
 
 describe("dataSP", () => {
   it("converte epoch em AAAA-MM-DD no fuso de Sao Paulo (UTC-3)", () => {

@@ -5,6 +5,7 @@ import { RegistrarSw } from "@/components/registrar-sw"
 import { Toast } from "@/components/toast"
 import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
 import { contadorSino } from "@/lib/domain/notificacoes"
+import { podeEditar } from "@/lib/domain/permissoes"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const painel = await carregarPainel()
@@ -29,9 +30,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   //
   // A variável `NEXT_PUBLIC_COBRANCA_ATIVA` não é mais lida em lugar nenhum.
 
-  const motores = (painel?.equipamentos ?? [])
-    .filter((e) => e.tipo === "motor")
-    .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
+  // §27.2 ("permissões na interface E no backend") — o botão flutuante
+  // "+ Registrar" escreve `equipamentos.horas_atuais` via
+  // `registrarVoltaAoMar`. Até a onda 52 ele aparecia pra qualquer pessoa com
+  // vínculo, em TODA tela, e a recusa só vinha da RLS (que recusa em
+  // silêncio). Agora a interface concorda com o backend: sem `motores:editar`
+  // o botão não existe. Quem só lê continua vendo as horas em /barco.
+  const motores = podeEditar(painel?.permissoes ?? null, "motores") && painel != null
+    ? painel.equipamentos
+        .filter((e) => e.tipo === "motor")
+        .map((e) => ({ id: e.id, rotulo: e.posicao ?? "Motor", horas: e.horas_atuais }))
+    : []
 
   // Contador de avisos no rodapé (onda 44, PRD §5.2 "sino no topo com
   // contador"). Fica no layout pra acompanhar a pessoa em toda tela, e usa

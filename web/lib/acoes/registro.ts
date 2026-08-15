@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { carregarPainel } from "@/lib/consultas"
 import { validarLeitura } from "@/lib/domain/leituras"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { podeEditar } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import { hojeISO } from "@/lib/domain/datas"
 import { atualizarLeituraEquipamento } from "@/lib/acoes/leituras"
@@ -15,6 +16,16 @@ export async function registrarVoltaAoMar(formData: FormData) {
 
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
+  // §27.2: "Permissões devem ser aplicadas tanto na interface quanto no
+  // backend/API". Esta action escreve `equipamentos.horas_atuais` — o número
+  // que a Saúde e todo o cálculo de manutenção usam. A tela `/diario/[id]/horas`
+  // já checava, mas o botão flutuante "+ Registrar" (`app/(app)/layout.tsx`)
+  // é o outro caminho até aqui, e por ele não passava guard nenhum: sobrava
+  // só a RLS, que recusa em silêncio e faz o app dizer "pronto" pra uma
+  // leitura que não foi gravada.
+  if (!podeEditar(painel.permissoes, "motores")) {
+    redirect(`/hoje?erro=${encodeURIComponent("Seu acesso não permite atualizar as horas dos motores.")}`)
+  }
   const embarcacaoId = painel.embarcacao.id
   const motores = painel.equipamentos.filter((e) => e.tipo === "motor")
 

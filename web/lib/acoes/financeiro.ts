@@ -3,16 +3,18 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarMapaTaxonomia, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, FREQUENCIAS, TIPOS_LANCAMENTO,
-  centavosDeReais, validarLancamento, validarRecorrente,
+  categoriaFinanceiraDaDemanda, centavosDeReais, validarLancamento, validarRecorrente,
   type CategoriaFinanceira, type FormaPagamento, type Frequencia, type TipoLancamento,
 } from "@/lib/domain/financeiro"
+import { estadoDoNegocio, type ConfirmacaoNegocio } from "@/lib/domain/marketplace"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
-import type { RecorrenciaFinanceira } from "@/lib/db/types"
+import type { Demanda, Negocio, RecorrenciaFinanceira } from "@/lib/db/types"
 
 /**
  * Server actions do Financeiro (onda 42, PRD FINAL §9.1–9.3).
@@ -238,6 +240,122 @@ export async function excluirLancamento(formData: FormData) {
 
   revalidarFinanceiro()
   redirect(`/financeiro/lancamentos?ok=${encodeURIComponent("Lançamento excluído")}`)
+}
+
+/**
+ * "ADICIONAR AO FINANCEIRO" DE UM NEGÓCIO DO MARKETPLACE (onda 53).
+ *
+ * §11.6: "Após confirmação bilateral, liberar avaliação e oferecer
+ * 'Adicionar ao Financeiro'." Mora AQUI, e não em `lib/acoes/marketplace.ts`,
+ * porque §9.1 manda que a ação "cria o mesmo lançamento central, não uma
+ * cópia": o dono da regra do lançamento é o Financeiro, e o Marketplace só
+ * oferece o botão. Assim o portão de plano, o guard de `gastos` e o formato
+ * da linha ficam num lugar só, iguais aos do lançamento manual.
+ *
+ * As quatro travas, na ordem em que rodam (a última é a que não dá pra
+ * burlar por POST direto):
+ *   1. `podeEditar(..., "gastos")` — permissão de área;
+ *   2. `recursoLiberado("financeiro_lancar", ...)` — §2.3, portão de plano;
+ *   3. confirmação bilateral (§9.1: "orçamento/proposta não é despesa");
+ *   4. o trigger `lancamentos_negocio_guarda` (migration 054), que refaz 3 e
+ *      ainda exige que quem lança seja o CLIENTE do negócio.
+ *
+ * Não duplica: o índice único em `negocio_id` faz o segundo clique (ou a aba
+ * duplicada) esbarrar no banco — mesma proteção do `evento_id` do Diário.
+ * O valor é o VALOR FINAL do negócio, que §11.6 diz ser opcional e poder
+ * diferir do proposto; por isso o formulário pergunta em vez de copiar a
+ * proposta, e o campo chega preenchido quando o negócio já tem valor.
+ */
+export async function adicionarNegocioAoFinanceiro(formData: FormData) {
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+
+  const negocioId = String(formData.get("negocio_id") ?? "")
+  const demandaId = String(formData.get("demanda_id") ?? "")
+  const rota = `/marketplace/${demandaId}`
+  // Anotação no CONST (não só na seta): é o que faz o TypeScript entender
+  // que a chamada encerra o fluxo e estreitar os `| null` daqui pra baixo.
+  const erroNegocio: (msg: string) => never = (msg) => redirect(`${rota}?erro=${encodeURIComponent(msg)}`)
+
+  if (!podeEditar(painel.permissoes, "gastos")) {
+    erroNegocio("Seu acesso não permite lançar no Financeiro desta embarcação.")
+  }
+  if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
+    erroNegocio(mensagemBloqueio("financeiro_lancar").descricao)
+  }
+
+  const { data: negocioBruto } = await supabase
+    .from("negocios").select("*").eq("id", negocioId).maybeSingle()
+  const negocio = negocioBruto as Negocio | null
+  if (!negocio) erroNegocio("Não encontrei esse negócio. Recarregue a página.")
+  // Só o cliente — o fornecedor é Partner e não tem embarcação onde pousar o
+  // lançamento (ver o cabeçalho da migration 054).
+  if (negocio.cliente_id !== user.id) {
+    erroNegocio("Só quem publicou o pedido lança este negócio no Financeiro da embarcação.")
+  }
+
+  const { data: confirmacoesBrutas } = await supabase
+    .from("negocios_confirmacoes").select("usuario_id, papel, decisao").eq("negocio_id", negocioId)
+  const confirmacoes = (confirmacoesBrutas as ConfirmacaoNegocio[] | null) ?? []
+  if (estadoDoNegocio(confirmacoes) !== "confirmado") {
+    erroNegocio("O negócio ainda não foi confirmado pelos dois lados — proposta não é despesa.")
+  }
+
+  const [{ data: demandaBruta }, { data: proposta }] = await Promise.all([
+    supabase.from("demandas").select("*").eq("id", negocio.demanda_id).maybeSingle(),
+    // O nome do fornecedor vem do banco, não de campo escondido do
+    // formulário: "quem recebeu o dinheiro" é o dado que o dono vai conferir
+    // no extrato meses depois, e não pode depender do que o HTML mandou.
+    supabase.from("propostas").select("autor_nome").eq("id", negocio.proposta_id).maybeSingle(),
+  ])
+  const demanda = demandaBruta as Demanda | null
+  if (!demanda) erroNegocio("Esse pedido não existe mais. Recarregue a página.")
+
+  const texto = ler(formData)
+  const reais = parseDecimalPtBr(texto("valor") ?? "")
+  // Preferência pelo que a pessoa digitou agora; o valor final gravado no
+  // negócio é o padrão do formulário e o fallback de um POST sem campo.
+  const valorCentavos = centavosDeReais(reais) ?? negocio.valor_final_centavos
+  const data = texto("data") ?? negocio.criado_em.slice(0, 10)
+  const categoria = categoriaFinanceiraDaDemanda(demanda.tipo)
+  // Título derivado dos campos, o mesmo que a ficha do pedido mostra (§11.2:
+  // ninguém digita título no Marketplace) — o extrato fica reconhecível sem
+  // a pessoa reescrever nada.
+  const descricao = tituloDeDemanda(await carregarMapaTaxonomia(), demanda)
+
+  const v = validarLancamento({ tipo: "despesa", categoria, descricao, valorCentavos, data })
+  if (!v.ok) erroNegocio(v.erro)
+
+  const { error } = await supabase.from("lancamentos_financeiros").insert({
+    embarcacao_id: painel.embarcacao.id,
+    tipo: "despesa",
+    categoria,
+    descricao,
+    valor_centavos: valorCentavos,
+    data,
+    // Nasce PAGO: §9.1 só deixa virar despesa o "gasto efetivado/confirmado",
+    // e é exatamente isso que a confirmação bilateral acabou de atestar.
+    status: "pago",
+    fornecedor: (proposta as { autor_nome: string } | null)?.autor_nome ?? null,
+    negocio_id: negocioId,
+    criado_por: user.id,
+  }).select("id")
+
+  if (error) {
+    if (error.code === "23505") {
+      erroNegocio("Esse negócio já está no Financeiro — ele não entra duas vezes.")
+    }
+    // O trigger fala em código (`negocio_nao_confirmado`,
+    // `so_o_cliente_lanca_o_negocio`); o cliente lê a frase, não o código.
+    erroNegocio("Não deu para lançar este negócio agora. Tente de novo em instantes.")
+  }
+
+  revalidarFinanceiro()
+  revalidatePath(rota)
+  redirect(`${rota}?ok=${encodeURIComponent("Negócio lançado no Financeiro")}`)
 }
 
 export async function criarRecorrente(formData: FormData) {
