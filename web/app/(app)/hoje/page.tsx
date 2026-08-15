@@ -19,6 +19,7 @@ import {
   type StatusFarol,
 } from "@/lib/domain/semaforo"
 import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
+import { AREA_AGENDA } from "@/lib/domain/agenda"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
 import { carregarNotificacoes, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
@@ -214,8 +215,10 @@ export default async function HojePage({
   const ocorrenciasAtivas = (ocorrenciasAtivasBrutas ?? []) as Ocorrencia[]
   const ocorrenciasAbertas = ocorrenciasAtivas.slice(0, 4)
 
-  // Saúde da Embarcação (fórmula fechada em 14/08/2026, decisão do dono —
-  // ver `lib/domain/saude.ts` pros pesos e a justificativa de cada um).
+  // Saúde da Embarcação — desde 15/08/2026 é a régua declarativa do PRD
+  // FINAL §5 (Saudável / Atenção / Ação necessária, o pior estado prevalece),
+  // não mais uma nota 0-100: o PRD proíbe porcentagem aqui em três lugares e
+  // o dono autorizou a troca. Histórico completo em `lib/domain/saude.ts`.
   // Itens sem informação suficiente não entram no cálculo (nem a favor, nem
   // contra) — mesma regra de honestidade de sempre.
   const itensParaSaude: ItemParaSaude[] = avaliados.map((a) => ({
@@ -533,7 +536,10 @@ export default async function HojePage({
         {(
           [
             { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
-            { href: "/agenda", rotulo: "Agenda", aba: "diario", icone: "calendario" },
+            // Onda 46: a Agenda ganhou área própria na matriz (PRD §8). Este
+            // atalho lê `AREA_AGENDA` em vez de escrever a área na mão — assim
+            // o que a Início esconde é exatamente o que a RLS recusa.
+            { href: "/agenda", rotulo: "Agenda", aba: AREA_AGENDA, icone: "calendario" },
             { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
             { href: "/diario", rotulo: "Diário", icone: "relatorio" },
             { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },

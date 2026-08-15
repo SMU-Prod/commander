@@ -111,18 +111,24 @@ export function camadaTemFonte(c: Camada): c is CamadaComFonte {
 }
 
 /**
- * Área da matriz que governa a Agenda — PRD §8 pede uma permissão própria
- * ("Gerenciar eventos da embarcação") e ela NÃO existe ainda.
+ * Área da matriz que governa a Agenda — PRD §8: "Captain só pode
+ * criar/compartilhar eventos da embarcação se tiver permissão 'Gerenciar
+ * eventos da embarcação'".
  *
- * TODO onda 44: criar a área 'agenda' em `lib/domain/permissoes.ts` (+
- * migration herdando o valor de 'diario' nos vínculos existentes, mesmo
- * padrão da migration 032 quando 'historico' herdou de 'diario') e trocar
- * esta constante. Não foi feito agora porque a matriz está sendo alterada
- * por outra frente na mesma janela e dois arquivos mexendo em `ABAS` é
- * conflito garantido. 'diario' é a área existente mais próxima: quem
- * registra a saída é quem marca a saída.
+ * Onda 46: agora é área PRÓPRIA. A onda 43 entregou a Agenda pegando carona
+ * em 'diario' porque a matriz (`ABAS`) estava sendo alterada por outra
+ * frente na mesma janela, e o TODO registrado aqui admitia a consequência:
+ * um vínculo personalizado SEM 'diario' não enxergava a agenda do barco,
+ * mesmo sendo a agenda dele. Com a área própria, "ver Agenda" e "gerenciar
+ * eventos" viraram duas chaves nomeadas na tela de permissões.
+ *
+ * Ninguém perdeu acesso na troca: a migration 047 copiou o valor de 'diario'
+ * pra 'agenda' em todo vínculo já gravado (mesmo padrão da 032, quando
+ * 'historico' herdou de 'diario'), e as 6 policies da migration 044 passaram
+ * a citar 'agenda'. Aqui e no banco, sempre a mesma área — se estas duas
+ * pontas divergirem, a tela mostra um botão que a RLS rejeita.
  */
-export const AREA_AGENDA = "diario" as const
+export const AREA_AGENDA = "agenda" as const
 
 export function podeVerAgenda(p: Permissoes | null): boolean {
   return podeVer(p, AREA_AGENDA)

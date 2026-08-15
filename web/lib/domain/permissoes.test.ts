@@ -27,15 +27,27 @@ describe("presets", () => {
   it("operacional NAO liga Carteira — quem libera e o proprietario, um a um (PRD §9.4)", () => {
     expect(PRESETS.operacional.carteira).toEqual({ ver: false, editar: false })
   })
+  it("operacional espelha Diario na Agenda (onda 46) — quem opera o barco marca a saida", () => {
+    expect(PRESETS.operacional.agenda).toEqual({ ver: true, editar: true })
+    expect(PRESETS.operacional.agenda).toEqual(PRESETS.operacional.diario)
+  })
 })
 
-describe("matriz de 14 areas (onda 32 + carteira na onda 42)", () => {
-  it("tem exatamente as 14 areas do PRD, nem mais nem menos", () => {
-    expect(ABAS).toHaveLength(14)
+describe("matriz de 15 areas (onda 32 + carteira na onda 42 + agenda na onda 46)", () => {
+  it("tem exatamente as 15 areas do PRD, nem mais nem menos", () => {
+    expect(ABAS).toHaveLength(15)
     expect([...ABAS].sort()).toEqual([
-      "carteira", "casco", "contatos", "diario", "documentos", "eletrica", "embarcacao",
+      "agenda", "carteira", "casco", "contatos", "diario", "documentos", "eletrica", "embarcacao",
       "equipamentos", "fotos", "gastos", "hidraulica", "historico", "motores", "seguranca",
     ])
+  })
+  it('a Agenda tem area propria — "Gerenciar eventos da embarcacao" (PRD §8) e o `editar` dela', () => {
+    expect(ROTULO_ABA.agenda).toBe("Agenda")
+    // Ate a onda 45 a Agenda pegava carona em `diario`; agora sao duas areas
+    // independentes na matriz (a herança de acesso de quem ja existia e feita
+    // uma unica vez, pela migration 047, nao pelo normalizador).
+    expect(normalizarPermissoes({ diario: { ver: true, editar: true } }).agenda)
+      .toEqual({ ver: false, editar: false })
   })
   it("o Financeiro do PRD e a area `gastos` de sempre — rotulo novo, chave antiga", () => {
     // Trocar a chave quebraria o acesso de todo vinculo ja gravado no banco.

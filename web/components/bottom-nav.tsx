@@ -35,6 +35,21 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
 ]
 
 /**
+ * DECISÃO FECHADA (onda 46) — A AGENDA NÃO VIRA ABA AQUI.
+ *
+ * A onda 43 entregou a Agenda e deixou a pergunta em aberto: ela merece uma
+ * das posições do menu de baixo? O dono respondeu em 15/08/2026: NÃO.
+ * O motivo é físico e já está documentado 30 linhas abaixo — só cabem 5
+ * abas, e "Comandantes" já não cabe em 11px nos 71px por coluna (por isso a
+ * exceção de 9.5px). Uma sexta aba não encolhe o rótulo: encolhe todas as
+ * seis até nenhuma ser legível.
+ *
+ * A Agenda continua a 1 toque da Início (atalho de "Acesso rápido") e
+ * listada no Menu — os dois caminhos que o gate de descoberta exige
+ * (docs/CONTRIBUTING.md). Não é falta de acesso; é escolha de onde.
+ * Não reabra esta discussão sem trazer um rótulo mais curto ou uma aba pra
+ * sacrificar.
+ *
  * `avisos` é o contador do sino (PRD §5.2), calculado no layout e já
  * filtrado por permissão — ver `carregarNotificacoes`. Fica no rodapé
  * porque a aba Avisos é a única superfície de notificação presente em TODA

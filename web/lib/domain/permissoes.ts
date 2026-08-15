@@ -16,6 +16,17 @@ export const ABAS = [
   // vale. Área nova não herda nada: `normalizarPermissoes` e o `coalesce`
   // de `permissao()` no banco devolvem false pra quem não tem a chave.
   "carteira",
+  // Onda 46 (PRD FINAL §8): a Agenda ganhou área própria. A onda 43 entregou
+  // a tela pegando carona em `diario` (ver `AREA_AGENDA` em
+  // `lib/domain/agenda.ts`) porque a matriz estava sendo mexida por outra
+  // frente na mesma janela — o efeito colateral era real: um vínculo
+  // personalizado SEM `diario` não enxergava a agenda do barco, e o PRD pede
+  // uma permissão nomeada ("Gerenciar eventos da embarcação" = o `editar`
+  // desta área). Diferente de `carteira`, esta área NÃO nasce vazia pra quem
+  // já existe: a migration 047 copia o valor de `diario` pra `agenda` em todo
+  // vínculo já gravado (mesmo padrão da 032, quando `historico` herdou de
+  // `diario`) — quem já via a agenda continua vendo, ninguém ganha nada novo.
+  "agenda",
 ] as const
 
 export type Aba = (typeof ABAS)[number]
@@ -31,6 +42,11 @@ export const ROTULO_ABA: Record<Aba, string> = {
   // Rótulo é vocabulário; chave é acesso. Só o vocabulário mudou.
   gastos: "Financeiro",
   diario: "Diário", historico: "Histórico", carteira: "Carteira da Tripulação",
+  // O PRD §8 nomeia a permissão de "Gerenciar eventos da embarcação"; aqui o
+  // rótulo é da ÁREA (a matriz mostra "ver" e "editar" ao lado do nome), e
+  // "editar Agenda" É "gerenciar eventos". Chamar a área de "Gerenciar
+  // eventos" faria a linha da matriz ler "ver Gerenciar eventos".
+  agenda: "Agenda",
 }
 
 export interface PermissaoAba {
@@ -69,6 +85,13 @@ export const PRESETS: Record<"completo" | "operacional", Permissoes> = {
     // Histórico central espelha Diário: quem já via o feed do diário
     // continua vendo o mesmo tanto de informação consolidada.
     historico: { ver: true, editar: false },
+    // Agenda espelha Diário no preset pelo mesmo motivo que a migration 047
+    // faz `agenda` herdar `diario` nos vínculos já gravados: até a onda 45 a
+    // Agenda ERA a área `diario`, e o Operacional é o preset de quem opera o
+    // barco — marcar a saída é a mesma natureza de registrar a saída. Ver +
+    // editar (não `ver: true, editar: false` como Histórico): compromisso é
+    // coisa que a tripulação cria, não só consulta.
+    agenda: { ver: true, editar: true },
     // `carteira` fica de fora do Operacional de propósito: no PRD §9.4 quem
     // libera Carteira é o proprietário, tripulante por tripulante, com
     // regra própria (comprovante, aprovação). Vir ligada num preset seria
