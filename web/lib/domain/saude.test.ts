@@ -116,6 +116,17 @@ describe("calcularSaudeEmbarcacao — ocorrência aberta grave", () => {
     expect(r.nota).toBe(100)
     expect(r.fatores).toEqual([])
   })
+
+  it("estado desconhecido é ignorado em vez de virar NaN na tela", () => {
+    // Regressão real: o filtro era "tudo menos resolvida" e havia um `as` que
+    // silenciava o TypeScript, então um estado fora dos dois conhecidos
+    // (`anulada`, ou qualquer um que venha a existir) chegava na multiplicação
+    // como `undefined` e a nota saía NaN — o anel de Início mostraria "NaN%".
+    const r = calcularSaudeEmbarcacao([itemOk()], [ocorrenciaGrave({ estado: "anulada" as never })])
+    expect(Number.isNaN(r.nota)).toBe(false)
+    expect(r.nota).toBe(100)
+    expect(r.fatores).toEqual([])
+  })
 })
 
 describe("calcularSaudeEmbarcacao — sem dado nenhum não há nota", () => {

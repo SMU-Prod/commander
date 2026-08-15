@@ -184,7 +184,16 @@ export function calcularSaudeEmbarcacao(
   const vencido = comInfo.filter((i) => i.status === "vencido").length
   const total = comInfo.length
 
-  const ocorrenciasAtivas = ocorrencias.filter((o) => o.estado !== "resolvida")
+  // Lista EXPLÍCITA do que pesa, e não "tudo menos resolvida". A diferença
+  // importa: `MULTIPLICADOR_ESTADO_OCORRENCIA` só conhece estes dois estados,
+  // então qualquer estado novo que passasse por aqui viraria `undefined` na
+  // multiplicação e a nota inteira sairia `NaN` — o anel mostraria "NaN%" na
+  // tela de Início. Com a lista explícita, estado novo é ignorado até que
+  // alguém decida conscientemente quanto ele pesa.
+  const ocorrenciasAtivas = ocorrencias.filter(
+    (o): o is OcorrenciaParaSaude & { estado: keyof typeof MULTIPLICADOR_ESTADO_OCORRENCIA } =>
+      o.estado in MULTIPLICADOR_ESTADO_OCORRENCIA,
+  )
 
   if (total === 0 && ocorrenciasAtivas.length === 0) {
     return { nota: null, rotulo: null, emDia: 0, atencao: 0, vencido: 0, total: 0, fatores: [] }
@@ -202,10 +211,12 @@ export function calcularSaudeEmbarcacao(
     }))
 
   const fatoresOcorrencias: FatorSaude[] = ocorrenciasAtivas.map((o) => {
-    const estado = o.estado as "aberta" | "em_acompanhamento"
+    // Sem `as` aqui: o filtro acima já estreitou o tipo de verdade. O cast
+    // que existia antes silenciava o TypeScript justamente no ponto onde ele
+    // teria avisado do problema.
     const severidadeGravidade = o.gravidade != null ? SEVERIDADE_GRAVIDADE_OCORRENCIA[o.gravidade] : SEVERIDADE_GRAVIDADE_AUSENTE
     const pontos = Math.round(
-      PESO_CATEGORIA[o.aba] * severidadeGravidade * MULTIPLICADOR_ESTADO_OCORRENCIA[estado] * PONTOS_POR_PESO_EFETIVO,
+      PESO_CATEGORIA[o.aba] * severidadeGravidade * MULTIPLICADOR_ESTADO_OCORRENCIA[o.estado] * PONTOS_POR_PESO_EFETIVO,
     )
     const detalhe = `${ROTULO_ESTADO[o.estado]}${o.gravidade != null ? ` · gravidade ${ROTULO_GRAVIDADE[o.gravidade]}` : ""}`
     return { tipo: "ocorrencia", id: o.id, nome: o.titulo, aba: o.aba, detalhe, pontos }
