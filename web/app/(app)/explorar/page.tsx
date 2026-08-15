@@ -6,6 +6,8 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
 import { carregarNivelPlano } from "@/lib/consultas"
 import { carregarTaxonomia } from "@/lib/consultas-marketplace"
+import { carregarDestaquesExplorar } from "@/lib/consultas-publicidade"
+import { ordenarComDestaque } from "@/lib/domain/publicidade"
 import {
   cardAmostraFree,
   cardCompleto,
@@ -148,8 +150,22 @@ export default async function ExplorarPage({
     regiaoId: regiao || null,
     atividadeId: atividade || null,
   })
+  // Destaque no Explorar (§20). A onda 52 entregou a regra e a consulta, mas
+  // nenhuma tela chamava — o produto era vendável, media impressão e aparecia
+  // no Admin sem NUNCA destacar ninguém. Parceiro pagaria por algo que não
+  // acontece, que é pior do que não vender.
+  //
+  // Ordena depois de filtrar, não antes: destaque promove dentro do que a
+  // pessoa pediu, nunca traz de volta quem ela acabou de filtrar fora.
+  // `ordenarComDestaque` não conhece nota — a ordem de quem não paga continua
+  // sendo a que veio (§20: "publicidade nunca interfere na nota/reputação").
+  const destaques = await carregarDestaquesExplorar({
+    regiaoId: regiao || null,
+    categoriaId: atividade || null,
+  })
   const cards = await Promise.all(
-    filtrados.map((f) => cardCompleto(f.parceiro, f.atividades)),
+    ordenarComDestaque(filtrados, (f) => f.id, destaques)
+      .map((f) => cardCompleto(f.parceiro, f.atividades)),
   )
 
   // Só oferece filtro por região/atividade que ALGUÉM realmente tem — uma
