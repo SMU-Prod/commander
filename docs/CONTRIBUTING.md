@@ -37,7 +37,7 @@ depois que o dono do produto travou no próprio app. **Estes termos não voltam:
 | Oportunidades (como nome de tela) | **Marketplace** (onda 45, PRD FINAL §0/§3.1/§11) — este nome já foi e voltou, então vale a história inteira: a onda 39 renomeou Marketplace → Oportunidades porque o PRD antigo usava "Marketplace" pra duas coisas (vitrine de perfis E mural de demandas) e a ambiguidade confundia. O PRD FINAL desfez a causa: mandou a vitrine pro **Explorar** e eliminou a aba Serviços, deixando "Marketplace" livre pra significar só demanda. Com a ambiguidade resolvida, o nome oficial voltou. Não renomeie de novo sem ler esta linha |
 | "criar uma agenda" · "evento" (na Agenda) | **compromisso** (onda 43, PRD §8) — o PRD é explícito: *"o usuário não 'cria uma agenda', cria eventos/compromissos"*. E "evento" no Commander **já é** o registro do Diário de Bordo (tabela `eventos`, o que aconteceu); a Agenda é `agenda_eventos` (o que está marcado). Na tela sempre **compromisso**, nunca "evento" |
 
-### Comandantes · Prestadores · Serviços · Marketplace · Explorar — cinco conceitos, cinco nomes
+### Comandantes · Prestadores · Marketplace · Explorar — quatro conceitos, quatro nomes
 
 O PRD (`docs/prd/upgrade2-master.txt` §47–54) usa "Marketplace" pra DUAS coisas diferentes, e a
 auditoria de 14/08 (`docs/auditoria/2026-08-14-prd-upgrade2-parte2.md`, seção 1.3) flagrou a
@@ -54,8 +54,8 @@ significar vitrine de perfis.** Um conceito, um nome, os cinco:
 | Nome final | Rota | O que é | PRD |
 |---|---|---|---|
 | **Comandantes** | `/comandantes` (renomeada de `/marketplace`) | Vitrine de perfis de comandante pra contratar via WhatsApp | §47 |
-| **Prestadores** | `/prestadores` | Perfil profissional por especialidade (mecânico, eletricista, fibra…) — reaproveita `perfis_comandante` com `tipo='prestador'` (migration 037), mesma tabela/RLS/trigger anti-autoverificação de Comandantes | §50 |
-| **Serviços** | `/servicos` | Achar quem resolve um problema — categoria primeiro, prestador depois. Mesmo dado de Prestadores, ângulo de busca diferente | §51 |
+| **Prestadores** | `/prestadores` | Perfil profissional por especialidade (mecânico, eletricista, fibra…) — reaproveita `perfis_comandante` com `tipo='prestador'` (migration 037), mesma tabela/RLS/trigger anti-autoverificação de Comandantes. **Inclui a busca por especialidade** que era da aba Serviços (onda 46) | §50 |
+| ~~Serviços~~ | ~~`/servicos`~~ | **ELIMINADA na onda 46.** O PRD FINAL §10 diz "Não existe aba 'Serviços'" e §27.2 cobra como critério de aceite ("nenhum menu principal deve usar a antiga aba"). Ela lia exatamente a mesma consulta de Prestadores, só com filtro de categoria — o filtro foi pra lá, e `/servicos?categoria=X` redireciona preservando o filtro. Não recrie | §10, §27.2 |
 | **Marketplace** | `/marketplace` | Pedidos estruturados do proprietário (profissional, tripulação, produto, vaga, caminhão), proposta por tipo e fechamento bilateral. Ver onda 45 abaixo | §11 (PRD FINAL) |
 | **Explorar** | `/explorar` | Mapa de parceiros (marina, posto, pousada, restaurante) — descoberta, não navegação. Reaproveita `MapaNautico`/`CardParceiro`/os dados de `parceiros` que `/navegar` já usa | §52 |
 
@@ -89,11 +89,12 @@ migrando os dados; o porquê está no cabeçalho da migration.
 proposta **aceita**. Esconder na tela não conta — se algum dia esse dado voltar para uma coluna de
 `demandas`, qualquer parceiro logado varre o contato de todo proprietário com um select.
 
-Serviços e Explorar são o par mais fácil de confundir — o próprio PRD avisa ("não deve ser
-confundido com Explorar", §51): Serviços mostra PESSOAS (prestadores), Explorar mostra LUGARES
-(parceiros no mapa). A tela de Serviços diz isso explicitamente no texto de apoio, não só aqui.
+Prestadores e Explorar são o par mais fácil de confundir — o PRD antigo já avisava ("não deve ser
+confundido com Explorar", §51, quando isso ainda era a aba Serviços): Prestadores mostra PESSOAS,
+Explorar mostra LUGARES (parceiros no mapa). A tela de Prestadores diz isso explicitamente no
+texto de apoio, não só aqui.
 
-Todas as cinco telas têm a mesma faixa de navegação no topo (`RedeNav`,
+Todas as quatro telas têm a mesma faixa de navegação no topo (`RedeNav`,
 `web/components/ui/rede-nav.tsx`) — a distinção fica visível na interface, não só documentada.
 
 A voz do app é a que ele já acerta nos bons momentos: *"Bom vento e mar calmo"*,
@@ -151,13 +152,25 @@ texto que mencionar o estado da fila é honesto sobre o que está **guardado**
 vs. o que já foi **enviado**, e nunca deixa a pessoa achar que perdeu uma
 saída sem sinal — é o oposto: nada se perde, só demora pra subir.
 
-### Saúde da Embarcação (onda 36) — fórmula é decisão de produto, não refactor
+### Saúde da Embarcação — **nunca porcentagem** (onda 46)
 
-A fórmula da nota do anel de saúde (pesos por categoria, severidade de status/gravidade,
-faixas de rótulo) vive **inteira** em `web/lib/domain/saude.ts` — nenhum outro arquivo
-guarda peso nenhum. Qualquer mudança de número ali é decisão de produto (precisa passar
-pelo dono, mesmo padrão da decisão de 14/08/2026 registrada no topo do arquivo), nunca um
-ajuste de refactor ou "melhoria" de engenharia por conta própria.
+A Saúde tem **três estados e nenhum número**: Saudável / Atenção / Ação necessária, o pior
+que houver prevalece (PRD FINAL §5). O PRD proíbe porcentagem aqui em três lugares
+diferentes (§1.1, §27.2, §28) — é critério de aceite, não preferência estética. Isso vale
+pro número, pra barra de progresso e pro anel preenchido proporcionalmente: os três são a
+mesma porcentagem, desenhada de jeitos diferentes. O anel de `components/anel-status.tsx`
+é sempre um círculo COMPLETO; o que muda é a cor e o rótulo.
+
+A régua vive **inteira** em `web/lib/domain/saude.ts`, que também guarda o histórico das
+três versões dela (onda 16 inventou uma nota; 14/08/2026 o dono fechou a fórmula de
+dedução; 15/08/2026 o PRD FINAL a substituiu pela régua declarativa, com autorização do
+dono). Leia esse cabeçalho antes de mexer.
+
+Os pesos por categoria e as severidades **continuam lá** e continuam sendo decisão de
+produto (precisa passar pelo dono, nunca um ajuste de refactor por conta própria) — mas
+hoje eles servem só para **ordenar** o bloco "Precisa da sua atenção" (§3.4, "ordenado por
+criticidade"). `FatorSaude.peso` é número interno de comparação: se ele aparecer num
+`.tsx`, a porcentagem voltou por uma porta lateral.
 
 ## Antes de fechar uma fase
 1. `npm test` e `npm run build` verdes
@@ -179,7 +192,10 @@ ajuste de refactor ou "melhoria" de engenharia por conta própria.
      depois de registrar uma saída, não faz sentido revisitar depois); `/rede` (alias
      de compatibilidade que redireciona para Comandantes, fora do robots.txt); `/barco/selo`
      (mesmo padrão do `/rede` — alias de compatibilidade pro antigo "Selo Ouro", redireciona
-     para `/barco/selos`, onda 33); `/admin/*` e `/consultor/*` (onda 35 — mesma família de
+     para `/barco/selos`, onda 33); `/servicos` e `/oportunidades[/nova]` (mesma família —
+     a aba Serviços foi eliminada pelo PRD FINAL §10 na onda 46 e "Oportunidades" virou
+     "Marketplace" na 45; os quatro redirecionam e existem só pra link já enviado não
+     virar 404); `/admin/*` e `/consultor/*` (onda 35 — mesma família de
      `/parceiro`: persona diferente do tripulante, sem link no bottom-nav por design, atrás de
      `exigirAdmin()`/vínculo em `gold_consultores` além da sessão, fora do robots.txt).
      Rota nova fora dessa lista precisa de link ou vira exceção documentada aqui;
