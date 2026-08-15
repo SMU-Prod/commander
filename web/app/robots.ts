@@ -17,6 +17,7 @@ export default function robots(): MetadataRoute.Robots {
         "/prestadores",
         "/servicos",
         "/oportunidades",
+        "/marketplace",
         "/explorar",
         "/navegar",
         "/notificacoes",
