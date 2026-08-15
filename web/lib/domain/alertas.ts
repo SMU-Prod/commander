@@ -1,4 +1,5 @@
 import type { ItemMonitorado } from "@/lib/db/types"
+import { diaCivilSP, diasAteData } from "@/lib/domain/datas"
 import type { SeloMar } from "@/lib/domain/mar"
 import { MARGEM_DIAS, type ResultadoCalc } from "@/lib/domain/semaforo"
 
@@ -76,12 +77,17 @@ export function alertaDeMar(
   }
 }
 
-/** Diferenca em dias de calendario entre duas datas ISO (so a parte "YYYY-MM-DD" importa —
- *  `ultima_leitura` chega como timestamptz, mas o horario nao muda quantos dias se passaram). */
+/** Dias de calendario decorridos entre um carimbo e hoje.
+ *
+ *  O `.slice(0, 10)` que morava aqui pegava a data em UTC de um timestamptz e
+ *  comparava com `hoje`, que vem de `hojeISO()` em America/Sao_Paulo — duas
+ *  reguas diferentes. Toda leitura registrada depois das 21h (o horario em que
+ *  o dono mexe no barco) ja pertence ao dia seguinte em UTC, e o motor
+ *  aparecia um dia menos parado do que estava. `diaCivilSP` poe as duas
+ *  pontas no fuso da marina; a aritmetica e a de `diasAteData`, invertida
+ *  (passado positivo), em vez de uma quarta copia dela. */
 function diasEntre(dataIso: string, hojeIso: string): number {
-  const inicio = Date.parse(`${dataIso.slice(0, 10)}T00:00:00Z`)
-  const fim = Date.parse(`${hojeIso.slice(0, 10)}T00:00:00Z`)
-  return Math.round((fim - inicio) / 86_400_000)
+  return -diasAteData(diaCivilSP(dataIso), diaCivilSP(hojeIso))
 }
 
 /** Motor sem leitura de horas ha mais de 30 dias: sugere rodar/aquecer — e recomendacao, nao

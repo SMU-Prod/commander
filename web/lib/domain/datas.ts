@@ -57,29 +57,60 @@ function diaSP(data: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(data)
 }
 
-/** "Hoje, 08:30" / "Ontem, 08:30" / "20/08, 08:30" — carimbo da leitura mais
- *  recente pro hero de /hoje (regra de honestidade: só chama quando existe
- *  leitura real). Recebe `agora` explícito pra ser testável sem mockar
- *  relógio, mesmo espírito de `tempoRelativo`. Compara datas em SP (não em
- *  UTC): sem isso, madrugada UTC vira "ontem" mesmo sendo "hoje" na marina
- *  (Brasil não tem horário de verão desde 2019, mas o fuso segue UTC-3). */
+/** "AAAA-MM-DD" puro — uma data CIVIL, sem hora nenhuma, em oposição a um
+ *  instante ("...T14:32:00+00:00"). A distinção importa porque o Postgres
+ *  ancora uma data nua gravada em `timestamptz` na meia-noite do fuso do
+ *  BANCO (UTC aqui), e meia-noite UTC é 21:00 do dia anterior na marina. */
+const SO_DATA = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * O dia CIVIL de um carimbo, no fuso da marina — "2026-08-12T01:00:00+00:00"
+ * (22:00 de 11/08 em SP) devolve "2026-08-11", não "2026-08-12".
+ *
+ * Existe porque o atalho óbvio — `iso.slice(0, 10)` — pega a data em UTC, e
+ * todo o resto do app conta dias a partir de `hojeISO()`, que é a data em
+ * America/Sao_Paulo. Misturar as duas réguas dá um dia de diferença pra
+ * qualquer coisa registrada depois das 21h, que é justamente o horário em que
+ * o dono mexe no barco. Data civil passa inteira: não há instante a converter.
+ */
+export function diaCivilSP(iso: string): string {
+  return SO_DATA.test(iso) ? iso : diaSP(new Date(iso))
+}
+
+/**
+ * "Hoje, 08:30" / "Ontem, 08:30" / "20/08, 08:30" — o carimbo da última
+ * leitura no cartão "Motores" da Início, e o mesmo de /notificacoes, das
+ * ocorrências e do prazo do selo Verified. Recebe `agora` explícito pra ser
+ * testável sem mockar relógio, mesmo espírito de `tempoRelativo`. Compara
+ * datas em SP (não em UTC): sem isso, madrugada UTC vira "ontem" mesmo sendo
+ * "hoje" na marina (Brasil não tem horário de verão desde 2019, mas o fuso
+ * segue UTC-3).
+ *
+ * DATA SEM HORA SAI SEM HORA, E NO DIA DELA. `new Date("2026-08-10")` é lido
+ * como meia-noite UTC pelo runtime — 21:00 do dia 09 na marina —, então uma
+ * data civil que chegasse aqui saía um dia PRA TRÁS e ainda ganhava um
+ * horário que ninguém registrou ("09/08, 21:00" para um "2026-08-10"). Agora
+ * ela é o dia que é, sem relógio: não existe hora nesse dado, e inventar uma
+ * é o número bonito que o docs/DESIGN.md §6 (regra 7) prefere não ter. É a
+ * mesma trava que `diasAteData` já carrega — ver o comentário lá.
+ */
 export function formatarCarimbo(iso: string, agora: Date = new Date()): string {
+  const diaAgora = diaSP(agora)
+  const [y, m, d] = diaAgora.split("-").map(Number)
+  // Meio-dia UTC do dia anterior evita qualquer virada de fuso ao formatar de novo em SP.
+  const diaOntem = diaSP(new Date(Date.UTC(y, m - 1, d - 1, 12)))
+  const rotuloDoDia = (dia: string) => {
+    if (dia === diaAgora) return "Hoje"
+    if (dia === diaOntem) return "Ontem"
+    const [, mes, diaDoMes] = dia.split("-")
+    return `${diaDoMes}/${mes}`
+  }
+
+  if (SO_DATA.test(iso)) return rotuloDoDia(iso)
+
   const quando = new Date(iso)
   const hora = new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Sao_Paulo",
   }).format(quando)
-
-  const diaQuando = diaSP(quando)
-  const diaAgora = diaSP(agora)
-  if (diaQuando === diaAgora) return `Hoje, ${hora}`
-
-  const [y, m, d] = diaAgora.split("-").map(Number)
-  // Meio-dia UTC do dia anterior evita qualquer virada de fuso ao formatar de novo em SP.
-  const diaOntem = diaSP(new Date(Date.UTC(y, m - 1, d - 1, 12)))
-  if (diaQuando === diaOntem) return `Ontem, ${hora}`
-
-  const dataCurta = new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo",
-  }).format(quando)
-  return `${dataCurta}, ${hora}`
+  return `${rotuloDoDia(diaSP(quando))}, ${hora}`
 }
