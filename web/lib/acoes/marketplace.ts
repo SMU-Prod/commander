@@ -21,6 +21,7 @@ import {
   type TipoVaga,
 } from "@/lib/domain/marketplace"
 import { carregarAssinatura, carregarNivelPlano } from "@/lib/consultas"
+import { carreiraLiberada, mensagemCarreiraBloqueada } from "@/lib/domain/captain"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -466,13 +467,15 @@ export async function publicarDisponibilidade(formData: FormData) {
   // deixa claro que os dois não se misturam ("Captain Pro nunca concede acesso
   // adicional à embarcação por si só"). Commander Pro do barco de outra pessoa
   // não paga a carreira dele.
+  // Onda 50 — a régua e o texto saíram daqui e viraram fonte única em
+  // `lib/domain/captain.ts`. E, desde a migration 051, a RLS do INSERT de
+  // `disponibilidades` também exige Captain Pro: esta checagem existe pra dar
+  // uma mensagem boa, não pra ser a única guarda — um POST direto no
+  // PostgREST batia só na policy.
   const { plano } = await carregarAssinatura()
-  if (plano !== "captain_pro") {
-    erro(
-      rota,
-      "Publicar sua disponibilidade profissional é do Captain Pro. Assine em Menu › Assinatura para aparecer " +
-        "para os proprietários que estão procurando tripulação.",
-    )
+  if (!carreiraLiberada("disponibilidade", plano)) {
+    const m = mensagemCarreiraBloqueada("disponibilidade")
+    erro(rota, `${m.titulo}. ${m.descricao}`)
   }
 
   const funcaoId = texto(formData, "funcao_id")

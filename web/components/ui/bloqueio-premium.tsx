@@ -16,10 +16,19 @@ export function BloqueioPremium({
   titulo,
   descricao,
   className = "",
+  href = "/menu/assinatura",
+  rotuloAcao = "Ver o Premium",
 }: {
   titulo: string
   descricao: string
   className?: string
+  /** Onda 50 — o destino deixou de ser sempre a assinatura DO BARCO. O §12
+   *  separa a assinatura da carreira (Captain Pro) da assinatura da
+   *  embarcação, e mandar um comandante contratado pra tela de cobrança do
+   *  proprietário era mandá-lo pro lugar errado. Padrão inalterado pros
+   *  bloqueios do §2.3, que continuam sendo de gestão de barco. */
+  href?: string
+  rotuloAcao?: string
 }) {
   return (
     <div className={`sombra-1 rounded-[14px] border border-accent/30 bg-panel p-4 text-center ${className}`}>
@@ -27,10 +36,10 @@ export function BloqueioPremium({
       <p className="corpo mt-2 font-medium">{titulo}</p>
       <p className="apoio mt-1 text-dim">{descricao}</p>
       <Link
-        href="/menu/assinatura"
+        href={href}
         className="mt-3 inline-block rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
       >
-        Ver o Premium
+        {rotuloAcao}
       </Link>
     </div>
   )

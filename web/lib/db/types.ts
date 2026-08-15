@@ -217,6 +217,11 @@ export interface LancamentoFinanceiro {
   recorrencia_id: string | null
   /** Gasto da Carteira da Tripulação que virou despesa da embarcação. */
   carteira_movimento_id: string | null
+  /** Negócio do Marketplace confirmado pelos dois lados que virou despesa
+   *  ("Adicionar ao Financeiro", §11.6). Índice único + trigger na migration
+   *  054: o mesmo negócio nunca vira dois lançamentos, e proposta sem
+   *  confirmação bilateral não vira despesa nenhuma (§9.1). */
+  negocio_id: string | null
   criado_por: string | null
   created_at: string
 }
@@ -387,6 +392,19 @@ export interface PerfilComandante {
   visivel: boolean
   verificado: boolean
   created_at: string
+  // Onda 50 (migration 051, PRD §12) — "Perfil profissional: foto, função,
+  // região, experiência, certificações, embarcações/portes...". Função e
+  // região são ids de `taxonomia` (§11.2/§21.2: campos padronizados, não
+  // texto livre) — os campos antigos `categoria`/`cidade` continuam vivos e
+  // servem de fallback enquanto os novos estiverem vazios (§23, nada é
+  // apagado). `foto_path` é o caminho no bucket público `perfis`.
+  foto_path: string | null
+  funcao_id: string | null
+  regiao_id: string | null
+  experiencia_anos: number | null
+  porte_max_pes: number | null
+  certificacoes: string | null
+  atualizado_em: string
 }
 
 // MARKETPLACE ORIENTADO POR DEMANDA (onda 45, PRD upgrade2-master-final §11).

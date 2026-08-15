@@ -1,7 +1,11 @@
 import Link from "next/link"
+import { CartaoProfissional } from "@/components/captain/cartao-profissional"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
+import { carregarReputacoes } from "@/lib/consultas-avaliacoes"
+import { resolvedorDeFotoDePerfil } from "@/lib/consultas-captain"
+import { carregarMapaTaxonomia } from "@/lib/consultas-marketplace"
 import { ESPECIALIDADES_PRESTADOR, ICONE_POR_ESPECIALIDADE, type EspecialidadePrestador } from "@/lib/domain/prestadores"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
@@ -51,6 +55,15 @@ export default async function PrestadoresPage({
   if (error) throw new Error("Não foi possível carregar os prestadores. Recarregue a página.")
 
   const lista = (perfis ?? []) as PerfilComandante[]
+  // ONDA 50 — a pendência que a onda 49 deixou anotada: o selo de reputação
+  // (§14, "Perfil mostra média, quantidade") já existia em /comandantes e não
+  // aqui. Agora as duas telas usam o MESMO cartão (`CartaoProfissional`), que
+  // é o que impede a divergência de voltar na próxima mudança.
+  const [reputacoes, mapa, foto] = await Promise.all([
+    carregarReputacoes(lista.map((p) => p.usuario_id)),
+    carregarMapaTaxonomia(),
+    resolvedorDeFotoDePerfil(),
+  ])
 
   return (
     <main>
@@ -107,30 +120,13 @@ export default async function PrestadoresPage({
           />
         )}
         {lista.map((p) => (
-          <div key={p.usuario_id} className="border-b border-line py-3.5 last:border-0">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-sm text-accent-forte">
-                {p.nome_publico.slice(0, 2).toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{p.nome_publico}</p>
-                <p className="apoio mt-0.5 text-dim">
-                  {[p.categoria, p.cidade, p.disponibilidade].filter(Boolean).join(" · ")}
-                </p>
-              </div>
-              {p.telefone && (
-                <a href={`https://wa.me/55${p.telefone.replace(/\D/g, "")}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok">
-                  WhatsApp
-                </a>
-              )}
-            </div>
-            {p.bio && <p className="apoio mt-2 text-dim">{p.bio}</p>}
-            <span className="mt-2 inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
-              {p.verificado ? "Verificado" : "Documentação declarada"}
-            </span>
-          </div>
+          <CartaoProfissional
+            key={p.usuario_id}
+            perfil={p}
+            reputacao={reputacoes.get(p.usuario_id)}
+            mapa={mapa}
+            fotoUrl={foto(p.foto_path)}
+          />
         ))}
       </div>
 

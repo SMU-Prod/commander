@@ -1,10 +1,12 @@
 import Link from "next/link"
-import { SeloReputacao } from "@/components/avaliacoes/reputacao"
+import { CartaoProfissional } from "@/components/captain/cartao-profissional"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { RedeNav } from "@/components/ui/rede-nav"
 import { carregarReputacoes } from "@/lib/consultas-avaliacoes"
-import { calcularReputacao } from "@/lib/domain/avaliacoes"
+import { resolvedorDeFotoDePerfil } from "@/lib/consultas-captain"
+import { carregarMapaTaxonomia } from "@/lib/consultas-marketplace"
+import { PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
@@ -13,6 +15,13 @@ import type { PerfilComandante } from "@/lib/db/types"
 // usabilidade anterior). Ver docs/CONTRIBUTING.md, Glossário: "Comandantes" é
 // o nome final desta VITRINE DE PERFIS, e ela nunca volta a se chamar
 // Marketplace — esse nome é da área de DEMANDAS (/marketplace, onda 45).
+//
+// ONDA 50 (§12) — a lista passou a mostrar o perfil profissional do PRD
+// (foto, função e região padronizadas, experiência, certificações, porte) e
+// só devolve quem tem Captain Pro: a RLS da migration 051 aplica o "perfil
+// ativo" do §12. Esta página NÃO filtra plano na query de propósito — se o
+// filtro vivesse aqui, um cliente que chamasse o PostgREST direto veria
+// todo mundo. Ver `perfil_profissional_ativo()`.
 export default async function ComandantesPage() {
   const supabase = await supabaseServer()
   const { data: perfis, error } = await supabase
@@ -22,7 +31,11 @@ export default async function ComandantesPage() {
   // §14: "Perfil mostra média, quantidade". Uma consulta só pra todos os
   // perfis da lista — nota no cartão é o que ajuda a escolher antes de abrir.
   const lista = (perfis ?? []) as PerfilComandante[]
-  const reputacoes = await carregarReputacoes(lista.map((p) => p.usuario_id))
+  const [reputacoes, mapa, foto] = await Promise.all([
+    carregarReputacoes(lista.map((p) => p.usuario_id)),
+    carregarMapaTaxonomia(),
+    resolvedorDeFotoDePerfil(),
+  ])
 
   return (
     <main>
@@ -40,36 +53,13 @@ export default async function ComandantesPage() {
           />
         )}
         {lista.map((p) => (
-          <div key={p.usuario_id} className="border-b border-line py-3.5 last:border-0">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-sm text-accent-forte">
-                {p.nome_publico.slice(0, 2).toUpperCase()}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="titulo-card">{p.nome_publico}</p>
-                <p className="apoio mt-0.5 text-dim">
-                  {[p.categoria, p.cidade, p.disponibilidade].filter(Boolean).join(" · ")}
-                </p>
-              </div>
-              {p.telefone && (
-                <a href={`https://wa.me/55${p.telefone.replace(/\D/g, "")}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok">
-                  WhatsApp
-                </a>
-              )}
-            </div>
-            {p.bio && <p className="apoio mt-2 text-dim">{p.bio}</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="inline-block rounded border border-line px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
-                {p.verificado ? "Verificado" : "Documentação declarada"}
-              </span>
-              <SeloReputacao
-                reputacao={reputacoes.get(p.usuario_id) ?? calcularReputacao([])}
-                href={`/avaliacoes/${p.usuario_id}`}
-              />
-            </div>
-          </div>
+          <CartaoProfissional
+            key={p.usuario_id}
+            perfil={p}
+            reputacao={reputacoes.get(p.usuario_id)}
+            mapa={mapa}
+            fotoUrl={foto(p.foto_path)}
+          />
         ))}
       </div>
 
@@ -80,7 +70,8 @@ export default async function ComandantesPage() {
       </p>
 
       <Link href="/comandantes/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
-        <Icone nome="pessoas" className="size-3.5" /> É comandante? Toque aqui para criar seu perfil.
+        <Icone nome="pessoas" className="size-3.5" /> É comandante? Toque aqui para criar seu perfil
+        {" "}— o {PLANOS.captain_pro.rotulo} coloca você nesta lista.
       </Link>
     </main>
   )

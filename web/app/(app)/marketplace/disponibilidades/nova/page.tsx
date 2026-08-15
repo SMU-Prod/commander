@@ -5,6 +5,7 @@ import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { publicarDisponibilidade } from "@/lib/acoes/marketplace"
 import { carregarAssinatura } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
+import { carreiraLiberada, mensagemCarreiraBloqueada } from "@/lib/domain/captain"
 import { DIAS_PADRAO_EXPIRACAO, ROTULO_TIPO_TRABALHO, TIPOS_TRABALHO } from "@/lib/domain/marketplace"
 import { formatarPreco, PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -39,7 +40,7 @@ export default async function NovaDisponibilidadePage({
   const funcoes = itensDoTipo(taxonomia, "funcao")
   const regioes = itensDoTipo(taxonomia, "regiao")
   const { plano } = await carregarAssinatura()
-  const temCaptainPro = plano === "captain_pro"
+  const temCaptainPro = carreiraLiberada("disponibilidade", plano)
 
   return (
     <main>
@@ -100,13 +101,18 @@ export default async function NovaDisponibilidadePage({
         {temCaptainPro ? (
           <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar</button>
         ) : (
+          // Onda 50 — o texto do cadeado saiu daqui e virou fonte única em
+          // `mensagemCarreiraBloqueada` (lib/domain/captain.ts), e o botão
+          // deixou de apontar pra assinatura do BARCO: quem publica
+          // disponibilidade é o profissional, e o plano dele é o Captain Pro.
           <BloqueioPremium
-            titulo={`Publicar disponibilidade é do ${PLANOS.captain_pro.rotulo}`}
+            titulo={mensagemCarreiraBloqueada("disponibilidade").titulo}
             descricao={
-              `Por ${formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês você aparece para os proprietários da ` +
-              "sua região, se candidata a vagas e mantém o histórico de trabalhos confirmados. O acesso às " +
-              "embarcações que você já opera não muda em nada."
+              `${mensagemCarreiraBloqueada("disponibilidade").descricao} ` +
+              `São ${formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês.`
             }
+            href="/assinar?perfil=captain"
+            rotuloAcao={`Assinar o ${PLANOS.captain_pro.rotulo}`}
           />
         )}
       </form>

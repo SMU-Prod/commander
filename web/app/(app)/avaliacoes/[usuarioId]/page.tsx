@@ -6,6 +6,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarAvaliacoesDe, nomePublicoDoUsuario } from "@/lib/consultas-avaliacoes"
+import { carregarTrabalhosConfirmados } from "@/lib/consultas-captain"
 import { calcularReputacao } from "@/lib/domain/avaliacoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
@@ -32,7 +33,13 @@ export default async function PerfilAvaliacoesPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const itens = await carregarAvaliacoesDe(usuarioId)
+  const [itens, trabalhos] = await Promise.all([
+    carregarAvaliacoesDe(usuarioId),
+    // §12 — "trabalhos confirmados" faz parte do perfil profissional. Vem da
+    // RPC `trabalhos_confirmados` (migration 051), que conta negócio com
+    // confirmação bilateral em `negocios`; não existe contador guardado.
+    carregarTrabalhosConfirmados(usuarioId),
+  ])
   const reputacao = calcularReputacao(itens.map((i) => i.avaliacao))
   const nome = itens[0]?.avaliacao.avaliado_nome || (await nomePublicoDoUsuario(usuarioId))
   const souEu = user.id === usuarioId
@@ -44,6 +51,14 @@ export default async function PerfilAvaliacoesPage({
       <div className="mt-4">
         <ResumoReputacao reputacao={reputacao} />
       </div>
+
+      {trabalhos > 0 && (
+        <p className="apoio mt-2 rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+          {trabalhos === 1
+            ? "1 trabalho confirmado pelos dois lados dentro do Commander."
+            : `${trabalhos} trabalhos confirmados pelos dois lados dentro do Commander.`}
+        </p>
+      )}
 
       {souEu && reputacao.ocultadas > 0 && (
         <p className="apoio mt-2 rounded-lg border border-line bg-panel px-3 py-2 text-dim">

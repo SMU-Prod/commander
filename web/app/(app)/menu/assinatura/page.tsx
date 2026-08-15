@@ -9,6 +9,8 @@ import {
   asaasConfigurado, listarCobrancas, proximaCobrancaAsaas, type CobrancaAsaas,
 } from "@/lib/asaas"
 import { carregarAcessoEmbarcacoes, carregarAssinatura, carregarNivelPlano, carregarPainel } from "@/lib/consultas"
+import { carregarTrilha } from "@/lib/consultas-captain"
+import { O_QUE_O_CAPTAIN_FREE_FAZ, O_QUE_O_CAPTAIN_PRO_LIBERA } from "@/lib/domain/captain"
 import { mensagemDowngrade, ROTULO_SITUACAO } from "@/lib/domain/assinatura-ciclo"
 import { formatarPreco, PLANOS, planosDoPerfil, proximoUpgrade } from "@/lib/domain/planos"
 import { BENEFICIOS_PAGOS, O_QUE_O_FREE_FAZ, ehPago } from "@/lib/domain/plano-acesso"
@@ -88,23 +90,86 @@ export default async function AssinaturaPage({
 
   const painel = await carregarPainel()
 
-  // Tripulação/CMDT não tem assinatura própria — a cobrança é do
-  // proprietário, e `assinaturas`/`premium_concessoes` só deixam CADA DONO
-  // ler a própria linha (RLS, migrations 017/033). Em vez de uma tela de
-  // cobrança vazia e confusa (ou fingir um plano que não é "deles"), avisa
-  // com honestidade — mesma filosofia de "CMDT/tripulação nunca vê paywall"
-  // (`app/(app)/layout.tsx`), só que aqui o caminho é avisar, não bloquear.
+  // Tripulação/CMDT não tem assinatura DA EMBARCAÇÃO — a cobrança do barco é
+  // do proprietário, e `assinaturas`/`premium_concessoes` só deixam CADA DONO
+  // ler a própria linha (RLS, migrations 017/033). Mesma filosofia de
+  // "CMDT/tripulação nunca vê paywall" (`app/(app)/layout.tsx`): aqui o
+  // caminho é avisar, não bloquear.
+  //
+  // ONDA 50 (§12) — ANTES, ESTA TELA ERA UM BECO SEM SAÍDA. Ela devolvia só
+  // o aviso acima e parava, o que fechava a porta pro comandante contratado
+  // assinar o Captain Pro: o plano existia no catálogo desde a onda 47, tinha
+  // preço congelado no §2 e nenhum caminho de compra. O §12 separa as duas
+  // assinaturas justamente por isso — a do barco é do dono, a da CARREIRA é
+  // da pessoa. Agora a tela mostra as duas coisas: o aviso sobre o barco e o
+  // degrau de carreira em que ela está.
   if (painel && painel.papel !== "PROP") {
+    const { trilha, planoCarreira } = await carregarTrilha()
+    const { assinatura: minha, ciclo: meuCiclo } = await carregarAssinatura()
+    const temPro = planoCarreira === "captain_pro"
+    const vivaPropria = minha != null && minha.status !== "cancelada"
+
     return (
       <main>
         <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Assinatura" />
+
         <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
-          <p className="titulo-card">A assinatura é do proprietário</p>
+          <p className="titulo-card">A assinatura da embarcação é do proprietário</p>
           <p className="apoio mt-1 text-dim">
-            Cobrança e plano ficam vinculados a quem é PROP nesta embarcação — fale com o
-            proprietário para ver ou alterar a assinatura.
+            Cobrança e plano do barco ficam vinculados a quem é PROP nesta embarcação — fale com o
+            proprietário para ver ou alterar. O seu acesso a bordo vem do convite dele, não de assinatura.
           </p>
         </div>
+
+        {trilha === "captain" && (
+          <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="titulo-card">{PLANOS[planoCarreira].rotulo}</p>
+              <span
+                className={`rotulo rounded-full px-2.5 py-1 ${
+                  temPro ? "bg-accent/15 text-accent-forte" : "bg-panel2 text-dim"
+                }`}
+              >
+                {temPro ? "Ativo" : "Gratuito"}
+              </span>
+            </div>
+            <p className="apoio mt-1 text-dim">{PLANOS[planoCarreira].regra}</p>
+
+            <ul className="mt-3 space-y-1.5">
+              {(temPro ? O_QUE_O_CAPTAIN_PRO_LIBERA : O_QUE_O_CAPTAIN_FREE_FAZ).map((b) => (
+                <li key={b} className="apoio flex items-start gap-2">
+                  <Icone
+                    nome={temPro ? "selo" : "documento"}
+                    className={`mt-0.5 size-3.5 shrink-0 ${temPro ? "text-accent-forte" : "text-dim"}`}
+                  />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            {vivaPropria ? (
+              <div className="mt-4 rounded-lg border border-line bg-panel2 p-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="corpo font-medium">{formatarPreco(minha.valor_centavos)} /mês</p>
+                  <p className="apoio text-dim">{meuCiclo ? ROTULO_SITUACAO[meuCiclo.situacao] : ""}</p>
+                </div>
+                <form action={cancelarAssinatura} className="mt-3">
+                  <Confirmar
+                    rotulo="Cancelar assinatura"
+                    mensagem="Cancelar? Seu perfil sai da vitrine, mas nada do que você registrou é apagado."
+                  />
+                </form>
+              </div>
+            ) : (
+              <Link
+                href="/assinar?perfil=captain"
+                className="mt-4 block w-full rounded-xl bg-accent py-3.5 text-center font-semibold text-acao-texto"
+              >
+                Assinar o {PLANOS.captain_pro.rotulo} — {formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês
+              </Link>
+            )}
+          </div>
+        )}
       </main>
     )
   }

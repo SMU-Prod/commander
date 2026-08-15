@@ -1,11 +1,28 @@
 import { redirect } from "next/navigation"
+import { PainelCarreira } from "@/components/captain/painel-carreira"
 import { PerfilProfissionalForm } from "@/components/perfil-profissional-form"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { carregarTrilha, urlDaFotoDePerfil } from "@/lib/consultas-captain"
+import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { PerfilComandante } from "@/lib/db/types"
 
 const HABILITACOES = ["Arrais Amador", "Mestre Amador", "Capitão Amador", "Marinheiro Profissional"]
 
+/**
+ * ONDA 50 (PRD §12) — esta tela deixou de ser só um formulário.
+ *
+ * O §12 descreve o perfil profissional como um conjunto de coisas que a
+ * pessoa PREENCHE (foto, função, região, experiência, certificações, portes)
+ * e coisas que ela CONQUISTA (disponibilidade publicada, avaliações,
+ * trabalhos confirmados). As segundas vêm primeiro na página, no
+ * `PainelCarreira`, junto com a resposta que importa mais: o perfil está no
+ * ar ou não, e por quê.
+ *
+ * Função e região agora saem da `taxonomia` (§11.2/§21.2), então a página
+ * carrega as listas e passa pro formulário — texto livre continua existindo
+ * só como complemento.
+ */
 export default async function PerfilComandantePage({
   searchParams,
 }: {
@@ -15,8 +32,12 @@ export default async function PerfilComandantePage({
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
-  const { data } = await supabase
-    .from("perfis_comandante").select("*").eq("usuario_id", user.id).maybeSingle()
+
+  const [{ data }, taxonomia, { planoCarreira }] = await Promise.all([
+    supabase.from("perfis_comandante").select("*").eq("usuario_id", user.id).maybeSingle(),
+    carregarTaxonomia(),
+    carregarTrilha(),
+  ])
   const existente = data as PerfilComandante | null
   // Onda 39 — mesma linha (usuario_id é PK) serve os dois tipos: quem já tem
   // perfil de Prestador e abre este form vê um aviso ANTES de digitar nada
@@ -25,6 +46,7 @@ export default async function PerfilComandantePage({
   // da onda). `perfil` só entra pré-preenchido quando já é do tipo certo.
   const trocandoDeTipo = existente != null && existente.tipo !== "comandante"
   const perfil = trocandoDeTipo ? null : existente
+  const fotoUrl = await urlDaFotoDePerfil(perfil?.foto_path ?? null)
 
   return (
     <main>
@@ -41,9 +63,20 @@ export default async function PerfilComandantePage({
           aqui substitui esse perfil pelo de Comandante.
         </p>
       )}
+
+      <PainelCarreira
+        usuarioId={user.id}
+        tipo="comandante"
+        visivel={perfil?.visivel ?? false}
+        plano={planoCarreira}
+      />
+
       <PerfilProfissionalForm
         tipo="comandante"
         perfil={perfil}
+        funcoes={itensDoTipo(taxonomia, "funcao")}
+        regioes={itensDoTipo(taxonomia, "regiao")}
+        fotoUrl={fotoUrl}
         categoriasSugeridas={HABILITACOES}
         categoriaLabel="Habilitação"
         categoriaPlaceholder="Capitão Amador"
