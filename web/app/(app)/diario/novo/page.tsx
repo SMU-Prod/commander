@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { FormularioNovoEvento } from "@/components/campos-navegacao-evento"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { criarEvento } from "@/lib/acoes/eventos"
@@ -80,6 +81,11 @@ export default async function NovoEventoPage({
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarEvento} className="mt-5 space-y-4">
+        {/* Formulário mais usado do app e o de texto mais longo (descrição do
+            serviço). Só funciona junto com o `&tipo=` que `criarEvento`
+            agora devolve no erro: sem ele a tela volta no seletor e os
+            campos deste tipo nem existem pra serem restaurados. */}
+        <GuardaFormulario chave="diario:novo" />
         <FormularioNovoEvento
           tipoInicial={tipoInicial}
           dataInicial={data ?? hojeISO()}

@@ -16,11 +16,14 @@ import {
 } from "@/lib/domain/viagem"
 import { hojeISO } from "@/lib/domain/datas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { campo, rot } from "@/lib/ui/form"
 
 const COR_DOURADO = "#D4AF37"
 const COR_ALARME = "#FF5C5C"
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+// `campo`/`rot` vêm de `lib/ui/form` — este arquivo mantinha uma cópia local
+// das mesmas duas strings, então um ajuste no estilo de campo do app não
+// chegava aqui. O alias preserva o nome `rotulo` já usado no JSX abaixo.
+const rotulo = rot
 
 function colecaoVazia() {
   return { type: "FeatureCollection" as const, features: [] as unknown[] }
@@ -232,13 +235,20 @@ export function PlanejarViagemMapa({
       <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[18px] border-t border-line bg-panel/95 p-4 backdrop-blur">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="titulo-card">Nova viagem</h2>
+          {/* ESTE É O ÚNICO CAMINHO DE VOLTA DESTA TELA — o mapa ocupa a
+              tela inteira, não há `CabecalhoDetalhe` e a barra de baixo fica
+              coberta pela folha. Estava com `size-9` (36px), abaixo dos 44px
+              que o resto do app respeita: a saída existia mas escapava do
+              dedo. Rótulo visível junto do ícone porque um "×" sozinho num
+              canto não se lê como "sair daqui". */}
           <button
             type="button"
             onClick={() => router.push("/navegar")}
-            aria-label="Cancelar"
-            className="flex size-9 items-center justify-center text-dim"
+            aria-label="Cancelar e voltar para Navegar"
+            className="-mr-2 flex h-11 items-center gap-1 rounded-lg px-2 text-dim"
           >
             <Icone nome="mais" className="size-4 rotate-45" />
+            <span className="rotulo">Cancelar</span>
           </button>
         </div>
 

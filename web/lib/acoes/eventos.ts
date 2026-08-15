@@ -16,11 +16,28 @@ import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { boletimDoMar } from "@/lib/mar"
 import { supabaseServer } from "@/lib/supabase/server"
 
-function erroNovo(msg: string): never {
-  redirect(`/diario/novo?erro=${encodeURIComponent(msg)}`)
-}
-
 export async function criarEvento(formData: FormData) {
+  // O CAMINHO DE VOLTA DO ERRO PRECISA LEVAR O TIPO JUNTO (onda 55).
+  //
+  // `/diario/novo` abre num seletor ("o que aconteceu?") e só depois de
+  // escolher Manutenção/Abastecimento/... é que os campos daquele tipo são
+  // renderizados — `tipoInicial` sai de `searchParams.tipo`. Enquanto este
+  // redirect mandava só `?erro=`, o retorno caía no seletor de novo: além de
+  // parecer que a tela "voltou do zero", os campos preenchidos nem existiam
+  // no HTML, então o `GuardaFormulario` não teria o que restaurar. Com
+  // `&tipo=`, a pessoa volta no MESMO formulário, com a mensagem em cima.
+  const tipoEscolhido = String(formData.get("tipo") ?? "")
+  // A anotação `: (msg: string) => never` na CONST é obrigatória, não enfeite:
+  // o TypeScript só usa uma função que nunca retorna pra estreitar tipo
+  // (`reais` deixa de ser `number | null` depois da chamada) quando ela é
+  // declarada com tipo explícito. Sem ela, o corpo abaixo volta a acusar
+  // "'reais' is possibly 'null'".
+  const erroNovo: (msg: string) => never = (msg) => {
+    const qs = new URLSearchParams({ erro: msg })
+    if (tipoEscolhido) qs.set("tipo", tipoEscolhido)
+    redirect(`/diario/novo?${qs}`)
+  }
+
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")

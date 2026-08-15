@@ -55,7 +55,11 @@ const ROTAS = [
   "/diario", "/diario/novo",
   "/agenda", "/agenda/novo",
   "/financeiro", "/financeiro/lancamentos", "/financeiro/recorrentes",
-  "/financeiro/relatorios", "/financeiro/nova",
+  // `/financeiro/novo`, não `/financeiro/nova`: a rota escrita no feminino
+  // não existe e a varredura vinha medindo a página 404 do Next — que
+  // realmente não tem saída, e por isso aparecia como "SEM SAÍDA" no
+  // relatório. Era achado do teste, não do app (onda 55).
+  "/financeiro/relatorios", "/financeiro/novo",
   "/carteira", "/carteira/nova",
   "/marketplace", "/marketplace/nova", "/marketplace/interesses",
   "/marketplace/disponibilidades",

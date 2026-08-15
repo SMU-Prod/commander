@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { CampoSelect } from "@/components/ui/campo"
+import { linhaCampos } from "@/lib/ui/form"
 import type { TipoBateria } from "@/lib/db/types"
 
 export const ROTULO_TIPO_BATERIA: Record<TipoBateria, string> = {
@@ -38,7 +39,7 @@ export function CamposTipoEquipamento({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
+      <div className={linhaCampos}>
         <CampoSelect
           label="Tipo"
           id="tipo"

@@ -1,15 +1,15 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { Campo, CampoTextarea } from "@/components/ui/campo"
 import { avaliarContato, criarContato, excluirContato } from "@/lib/acoes/contatos"
 import { carregarPainel } from "@/lib/consultas"
 import { podeVer } from "@/lib/domain/permissoes"
+import { linhaCampos } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
 import type { Contato } from "@/lib/db/types"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
 export default async function ContatosPage({
   searchParams,
@@ -83,34 +83,20 @@ export default async function ContatosPage({
 
       <p className="rotulo text-dim mt-6 mb-2">Novo contato</p>
       <form action={criarContato} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        {/* Esta tela é meio-caminho de outro fluxo: quem chega com `?volta=`
+            veio de um registro do Diário pra cadastrar o prestador. Perder o
+            que digitou aqui por um erro custa DOIS formulários, não um. */}
+        <GuardaFormulario chave="barco:contato-novo" />
         {volta && <input type="hidden" name="volta" value={volta} />}
-        <div>
-          <label className={rotulo} htmlFor="nome">Nome</label>
-          <input id="nome" name="nome" required className={campo} />
+        <Campo label="Nome" id="nome" name="nome" required />
+        <Campo label="Empresa (opcional)" id="empresa" name="empresa" placeholder="Náutica Angra" />
+        <div className={linhaCampos}>
+          <Campo label="Especialidade" id="especialidade" name="especialidade" placeholder="Mecânica diesel" />
+          <Campo label="Telefone (com DDD)" id="telefone" name="telefone" inputMode="tel" placeholder="21 99999-0000" />
         </div>
-        <div>
-          <label className={rotulo} htmlFor="empresa">Empresa (opcional)</label>
-          <input id="empresa" name="empresa" placeholder="Náutica Angra" className={campo} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={rotulo} htmlFor="especialidade">Especialidade</label>
-            <input id="especialidade" name="especialidade" placeholder="Mecânica diesel" className={campo} />
-          </div>
-          <div>
-            <label className={rotulo} htmlFor="telefone">Telefone (com DDD)</label>
-            <input id="telefone" name="telefone" inputMode="tel" placeholder="21 99999-0000" className={campo} />
-          </div>
-        </div>
-        <div>
-          <label className={rotulo} htmlFor="email">E-mail (opcional)</label>
-          <input id="email" name="email" type="email" inputMode="email" placeholder="contato@nautica.com.br" className={campo} />
-        </div>
-        <div>
-          <label className={rotulo} htmlFor="observacoes">Observações (opcional)</label>
-          <textarea id="observacoes" name="observacoes" rows={2}
-            placeholder="Atende sábado, cobra deslocamento de Angra" className={campo} />
-        </div>
+        <Campo label="E-mail (opcional)" id="email" name="email" type="email" inputMode="email" placeholder="contato@nautica.com.br" />
+        <CampoTextarea label="Observações (opcional)" id="observacoes" name="observacoes" rows={2}
+          placeholder="Atende sábado, cobra deslocamento de Angra" />
         <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Salvar contato</button>
       </form>
     </main>

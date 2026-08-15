@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
+import { linhaCampos } from "@/lib/ui/form"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
@@ -39,8 +41,12 @@ export default async function NovoItemPage({
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarItemMonitorado} className="mt-5 space-y-4">
+        {/* `criarItemMonitorado` volta pra cá com `?erro=` quando falha, e o
+            redirect re-renderiza a página em branco — sem isto, quem
+            preencheu as oito caixas perdia tudo por causa de um campo. */}
+        <GuardaFormulario chave="barco:item-novo" />
         <Campo label="Nome" id="nome" name="nome" required placeholder="Ex.: Antifouling" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className={linhaCampos}>
           <Campo label="Especificação" id="especificacao" name="especificacao" placeholder="Ex.: 15W40" />
           <Campo label="Quantidade" id="quantidade" name="quantidade" placeholder="Ex.: 4 L" />
         </div>
@@ -74,12 +80,15 @@ export default async function NovoItemPage({
             <option key={c} value={c}>{ROTULO_MOTOR[c]}</option>
           ))}
         </CampoSelect>
-        <div className="grid grid-cols-2 gap-3">
+        <div className={linhaCampos}>
           <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal" placeholder="500" className="font-mono-instr tabular-nums" />
           <Campo label="E/ou a cada X meses" id="intervalo_meses" name="intervalo_meses" inputMode="numeric" placeholder="18" className="font-mono-instr tabular-nums" />
         </div>
         <Campo label="Ou vencimento em data fixa" id="data_fixa" name="data_fixa" type="date" />
-        <div className="grid grid-cols-2 gap-3">
+        {/* "Horas no último serviço" quebra em duas linhas nos 173px da
+            célula e o campo dele descia sozinho — `linhaCampos` alinha os
+            dois controles pela base. */}
+        <div className={linhaCampos}>
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date" defaultValue={hojeISO()} />
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
         </div>

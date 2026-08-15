@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarOcorrencia } from "@/lib/acoes/ocorrencias"
@@ -28,6 +29,10 @@ export default async function NovaOcorrenciaPage({
         <p className="corpo mt-5 text-dim">Seu acesso não permite registrar ocorrência em nenhum setor.</p>
       ) : (
         <form action={criarOcorrencia} className="mt-5 space-y-4">
+          {/* A descrição de uma avaria costuma ser o texto mais longo que
+              alguém digita no app. `criarOcorrencia` volta com `?erro=` e
+              limpava tudo — inclusive o relato inteiro. */}
+          <GuardaFormulario chave="barco:ocorrencia-nova" />
           <CampoSelect label="Setor" id="aba" name="aba" defaultValue={setor ?? ""} required>
             <option value="">Selecione</option>
             {setoresPermitidos.map((aba: Aba) => (

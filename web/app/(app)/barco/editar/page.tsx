@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { salvarDadosGerais } from "@/lib/acoes/embarcacao"
 import { carregarPainel } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
-import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { campo, linhaCampos, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarEmbarcacaoPage({
   searchParams,
@@ -30,13 +31,17 @@ export default async function EditarEmbarcacaoPage({
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarDadosGerais} className="mt-5 space-y-5">
+        {/* 15 campos em três blocos. `salvarDadosGerais` volta pra cá com
+            `?erro=` e a página re-renderiza do servidor com os valores do
+            banco — ou seja, tudo que foi digitado e ainda não salvou some. */}
+        <GuardaFormulario chave="barco:editar" />
         <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="embarcacao" className="size-3.5" /> Identificação</p>
           <div>
             <label className={rot} htmlFor="nome">Nome</label>
             <input id="nome" name="nome" required defaultValue={e.nome} className={campo} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="estaleiro">Estaleiro</label>
               <input id="estaleiro" name="estaleiro" defaultValue={e.estaleiro ?? ""} className={campo} />
@@ -46,7 +51,7 @@ export default async function EditarEmbarcacaoPage({
               <input id="modelo" name="modelo" defaultValue={e.modelo ?? ""} className={campo} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="ano">Ano</label>
               <input id="ano" name="ano" inputMode="numeric" defaultValue={e.ano ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
@@ -76,7 +81,11 @@ export default async function EditarEmbarcacaoPage({
 
         <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="ancora" className="size-3.5" /> Medidas e casco</p>
-          <div className="grid grid-cols-3 gap-3">
+          {/* Três colunas só sobrevivem a 390px porque os rótulos são
+              abreviados ("Compr. (m)", "Boca (m)", "Calado (m)") e cabem em
+              uma linha nos ~111px da célula. `items-end` segura o alinhamento
+              caso algum deles cresça. */}
+          <div className="grid grid-cols-3 items-end gap-3">
             <div>
               <label className={rot} htmlFor="comprimento_m">Compr. (m)</label>
               <input id="comprimento_m" name="comprimento_m" inputMode="decimal" placeholder="14,60"
@@ -93,7 +102,7 @@ export default async function EditarEmbarcacaoPage({
                 defaultValue={numeroParaCampoPtBr(e.calado_m)} className={`${campo} font-mono-instr tabular-nums`} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="casco_material">Material do casco</label>
               <input id="casco_material" name="casco_material" list="materiais" placeholder="PRFV"
@@ -121,7 +130,7 @@ export default async function EditarEmbarcacaoPage({
 
         <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="documento" className="size-3.5" /> Registro</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="tie">TIE</label>
               <input id="tie" name="tie" defaultValue={e.tie ?? ""} className={`${campo} font-mono-instr`} />
