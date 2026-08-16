@@ -44,6 +44,7 @@ export function MolduraApp({
   temFab,
   permissoes,
   avisos = 0,
+  faixa,
   children,
 }: {
   /** Há motor editável para o FAB registrar? Decidido no servidor, por permissão. */
@@ -55,6 +56,15 @@ export function MolduraApp({
   permissoes: Permissoes | null
   /** Contador do sino, já calculado e filtrado por permissão no layout. */
   avisos?: number
+  /** ONDA 60 — a faixa de topo do desktop (`FaixaTopo`), montada no layout
+   *  com os dados que ele já tem e entregue pronta: casca é assunto de
+   *  moldura, mas o DADO da faixa é do servidor — como `children`, ela chega
+   *  por prop e continua renderizando lá. Vive DENTRO da `[data-moldura]`,
+   *  antes do conteúdo: primeiro filho da caixa, herda `OFFSET_TRILHO` e a
+   *  largura máxima (alinha com o conteúdo, nunca passa por baixo do
+   *  trilho) e, por estar no fluxo, empurra o conteúdo pra baixo em vez de
+   *  cobri-lo. Sem barco o layout simplesmente não a passa. */
+  faixa?: React.ReactNode
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -68,6 +78,7 @@ export function MolduraApp({
           fabVisivel ? FOLGA_COM_FAB : FOLGA_SEM_FAB
         }`}
       >
+        {faixa}
         {children}
       </div>
     </>

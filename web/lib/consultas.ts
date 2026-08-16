@@ -40,6 +40,11 @@ export const carregarPainel = cache(async (): Promise<{
   papel: "PROP" | "CMDT"
   permissoes: Permissoes | null
   embarcacoes: { id: string; nome: string }[]
+  /** E-mail da conta logada — vem DE GRAÇA do `getUser()` que esta função
+   *  sempre fez (onda 60): a faixa de topo do desktop precisa de iniciais
+   *  pro avatar em toda página, e carregar o profile só pra isso seria uma
+   *  consulta nova por navegação. */
+  emailUsuario: string | null
 } | null> => {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -80,7 +85,15 @@ export const carregarPainel = cache(async (): Promise<{
   const papel = vinculo.papel as "PROP" | "CMDT"
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
 
-  return { embarcacao, equipamentos: equipamentos ?? [], itens: itens ?? [], papel, permissoes, embarcacoes: todas ?? [] }
+  return {
+    embarcacao,
+    equipamentos: equipamentos ?? [],
+    itens: itens ?? [],
+    papel,
+    permissoes,
+    embarcacoes: todas ?? [],
+    emailUsuario: user?.email ?? null,
+  }
 })
 
 /** Próxima viagem planejada (onda 19, Pilar Strava do Mar) — data futura mais

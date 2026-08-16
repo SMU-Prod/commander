@@ -333,21 +333,32 @@ export default async function HojePage({
      * resto se comporta como instrumento — número em fonte tabular, estado
      * em selo, nada de gradiente, sombra ou dourado disputando atenção.
      */
-    <main className="grid gap-3 lg:grid-cols-3 lg:items-start lg:gap-6">
+    // Acabamento Haulix (16/08): gap de desktop desce de 24 pra 16px —
+    // densidade é respeito (DESIGN §6.5), e era o que a referência tem.
+    <main className="grid gap-3 lg:grid-cols-3 lg:items-start lg:gap-4">
       {/* Sino no topo com contador (PRD §5.2). Fica aqui, no cabeçalho da
-          Início, porque o app não tem uma barra superior global — e o topo
-          da tela de casa é onde o dono chega. O contador aparece também no
-          rodapé, na aba Avisos, que essa sim segue em toda tela. */}
+          Início, porque NO CELULAR o app não tem uma barra superior global —
+          e o topo da tela de casa é onde o dono chega. O contador aparece
+          também no rodapé, na aba Avisos, que essa sim segue em toda tela.
+
+          A partir de `lg` a barra superior global EXISTE: a `FaixaTopo`
+          (onda 60) já carrega sino e nome do barco (o seletor, quando há
+          mais de um). Então sino e seletor daqui somem em `lg:hidden` — sem
+          isso eram dois sinos e dois nomes empilhados na mesma tela. A
+          saudação com a foto de verdade fica em toda largura: é o que a
+          faixa NÃO tem (lá o avatar é só iniciais do e-mail). */}
       <div className="flex items-center gap-3 lg:col-span-3">
         <Avatar url={urlAvatar} nome={nomeUsuario} />
         <div className="min-w-0 flex-1">
           <p className="apoio text-dim">Olá, {nomeUsuario.split(" ")[0]}</p>
-          <SeletorEmbarcacao
-            atual={{ id: embarcacao.id, nome: embarcacao.nome }}
-            opcoes={painel.embarcacoes}
-          />
+          <span className="lg:hidden">
+            <SeletorEmbarcacao
+              atual={{ id: embarcacao.id, nome: embarcacao.nome }}
+              opcoes={painel.embarcacoes}
+            />
+          </span>
         </div>
-        <SinoNotificacoes contador={contadorAvisos} />
+        <SinoNotificacoes contador={contadorAvisos} className="lg:hidden" />
       </div>
 
       {erro && (
@@ -468,7 +479,11 @@ export default async function HojePage({
           {podeEditar(permissoes, "diario") && (
             <Link
               href="/diario/novo"
-              className="mt-3 flex min-h-11 items-center justify-center rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto"
+              // Acabamento Haulix (16/08): a ação é uma pílula CONTIDA, não
+              // uma laje de largura inteira — na referência o acento é
+              // pequeno ("Activate Route"); o tamanho vinha gritando mais
+              // que o conteúdo.
+              className="mt-3 inline-flex min-h-11 items-center self-start rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
             >
               Registrar saída
             </Link>

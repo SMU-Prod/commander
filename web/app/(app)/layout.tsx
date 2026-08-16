@@ -1,10 +1,11 @@
 import { Suspense } from "react"
 import { BottomNav } from "@/components/bottom-nav"
+import { FaixaTopo } from "@/components/faixa-topo"
 import { MolduraApp } from "@/components/moldura-app"
 import { RegistroRapido } from "@/components/registro-rapido"
 import { RegistrarSw } from "@/components/registrar-sw"
 import { Toast } from "@/components/toast"
-import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
+import { carregarNotificacoes, carregarPainel, hojeISO } from "@/lib/consultas"
 import { contadorSino } from "@/lib/domain/notificacoes"
 import { podeEditar } from "@/lib/domain/permissoes"
 
@@ -70,6 +71,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       temFab={motores.length > 0}
       permissoes={painel?.permissoes ?? null}
       avisos={avisos}
+      // ONDA 60 — a faixa de topo do desktop (spec fundação §3.3), montada
+      // AQUI porque tudo que ela mostra o layout já tem em mãos: `painel`
+      // (barco atual, a lista de embarcações pro seletor, motores, itens,
+      // e-mail da conta) e `avisos`. Zero consulta nova por página — é a
+      // restrição que decidiu o que entra nela (ver
+      // `components/faixa-topo.tsx`). Sem barco, sem faixa.
+      faixa={painel != null && (
+        <FaixaTopo
+          embarcacao={{ id: painel.embarcacao.id, nome: painel.embarcacao.nome }}
+          embarcacoes={painel.embarcacoes}
+          equipamentos={painel.equipamentos}
+          itens={painel.itens}
+          hoje={hojeISO()}
+          avisos={avisos}
+          email={painel.emailUsuario}
+        />
+      )}
     >
       <RegistrarSw />
       <Suspense fallback={null}>

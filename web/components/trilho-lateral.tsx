@@ -125,7 +125,10 @@ export function TrilhoLateral({
               // O estado ativo NÃO pode depender de hover — é a única pista
               // de onde a pessoa está. Fundo tingido + cor do ícone: dois
               // canais, nunca só cor (docs/DESIGN.md).
-              ativo ? "bg-accent/12 text-accent-forte" : "text-dim hover:bg-panel2"
+              // Acabamento Haulix (16/08): o "você está aqui" vira pastilha
+              // CLARA (como a referência), não tinta dourada — o dourado
+              // fica pro que se age, o lugar se marca com luz.
+              ativo ? "bg-panel2 text-texto" : "text-dim hover:bg-panel2"
             }`}
           >
             {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.
@@ -137,9 +140,11 @@ export function TrilhoLateral({
                 Sem ele, a partir de 1024px o app inteiro ficava sem indicador
                 de alerta: a barra de baixo (que carrega o contador) é
                 `lg:hidden`, o sino tem UM consumidor (/hoje) e a faixa de
-                topo do spec §3.3 ainda não existe — ou seja, no desktop, em
-                qualquer tela que não fosse a Início, o seguro vencido não
-                avisava em lugar nenhum. */}
+                topo do spec §3.3 não existia — no desktop, em qualquer tela
+                que não fosse a Início, o seguro vencido não avisava em lugar
+                nenhum. Desde a onda 60 a faixa existe (`FaixaTopo`) e traz o
+                MESMO `ContadorAvisos` com o MESMO número do layout: os dois
+                sinos nunca discordam por construção. */}
             <span className="relative flex">
               <Icone nome={d.icone} className="size-5" />
               {d.href === "/notificacoes" && <ContadorAvisos avisos={avisos} />}

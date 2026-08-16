@@ -200,8 +200,10 @@ export default async function NotificacoesPage({
         Você só recebe aviso das áreas a que tem acesso.
       </p>
 
-      {/* O sublinhado dourado da aba ativa é um dos dois dourados desta tela
-          (o outro é o chip de categoria ativo, em Pendentes). */}
+      {/* O sublinhado dourado da aba ativa é indicador de NAVEGAÇÃO — fora
+          do orçamento de dois dourados da tela (DESIGN §5, regra refinada na
+          onda 60). O único dourado de CONTEÚDO aqui é o chip de categoria
+          ativo, em Pendentes. */}
       <Abas
         className="mt-4"
         ativa={aba}

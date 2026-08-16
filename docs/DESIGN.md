@@ -121,6 +121,21 @@ Sombra não é decoração. Se o elemento não flutua, não tem sombra.
   "destaque". Vermelho é reservado a crítico (PRD §1.1 e §4.6).
 - **Cinza-azulado** — texto secundário e linha.
 
+**A regra dos dois, refinada (onda 60): moldura não paga o orçamento do
+conteúdo.** O dourado de **NAVEGAÇÃO** — o indicador de onde-a-pessoa-está
+(trilho lateral, bottom-nav, aba ativa do `Abas`) — e o **FAB global**
+(`RegistroRapido`) são da **MOLDURA**: existem em toda tela, não competem
+por atenção com o assunto dela, e por isso ficam **fora** do orçamento de
+dois. O orçamento de dois vale para o dourado do **CONTEÚDO** — tipicamente
+a ação principal preenchida e um chip ativo. Isto não é regra nova: é o que
+as ondas 57–59 já praticavam sem escrever — o trilho e a bottom-nav sempre
+tiveram o item ativo em dourado sem contar como um dos dois usos de nenhuma
+tela. O caso que forçou escrever a régua foi o Financeiro (onda 60):
+`Lançamentos` reúne `Abas` (navegação), o chip de filtro ativo (conteúdo), a
+ação "Despesa" da barra (conteúdo) e o FAB "+ Registrar" (moldura) na mesma
+tela — quatro dourados visíveis, mas cada um com dono e função diferente, e
+só dois deles disputando o mesmo orçamento.
+
 ### Tipografia — três papéis
 - **Título e estado** — a voz editorial. É onde mora a personalidade.
 - **Corpo** — Urbanist, o texto que se lê.

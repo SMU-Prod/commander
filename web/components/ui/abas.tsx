@@ -7,9 +7,11 @@ import Link from "next/link"
  * "duas telas que fazem a mesma coisa parecem a mesma coisa" só vale se
  * ninguém escrever abas à mão.
  *
- * Atenção pra quem consumir: o sublinhado dourado da aba ativa conta no
- * orçamento de dourado da tela (máximo dois usos por tela, ver
- * `docs/DESIGN.md`).
+ * Atenção pra quem consumir: o sublinhado dourado da aba ativa é indicador
+ * de NAVEGAÇÃO — onde a pessoa está —, então é dourado de MOLDURA e fica
+ * FORA do orçamento de dois usos por tela (regra refinada na onda 60, ver
+ * `docs/DESIGN.md` §5). O orçamento continua valendo para o dourado do
+ * CONTEÚDO da tela (ação principal, chip ativo).
  */
 export function Abas({
   abas,
