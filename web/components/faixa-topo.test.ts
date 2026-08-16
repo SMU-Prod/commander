@@ -124,8 +124,8 @@ describe("FaixaTopo", () => {
         itemDeRevisao(),
       ],
     })
-    expect(saida).toContain("Revisão em 38h")
-    expect(saida).not.toContain("Revisão em 100h")
+    expect(saida).toContain("Revisão em 38 h")
+    expect(saida).not.toContain("Revisão em 100 h")
   })
 
   it("sem item com informação de verdade, a pílula de revisão não existe", () => {

@@ -17,8 +17,8 @@ import {
   calcularSemaforo,
   formatarDataCurta,
   PESO,
+  seloDoFarol,
   temInformacaoSuficiente,
-  textoRestanteCompacto,
 } from "@/lib/domain/semaforo"
 import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
 import { AREA_AGENDA } from "@/lib/domain/agenda"
@@ -32,7 +32,9 @@ import {
   contagemDaSaude,
   estadoExibidoDaSaude,
   horasDoMotor,
+  idadeCompacta,
   linkDoFator,
+  prazoCompacto,
   rotuloDaSaude,
   seloDaSaude,
   seloDoMar,
@@ -128,11 +130,12 @@ export default async function HojePage({
 
   const motores = equipamentos.filter((e) => e.tipo === "motor")
 
-  // Quanto falta pra cada item — o cartão "Precisa da sua atenção" mostra
-  // isso à direita da linha. Indexado por id porque a lista que ele percorre
-  // é a de FATORES da saúde (que já mistura manutenção e ocorrência,
-  // ordenada por criticidade), não a de itens.
-  const restantePorItem = new Map(avaliados.map((a) => [a.item.id, textoRestanteCompacto(a.r)]))
+  // Quanto falta pra cada item — a contagem regressiva mono do canvas
+  // (tela-1b: "-19 d" vencido, "18 h" na margem), à direita da linha de
+  // "Precisa da sua atenção". Indexado por id porque a lista que ele
+  // percorre é a de FATORES da saúde (que já mistura manutenção e
+  // ocorrência, ordenada por criticidade), não a de itens.
+  const restantePorItem = new Map(avaliados.map((a) => [a.item.id, prazoCompacto(a.r)]))
 
   // A revisão que o KPI de cada motor mostra. `avaliados` já vem do pior pro
   // melhor, então o primeiro item COM informação daquele motor é o mais
@@ -243,6 +246,11 @@ export default async function HojePage({
     .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
     .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false })
   const ocorrenciasAtivas = (ocorrenciasAtivasBrutas ?? []) as Ocorrencia[]
+
+  // Há quanto tempo cada ocorrência existe — a coluna mono do cartão de
+  // atenção (canvas tela-1b: "6 d" no vazamento). Indexado por id pelo mesmo
+  // motivo de `restantePorItem` acima.
+  const idadePorOcorrencia = new Map(ocorrenciasAtivas.map((o) => [o.id, idadeCompacta(o.created_at, hoje)]))
 
   // Saúde da Embarcação — desde 15/08/2026 é a régua declarativa do PRD
   // FINAL §5 (Saudável / Atenção / Ação necessária, o pior estado prevalece),
@@ -390,19 +398,16 @@ export default async function HojePage({
         }
       >
         {estadoSaude != null ? (
-          /* A fonte de instrumento é do NÚMERO, não da frase (revisão da onda
-             57). Este parágrafo inteiro era `font-mono-instr tabular-nums`:
-             no caminho normal, oito palavras em monoespaçada ao lado dos
-             números; no caminho vazio — barco com uma ocorrência ativa e
-             nenhum item com horas ou data, que é alcançável —, a frase de
-             reserva inteira. Mesmo defeito que a onda 56 tirou do hero.
-             Agora `contagemDaSaude` devolve as partes e só o numeral leva a
-             mono, como o cartão da Tripulação logo abaixo já fazia. */
+          /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
+             ocorrência aberta" — número em mono CLARO (`text-texto`), palavra
+             dim. A fonte de instrumento é do NÚMERO, não da frase (revisão da
+             onda 57): `contagemDaSaude` devolve as partes e só o numeral leva
+             a mono, como o cartão da Tripulação logo abaixo já fazia. */
           <p className="apoio text-dim">
-            {contagemDaSaude(saude)?.map((parte, i) => (
+            {contagemDaSaude(saude, ocorrenciasAtivas.length)?.map((parte, i) => (
               <span key={parte.rotulo}>
                 {i > 0 && " · "}
-                <span className="font-mono-instr tabular-nums">{parte.numero}</span> {parte.rotulo}
+                <span className="font-mono-instr tabular-nums text-texto">{parte.numero}</span> {parte.rotulo}
               </span>
             )) ?? "Nenhum item monitorado com data ou leitura."}
           </p>
@@ -437,7 +442,12 @@ export default async function HojePage({
                 leading={<Farol status={f.farol} />}
                 titulo={f.nome}
                 subtitulo={f.detalhe}
-                valor={restantePorItem.get(f.id)}
+                /* A coluna mono do canvas (tela-1b): manutenção mostra a
+                   contagem regressiva ("-19 d", "18 h"); ocorrência não tem
+                   prazo — mostra a idade ("6 d" aberta há seis dias), o
+                   único número honesto de quem não tem vencimento. A cor é
+                   a do farol da linha. */
+                valor={f.tipo === "ocorrencia" ? idadePorOcorrencia.get(f.id) : restantePorItem.get(f.id)}
                 valorClassName={f.farol === "vencido" ? "text-crit" : "text-warn"}
               />
             ))
@@ -479,7 +489,11 @@ export default async function HojePage({
           )}
           {podeEditar(permissoes, "diario") && (
             <Link
-              href="/diario/novo"
+              /* ONDA 62 — o botão diz "Registrar saída", então ele abre o
+                 formulário de SAÍDA (canvas tela-3b), não o seletor de 6
+                 tipos: `?tipo=navegacao` faz /diario/novo cair direto na
+                 tela do canvas. */
+              href="/diario/novo?tipo=navegacao"
               // Acabamento Haulix (16/08): a ação é uma pílula CONTIDA, não
               // uma laje de largura inteira — na referência o acento é
               // pequeno ("Activate Route"); o tamanho vinha gritando mais
@@ -527,6 +541,11 @@ export default async function HojePage({
                   rotulo={nomeDoEquipamento(m)}
                   valor={horasDoMotor(m)}
                   apoio={apoioDaRevisao(revisaoPorMotor.get(m.id) ?? null)}
+                  /* O apoio acende junto com o prazo (canvas tela-1b: o
+                     "Revisão em 18 h" do motor BE é âmbar; o horímetro em
+                     cima fica claro — a leitura é fato, o estado é do
+                     prazo). `seloDoFarol` é a mesma tradução de sempre. */
+                  apoioEstado={seloDoFarol(revisaoPorMotor.get(m.id)?.status ?? null)}
                 />
               ))}
             </div>

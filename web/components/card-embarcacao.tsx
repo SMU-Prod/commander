@@ -110,13 +110,14 @@ export function CardEmbarcacao({
           className="pointer-events-none absolute inset-x-0 top-0 h-16"
           style={{ backgroundImage: "linear-gradient(to bottom, rgb(11 29 45 / .55), rgb(11 29 45 / 0))" }}
         />
-        {/* Véu de baixo: alto e denso — o nome é o texto mais importante do app
-            e precisa se manter legível sobre casco branco no sol. */}
+        {/* Véu de baixo — as paradas do canvas (tela-1b): 120px, denso na
+            base pro nome ler sobre casco branco no sol, esvaziando mais cedo
+            que a versão anterior pra foto respirar no meio do herói. */}
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-36"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[120px]"
           style={{
             backgroundImage:
-              "linear-gradient(to top, rgb(11 29 45 / .96) 0%, rgb(11 29 45 / .88) 32%, rgb(11 29 45 / .5) 62%, rgb(11 29 45 / 0) 100%)",
+              "linear-gradient(to top, rgb(11 29 45 / .96) 0%, rgb(11 29 45 / .86) 34%, rgb(11 29 45 / .45) 66%, rgb(11 29 45 / 0) 100%)",
           }}
         />
         <span className="absolute left-3 top-3 flex items-center gap-1.5">
