@@ -1,27 +1,37 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem } from "@/lib/domain/diario"
-import { ESTADOS_QUE_PESAM_NA_SAUDE } from "@/lib/domain/ocorrencias"
+import { contagemDaSaude } from "@/lib/domain/inicio"
+import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
 import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import {
   calcularSaudeEmbarcacao,
+  contarEmDiaPorAba,
   FAROL_ESTADO_SAUDE,
   ROTULO_ESTADO_SAUDE,
   type FatorSaude,
   type ItemParaSaude,
   type OcorrenciaParaSaude,
 } from "@/lib/domain/saude"
-import { calcularSemaforo, temInformacaoSuficiente } from "@/lib/domain/semaforo"
+import { calcularSemaforo, temInformacaoSuficiente, textoRestante, type ResultadoCalc } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Ocorrencia } from "@/lib/db/types"
 
 const hrefDoFator = (f: FatorSaude) =>
   f.tipo === "manutencao" ? `/barco/itens/${f.id}/editar` : `/barco/ocorrencias/${f.id}`
+
+// A casca do cartão de estado (canvas tela-3k): a borda e a palavra ganham a
+// cor do farol do estado — cor E palavra, nunca só cor (DESIGN §6, regra 3).
+const CASCA_ESTADO: Record<"ok" | "atencao" | "vencido", { borda: string; texto: string }> = {
+  ok: { borda: "border-ok/40", texto: "text-ok" },
+  atencao: { borda: "border-warn/40", texto: "text-warn" },
+  vencido: { borda: "border-crit/40", texto: "text-crit" },
+}
 
 export default async function SaudePage() {
   const painel = await carregarPainel()
@@ -29,10 +39,15 @@ export default async function SaudePage() {
   const { embarcacao, equipamentos, itens } = painel
   const hoje = hojeISO()
 
+  // `resultadoPorItem` fica guardado pro subtítulo relativo da lista
+  // ("vencido há 19 dias", "em 18 h") — MESMO ResultadoCalc que decide o
+  // farol, formatado por `textoRestante` (semaforo.ts); nenhuma régua nova.
+  const resultadoPorItem = new Map<string, ResultadoCalc>()
   const itensParaSaude: ItemParaSaude[] = itens.map((i) => {
     const eq = equipamentos.find((e) => e.id === i.equipamento_id) ?? null
     const calc = itemMonitoradoToItemCalc(i)
     const r = calcularSemaforo(calc, eq?.horas_atuais ?? null, hoje)
+    resultadoPorItem.set(i.id, r)
     return {
       id: i.id,
       nome: i.nome,
@@ -54,16 +69,28 @@ export default async function SaudePage() {
   const ocorrenciasParaSaude: OcorrenciaParaSaude[] = ((ocorrenciasBrutas ?? []) as Ocorrencia[]).map((o) => ({
     id: o.id, titulo: o.titulo, aba: o.aba, estado: o.estado, gravidade: o.gravidade,
   }))
+  const estadoPorOcorrencia = new Map(ocorrenciasParaSaude.map((o) => [o.id, o.estado]))
 
   const saude = calcularSaudeEmbarcacao(itensParaSaude, ocorrenciasParaSaude)
+  const contagem = contagemDaSaude(saude, ocorrenciasParaSaude.length)
+  const emDiaPorAba = contarEmDiaPorAba(itensParaSaude)
+  const foraDaConta = itensParaSaude.filter((i) => !i.temInformacao).length
+
+  // O subtítulo relativo de cada fator (canvas: "Documentos · vencido há 19
+  // dias", "Motores · faltam 18 h", "Casco · ocorrência em acompanhamento").
+  const subtituloDoFator = (f: FatorSaude): string => {
+    if (f.tipo === "ocorrencia") {
+      const estado = estadoPorOcorrencia.get(f.id)
+      return `${ROTULO_ABA[f.aba]} · ocorrência ${estado ? ROTULO_ESTADO[estado].toLowerCase() : "registrada"}`
+    }
+    const r = resultadoPorItem.get(f.id)
+    const relativo = r ? textoRestante(r) : ""
+    return `${ROTULO_ABA[f.aba]} · ${relativo || f.detalhe.toLowerCase()}`
+  }
 
   return (
     <main>
-      <CabecalhoDetalhe
-        voltarHref="/hoje"
-        titulo="Saúde da Embarcação"
-        descricao="Em que estado o barco está agora, e o que está pedindo ação."
-      />
+      <CabecalhoDetalhe voltarHref="/hoje" voltarRotulo="Início" titulo="Saúde" />
 
       {saude.estado == null ? (
         <EstadoVazio
@@ -75,23 +102,33 @@ export default async function SaudePage() {
         />
       ) : (
         <>
-          {/* Sem número e sem barra (PRD §1.1/§27.2/§28) — o estado é o
-              conteúdo. Ver `lib/domain/saude.ts` pro histórico da decisão. */}
-          <div className="sombra-1 mt-6 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-4">
-            <Farol status={FAROL_ESTADO_SAUDE[saude.estado]} />
-            <p className="titulo-card">{ROTULO_ESTADO_SAUDE[saude.estado]}</p>
-            <span className="ml-auto font-mono-instr text-xs uppercase tracking-[.1em] text-dim">
-              {saude.total} {saude.total === 1 ? "item acompanhado" : "itens acompanhados"}
-            </span>
+          {/* Canvas tela-3k — sem anel, sem porcentagem, sem nota (PRD
+              §1.1/§27.2/§28): o cartão diz a PALAVRA, com o escudo e a
+              borda na cor do estado, e embaixo a contagem do que pesa —
+              a mesma linha da Início (`contagemDaSaude`). Ver
+              `lib/domain/saude.ts` pro histórico da decisão. */}
+          <div className={`sombra-1 mt-5 rounded-[var(--raio-cartao)] border bg-panel p-4 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].borda}`}>
+            <div className="flex items-center gap-2.5">
+              <Icone nome="escudo" className={`size-5 shrink-0 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`} />
+              <p className={`text-lg font-semibold leading-tight ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`}>
+                {ROTULO_ESTADO_SAUDE[saude.estado]}
+              </p>
+            </div>
+            <p className="corpo mt-2.5 text-dim">
+              {contagem && (
+                <>
+                  {contagem.map((p, i) => (
+                    <span key={p.rotulo}>
+                      {i > 0 && " · "}
+                      <span className="font-mono-instr tabular-nums text-texto">{p.numero}</span> {p.rotulo}
+                    </span>
+                  ))}
+                  {". "}
+                </>
+              )}
+              O pior estado prevalece — não existe nota nem porcentagem aqui.
+            </p>
           </div>
-
-          <p className="apoio mt-3 text-dim">
-            O estado é o pior que houver hoje: <strong className="font-medium text-texto">Ação necessária</strong> quando
-            existe pendência crítica — documento ou item de segurança vencido, ou ocorrência de gravidade
-            alta em aberto; <strong className="font-medium text-texto">Atenção</strong> quando há algo perto do prazo
-            ou uma pendência não crítica; <strong className="font-medium text-texto">Saudável</strong> quando não há
-            nenhuma das duas. Itens sem informação cadastrada ficam de fora.
-          </p>
           <p className="apoio mt-2 text-dim">
             É um retrato do que está registrado no Commander — não é declaração de navegabilidade.
           </p>
@@ -102,35 +139,55 @@ export default async function SaudePage() {
             </div>
           ) : (
             <>
-              {/* PRD §3.4: bloco "Precisa da sua atenção", ordenado por
-                  criticidade. Quem ordena é `calcularSaudeEmbarcacao` (crítico
-                  primeiro, depois peso da área × severidade) — a tela só
-                  desenha a lista na ordem que recebeu. */}
-              <p className="rotulo text-dim mt-6 mb-2 inline-flex items-center gap-1.5">
-                <Icone nome="alerta" className="size-3.5" /> Precisa da sua atenção
+              {/* PRD §3.4: ordenado por criticidade. Quem ordena é
+                  `calcularSaudeEmbarcacao` (crítico primeiro, depois peso da
+                  área × severidade) — a tela só desenha a lista na ordem que
+                  recebeu, num painel único (canvas tela-3k); o farol diz a
+                  cor, o subtítulo diz o prazo. */}
+              <p className="rotulo mt-6 mb-2 text-dim">
+                O que pesa hoje — <span className="tabular-nums">{saude.fatores.length}</span>
               </p>
-              <div className="space-y-2">
+              <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
                 {saude.fatores.map((f) => (
-                  <Link
+                  <LinhaLista
                     key={`${f.tipo}-${f.id}`}
                     href={hrefDoFator(f)}
-                    className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-3.5"
-                  >
-                    <Farol status={f.farol} />
-                    <div className="min-w-0 flex-1">
-                      <p className="titulo-card truncate">{f.nome}</p>
-                      <p className="apoio mt-0.5 truncate text-dim">{ROTULO_ABA[f.aba]} · {f.detalhe}</p>
-                    </div>
-                    {/* O selo de crítico substitui o "-18" que ficava aqui: diz
-                        POR QUE o item está no topo sem reintroduzir número. */}
-                    {f.critico && (
-                      <span className="shrink-0 rounded border border-crit/40 px-1.5 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-crit">
-                        Crítico
-                      </span>
-                    )}
-                    <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-                  </Link>
+                    leading={<Farol status={f.farol} />}
+                    titulo={f.nome}
+                    subtitulo={subtituloDoFator(f)}
+                  />
                 ))}
+              </div>
+            </>
+          )}
+
+          {(emDiaPorAba.length > 0 || foraDaConta > 0) && (
+            <>
+              {emDiaPorAba.length > 0 && (
+                <p className="rotulo mt-6 mb-2 text-dim">
+                  Em dia — <span className="tabular-nums">{saude.emDia}</span>
+                </p>
+              )}
+              <div className={`sombra-1 rounded-[14px] border border-line bg-panel p-3.5 ${emDiaPorAba.length === 0 ? "mt-6" : ""}`}>
+                {emDiaPorAba.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {emDiaPorAba.map((c) => (
+                      <span key={c.aba} className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5">
+                        <span aria-hidden="true" className="size-1.5 rounded-full bg-ok" />
+                        <span className="apoio text-dim">
+                          {ROTULO_ABA[c.aba]} <span className="font-mono-instr tabular-nums text-texto">{c.quantidade}</span>
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {foraDaConta > 0 && (
+                  <p className={`apoio text-dim ${emDiaPorAba.length > 0 ? "mt-3" : ""}`}>
+                    {foraDaConta === 1
+                      ? "1 item ficou fora da conta por não ter intervalo ou leitura informada."
+                      : `${foraDaConta} itens ficaram fora da conta por não ter intervalo ou leitura informada.`}
+                  </p>
+                )}
               </div>
             </>
           )}

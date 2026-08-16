@@ -353,3 +353,27 @@ export function calcularSaudeEmbarcacao(
 
   return { estado: piorEstado(fatores), emDia, atencao, vencido, total, fatores }
 }
+
+export interface ContagemPorAba {
+  aba: Aba
+  quantidade: number
+}
+
+/**
+ * Os chips do bloco "Em dia" da tela de Saúde (canvas tela-3k): quantos
+ * itens COM INFORMAÇÃO estão ok em cada área — maior contagem primeiro,
+ * desempate alfabético pra lista ser determinística. Item sem informação
+ * continua de fora, como em tudo aqui: ele não está "em dia", está
+ * desconhecido. Só APRESENTAÇÃO da contagem que `calcularSaudeEmbarcacao`
+ * já faz no agregado — nenhuma régua nova.
+ */
+export function contarEmDiaPorAba(itens: ItemParaSaude[]): ContagemPorAba[] {
+  const mapa = new Map<Aba, number>()
+  for (const i of itens) {
+    if (!i.temInformacao || i.status !== "ok") continue
+    mapa.set(i.aba, (mapa.get(i.aba) ?? 0) + 1)
+  }
+  return [...mapa.entries()]
+    .map(([aba, quantidade]) => ({ aba, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade || a.aba.localeCompare(b.aba, "pt-BR"))
+}
