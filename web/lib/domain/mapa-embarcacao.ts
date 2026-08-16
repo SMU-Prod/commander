@@ -1,4 +1,7 @@
 import type { Equipamento } from "@/lib/db/types"
+import type { Gravidade } from "@/lib/domain/ocorrencias"
+import { GRAVIDADE_CRITICA } from "@/lib/domain/saude"
+import { PESO, type StatusFarol } from "@/lib/domain/semaforo"
 
 /**
  * MAPA DA EMBARCAÇÃO (onda 61) — o dado da zona física.
@@ -72,4 +75,82 @@ export function sugestaoDeZona(tipo: Equipamento["tipo"]): ZonaEmbarcacao | null
     default:
       return null
   }
+}
+
+// ---------------------------------------------------------------------
+// estadoDaZona — o cérebro do mapa (spec §2.2)
+// ---------------------------------------------------------------------
+
+/**
+ * O que a zona precisa saber de cada item monitorado: o farol JÁ calculado
+ * por `calcularSemaforo` (`lib/domain/semaforo.ts`) — esta função agrega,
+ * não recalcula ("REUSE a régua existente", não segunda fórmula). Quem
+ * monta esta lista roda `calcularSemaforo` por item (com `horas_atuais` do
+ * equipamento dono e a data de hoje) exatamente como `saude.ts`/`/barco/saude`
+ * já fazem hoje — este módulo não precisa saber de horímetro nem de relógio.
+ *
+ * `temInformacao` é o mesmo contrato de `temInformacaoSuficiente`
+ * (`semaforo.ts`) e `ItemParaSaude.temInformacao` (`saude.ts`): item sem
+ * intervalo, sem data e sem horas não conta nem a favor nem contra — é a
+ * regra de honestidade que atravessa Semáforo, Saúde e agora o Mapa.
+ */
+export interface ItemParaZona {
+  status: StatusFarol
+  temInformacao: boolean
+}
+
+/**
+ * O que a zona precisa saber de cada ocorrência do setor: só a gravidade —
+ * o ESTADO (aberta/em_acompanhamento) já decidiu, antes de chegar aqui, que
+ * a ocorrência pesa (mesma régua de `pesaNaSaude`/`ESTADOS_QUE_PESAM_NA_SAUDE`
+ * em `ocorrencias.ts`: resolvida e anulada não chegam a esta lista).
+ */
+export interface OcorrenciaParaZona {
+  gravidade: Gravidade | null
+}
+
+/**
+ * A zona pinta o PIOR estado do que mora nela — mesma régua de "pior vence"
+ * que a Saúde usa (spec §2.2), sem inventar segunda fórmula:
+ *
+ *   - item: o farol que `calcularSemaforo` já decidiu, filtrado por
+ *     `temInformacao` (item sem dado real não vota);
+ *   - ocorrência: pesa pela GRAVIDADE, não pelo estado — `alta` (a mesma
+ *     `GRAVIDADE_CRITICA` que `saude.ts` usa pra decidir "crítico") pinta
+ *     `"vencido"`; `media`/`baixa`/ausente pintam só `"atencao"` — uma
+ *     ocorrência leve não deveria sozinha deixar a zona inteira vermelha, e
+ *     gravidade ausente nunca inventa "alta" (mesma honestidade de
+ *     `SEVERIDADE_GRAVIDADE_AUSENTE`).
+ *
+ * `null` é o pino CINZA: zona com equipamento mapeado, mas sem nenhum dado
+ * por trás — nem item com informação suficiente, nem ocorrência. Nunca verde
+ * por omissão: um equipamento cadastrado sem NENHUM acompanhamento não é um
+ * equipamento "em dia", é um equipamento desconhecido (mesma regra de
+ * honestidade de `SaudeEmbarcacao.estado === null`). Zona sem equipamento
+ * nenhum também devolve `null` — não existe zona pra pintar; decidir se
+ * DESENHA um pino ali é da tela (T3), não deste domínio.
+ *
+ * Assinatura pensada pro consumidor real (T4, `/barco/mapa`): a tela tem à
+ * mão os equipamentos da embarcação, os itens monitorados por equipamento e
+ * as ocorrências com setor — filtra cada um pela zona/setor corrente e chama
+ * esta função uma vez por zona. `equipamentosDaZona` não entra na conta do
+ * "pior vence" (isso já sai de `itensPorEquipamento`/`ocorrenciasDoSetor`
+ * vazios); ele só torna explícito, com teste próprio, que zona sem
+ * equipamento é `null` — em vez de deixar isso como efeito colateral
+ * acidental de duas listas vazias.
+ */
+export function estadoDaZona(
+  equipamentosDaZona: readonly { id: string }[],
+  itensPorEquipamento: readonly ItemParaZona[],
+  ocorrenciasDoSetor: readonly OcorrenciaParaZona[],
+): StatusFarol | null {
+  if (equipamentosDaZona.length === 0) return null
+
+  const statusItens = itensPorEquipamento.filter((i) => i.temInformacao).map((i): StatusFarol => i.status)
+  const statusOcorrencias = ocorrenciasDoSetor.map((o): StatusFarol => (o.gravidade === GRAVIDADE_CRITICA ? "vencido" : "atencao"))
+
+  const candidatos = [...statusItens, ...statusOcorrencias]
+  if (candidatos.length === 0) return null
+
+  return candidatos.sort((a, b) => PESO[b] - PESO[a])[0]
 }

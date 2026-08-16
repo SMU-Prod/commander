@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
+import { ZONAS } from "@/lib/domain/mapa-embarcacao"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { ROTULO_ABA } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -46,9 +47,19 @@ function camposDoForm(formData: FormData, falhar: (msg: string) => never) {
   const horas = horasBruto === null ? null : parseDecimalPtBr(horasBruto)
   if (horasBruto !== null && (horas === null || horas < 0)) falhar("Informe as horas com números.")
 
+  // "Onde fica no barco" (onda 61, spec §4) — "ainda não sei" chega como
+  // string vazia do select e vira null, igual à posição logo acima. Contra
+  // um enum inválido no FormData (não deveria acontecer vindo do próprio
+  // select, mas o servidor não confia em input de formulário) devolve erro
+  // em vez de gravar lixo — mesma régua de `tipo`.
+  const zonaBruta = texto("zona")
+  if (zonaBruta !== null && !(ZONAS as readonly string[]).includes(zonaBruta)) falhar("Zona inválida.")
+  const zona = zonaBruta
+
   return {
     tipo,
     posicao,
+    zona,
     marca: texto("marca"),
     modelo: texto("modelo"),
     numero_serie: texto("numero_serie"),
