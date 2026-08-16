@@ -8,6 +8,7 @@ import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
 import { TempoPainel } from "@/components/mapa/tempo-painel"
 import { Icone } from "@/components/icone"
+import { Selo } from "@/components/ui/selo"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
 import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/navegacao"
@@ -1702,21 +1703,28 @@ export function NavegarMapa({
             garrando ? "top-16" : "top-3"
           }`}
         >
-          {progressoRotaAtual && (
+          {progressoRotaAtual && destino && (
             <div className="sombra-2 pointer-events-auto w-64 rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
-              <div className="flex items-center justify-between gap-2">
-                <span className="titulo-card flex items-center gap-1.5 uppercase tracking-[.04em]">
-                  <Icone nome="embarcacao" className="size-3.5 text-accent" />
-                  Navegando
+              {/* Onda 62 (canvas tela-1c) — a anatomia do cabeçalho do
+                  painel: o destino à esquerda (o dado que muda), o estado
+                  como pílula verde à direita — cor E palavra, mesmo Selo do
+                  resto do app (o override de --ok em .bg-mapa-instrumento
+                  já garante o verde vivo sobre navy). Cosmético apenas:
+                  mesmos dados, nenhum efeito ou lógica de mapa tocada. */}
+              <div className="flex items-center gap-2">
+                <span className="titulo-card flex min-w-0 flex-1 items-center gap-1.5">
+                  <Icone nome="embarcacao" className="size-3.5 shrink-0 text-accent" />
+                  <span className="truncate">{destino.nome}</span>
                 </span>
-                {/* Honestidade de GPS (task 4): mesmo limiar de 60 m já usado
-                    no filtro anti-jitter do alarme de âncora — acima disso a
-                    leitura já não conta lá, e aqui não pode fingir que a
-                    posição na tela é exata. */}
-                {precisaoM != null && precisaoM > 60 && (
-                  <span className="apoio shrink-0 text-warn">GPS impreciso (~{Math.round(precisaoM)} m)</span>
-                )}
+                <Selo estado="ok">Navegando</Selo>
               </div>
+              {/* Honestidade de GPS (task 4): mesmo limiar de 60 m já usado
+                  no filtro anti-jitter do alarme de âncora — acima disso a
+                  leitura já não conta lá, e aqui não pode fingir que a
+                  posição na tela é exata. */}
+              {precisaoM != null && precisaoM > 60 && (
+                <p className="apoio mt-1 text-warn">GPS impreciso (~{Math.round(precisaoM)} m)</p>
+              )}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Mostrador
                   variante="cartao"
@@ -1743,6 +1751,12 @@ export function NavegarMapa({
                   unidade={sogKt != null ? "kt" : undefined}
                 />
               </div>
+              {/* Canvas tela-1c — o rodapé mono do painel: diz que a trilha
+                  está gravando SÓ quando está (nunca inventa), e repete o
+                  aviso de sempre — isto não é auxílio à navegação. */}
+              <p className="mt-2.5 text-center font-mono-instr text-[11px] text-meter-dim">
+                {estado === "gravando" ? "Trilha gravando · não é auxílio à navegação" : "Não é auxílio à navegação"}
+              </p>
             </div>
           )}
           {perseguicaoPausada && (
