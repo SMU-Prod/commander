@@ -40,7 +40,7 @@ completo. É a imagem mais importante para as ondas 59–60.
 | **Cabeçalho de ficha**: título GRANDE + chip de estado `Idle` colado + subtítulo (modelo) | identidade e estado na mesma linha | `CabecalhoDetalhe` ganhou `selo` (chip de estado colado ao título, palavra E cor) na onda 60; a ficha de equipamento adota (semáforo via `seloDoFarol`; sem item monitorado = "Sem dados") | ✅ onda 60 no equipamento / 🔜 replicação nas demais fichas (saída, ocorrência, lançamento…) |
 | **Barra de ações da ficha**: `Maintenance · Take Offline · [Activate Route]` — duas de contorno, UMA preenchida | a ação principal é a única sólida | `CabecalhoDetalhe` ganhou `acoes` (onda 60); o equipamento usa com "Editar" em contorno — SEM preenchida de propósito: a ação principal ("Registrar serviço") continua no corpo e duplicar quebraria DESIGN §6.2 | ⚠️ parcial (slot pronto + 1 ficha; replicação pendente) |
 | **Abas com contagem**: `Overview · Cargo · Trips 2 · Maintenance 3 · Alerts 0` | número junto do rótulo | `Abas` (criado na onda 58, já com `contagem?`); onda 60: `FinanceiroNav` renderiza `Abas` por dentro — a sub-navegação do Financeiro (4 telas) já é o componente | ✅ componente + sub-navegações / 🔜 uso nas fichas (com contagem) |
-| **Painel lateral de itens** (Packages) com chips de prioridade `Critical/High/Low` | lista densa ao lado do visual | painel de equipamentos/ocorrências ao lado do Mapa da Embarcação | 🔜 Onda 61 |
+| **Painel lateral de itens** (Packages) com chips de prioridade `Critical/High/Low` | lista densa ao lado do visual | painel de equipamentos/ocorrências ao lado do Mapa da Embarcação | ✅ onda 61 (desktop: painel à direita do corte; celular: painel abaixo, âncora `#painel-zona`) |
 | **Barras de capacidade** `28 700/44 000 lbs · 65%` | valor/limite + barra fina colorida | cota de fotos, capacidade elétrica (painel de bordo), tanque | 🔜 pontual |
 
 ### Imagem 3 — Driver Management em kanban
@@ -73,10 +73,16 @@ clicáveis**, cartão do motorista.
   (casco, motores, elétrica, hidráulica, convés, cabine), cada zona com
   equipamentos/manutenções/ocorrências fixados no lugar físico, chip de
   estado por item (`Critical/Normal/High` → nosso vencido/atenção/em dia).
-  Selecionar zona no desenho abre o painel lateral (imagem 2). **Não precisa
-  ser 3D para vender**: um corte lateral SVG bem desenhado com pinos
-  posicionados entrega a mesma leitura — 3D real é evolução, não requisito.
-  🔜 Onda 61 (spec próprio, dado novo: posição física por equipamento).
+  Selecionar zona no desenho abre o painel lateral (imagem 2). ✅ onda 61: zona
+  física no banco (dado), corte SVG com pinos por estado (tela) e a
+  seleção sincronizada com o painel — as três camadas do spec, medidas na
+  varredura de tela. **O 3D com modelo padrão por tipo de barco (o
+  equivalente exato do caminhão) é a evolução JÁ DECIDIDA pelo dono para a
+  onda 62** ("*o 3d dos barcos temos que ter... um modelo padrão de 3d mas
+  baseado na escolha do barco*", 16/08) — não um talvez: a shortlist de
+  asset já está pronta, com o Hinckley T44 FB (flybridge) grátis em licença
+  CC-BY como 1º candidato. O corte SVG desta onda é o palco v1 — mesma
+  camada de dado e de painel, troca-se só o desenho.
 - **Gráfico de área com preenchimento translúcido** (On-Time Performance):
   o padrão para "Gastos do mês" e "Seu ano no mar" — área, não pizza. ✅
   (GraficoMesesGastos é barras; área entra quando houver série contínua).
@@ -90,12 +96,17 @@ Variação da imagem 2 com o baú aberto. O que acrescenta:
 
 - **Item selecionado no 3D ganha contorno DOURADO** e o painel lateral abre
   o detalhe correspondente — seleção sincronizada desenho↔lista. É a
-  interação-chave do Mapa da Embarcação. 🔜 Onda 61.
+  interação-chave do Mapa da Embarcação. ✅ onda 61 — a zona selecionada no
+  corte SVG é o único dourado de conteúdo da tela (orçamento de 1 respeitado);
+  o painel ao lado (desktop) ou abaixo (celular, via âncora) sincroniza pela
+  URL (`?zona=`), sem `useState`. Silhueta específica por TIPO de barco
+  (hoje o corte é genérico) segue como evolução — o 3D da onda 62 já nasce
+  por tipo, então a silhueta 2D só compensaria no intervalo entre as duas.
 - **Callout âmbar "Fragile — handle with care"** dentro do detalhe: aviso
   contextual por item — no Commander, "peça em backorder", "recall do
   fabricante", "vence em 12 dias". ✅ padrão de tarja já existe.
 - **Front (Cab) ← → Rear (Doors)**: orientação escrita no desenho — no
-  barco: **Proa ← → Popa**. 🔜 Onda 61.
+  barco: **Proa ← → Popa**. ✅ onda 61, escrito nas pontas do corte.
 
 ### Imagem 6 — Operations Dashboard analítico
 
@@ -135,8 +146,8 @@ O que a referência tem de disciplina, verificado nas seis imagens:
    finas, nada de ar morto. ⚠️ nossas telas herdadas ainda são arejadas
    demais no desktop — é o trabalho das ondas 59–60.
 8. **O visual central da tela é o DADO** (mapa, caminhão, gráfico) e ocupa
-   a maior célula da grade; os cartões orbitam. ✅ na Início (foto);
-   🔜 nas fichas (Mapa da Embarcação).
+   a maior célula da grade; os cartões orbitam. ✅ na Início (foto); ✅ no
+   Mapa da Embarcação (onda 61, corte SVG — o "caminhão" da referência).
 
 ## 3. Fila de adaptação (o plano de ondas, atualizado por esta análise)
 
@@ -144,8 +155,8 @@ O que a referência tem de disciplina, verificado nas seis imagens:
 |---|---|
 | **59 — listas** | `BarraFerramentas` (chips com contagem + toggles, imagem 1) em Diário/Financeiro/Ocorrências/Avisos; **ação inline no aviso** + borda lateral por severidade (imagem 6); charts de relatório (imagem 6) |
 | **60 — fichas + topo** | faixa de KPI + sino/avatar/busca-placeholder (imagem 1); cabeçalho de ficha com chip de estado + barra de ações + `Abas` com contagem + breadcrumb (imagem 2); cartão de pessoa (imagens 3/4) em Tripulação/Comandantes/Prestadores |
-| **61 — Mapa da Embarcação** | o "caminhão 3D" náutico (imagens 4/5): corte por zonas, pinos com estado, seleção sincronizada com painel lateral, Proa↔Popa — spec próprio, precisa de dado novo (zona física por equipamento) |
-| pós-61 | busca global ⌘K; kanban de estado no Admin; barras de capacidade onde houver valor/limite |
+| **61 — Mapa da Embarcação** | ✅ o "caminhão" náutico (imagens 4/5): zona física no banco, corte SVG por zonas com pinos por estado, seleção sincronizada com painel lateral, Proa↔Popa. O "3D" da referência (o caminhão É 3D) fica para a onda 62 — modelo padrão por TIPO de barco, decisão do dono, shortlist pronta (Hinckley T44 FB, CC-BY) |
+| pós-61 | busca global ⌘K; kanban de estado no Admin; barras de capacidade onde houver valor/limite; **onda 62**: 3D por tipo de barco no Mapa da Embarcação |
 
 ---
 
