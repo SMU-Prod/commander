@@ -28,6 +28,16 @@ export default async function NovoEventoPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
 
+  // ONDA 62 — "Registrar saída" é uma TELA, não uma opção (canvas tela-3b):
+  // quem chega pelo botão dourado da Início (`?tipo=navegacao`) cai direto
+  // no formulário de saída, com o título e a promessa do canvas — sem
+  // passar pelos 6 cartões de "O que aconteceu?". Os demais caminhos
+  // (barra do Diário, ficha de equipamento) seguem no "Novo registro" com
+  // o seletor de sempre. Definido aqui em cima porque o TÍTULO vale também
+  // pra tela de bloqueio do plano, logo abaixo.
+  const ehSaida = tipo === "navegacao"
+  const titulo = ehSaida ? "Registrar saída" : "Novo registro"
+
   // §24 ("Sem permissão: mostrar mensagem de acesso não autorizado sem
   // revelar dados") e §27.2 (permissão na interface E no backend). Volta
   // antes de qualquer consulta: quem não pode escrever no Diário não pode
@@ -47,7 +57,7 @@ export default async function NovoEventoPage({
     const aviso = avisoAcervoAcimaDoTeto("diario_registros", nivel, usoDiario)
     return (
       <main>
-        <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo="Novo registro" />
+        <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo={titulo} />
         {aviso && (
           <p className="corpo mt-4 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">{aviso}</p>
         )}
@@ -77,7 +87,12 @@ export default async function NovoEventoPage({
 
   return (
     <main>
-      <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo="Novo registro" />
+      <CabecalhoDetalhe
+        voltarHref="/diario"
+        voltarRotulo="Diário"
+        titulo={titulo}
+        descricao={ehSaida ? "O essencial primeiro. O resto você completa depois, se quiser." : undefined}
+      />
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={criarEvento} className="mt-5 space-y-4">
@@ -87,6 +102,7 @@ export default async function NovoEventoPage({
             campos deste tipo nem existem pra serem restaurados. */}
         <GuardaFormulario chave="diario:novo" />
         <FormularioNovoEvento
+          tipoFixo={ehSaida}
           tipoInicial={tipoInicial}
           dataInicial={data ?? hojeISO()}
           tripulacao={tripulacaoOpcoes}

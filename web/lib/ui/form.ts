@@ -1,5 +1,10 @@
-/** Estilos compartilhados dos formulários da ficha (embarcação, equipamento, item, perfil). */
-export const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
+/** Estilos compartilhados dos formulários da ficha (embarcação, equipamento, item, perfil).
+ *
+ *  ONDA 62 — o raio do campo desce de 10px pro token de controle (8px): o
+ *  canvas do dono desenha todo campo a 8px (tela-3b) e o DESIGN §5 só
+ *  conhece TRÊS raios — 10px era um quarto, fora da escala, repetido em
+ *  todo formulário do app. */
+export const campo = "w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 text-base"
 export const rot = "rotulo mb-1.5 block text-dim"
 
 /**

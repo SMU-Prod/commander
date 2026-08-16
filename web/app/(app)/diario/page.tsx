@@ -1,16 +1,17 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
+import { Icone, type NomeIcone } from "@/components/icone"
 import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
 import { Chip } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
-import { duracaoHoras, textoDuracao } from "@/lib/domain/bordo"
-import { agruparPorMes, eventoNoFiltro, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
+import { duracaoHoras, textoDuracao, tituloDaSaida, tituloDoRegistro } from "@/lib/domain/bordo"
+import { agruparPorMes, eventoNoFiltro, nomeDoEquipamento, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
 import { resumoTrilha } from "@/lib/domain/geo"
 import { podeEditar } from "@/lib/domain/permissoes"
+import { formatarDataCurta } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Contato, Evento } from "@/lib/db/types"
 
@@ -19,6 +20,16 @@ const FILTROS: { valor: FiltroDiario; rotulo: string }[] = [
   { valor: "eletrica", rotulo: "Elétrica" }, { valor: "casco", rotulo: "Casco" },
   { valor: "docs", rotulo: "Docs" }, { valor: "gastos", rotulo: "Gastos" },
 ]
+
+// O ícone da pastilha de cada registro (canvas tela-3a): a SAÍDA leva o
+// barco em dourado — é a atividade, o coração do feed; todo o resto fica
+// neutro. Mesmo desenho dos cartões de "O que aconteceu?" no formulário,
+// exceto navegação, que lá é mapa (gesto de registrar) e aqui é o barco
+// (a coisa que saiu).
+const ICONE_TIPO: Record<string, NomeIcone> = {
+  navegacao: "embarcacao", manutencao: "ferramenta", abastecimento: "oleo",
+  avaria: "alerta", docagem: "ancora", leitura_horas: "relogio", outro: "mais",
+}
 
 export default async function DiarioPage({
   searchParams,
@@ -34,7 +45,11 @@ export default async function DiarioPage({
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: contatos }] = await Promise.all([
     supabase.from("eventos")
-      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, destino, tripulacao, mar_onda_m, mar_vento_kt, importado_do_plotter")
+      // `local_saida` e `passageiros` entraram na onda 62: o feed do canvas
+      // (tela-3a) põe a rota no título ("Angra dos Reis → Ilha Grande") e
+      // conta quem estava a bordo — os dois campos já existiam na tabela
+      // (PRD §23), só não eram lidos aqui.
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, local_saida, destino, tripulacao, passageiros, mar_onda_m, mar_vento_kt, importado_do_plotter")
       .eq("embarcacao_id", painel.embarcacao.id)
       .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
     supabase.from("contatos").select("id, nome"),
@@ -79,6 +94,9 @@ export default async function DiarioPage({
   return (
     <main>
       <h1 className="titulo-pagina">Diário de Bordo</h1>
+      {/* A frase de baixo do título é a do canvas (tela-3a): diz de uma vez o
+          que mora aqui, pra primeira visita não precisar deduzir do filtro. */}
+      <p className="apoio mt-1 text-dim">Toda saída, abastecimento e serviço registrado a bordo.</p>
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
           Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
           Segunda acao discreta pra nao competir com o "Registrar" da
@@ -134,22 +152,24 @@ export default async function DiarioPage({
         />
       )}
 
+      {/* ONDA 62 — A ANATOMIA DO FEED É A DO CANVAS (tela-3a): cada registro
+          é um CARTÃO próprio — pastilha do tipo à esquerda (dourada só na
+          saída, que é a atividade), o verbo no título, o carimbo da data em
+          mono à direita. A saída ganha a fileira de pílulas de instrumento
+          (No mar · Trilha · A bordo) com "sem GPS" no lugar de distância
+          inventada — o diário não inventa milha. Antes era um painel único
+          por mês com linhas separadas por borda; o canvas manda cartões. */}
       {grupos.map((g) => (
         <section key={g.rotulo}>
           <SecaoPagina>{g.rotulo}</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="flex flex-col gap-2">
             {g.eventos.map((e) => {
               const eq = e.equipamento_id ? porId.get(e.equipamento_id) : null
-              const meta = [
-                e.horas_no_momento != null ? `${e.horas_no_momento.toLocaleString("pt-BR")} h` : null,
-                e.contato_id ? nomeContato.get(e.contato_id) : null,
-                e.custo_centavos != null ? formatarReais(e.custo_centavos) : null,
-              ].filter(Boolean).join(" · ")
               const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
               // A saida vira feed de atividade (onda 18): cartao inteiro leva pra
               // /diario/[id] (mapa da trilha + painel de numeros + compartilhar).
-              // Os demais tipos de registro continuam exatamente como estavam —
-              // nao e tudo que e "atividade".
+              // Os demais tipos de registro continuam sem link — nao e tudo que
+              // e "atividade".
               const ehSaida = e.tipo === "navegacao"
               const duracaoEvento = ehSaida ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
               // Trilha ja vem selecionada na query (poucas saidas por barco —
@@ -161,78 +181,112 @@ export default async function DiarioPage({
               const tripNomes = (e.tripulacao ?? [])
                 .map((id) => nomePerfil.get(id))
                 .filter((n): n is string => Boolean(n))
+              // Quem estava a bordo, em gente: tripulacao com conta + passageiros
+              // digitados. Zero nao vira pilula — ninguem registrou ninguem.
+              const aBordo = (e.tripulacao ?? []).length + (e.passageiros ?? []).length
               const temMar = e.mar_onda_m != null || e.mar_vento_kt != null
-              const detalhesSaida = ehSaida
+              const apoioSaida = ehSaida
                 ? [
-                    e.destino,
                     tripNomes.length > 0 ? tripNomes.join(", ") : null,
                     temMar
                       ? `mar ${e.mar_onda_m != null ? `${e.mar_onda_m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"} / ${e.mar_vento_kt != null ? `${Math.round(e.mar_vento_kt)} kt` : "—"}`
                       : null,
+                    e.descricao,
                   ].filter(Boolean).join(" · ")
                 : ""
-              // Mini indicacao visual do feed: distancia (so com trilha) e/ou
-              // duracao — nunca inventa o que a saida nao tem.
-              const badgeAtividade = ehSaida
-                ? [
-                    trilhaResumo ? `${trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN` : null,
-                    duracaoEvento != null ? textoDuracao(duracaoEvento) : null,
-                  ].filter(Boolean).join(" · ")
-                : ""
+              const titulo = ehSaida
+                ? tituloDaSaida(e.local_saida, e.destino) ?? TIPO_ROTULO[e.tipo]
+                : tituloDoRegistro(e.tipo, TIPO_ROTULO[e.tipo] ?? e.tipo, e.descricao, eq ? nomeDoEquipamento(eq) : null)
               const conteudo = (
                 <>
-                  <div className="w-11 shrink-0 text-center font-mono-instr tabular-nums text-[11px] leading-tight text-dim">
-                    <span className="block text-base text-texto">{e.data.slice(8, 10)}</span>
-                    {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
-                      .format(new Date(`${e.data}T00:00:00Z`)).replace(".", "")}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex size-[30px] shrink-0 items-center justify-center rounded-[var(--raio-controle)] ${
+                        ehSaida ? "bg-accent/10 text-accent-forte" : "bg-panel2 text-dim"
+                      }`}
+                    >
+                      <Icone nome={ICONE_TIPO[e.tipo] ?? "mais"} className="size-4" />
+                    </span>
+                    <p className="titulo-card min-w-0 flex-1 line-clamp-2">{titulo}</p>
+                    <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">
+                      {formatarDataCurta(e.data)}
+                    </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="titulo-card">
-                      {TIPO_ROTULO[e.tipo] ?? e.tipo}
-                      {eq
-                        ? ` — ${
-                            eq.tipo === "motor"
-                              ? "Motor"
-                              : eq.tipo === "gerador"
-                                ? "Gerador"
-                                : eq.tipo === "bateria"
-                                  ? "Bateria"
-                                  : "Equipamento"
-                          } ${eq.posicao ?? ""}`
-                        : ""}
+                  {ehSaida && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {duracaoEvento != null && (
+                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                          <span className="rotulo text-dim">No mar</span>
+                          <span className="font-mono-instr text-xs font-semibold tabular-nums">{textoDuracao(duracaoEvento)}</span>
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                        <span className="rotulo text-dim">Trilha</span>
+                        {trilhaResumo ? (
+                          <span className="font-mono-instr text-xs font-semibold tabular-nums">
+                            {trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
+                          </span>
+                        ) : (
+                          // "sem GPS" no lugar de 0 MN — o diário não inventa
+                          // distância (nota do próprio canvas).
+                          <span className="font-mono-instr text-xs font-semibold text-dim">sem GPS</span>
+                        )}
+                      </span>
+                      {aBordo > 0 && (
+                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                          <span className="rotulo text-dim">A bordo</span>
+                          <span className="font-mono-instr text-xs font-semibold tabular-nums">{aBordo}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {ehSaida
+                    ? apoioSaida && <p className="apoio mt-2.5 text-dim">{apoioSaida}</p>
+                    : (e.horas_no_momento != null || e.contato_id || e.custo_centavos != null) && (
+                        <p className="apoio mt-2 text-dim">
+                          {e.contato_id && nomeContato.get(e.contato_id)}
+                          {e.horas_no_momento != null && (
+                            <>
+                              {e.contato_id ? " · " : ""}horímetro{" "}
+                              <span className="font-mono-instr tabular-nums text-texto">
+                                {e.horas_no_momento.toLocaleString("pt-BR")} h
+                              </span>
+                            </>
+                          )}
+                          {e.custo_centavos != null && (
+                            <>
+                              {e.contato_id || e.horas_no_momento != null ? " · " : ""}
+                              <span className="font-mono-instr tabular-nums text-texto">{formatarReais(e.custo_centavos)}</span>
+                            </>
+                          )}
+                        </p>
+                      )}
+                  {(e.importado_do_plotter || (urlAnexo && !ehSaida)) && (
+                    <p className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {e.importado_do_plotter && (
+                        <span className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr text-[11px] text-dim">
+                          <Icone nome="guardado" className="size-3" /> Importada do plotter
+                        </span>
+                      )}
+                      {/* Só fora da saída: o cartão de saída inteiro já é um
+                          <Link>, e âncora dentro de âncora é HTML inválido —
+                          o anexo dela abre por /diario/[id]. */}
+                      {urlAnexo && !ehSaida && (
+                        <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="apoio inline-flex min-h-6 items-center text-accent-forte">
+                          Abrir anexo
+                        </a>
+                      )}
                     </p>
-                    {e.descricao && <p className="apoio mt-0.5 text-dim">{e.descricao}</p>}
-                    {detalhesSaida && <p className="apoio mt-0.5 text-dim">{detalhesSaida}</p>}
-                    {(badgeAtividade || e.importado_do_plotter) && (
-                      <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        {badgeAtividade && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-accent-forte">
-                            <Icone nome="mapa" className="size-3" /> {badgeAtividade}
-                          </span>
-                        )}
-                        {e.importado_do_plotter && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr text-[11px] text-dim">
-                            <Icone nome="guardado" className="size-3" /> Importada do plotter
-                          </span>
-                        )}
-                      </p>
-                    )}
-                    {meta && <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">{meta}</p>}
-                    {urlAnexo && (
-                      <a href={urlAnexo} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block apoio text-accent-forte">
-                        Abrir anexo
-                      </a>
-                    )}
-                  </div>
-                  {ehSaida && <Icone nome="chevron" className="size-4 shrink-0 self-center text-dim" />}
+                  )}
                 </>
               )
+              const casca = "block rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
               return ehSaida ? (
-                <Link key={e.id} href={`/diario/${e.id}`} className="flex gap-3 border-b border-line py-3 last:border-0">
+                <Link key={e.id} href={`/diario/${e.id}`} className={casca}>
                   {conteudo}
                 </Link>
               ) : (
-                <div key={e.id} className="flex gap-3 border-b border-line py-3 last:border-0">
+                <div key={e.id} className={casca}>
                   {conteudo}
                 </div>
               )

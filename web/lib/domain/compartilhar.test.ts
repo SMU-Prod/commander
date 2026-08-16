@@ -9,7 +9,10 @@ describe("textoCompartilharSaida", () => {
       origem: "Marina da Glória",
       destino: "Abraão",
     })
-    expect(texto).toBe("Saída de 13,2 MN em 3 h 30 min — Marina da Glória → Abraão, pelo Commander")
+    // "3 h 30" sem o "min": a voz de `textoDuracao` mudou na onda 62 pro
+    // formato do canvas (tela-3a) — a frase compartilhada acompanha, senão
+    // o app diria a mesma duração de dois jeitos.
+    expect(texto).toBe("Saída de 13,2 MN em 3 h 30 — Marina da Glória → Abraão, pelo Commander")
   })
 
   it("sem trilha (sem distância), só duração e destino", () => {

@@ -60,6 +60,7 @@ const campoAnexo = (
  *  a pessoa apontou em "O que aconteceu?". */
 export function FormularioNovoEvento({
   tipoInicial,
+  tipoFixo = false,
   dataInicial,
   tripulacao,
   equipamentos,
@@ -73,6 +74,10 @@ export function FormularioNovoEvento({
   contatoInicial = "",
 }: {
   tipoInicial: string | null
+  /** A tela chegou já sabendo o tipo (ex.: "Registrar saída" da Início,
+   *  canvas tela-3b) — o seletor de 6 cartões não aparece; o título da
+   *  página é quem diz o que se está registrando. */
+  tipoFixo?: boolean
   dataInicial: string
   tripulacao: { id: string; nome: string }[]
   equipamentos: Equipamento[]
@@ -140,40 +145,66 @@ export function FormularioNovoEvento({
 
   return (
     <>
-      <div>
-        <p className={rotulo}>O que aconteceu?</p>
-        <div className="mt-2 grid grid-cols-2 gap-3">
-          {TIPOS.map((t) => {
-            const selecionado = tipo === t.valor
-            return (
-              <button
-                key={t.valor}
-                type="button"
-                aria-pressed={selecionado}
-                onClick={() => setTipo(t.valor)}
-                className={`flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[14px] border px-3 py-4 text-sm font-medium ${
-                  selecionado ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line bg-panel2 text-dim-chip"
-                }`}
-              >
-                <Icone nome={t.icone} className="size-6" />
-                {t.rotulo}
-              </button>
-            )
-          })}
+      {/* Chegando pelo botão "Registrar saída" (canvas tela-3b) o tipo é
+          FIXO e a tela é do formulário — os 6 cartões só existem no "Novo
+          registro" genérico. */}
+      {!tipoFixo && (
+        <div>
+          <p className={rotulo}>O que aconteceu?</p>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            {TIPOS.map((t) => {
+              const selecionado = tipo === t.valor
+              return (
+                <button
+                  key={t.valor}
+                  type="button"
+                  aria-pressed={selecionado}
+                  onClick={() => setTipo(t.valor)}
+                  className={`flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[14px] border px-3 py-4 text-sm font-medium ${
+                    selecionado ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line bg-panel2 text-dim-chip"
+                  }`}
+                >
+                  <Icone nome={t.icone} className="size-6" />
+                  {t.rotulo}
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {tipo && (
         <>
           <input type="hidden" name="tipo" value={tipo} />
 
-          <Campo label="Data" id="data" name="data" type="date" defaultValue={dataInicial} />
+          {/* Na saída a data entra na fileira Data · Saída · Retorno abaixo
+              (canvas tela-3b); nos demais tipos segue campo próprio. */}
+          {tipo !== "navegacao" && (
+            <Campo label="Data" id="data" name="data" type="date" defaultValue={dataInicial} />
+          )}
 
           {tipo === "navegacao" && (
-            <div className="space-y-4 rounded-[14px] border border-line bg-panel2 p-4">
-              <div className="grid grid-cols-2 gap-3">
+            /* ONDA 62 — a anatomia do canvas (tela-3b): os campos correm
+               soltos na página, sem painel dentro de painel; Data, Saída e
+               Retorno dividem UMA fileira em mono tabular — horário é
+               leitura de instrumento, e ninguém deve errar dígito com o
+               barco balançando. */
+            <div className="space-y-3.5">
+              {/* A célula da data leva um fio a mais de largura: o <input
+                  type="date"> nativo desenha "16/08/2026" + o ícone de
+                  calendário, e em três colunas iguais a 390px o ano era
+                  cortado no meio. */}
+              <div className="grid grid-cols-[1.25fr_1fr_1fr] gap-2.5">
                 <Campo
-                  label="Hora de saída"
+                  label="Data"
+                  id="data"
+                  name="data"
+                  type="date"
+                  defaultValue={dataInicial}
+                  className="font-mono-instr tabular-nums"
+                />
+                <Campo
+                  label="Saída"
                   id="hora_saida"
                   name="hora_saida"
                   type="time"
@@ -182,7 +213,7 @@ export function FormularioNovoEvento({
                   className="font-mono-instr tabular-nums"
                 />
                 <Campo
-                  label="Hora de retorno"
+                  label="Retorno"
                   id="hora_retorno"
                   name="hora_retorno"
                   type="time"
@@ -204,7 +235,7 @@ export function FormularioNovoEvento({
                 </p>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <Campo label="Local de saída" id="local_saida" name="local_saida" placeholder="Ex.: Marina da Glória" />
                 <Campo label="Destino" id="destino" name="destino" placeholder="Ex.: Ilha de Búzios" />
               </div>
@@ -216,7 +247,7 @@ export function FormularioNovoEvento({
                     {tripulacao.map((p) => (
                       <label
                         key={p.id}
-                        className="flex min-h-11 items-center gap-2 rounded-[10px] border border-line bg-campo px-3 py-2 text-sm"
+                        className="flex min-h-11 items-center gap-2 rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 text-sm"
                       >
                         <input type="checkbox" name="tripulacao" value={p.id} className="size-4" />
                         {p.nome}
@@ -385,8 +416,12 @@ export function FormularioNovoEvento({
             </details>
           )}
 
-          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-            Registrar no diário
+          {/* 48px, raio de controle (8px) e 15px — o botão do canvas
+              (tela-3b). Era `rounded-xl` (12px), um quarto raio fora da
+              escala de três do DESIGN §5. A saída fala "Salvar saída", como
+              no canvas; os demais tipos seguem com o verbo genérico. */}
+          <button className="h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto">
+            {tipo === "navegacao" ? "Salvar saída" : "Registrar no diário"}
           </button>
         </>
       )}

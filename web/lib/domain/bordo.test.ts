@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest"
-import { duracaoHoras, horasSugeridas, lerPassageiros, retornoNoDiaSeguinte, textoDuracao } from "./bordo"
+import {
+  duracaoHoras,
+  horasSugeridas,
+  lerPassageiros,
+  retornoNoDiaSeguinte,
+  textoDuracao,
+  tituloDaSaida,
+  tituloDoRegistro,
+} from "./bordo"
 
 describe("duracaoHoras", () => {
   it("calcula a duracao entre saida e retorno", () => {
@@ -28,10 +36,44 @@ describe("horasSugeridas", () => {
 })
 
 describe("textoDuracao", () => {
-  it("fala como gente", () => {
-    expect(textoDuracao(4.5)).toBe("4 h 30 min")
+  it("fala a lingua do canvas: minuto com dois digitos, sem 'min' quando ha horas", () => {
+    // tela-3a do canvas: "4 h 20", "6 h 05" — o zero a esquerda mantem as
+    // duracoes alinhadas quando ficam lado a lado em fonte tabular.
+    expect(textoDuracao(4.5)).toBe("4 h 30")
+    expect(textoDuracao(6 + 5 / 60)).toBe("6 h 05")
     expect(textoDuracao(2)).toBe("2 h")
+  })
+  it("menos de uma hora continua em minutos, sem '0 h' na frente", () => {
     expect(textoDuracao(0.5)).toBe("30 min")
+  })
+})
+
+describe("tituloDaSaida", () => {
+  it("com os dois lados, a rota vira o titulo — canvas tela-3a", () => {
+    expect(tituloDaSaida("Angra dos Reis", "Ilha Grande")).toBe("Angra dos Reis → Ilha Grande")
+  })
+  it("com um lado so, o titulo e esse lado — sem seta pra lugar nenhum", () => {
+    expect(tituloDaSaida(null, "Ilha Grande")).toBe("Ilha Grande")
+    expect(tituloDaSaida("Marina da Glória", null)).toBe("Marina da Glória")
+  })
+  it("sem nenhum, devolve null — o feed cai no rotulo do tipo, nunca inventa rota", () => {
+    expect(tituloDaSaida(null, null)).toBeNull()
+    expect(tituloDaSaida("  ", "")).toBeNull()
+  })
+})
+
+describe("tituloDoRegistro", () => {
+  it("a descricao digitada vira o titulo, com o equipamento atras", () => {
+    expect(tituloDoRegistro("manutencao", "Manutenção", "troca de impelidor", "Motor BB"))
+      .toBe("Troca de impelidor — Motor BB")
+  })
+  it("abastecimento mantem o rotulo na frente: a descricao dele e quantidade, nao verbo", () => {
+    expect(tituloDoRegistro("abastecimento", "Abastecimento", "320 L", null))
+      .toBe("Abastecimento — 320 L")
+  })
+  it("sem descricao, sobra o rotulo do tipo — nunca titulo inventado", () => {
+    expect(tituloDoRegistro("avaria", "Avaria", null, null)).toBe("Avaria")
+    expect(tituloDoRegistro("docagem", "Docagem", "  ", "Motor BE")).toBe("Docagem — Motor BE")
   })
 })
 
