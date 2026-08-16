@@ -115,7 +115,10 @@ O que a referência tem de disciplina, verificado nas seis imagens:
    para separar cartão de fundo. ✅ nossos tokens (onda 57).
 2. **UM acento (lima ácido no Haulix, dourado no Commander)** e ele aparece
    em: a ação principal preenchida, o item selecionado, a barra de progresso
-   da rota, a marca. **Nunca em decoração.** ✅ regra dos 2 usos.
+   da rota, a marca. **Nunca em decoração.** ✅ regra dos 2 usos — e desde a
+   onda 60 o dourado de navegação (trilho, bottom-nav, aba ativa) e o FAB
+   global ficam de fora dessa conta, por serem moldura: ver `docs/DESIGN.md`
+   §5.
 3. **Semântico separado do acento**: verde=ok, âmbar=atenção,
    vermelho=crítico, sempre com PALAVRA no chip. ✅.
 4. **Todo número em mono** — até dentro de chip (`CDL-A TX-88421`). ✅.
