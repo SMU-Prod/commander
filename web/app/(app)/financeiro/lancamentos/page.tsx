@@ -1,6 +1,9 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Icone } from "@/components/icone"
+import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
 import { Chip, ChipLinha } from "@/components/ui/chip"
-import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
+import { FinanceiroNav } from "@/components/ui/financeiro-nav"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -84,25 +87,53 @@ export default async function LancamentosPage({
       <p className="apoio mt-1 text-dim">Todo lançamento do barco, do mais recente ao mais antigo.</p>
 
       <FinanceiroNav atual="lancamentos" className="mt-4" />
-      <AcoesUniversais className="mt-3" />
 
-      <ChipLinha className="mt-4">
-        {FILTROS.map((f) => (
-          <Chip key={f.valor} href={href(f.valor, categoria)} ativo={filtro === f.valor}>
-            {f.rotulo}
-          </Chip>
-        ))}
-      </ChipLinha>
-      <ChipLinha className="mt-2">
-        <Chip href={href(filtro, null)} ativo={categoria === null} nivel="secundario">
-          Todas
-        </Chip>
-        {CATEGORIAS_FINANCEIRAS.map((c) => (
-          <Chip key={c} href={href(filtro, c)} ativo={categoria === c} nivel="secundario">
-            {ROTULO_CATEGORIA[c]}
-          </Chip>
-        ))}
-      </ChipLinha>
+      {/* ONDA 59 — a barra engole os dois grupos de chip (tipo/status +
+          categoria, empilhados como Ocorrências já faz) e ganha a ação de
+          criar, que sai de `AcoesUniversais`. O PRD previa DUAS ações
+          universais ("+ Despesa" e "+ Entrada") em toda subaba, mas a regra
+          de uma ação principal por tela (DESIGN §6.2: "a segunda mais
+          importante é um link discreto") não convive com duas pílulas
+          douradas na mesma tela. Despesa é o gesto mais frequente — o barco
+          gasta lançamento a lançamento, entrada é esporádica (transferência,
+          patrocínio) — então ela vira a ação da barra; "+ Entrada" recua a
+          link discreto logo abaixo, mesmo padrão do "Importar do plotter"
+          do Diário. `AcoesUniversais` continua igual e ainda serve Visão
+          geral, Recorrentes e Relatórios sem mudança nenhuma — só o jeito
+          de Lançamentos apresentar as mesmas duas ações mudou. */}
+      <BarraFerramentas
+        className="mt-3"
+        filtros={
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <ChipLinha>
+              {FILTROS.map((f) => (
+                <Chip key={f.valor} href={href(f.valor, categoria)} ativo={filtro === f.valor}>
+                  {f.rotulo}
+                </Chip>
+              ))}
+            </ChipLinha>
+            <ChipLinha>
+              <Chip href={href(filtro, null)} ativo={categoria === null} nivel="secundario">
+                Todas
+              </Chip>
+              {CATEGORIAS_FINANCEIRAS.map((c) => (
+                <Chip key={c} href={href(filtro, c)} ativo={categoria === c} nivel="secundario">
+                  {ROTULO_CATEGORIA[c]}
+                </Chip>
+              ))}
+            </ChipLinha>
+          </div>
+        }
+        acao={{ href: "/financeiro/novo?tipo=despesa", rotulo: "Despesa" }}
+      />
+      <div className="mt-2 flex justify-end">
+        <Link
+          href="/financeiro/novo?tipo=entrada"
+          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
+        >
+          <Icone nome="mais" className="size-3.5" /> Entrada
+        </Link>
+      </div>
 
       {grupos.length === 0 && (
         <EstadoVazio
