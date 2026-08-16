@@ -145,12 +145,26 @@ ação flutuante do app é o "Exportar PDF" de `/barco/resumos` — dourado de
 vive em `web/lib/ui/superficies.ts`).
 
 ### Tipografia — três papéis
-- **Título e estado** — a voz editorial. É onde mora a personalidade.
-- **Corpo** — Urbanist, o texto que se lê.
-- **Número de instrumento** — mono tabular. Hora de motor, profundidade,
-  coordenada, valor, distância. **Sempre**, sem exceção: coluna de dinheiro em
-  fonte proporcional desalinha a vírgula e vira comparação de texto em vez de
-  comparação de valor.
+
+A família é **IBM Plex** (onda 62). A Urbanist saiu: quando o dono desenhou o
+app inteiro no Claude Design (`docs/design-mobile/`, 32 telas), a seção 2 do
+canvas testou três direções tipográficas e a terceira consolidou IBM Plex — a
+seção 3 se chama literalmente "As telas que faltavam — já em IBM Plex". A
+Urbanist é geométrica e arredondada, voz de app de consumo; a Plex é neutra de
+engenharia, e o Commander se comporta como instrumento. As duas variáveis vêm
+do `next/font` em `web/app/layout.tsx` (`--font-plex-sans` /
+`--font-plex-mono`).
+
+- **Título e estado** — IBM Plex Sans 600. A voz editorial; é onde mora a
+  personalidade.
+- **Corpo** — IBM Plex Sans (400/500), o texto que se lê.
+- **Número de instrumento e rótulo de cartão** — IBM Plex Mono
+  (`--font-mono-instr`, fallback ui-monospace). Números sempre tabulares:
+  hora de motor, profundidade, coordenada, valor, distância. **Sempre**, sem
+  exceção: coluna de dinheiro em fonte proporcional desalinha a vírgula e vira
+  comparação de texto em vez de comparação de valor. O `.rotulo` (título de
+  cartão/seção, 11px, tracking .16em, uppercase) também é Mono — no canvas o
+  rótulo é etiqueta de instrumento, não frase.
 
 ### Alvo de toque — 44px
 Mínimo, sem exceção, para qualquer coisa que se toca. Link no meio de
