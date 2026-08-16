@@ -206,7 +206,17 @@ async function medir(page: Page) {
     // Alvo pequeno e saída continuam contando a casca, e os limiares
     // (4px de cruzamento, 40/24px de alvo) não mudam.
     const trilho = document.querySelector('nav[aria-label="Navegação principal"]')
-    const bottomNav = document.querySelector("[data-moldura] > nav")
+    // Tripwire da revisão final da onda 59: `> nav` significa "o ÚNICO nav
+    // filho direto da moldura". Se uma página um dia renderizar um <nav> na
+    // raiz (fora do <main>), o querySelector pegaria o errado e o desconto
+    // viraria silencioso — melhor a varredura falhar alto aqui.
+    const navsDiretos = document.querySelectorAll("[data-moldura] > nav")
+    if (navsDiretos.length > 1) {
+      throw new Error(
+        `[data-moldura] tem ${navsDiretos.length} <nav> filhos diretos — o desconto da casca supõe 1 (a bottom-nav)`,
+      )
+    }
+    const bottomNav = navsDiretos[0] ?? null
     const casca = new Set(
       interativos.filter(
         (el) =>
