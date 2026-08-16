@@ -70,10 +70,21 @@ Navionics, DESIGN.md §2). Sete regiões clicáveis; rótulo de orientação
 escrito nas pontas: **PROA ←  → POPA** (a lição do "Front (Cab) ↔ Rear
 (Doors)" da imagem 5).
 
-**Por que não 3D:** decisão já registrada no catálogo — o corte SVG entrega a
-mesma leitura ("onde fica, como está") por 5% do custo; 3D é evolução se o
-produto pedir. O SVG é desenhado uma vez, vive em
-`components/mapa-embarcacao/casco.tsx`, e não depende de asset externo.
+**O 3D É O DESTINO — decidido pelo dono em 16/08** (*"o 3d dos barcos temos
+que ter... um modelo padrão de 3d mas baseado na escolha do barco"*). O
+desenho segue a estratégia do próprio Haulix: **um modelo genérico por TIPO
+de barco** (flybridge · open/express · trawler; veleiro depois), nunca o 3D
+de cada casco — o dono escolhe o tipo, os DADOS (pinos, estados) são do
+barco dele. Onda 62: viewer three.js/react-three-fiber, zonas ancoradas no
+modelo, mesmo estado-na-URL e mesmo painel desta onda. **Bloqueio externo:**
+o asset — modelo low-poly royalty-free (compra ~US$20–80, decisão e
+pagamento do dono; shortlist com licença conferida é nossa) ou CC-BY com
+atribuição (CC-NC é veneno comercial, descartado na triagem).
+
+**O corte SVG desta onda é o palco versão 1**, não um desvio: a camada de
+dado (zona), o estado por zona e o painel são IDÊNTICOS nos dois palcos —
+na 62, troca-se o SVG pelo canvas e nada mais. Ele vive em
+`components/mapa-embarcacao/casco.tsx`, sem asset externo.
 
 ### 3.2 O pino
 Um por zona **com equipamento**: círculo com a contagem
