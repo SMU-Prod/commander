@@ -1,105 +1,56 @@
 /**
- * ONDA 54 — QUEM PODE FLUTUAR POR CIMA DO CONTEÚDO, E ONDE.
+ * QUEM PODE FLUTUAR POR CIMA DO CONTEÚDO, E ONDE.
  *
- * O problema que este arquivo resolve: o layout de `(app)` tem DOIS
- * elementos `fixed` (a bottom-nav e o botão "+ Registrar"). `fixed` não
- * rola: os dois acompanham a viewport e, a qualquer momento, estão em cima
- * de ALGUMA coisa. Numa tela de lista isso é o preço conhecido de um FAB —
- * a pessoa rola e o que estava coberto aparece. Numa tela de FORMULÁRIO o
- * que fica coberto é campo de formulário, e aí o custo muda de natureza:
- * o rótulo aparece cortado e o toque destinado ao campo cai no botão.
- * Medido em `/barco/itens/novo` (varredura de 15/08/2026): o "+ Registrar"
- * em cima do campo "Horas no último serviço".
+ * O layout de `(app)` tem hoje UM elemento `fixed` permanente — a bottom-nav
+ * (que a partir de `lg` some e vira o trilho lateral) — e UM ponto opcional
+ * onde uma tela pode pendurar a própria ação flutuante
+ * (`SLOT_ACAO_FLUTUANTE`; hoje só o "Exportar PDF" de `/barco/resumos`).
+ * `fixed` não rola: a qualquer momento está em cima de ALGUMA coisa. Este
+ * arquivo é o lugar único que governa quem pode flutuar e quanta folga o
+ * conteúdo reserva embaixo pra nada terminar coberto — a regra tem teste
+ * (`superficies.test.ts`), é medida no navegador (`e2e/sem-saida.spec.ts`)
+ * e é grepável.
  *
- * A DECISÃO: o "+ Registrar" NÃO aparece em tela de criação/edição.
- *
- * Justificativa de produto, não de layout. O FAB é um atalho para
- * "registrar volta ao mar" — um gesto de quem está NAVEGANDO pelo app e
- * lembrou de anotar as horas. Quem está numa tela de criação já está
- * preenchendo alguma coisa; oferecer ali um atalho para criar OUTRA coisa
- * (que ainda por cima descarta o que está sendo digitado, porque abre um
- * modal por cima) não é conveniência, é ruído. Some o ruído e some junto a
- * sobreposição — a causa raiz é a mesma.
- *
- * POR QUE UMA REGRA POR ROTA E NÃO UM `hidden` EM CADA TELA: um `hidden`
- * por arquivo é uma regra invisível espalhada por ~25 páginas, que a
- * próxima tela de formulário vai nascer sem. Aqui a regra é uma só, tem
- * teste (`superficies.test.ts`) e é grepável.
- *
- * POR QUE NÃO DETECTAR `<form>` NO DOM: metade das telas de LISTA do app
- * tem `<form>` (filtro, ação rápida, upload) — `/barco`, `/financeiro`,
- * `/diario` e `/marketplace` inclusive. O sinal seria falso na maioria dos
- * casos e o FAB sumiria justamente de onde ele serve.
+ * HISTÓRIA (ondas 54–60) — por que este arquivo já foi bem maior: até a
+ * onda 60 existia um SEGUNDO `fixed` global, o FAB "+ Registrar"
+ * (`RegistroRapido`), montado pelo layout em toda tela. A onda 54 criou
+ * aqui as regras de onde ele NÃO podia aparecer (telas de formulário, onde
+ * tapava campo; `/navegar`, onde cobria os controles do mapa;
+ * `/barco/resumos`, onde empilhava com o "Exportar PDF" e comia o toque
+ * dele) e a onda 57 somou a Início à lista (o cartão do Diário ganhou o
+ * "Registrar saída", e duas ações principais douradas na mesma tela é uma a
+ * mais). A lista de exceções só crescia porque cada onda dava ao gesto uma
+ * casa melhor DENTRO do conteúdo — até o dono aposentar o FAB de vez em
+ * 16/08/2026: a Início registra pelo cartão do Diário, o Diário tem vaga
+ * fixa na bottom-nav e o "Registrar" na `BarraFerramentas`, e as listas têm
+ * as próprias ações. O FAB tinha virado duplicata flutuando por cima de
+ * conteúdo. `mostrarRegistroRapido`, `ehTelaDeFormulario` e as listas que
+ * só existiam pra eles saíram junto (zero consumidores fora deste arquivo —
+ * conferido no grep antes de apagar). O registro em si
+ * (`registrarVoltaAoMar`) continua vivo pelos caminhos de conteúdo:
+ * `/diario/[id]/horas` e a sugestão pós-trilha que leva até lá.
  */
 
 /**
- * Últimos segmentos que, no vocabulário deste app, significam "esta tela é
- * um formulário de corpo inteiro". `novo`/`nova` (criação), `editar`
- * (edição), `importar` (`/diario/importar`), `transferir`
- * (`/barco/transferir`) e `horas` (`/diario/[id]/horas` — que é literalmente
- * o mesmo registro que o FAB faz, então lá ele é redundante além de
- * atrapalhar).
+ * Telas que têm uma ação flutuante PRÓPRIA no `SLOT_ACAO_FLUTUANTE`.
  *
- * É sufixo e não caminho completo de propósito: rota nova que siga a
- * convenção (`/qualquer/coisa/nova`) já nasce coberta.
- */
-const VERBOS_DE_FORMULARIO = new Set(["novo", "nova", "editar", "importar", "transferir", "horas"])
-
-/**
- * Telas de formulário que NÃO seguem a convenção de sufixo acima. Lista
- * curta e explícita — cada uma foi conferida na varredura de 15/08/2026.
- * Se você criar uma tela de formulário com nome de substantivo, ela entra
- * aqui (ou, melhor, ganha um sufixo da lista de cima).
- */
-const FORMULARIOS_SEM_VERBO = new Set([
-  "/barco/contatos", // cadastro de contatos da embarcação
-  "/barco/local", // coordenadas da marina
-  "/barco/selos/gold", // contratação do selo (porte, quem paga, pagamento)
-  "/prestadores/perfil", // cadastro do perfil profissional
-  "/comandantes/perfil", // idem, lado comandante
-  "/menu/perfil", // dados da conta
-])
-
-/**
- * Telas que JÁ TÊM uma ação flutuante própria, no mesmo canto.
+ * Hoje é uma só: `/barco/resumos` renderiza `BotaoExportarPdf`. A lista
+ * existe por dois motivos:
  *
- * `/barco/resumos` renderiza `BotaoExportarPdf`, e ele usa exatamente as
- * mesmas coordenadas do "+ Registrar" — `fixed bottom-[calc(5rem +
- * env(safe-area-inset-bottom))] right-4 z-20`, classe por classe. Não é
- * "um cobre o outro ao rolar": são dois botões empilhados no mesmo ponto,
- * para sempre. O que aparecia na tela era uma pílula Frankenstein com o
- * ícone de relatório do botão de baixo e o texto "+ Registrar" do de cima —
- * e tocar nela nunca exportava PDF, porque quem recebe o toque é o de cima.
- * A função "Exportar PDF" estava simplesmente inalcançável no celular.
+ * 1. É o registro de quem ocupa o slot — uma tela tem no MÁXIMO uma ação
+ *    flutuante, e duas ao mesmo tempo não é opção (são `fixed` nas mesmas
+ *    coordenadas: a de cima come o toque da de baixo, e a de baixo fica
+ *    invisível e inalcançável — aconteceu de verdade, ver a HISTÓRIA no
+ *    comentário do `SLOT_ACAO_FLUTUANTE`).
+ * 2. A `MolduraApp` deriva daqui a folga inferior do conteúdo: tela com
+ *    ação flutuante precisa da folga maior (`FOLGA_COM_ACAO_FLUTUANTE`)
+ *    pra o último elemento da página não terminar embaixo do botão.
  *
- * A regra: uma tela tem UMA ação flutuante, e quem ganha é a da própria
- * tela. Mesmo princípio que já tinha tirado o FAB de `/navegar`.
+ * Se você criar uma nova ação flutuante: use `SLOT_ACAO_FLUTUANTE` e
+ * declare a tela aqui — a folga certa vem de graça.
  */
 const TEM_ACAO_FLUTUANTE_PROPRIA = new Set([
   "/barco/resumos", // BotaoExportarPdf
-])
-
-/**
- * Telas cuja AÇÃO PRINCIPAL já está no conteúdo, à vista, sem flutuar.
- *
- * Onda 57, e por enquanto só a Início. Lá o Diário de Bordo virou cartão com
- * o botão "Registrar saída" — que leva ao MESMO lugar que o "+ Registrar"
- * (um registro no diário, com as horas do motor: ver `/diario/novo`). Com os
- * dois, a tela tinha duas ações principais, as duas douradas, uma delas por
- * cima do conteúdo. `docs/DESIGN.md` §6 regra 2 ("uma ação principal por
- * tela") e §5 ("no máximo dois usos de dourado por tela") reprovam as duas
- * coisas — e a que sobra é a que está no lugar onde o assunto mora.
- *
- * Diferente de `TEM_ACAO_FLUTUANTE_PROPRIA` de propósito: lá o motivo é
- * físico (dois botões no mesmo pixel, um come o toque do outro), aqui é de
- * produto. Misturar os dois casos numa lista só apagaria a diferença pra
- * quem vier depois.
- *
- * Efeito colateral que é bom conhecer: sem FAB, a Início passa a usar
- * `FOLGA_SEM_FAB` — some o vazio de ~90px que sobrava no fim da tela.
- */
-const TEM_ACAO_PRINCIPAL_NO_CONTEUDO = new Set([
-  "/hoje", // cartão "Diário de Bordo" -> "Registrar saída"
 ])
 
 /** Normaliza `/a/b/` → `/a/b` para a comparação não depender da barra final. */
@@ -108,33 +59,9 @@ function normalizar(pathname: string): string {
   return p.length > 1 && p.endsWith("/") ? p.slice(0, -1) : p
 }
 
-/** A pessoa está preenchendo um formulário nesta rota? */
-export function ehTelaDeFormulario(pathname: string): boolean {
-  const p = normalizar(pathname)
-  if (FORMULARIOS_SEM_VERBO.has(p)) return true
-  const ultimo = p.split("/").filter(Boolean).at(-1)
-  return ultimo != null && VERBOS_DE_FORMULARIO.has(ultimo)
-}
-
-/**
- * O botão flutuante "+ Registrar" deve aparecer nesta rota?
- *
- * Quatro exceções, nesta ordem:
- * 1. `/navegar` — no mapa o FAB cobria os controles de navegação, e lá o
- *    registro de horas já tem casa própria (a sugestão pós-trilha do Livro
- *    de Bordo). Regra que já existia antes desta onda, preservada.
- * 2. Telas que já têm ação flutuante própria — ver
- *    `TEM_ACAO_FLUTUANTE_PROPRIA`.
- * 3. Telas cuja ação principal já está no conteúdo — ver
- *    `TEM_ACAO_PRINCIPAL_NO_CONTEUDO`.
- * 4. Telas de formulário — ver o cabeçalho deste arquivo.
- */
-export function mostrarRegistroRapido(pathname: string): boolean {
-  const p = normalizar(pathname)
-  if (p === "/navegar") return false
-  if (TEM_ACAO_FLUTUANTE_PROPRIA.has(p)) return false
-  if (TEM_ACAO_PRINCIPAL_NO_CONTEUDO.has(p)) return false
-  return !ehTelaDeFormulario(p)
+/** Esta rota tem uma ação flutuante própria sobre o conteúdo? */
+export function temAcaoFlutuantePropria(pathname: string): boolean {
+  return TEM_ACAO_FLUTUANTE_PROPRIA.has(normalizar(pathname))
 }
 
 /**
@@ -143,46 +70,45 @@ export function mostrarRegistroRapido(pathname: string): boolean {
  *
  * A conta (390×844, medida no navegador):
  * - bottom-nav: 8 (pt-2) + 21 (ícone) + 4 (gap) + ~14 (rótulo 11px) +
- *   max(10, safe-area) de padding + 1 de borda ≈ 58px + safe-area.
- * - "+ Registrar": mora a `5rem + safe-area` do rodapé e tem 48px de altura
- *   (py-3.5 + text-sm) → o topo dele fica a 128px + safe-area do rodapé.
+ *   max(10, safe-area) de padding + 1 de borda ≈ 58px + safe-area →
+ *   `FOLGA_BASE` reserva 4.75rem (76px) + safe-area. É a folga de TODA
+ *   tela, porque a bottom-nav está em toda tela.
+ * - ação flutuante própria: mora a `5rem + safe-area` do rodapé e tem 48px
+ *   de altura (py-3.5 + text-sm) → o topo dela fica a 128px + safe-area do
+ *   rodapé → `FOLGA_COM_ACAO_FLUTUANTE` reserva 9rem (144px) + safe-area.
+ *   Vale só para quem está em `TEM_ACAO_FLUTUANTE_PROPRIA` — hoje,
+ *   `/barco/resumos`.
  *
- * POR QUE O `pb-36` ANTIGO QUEBRAVA MESMO COM A CONTA CERTA: 36 = 9rem =
- * 144px, folga suficiente para os 128px do FAB — **em safe-area zero**, que
- * é o caso do navegador de mesa e do Playwright. O app declara
- * `viewportFit: "cover"` (app/layout.tsx), então num iPhone com barra de
- * gestos a safe-area vale ~34px: o FAB sobe para 162px e os 144px fixos
- * deixam de cobrir. Ou seja, a conta do comentário antigo estava certa e
- * mesmo assim o botão de salvar ficava tapado — no aparelho de verdade, que
- * é exatamente onde o dono viu. Por isso a folga agora SOMA a safe-area em
- * vez de torcer para ela ser zero.
+ * POR QUE A SAFE-AREA É SOMADA E NÃO ASSUMIDA ZERO (lição da onda 54, que
+ * continua valendo): o `pb-36` fixo de antigamente (144px) fechava a conta
+ * — **em safe-area zero**, que é o caso do navegador de mesa e do
+ * Playwright. O app declara `viewportFit: "cover"` (app/layout.tsx), então
+ * num iPhone com barra de gestos a safe-area vale ~34px: tudo que é `fixed`
+ * sobe ~34px e a folga fixa deixa de cobrir. A conta do comentário antigo
+ * estava certa e mesmo assim o botão de salvar ficava tapado — no aparelho
+ * de verdade, que é exatamente onde o dono viu. Por isso a folga SOMA a
+ * safe-area em vez de torcer para ela ser zero.
  *
- * E por que dois valores: sem o FAB (tela de formulário) só a bottom-nav
- * flutua, e reservar 9rem ali deixava um vazio de ~90px embaixo de todo
- * formulário — espaço morto que não tem motivo de existir.
- *
- * ONDA 57 (revisão) — A PARTIR DE `lg` A CONTA É OUTRA, PORQUE A BARRA SUMIU.
- *
- * As duas contas acima somam a altura da bottom-nav. A partir de `lg` ela é
- * `lg:hidden` (quem navega é o trilho, que é lateral e não come rodapé
- * nenhum), então os 4.75rem de `FOLGA_SEM_FAB` reservavam espaço para uma
- * barra que não está lá: ~76px de nada no fim de toda tela de desktop. Com o
- * FAB, o mesmo raciocínio: ele passa a morar a 1.5rem do rodapé (ver
- * `SLOT_ACAO_FLUTUANTE`), então 1.5rem + 48px de botão + respiro fecham em
- * 6rem — não em 9.
- *
+ * A PARTIR DE `lg` A CONTA É OUTRA, PORQUE A BARRA SUMIU (onda 57): a
+ * bottom-nav é `lg:hidden` (quem navega é o trilho, que é lateral e não
+ * come rodapé nenhum), então a folga base cai pra 2rem de respiro. Com ação
+ * flutuante própria, ela mora a 1.5rem do rodapé (ver
+ * `SLOT_ACAO_FLUTUANTE`): 1.5rem + 48px de botão + respiro fecham em 6rem.
  * O `env(safe-area-inset-bottom)` continua nas variantes `lg` de propósito:
- * `lg` é largura, não "mesa". Um iPad em paisagem passa de 1024px e continua
- * tendo barra de gestos — foi exatamente a suposição de safe-area zero que
- * quebrou a conta da onda 54 no aparelho do dono.
+ * `lg` é largura, não "mesa" — um iPad em paisagem passa de 1024px e
+ * continua tendo barra de gestos.
  *
- * NADA DISTO MUDA UM PIXEL EM 390px: as variantes `lg` só valem de 1024px
- * pra cima, e `e2e/sem-saida.spec.ts` mede o celular.
+ * HISTÓRIA: até a onda 60 estas constantes se chamavam
+ * `FOLGA_COM_FAB`/`FOLGA_SEM_FAB` e a MAIOR era a regra — o FAB global
+ * "+ Registrar" morava em quase toda tela, e a menor era a exceção das
+ * telas de formulário. Com o FAB aposentado a relação inverteu: a folga de
+ * bottom-nav é a regra e a maior é exceção de quem tem ação flutuante
+ * própria. Os valores não mudaram um pixel; mudou quem usa qual.
  */
-export const FOLGA_COM_FAB =
-  "pb-[calc(9rem_+_env(safe-area-inset-bottom))] lg:pb-[calc(6rem_+_env(safe-area-inset-bottom))]"
-export const FOLGA_SEM_FAB =
+export const FOLGA_BASE =
   "pb-[calc(4.75rem_+_env(safe-area-inset-bottom))] lg:pb-[calc(2rem_+_env(safe-area-inset-bottom))]"
+export const FOLGA_COM_ACAO_FLUTUANTE =
+  "pb-[calc(9rem_+_env(safe-area-inset-bottom))] lg:pb-[calc(6rem_+_env(safe-area-inset-bottom))]"
 
 /**
  * ONDA 57 — LARGURA DO CONTEÚDO POR TAMANHO DE TELA.
@@ -239,17 +165,22 @@ export const OFFSET_TRILHO = "lg:pl-[88px]"
  * O ÚNICO lugar onde uma ação flutuante pode morar: canto inferior direito,
  * logo acima da bottom-nav.
  *
- * Existe como constante porque a colisão que esta onda consertou nasceu de
- * dois componentes escreverem essas coordenadas à mão, iguais, sem saber um
- * do outro (`RegistroRapido` e `BotaoExportarPdf` — classe por classe, até o
- * `z-20`). Com a posição num lugar só, um `grep` por `SLOT_ACAO_FLUTUANTE`
- * lista todo mundo que disputa o espaço, e a regra de quem ganha em cada
- * tela vive logo acima, em `mostrarRegistroRapido`.
+ * HISTÓRIA (onda 54) — por que isto é uma constante e não classes escritas
+ * em cada componente: a pior colisão que o app já teve nasceu de dois
+ * componentes escreverem essas coordenadas à mão, iguais, sem saber um do
+ * outro (o FAB global "+ Registrar", hoje aposentado, e o
+ * `BotaoExportarPdf` — classe por classe, até o `z-20`). Em
+ * `/barco/resumos` os dois ficavam empilhados no mesmo ponto, para sempre:
+ * o que aparecia era uma pílula Frankenstein com o ícone de relatório do
+ * botão de baixo e o texto "+ Registrar" do de cima — e tocar nela nunca
+ * exportava PDF, porque quem recebe o toque é o de cima. Com a posição num
+ * lugar só, um `grep` por `SLOT_ACAO_FLUTUANTE` lista todo mundo que ocupa
+ * o espaço, e o registro de quem pode vive em `TEM_ACAO_FLUTUANTE_PROPRIA`.
  *
- * Se você for criar uma terceira ação flutuante: use esta constante e
- * declare a tela em `TEM_ACAO_FLUTUANTE_PROPRIA`. Duas ao mesmo tempo na
- * mesma tela não é uma opção — a de cima come o toque da de baixo, e a de
- * baixo fica invisível e inalcançável.
+ * Se você for criar uma nova ação flutuante: use esta constante e declare a
+ * tela em `TEM_ACAO_FLUTUANTE_PROPRIA`. Duas ao mesmo tempo na mesma tela
+ * não é uma opção — a de cima come o toque da de baixo, e a de baixo fica
+ * invisível e inalcançável.
  *
  * ONDA 57 (revisão) — OS 5rem SÃO A ALTURA DA BARRA DE BAIXO, E ELA NÃO
  * EXISTE NO DESKTOP.
@@ -257,13 +188,10 @@ export const OFFSET_TRILHO = "lg:pl-[88px]"
  * `bottom-[5rem]` nunca foi uma medida estética: são os ~58px da bottom-nav
  * mais respiro, pra pastilha não encostar nela. A partir de `lg` a barra é
  * `lg:hidden` — e o botão continuava pairando a 80px do rodapé, sobre 80px
- * de nada, em todos os hubs a 1440px (medido: `bottomGap` de 80px igual ao
- * do celular). Vale pro "+ Registrar" e pro "Exportar PDF" de
- * `/barco/resumos`, que usam esta mesma constante.
- *
- * 1.5rem = 24px, degrau da escala de espaçamento (docs/DESIGN.md §5), e o
- * mesmo respiro que o `px-4`/`right-4` já dá do lado. A safe-area continua
- * somada: ver o comentário das folgas acima.
+ * de nada (medido: `bottomGap` de 80px igual ao do celular). 1.5rem = 24px,
+ * degrau da escala de espaçamento (docs/DESIGN.md §5), e o mesmo respiro
+ * que o `px-4`/`right-4` já dá do lado. A safe-area continua somada: ver o
+ * comentário das folgas acima.
  */
 export const SLOT_ACAO_FLUTUANTE =
   "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"

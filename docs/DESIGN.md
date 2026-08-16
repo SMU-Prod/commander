@@ -123,18 +123,26 @@ Sombra não é decoração. Se o elemento não flutua, não tem sombra.
 
 **A regra dos dois, refinada (onda 60): moldura não paga o orçamento do
 conteúdo.** O dourado de **NAVEGAÇÃO** — o indicador de onde-a-pessoa-está
-(trilho lateral, bottom-nav, aba ativa do `Abas`) — e o **FAB global**
-(`RegistroRapido`) são da **MOLDURA**: existem em toda tela, não competem
-por atenção com o assunto dela, e por isso ficam **fora** do orçamento de
-dois. O orçamento de dois vale para o dourado do **CONTEÚDO** — tipicamente
-a ação principal preenchida e um chip ativo. Isto não é regra nova: é o que
-as ondas 57–59 já praticavam sem escrever — o trilho e a bottom-nav sempre
-tiveram o item ativo em dourado sem contar como um dos dois usos de nenhuma
-tela. O caso que forçou escrever a régua foi o Financeiro (onda 60):
-`Lançamentos` reúne `Abas` (navegação), o chip de filtro ativo (conteúdo), a
-ação "Despesa" da barra (conteúdo) e o FAB "+ Registrar" (moldura) na mesma
-tela — quatro dourados visíveis, mas cada um com dono e função diferente, e
-só dois deles disputando o mesmo orçamento.
+(trilho lateral, bottom-nav, aba ativa do `Abas`) — é da **MOLDURA**: existe
+em toda tela, não compete por atenção com o assunto dela, e por isso fica
+**fora** do orçamento de dois. O orçamento de dois vale para o dourado do
+**CONTEÚDO** — tipicamente a ação principal preenchida e um chip ativo. Isto
+não é regra nova: é o que as ondas 57–59 já praticavam sem escrever — o
+trilho e a bottom-nav sempre tiveram o item ativo em dourado sem contar como
+um dos dois usos de nenhuma tela. O caso que forçou escrever a régua foi o
+Financeiro (onda 60): `Lançamentos` reúne `Abas` (navegação), o chip de
+filtro ativo (conteúdo) e a ação "Despesa" da barra (conteúdo) — dourados
+com donos e funções diferentes, e só os dois de conteúdo disputando o mesmo
+orçamento.
+
+A moldura já teve um segundo dourado: o **FAB global** "+ Registrar"
+(`RegistroRapido`), que flutuava em quase toda tela. O dono o aposentou na
+onda 60 — o gesto que ele atendia ganhou casa no conteúdo das telas (cartão
+do Diário na Início, "Registrar" na barra do Diário, ações das próprias
+listas) e o FAB tinha virado duplicata por cima de conteúdo. Hoje a única
+ação flutuante do app é o "Exportar PDF" de `/barco/resumos` — dourado de
+**conteúdo** da própria tela, não de moldura (a regra de quem pode flutuar
+vive em `web/lib/ui/superficies.ts`).
 
 ### Tipografia — três papéis
 - **Título e estado** — a voz editorial. É onde mora a personalidade.

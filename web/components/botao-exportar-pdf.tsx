@@ -19,11 +19,14 @@ export function BotaoExportarPdf() {
       type="button"
       onClick={() => window.print()}
       // ONDA 54 — a posição vem de `SLOT_ACAO_FLUTUANTE`, não mais escrita à
-      // mão aqui. Escrita à mão ela era IDÊNTICA à do "+ Registrar", e os
-      // dois botões ficavam empilhados no mesmo ponto em /barco/resumos: o
-      // "+ Registrar" por cima comia o toque e exportar PDF virou impossível
-      // no celular. Agora quem decide quem ocupa o slot em cada tela é
-      // `mostrarRegistroRapido`, num lugar só.
+      // mão aqui. Escrita à mão ela era IDÊNTICA à do FAB "+ Registrar" da
+      // época, e os dois botões ficavam empilhados no mesmo ponto em
+      // /barco/resumos: o "+ Registrar" por cima comia o toque e exportar
+      // PDF virou impossível no celular. Desde a onda 60 o FAB global
+      // aposentou e este botão é a ÚNICA ação flutuante do app — a tela
+      // está declarada em `TEM_ACAO_FLUTUANTE_PROPRIA`
+      // (`lib/ui/superficies.ts`), que é de onde a `MolduraApp` deriva a
+      // folga maior pra nada terminar coberto embaixo dele.
       className={`print:hidden inline-flex items-center gap-1.5 ${SLOT_ACAO_FLUTUANTE}`}
     >
       <Icone nome="relatorio" className="size-4" /> Exportar PDF

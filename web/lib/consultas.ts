@@ -407,6 +407,25 @@ export const carregarUsoFotos = cache(async (): Promise<number> => {
  * manda evitar. In-app, que é o canal que o §5.2 garante pras informativas,
  * está completo.
  */
+
+/** Pra onde o aviso de item leva quem clica — sempre um destino de LEITURA,
+ *  nunca `/barco/itens/[id]/editar` (esse formulário checa `podeEditar` e
+ *  expulsa com toast quem só tem `podeVer`; achado Importante da revisão da
+ *  onda 59). Item COM equipamento tem ficha própria (`/barco/equipamento`,
+ *  Tarefa 3 da onda 60); sem equipamento, o hub da aba — mesmo mapa
+ *  aba→rota de `rotaDoHub` em `app/(app)/agenda/page.tsx` ("pra onde a linha
+ *  derivada leva quem só pode VER"), pra não duplicar dois hubs diferentes
+ *  pro mesmo aviso. */
+function hrefDoItem(equipamentoId: string | null, aba: Aba): string {
+  if (equipamentoId) return `/barco/equipamento/${equipamentoId}`
+  if (aba === "documentos") return "/barco/documentos"
+  if (aba === "hidraulica") return "/barco/hidraulica"
+  if (aba === "seguranca") return "/barco/seguranca"
+  if (aba === "eletrica") return "/barco/eletrica"
+  if (aba === "equipamentos") return "/barco/equipamentos"
+  return "/barco"
+}
+
 export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const painel = await carregarPainel()
   if (!painel) return []
@@ -437,11 +456,16 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
       categoria: "embarcacao" as const,
       nivel: nivelDoStatusItem(r.status),
       aba,
-      href: `/barco/itens/${i.id}/editar`,
-      // O verbo da tela de destino (a ficha do item, onde se registra o
-      // serviço feito ou o vencimento novo) — documento renova, o resto
-      // recebe manutenção.
-      acao: aba === "documentos" ? "Renovar documento" : "Registrar manutenção",
+      // ONDA 60 (Tarefa 4) — o aviso leva pro destino de LEITURA, não pro
+      // formulário de editar (que expulsa quem só tem `podeVer`, achado
+      // Importante da revisão da onda 59). Item COM equipamento tem ficha
+      // própria (Tarefa 3); sem equipamento, o hub da aba — mesmo mapa
+      // aba→rota de `rotaDoHub` em `app/(app)/agenda/page.tsx`. Quem pode
+      // editar, edita DA ficha/hub — o botão está lá.
+      href: hrefDoItem(i.equipamento_id, aba),
+      // O verbo da tela de destino: documento renova (o botão fica na
+      // ficha, quem só vê lê), o resto vê a manutenção.
+      acao: aba === "documentos" ? "Ver documento" : "Ver manutenção",
       quando: null,
       // Agrupa por hub + severidade: "3 documentos vencidos" numa linha em
       // vez de três linhas quase iguais (PRD §5.2, evitar spam).

@@ -1,4 +1,26 @@
+import type { EstadoSelo } from "@/components/ui/selo"
+
 export type StatusFarol = "ok" | "atencao" | "vencido"
+
+/**
+ * Do vocabulário do semáforo pro do `Selo` (cor E palavra) — o chip de estado
+ * do cabeçalho de ficha (onda 60, imagem 2 do docs/DESIGN-SYSTEM.md). Mesmo
+ * desenho de `seloDaSaude` em lib/domain/inicio.ts: a tradução mora no
+ * domínio, com teste, e o `import type` some na compilação. `null` é
+ * "equipamento sem nenhum item monitorado": neutro e "Sem dados" — nunca
+ * verde por omissão (regra de honestidade da onda 16).
+ */
+export function seloDoFarol(status: StatusFarol | null): EstadoSelo {
+  if (status == null) return "neutro"
+  return status === "vencido" ? "critico" : status
+}
+
+/** A palavra do farol — "Vencido", não o "Crítico" genérico do Selo: é o
+ *  vocabulário que o semáforo já fala em `textoRestante` e na Saúde. */
+export function rotuloDoFarol(status: StatusFarol | null): string {
+  if (status == null) return "Sem dados"
+  return status === "vencido" ? "Vencido" : status === "atencao" ? "Atenção" : "Em dia"
+}
 
 export interface ItemCalc {
   intervaloHoras: number | null

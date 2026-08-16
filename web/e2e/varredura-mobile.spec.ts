@@ -187,7 +187,8 @@ async function medir(page: Page) {
     // termina DEBAIXO da casca mesmo com a página rolada até o fim — já tem
     // régua própria e mais precisa: `e2e/sem-saida.spec.ts` mede o
     // `paddingBottom` computado da `[data-moldura]` (a folga derivada de
-    // `FOLGA_COM_FAB`/`FOLGA_SEM_FAB`) e QUEBRA a suíte se ele encolher.
+    // `FOLGA_BASE`/`FOLGA_COM_ACAO_FLUTUANTE`) e QUEBRA a suíte se ele
+    // encolher.
     // A régua certa pro fenômeno certo; aqui a casca só produzia eco.
     //
     // A identificação é por seletor estável, nunca por posição na tela
@@ -200,6 +201,22 @@ async function medir(page: Page) {
     //   `SLOT_ACAO_FLUTUANTE` (`lib/ui/superficies.ts`): a constante
     //   importada É o seletor, então quem mudar o slot arrasta o teste
     //   junto, sem cópia pra apodrecer.
+    //
+    // ONDA 60 — O SLOT CONTINUA DESCONTADO MESMO SEM O FAB, E O PORQUÊ.
+    //
+    // Com o FAB global aposentado, o único morador do slot é o "Exportar
+    // PDF" de `/barco/resumos` — que é ação DA TELA, não da casca. A
+    // tentação seria devolvê-lo à régua ("não é mais moldura"), mas o que o
+    // desconto olha não é QUEM mora no slot e sim o CONTRATO do slot:
+    // coordenada única governada por `superficies.ts`, um morador por tela
+    // (`TEM_ACAO_FLUTUANTE_PROPRIA`), e a folga que impede o morador de
+    // cobrir conteúdo já tem régua própria e mais dura em
+    // `e2e/sem-saida.spec.ts` (o `paddingBottom` de 144px+safe-area e a
+    // posição no desktop QUEBRAM a suíte). Voltar com ele pra cá só
+    // recriaria o eco de scroll 0 em `/barco/resumos` — o botão `fixed`
+    // "sobre" a lista que ainda não rolou — sem vigiar nada que a outra
+    // régua já não vigie. Se um dia entrar uma ação fixa FORA do slot, ela
+    // não veste essas classes e cai inteira nesta régua, como deve.
     //
     // As telas fora da moldura de `(app)` (/parceiro, /assinar) não têm
     // `[data-moldura]` nem trilho — lá nada é descontado, como deve ser.
@@ -233,7 +250,26 @@ async function medir(page: Page) {
     for (let i = 0; i < interativos.length; i++) {
       for (let j = i + 1; j < interativos.length; j++) {
         const a = interativos[i], b = interativos[j]
-        if (casca.has(a) || casca.has(b)) continue
+        // ONDA 60 — O DESCONTO DA CASCA GANHA UMA CONDIÇÃO (Menor 2 da
+        // revisão da 59): o par casca×conteúdo só é pulado se o lado de
+        // conteúdo NÃO for `position: fixed`.
+        //
+        // O argumento inteiro do desconto (comentário lá em cima) apoia
+        // numa premissa: o conteúdo ROLA, então "casca sobre controle" em
+        // scroll 0 é transitório e a folga da moldura — cobrada por
+        // `sem-saida.spec.ts` — garante que no fim da página nada termina
+        // coberto. Um controle `fixed` do CONTEÚDO quebra a premissa: ele
+        // não rola nunca. Se uma tela criar um CTA fixo próprio (fora do
+        // `SLOT_ACAO_FLUTUANTE`) na altura da bottom-nav, os dois ficam na
+        // mesma coordenada PARA SEMPRE e um come o toque do outro — o
+        // Frankenstein FAB×Exportar da onda 54, de volta — e o desconto
+        // engoliria o achado calado. Esse par fica na régua.
+        // Par casca×casca continua fora: as superfícies da moldura não se
+        // cruzam por construção (coordenadas em `superficies.ts`).
+        if (casca.has(a) || casca.has(b)) {
+          const ladoConteudo = !casca.has(a) ? a : !casca.has(b) ? b : null
+          if (!ladoConteudo || getComputedStyle(ladoConteudo).position !== "fixed") continue
+        }
         if (a.contains(b) || b.contains(a)) continue
         const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect()
         const larguraCruz = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)

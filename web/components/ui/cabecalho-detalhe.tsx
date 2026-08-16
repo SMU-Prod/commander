@@ -8,22 +8,41 @@ import { Icone } from "@/components/icone"
  *
  * Quando usar: telas fora do fluxo de abas (criar/editar/detalhe de item,
  * documento, equipamento...). Quando a própria tela já tem um elemento que
- * funciona como título (ex.: o horímetro na ficha do equipamento), passe só
- * `voltarHref` e omita `titulo` — o componente cuida só da navegação de volta.
+ * funciona como título (ex.: o wordmark do Connect em /barco/connect), passe
+ * só `voltarHref` e omita `titulo` — o componente cuida só da navegação.
+ *
+ * ONDA 60 — a anatomia de FICHA da imagem 2 do docs/DESIGN-SYSTEM.md
+ * ("TX-9913-HX [Idle] · ações à direita"), por duas props NOVAS e opcionais
+ * (nenhum dos ~46 consumidores existentes muda):
+ *
+ * - `selo`: o chip de estado COLADO ao título, na mesma linha (`<Selo>` com
+ *   palavra e cor — quem passa decide o vocabulário).
+ * - `acoes`: a barra de ações da ficha — contornos + no máximo UMA
+ *   preenchida (docs/DESIGN.md §6.2: uma ação principal por tela; quem passa
+ *   decide, aqui só se posiciona). No desktop ela fica à direita do título;
+ *   no celular desce pra baixo dele, inteira, sem espremer alvo de 44px.
+ *
+ * `acoes` substitui `acao` nas fichas novas — `acao` continua existindo pros
+ * consumidores atuais (fica à direita em toda largura); não passe as duas.
+ * Os dois slots só aparecem junto de `titulo`: selo sem título não é ficha.
  */
 export function CabecalhoDetalhe({
   voltarHref,
   voltarRotulo = "Voltar",
   titulo,
   descricao,
+  selo,
   acao,
+  acoes,
   className = "",
 }: {
   voltarHref: string
   voltarRotulo?: string
   titulo?: string
   descricao?: string
+  selo?: ReactNode
   acao?: ReactNode
+  acoes?: ReactNode
   className?: string
 }) {
   return (
@@ -48,12 +67,24 @@ export function CabecalhoDetalhe({
         <Icone nome="voltar" className="size-4" /> {voltarRotulo}
       </Link>
       {titulo && (
-        <div className="mt-3 flex items-start justify-between gap-3">
+        // Com `acoes`, o wrapper só vira flex de `sm:` pra cima — abaixo disso
+        // a barra desce pra baixo do título como bloco cheio. Sem `acoes`, o
+        // layout é EXATAMENTE o de antes (flex em toda largura, `acao` à
+        // direita) — é isso que segura os ~46 consumidores atuais no lugar.
+        <div className={acoes ? "mt-3 sm:flex sm:items-start sm:justify-between sm:gap-3" : "mt-3 flex items-start justify-between gap-3"}>
           <div className="min-w-0">
-            <h1 className="titulo-pagina truncate">{titulo}</h1>
+            {selo ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="titulo-pagina truncate">{titulo}</h1>
+                {selo}
+              </div>
+            ) : (
+              <h1 className="titulo-pagina truncate">{titulo}</h1>
+            )}
             {descricao && <p className="apoio mt-1 text-dim">{descricao}</p>}
           </div>
           {acao}
+          {acoes && <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:shrink-0 sm:justify-end">{acoes}</div>}
         </div>
       )}
     </div>

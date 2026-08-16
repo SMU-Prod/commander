@@ -96,16 +96,30 @@ export default async function LancamentosPage({
           pílulas douradas na mesma tela. Despesa é o gesto mais frequente —
           o barco gasta lançamento a lançamento, entrada é esporádica
           (transferência, patrocínio) — então ela vira a ação da barra;
-          "+ Entrada" recua a link discreto logo abaixo, mesmo padrão do
-          "Importar do plotter" do Diário. `AcoesUniversais` continua igual e
+          "+ Entrada" recua a link discreto, mesmo padrão do "Importar do
+          plotter" do Diário. ONDA 60: e na mesma POSIÇÃO dele — acima da
+          barra, encostado à direita. Ele morava abaixo da ChipLinha de
+          categoria, e cada lista pendurava o sotaque discreto num degrau
+          diferente; agora quem conhece o Diário acha o link secundário de
+          Lançamentos no mesmo lugar. `AcoesUniversais` continua igual e
           ainda serve Visão geral, Recorrentes e Relatórios sem mudança
           nenhuma — só o jeito de Lançamentos apresentar as mesmas duas
           ações mudou.
           Categoria é refinamento SECUNDÁRIO dentro de tipo/status — o slot
           `filtros` da barra é UMA linha (regra em barra-ferramentas.tsx),
           então ela mora fora da barra, numa `ChipLinha` solta logo abaixo. */}
+      <div className="mt-2 flex justify-end">
+        <Link
+          href="/financeiro/novo?tipo=entrada"
+          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
+        >
+          <Icone nome="mais" className="size-3.5" /> Entrada
+        </Link>
+      </div>
+      {/* mt-4 como no Diário e nas Ocorrências — a margem da barra é a mesma
+          nas três listas (onda 60 unifica; aqui era mt-3). */}
       <BarraFerramentas
-        className="mt-3"
+        className="mt-4"
         filtros={
           <>
             {FILTROS.map((f) => (
@@ -127,14 +141,6 @@ export default async function LancamentosPage({
           </Chip>
         ))}
       </ChipLinha>
-      <div className="mt-2 flex justify-end">
-        <Link
-          href="/financeiro/novo?tipo=entrada"
-          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
-        >
-          <Icone nome="mais" className="size-3.5" /> Entrada
-        </Link>
-      </div>
 
       {grupos.length === 0 && (
         <EstadoVazio

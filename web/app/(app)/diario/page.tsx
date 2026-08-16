@@ -81,8 +81,9 @@ export default async function DiarioPage({
       <h1 className="titulo-pagina">Diário de Bordo</h1>
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
           Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
-          Segunda acao discreta pra nao competir com "+ Registrar" (o gesto
-          mais comum), mas ainda ≤3 toques a partir de /hoje. */}
+          Segunda acao discreta pra nao competir com o "Registrar" da
+          BarraFerramentas (o gesto mais comum), mas ainda ≤3 toques a
+          partir de /hoje. */}
       {podeEscrever ? (
         <div className="mt-2 flex justify-end">
           <Link
@@ -127,7 +128,7 @@ export default async function DiarioPage({
         <EstadoVazio
           icone="calendario"
           titulo="Nenhum registro por aqui ainda"
-          descricao="Toque em “+ Registrar” para criar o primeiro — cada serviço registrado vira histórico e dossiê do barco."
+          descricao="Toque em “Registrar” para criar o primeiro — cada serviço registrado vira histórico e dossiê do barco."
           acao={{ href: "/diario/novo", rotulo: "Registrar" }}
           className="mt-6"
         />

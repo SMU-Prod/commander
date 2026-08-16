@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
   calcularSemaforo,
+  rotuloDoFarol,
+  seloDoFarol,
   temInformacaoSuficiente,
   textoRestante,
   textoRestanteCompacto,
@@ -186,6 +188,28 @@ describe("temInformacaoSuficiente — o item tem dado real por trás do status?"
         null,
       ),
     ).toBe(false)
+  })
+})
+
+describe("seloDoFarol e rotuloDoFarol — o chip de estado do cabeçalho de ficha (onda 60)", () => {
+  it("traduz os três estados do farol pro vocabulário do Selo", () => {
+    expect(seloDoFarol("ok")).toBe("ok")
+    expect(seloDoFarol("atencao")).toBe("atencao")
+    expect(seloDoFarol("vencido")).toBe("critico")
+  })
+
+  it("sem item monitorado (null), o selo é neutro — nunca verde por omissão", () => {
+    expect(seloDoFarol(null)).toBe("neutro")
+    expect(rotuloDoFarol(null)).toBe("Sem dados")
+  })
+
+  it("a palavra é a do semáforo ('Vencido'), sem número nem porcentagem (PRD 1.1)", () => {
+    expect(rotuloDoFarol("vencido")).toBe("Vencido")
+    expect(rotuloDoFarol("atencao")).toBe("Atenção")
+    expect(rotuloDoFarol("ok")).toBe("Em dia")
+    for (const s of ["ok", "atencao", "vencido", null] as const) {
+      expect(rotuloDoFarol(s)).not.toMatch(/\d|%/)
+    }
   })
 })
 

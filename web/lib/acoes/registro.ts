@@ -18,11 +18,13 @@ export async function registrarVoltaAoMar(formData: FormData) {
   if (!painel) redirect("/onboarding")
   // §27.2: "Permissões devem ser aplicadas tanto na interface quanto no
   // backend/API". Esta action escreve `equipamentos.horas_atuais` — o número
-  // que a Saúde e todo o cálculo de manutenção usam. A tela `/diario/[id]/horas`
-  // já checava, mas o botão flutuante "+ Registrar" (`app/(app)/layout.tsx`)
-  // é o outro caminho até aqui, e por ele não passava guard nenhum: sobrava
-  // só a RLS, que recusa em silêncio e faz o app dizer "pronto" pra uma
-  // leitura que não foi gravada.
+  // que a Saúde e todo o cálculo de manutenção usam. O guard nasceu na onda
+  // 52 por causa do FAB global "+ Registrar" (aposentado na onda 60), que
+  // chegava aqui sem checar nada: sobrava só a RLS, que recusa em silêncio
+  // e faz o app dizer "pronto" pra uma leitura que não foi gravada. O FAB
+  // se foi; o guard fica — a action não pode confiar que TODA tela que a
+  // chame hoje ou amanhã (`/diario/[id]/horas`, sugestão pós-trilha) fez a
+  // checagem do lado de lá.
   if (!podeEditar(painel.permissoes, "motores")) {
     redirect(`/hoje?erro=${encodeURIComponent("Seu acesso não permite atualizar as horas dos motores.")}`)
   }

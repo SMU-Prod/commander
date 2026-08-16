@@ -43,7 +43,7 @@ import { ContadorAvisos } from "./ui/contador-avisos"
  * e o sino mora na bottom-nav.
  *
  * DOURADO: zero. A regra refinada desta onda diz que o dourado de MOLDURA é
- * só o de navegação (onde-estou + FAB); a faixa nem disso precisa.
+ * só o de navegação (o onde-estou); a faixa nem disso precisa.
  */
 
 /** O que a faixa precisa saber de um equipamento — subconjunto estrutural de

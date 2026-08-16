@@ -1,139 +1,64 @@
 import { describe, expect, it } from "vitest"
 import {
-  ehTelaDeFormulario,
-  mostrarRegistroRapido,
-  FOLGA_COM_FAB,
-  FOLGA_SEM_FAB,
+  temAcaoFlutuantePropria,
+  FOLGA_BASE,
+  FOLGA_COM_ACAO_FLUTUANTE,
 } from "./superficies"
 
-describe("ehTelaDeFormulario", () => {
-  it("reconhece as rotas de criação pelo sufixo do app", () => {
-    for (const r of [
-      "/barco/itens/novo",
-      "/barco/equipamento/novo",
-      "/barco/ocorrencias/nova",
-      "/diario/novo",
-      "/agenda/novo",
-      "/carteira/nova",
-      "/financeiro/novo",
-      "/financeiro/recorrentes/nova",
-      "/marketplace/nova",
-      "/marketplace/disponibilidades/nova",
-      "/navegar/viagem/nova",
-      "/oportunidades/nova",
-      "/barco/equipamento/abc-123/sistemas/novo",
-    ]) {
-      expect(ehTelaDeFormulario(r), r).toBe(true)
-    }
+// Até a onda 60 este arquivo testava também `mostrarRegistroRapido` e
+// `ehTelaDeFormulario` — as regras de onde o FAB global "+ Registrar" podia
+// aparecer. O FAB aposentou (a decisão e a história estão no cabeçalho de
+// `superficies.ts`), então o que resta a governar é: qual tela tem ação
+// flutuante própria, e quanta folga o conteúdo reserva embaixo.
+
+describe("temAcaoFlutuantePropria", () => {
+  it("reconhece a única tela com ação flutuante própria", () => {
+    // /barco/resumos renderiza o BotaoExportarPdf no SLOT_ACAO_FLUTUANTE —
+    // é ela que precisa da folga maior pra o fim da página não terminar
+    // embaixo do botão.
+    expect(temAcaoFlutuantePropria("/barco/resumos")).toBe(true)
   })
 
-  it("reconhece as rotas de edição", () => {
-    for (const r of [
-      "/barco/editar",
-      "/barco/itens/abc/editar",
-      "/barco/equipamento/abc/editar",
-      "/barco/equipamento/abc/sistemas/xyz/editar",
-    ]) {
-      expect(ehTelaDeFormulario(r), r).toBe(true)
-    }
-  })
-
-  it("cobre os formulários que não têm verbo no nome", () => {
-    for (const r of [
-      "/barco/contatos",
-      "/barco/local",
-      "/barco/selos/gold",
-      "/barco/transferir",
-      "/diario/importar",
-      "/diario/abc/horas",
-      "/prestadores/perfil",
-      "/comandantes/perfil",
-      "/menu/perfil",
-    ]) {
-      expect(ehTelaDeFormulario(r), r).toBe(true)
-    }
-  })
-
-  it("não confunde tela de lista/hub com formulário", () => {
+  it("nega no resto do app — sem o FAB global, nada mais flutua sobre o conteúdo", () => {
     for (const r of [
       "/hoje",
       "/barco",
-      "/barco/equipamentos",
-      "/barco/documentos",
-      "/barco/fotos",
-      "/barco/historico",
-      "/barco/ocorrencias",
-      "/barco/selos",
-      "/barco/resumos",
+      "/barco/itens/novo",
+      "/barco/editar",
       "/diario",
-      "/agenda",
+      "/diario/abc/horas",
       "/financeiro",
       "/financeiro/lancamentos",
       "/marketplace",
-      "/comandantes",
-      "/notificacoes",
+      "/navegar",
       "/menu",
+      "/menu/perfil",
       "/tripulacao",
     ]) {
-      expect(ehTelaDeFormulario(r), r).toBe(false)
+      expect(temAcaoFlutuantePropria(r), r).toBe(false)
     }
   })
 
   it("ignora barra final, query e hash", () => {
-    expect(ehTelaDeFormulario("/barco/itens/novo/")).toBe(true)
-    expect(ehTelaDeFormulario("/financeiro/novo?tipo=despesa")).toBe(true)
-    expect(ehTelaDeFormulario("/barco/editar#casco")).toBe(true)
-  })
-})
-
-describe("mostrarRegistroRapido", () => {
-  it("mostra o FAB nos hubs e listas, onde ele serve", () => {
-    for (const r of ["/barco", "/diario", "/financeiro", "/comandantes", "/menu"]) {
-      expect(mostrarRegistroRapido(r), r).toBe(true)
-    }
-  })
-
-  it("cede o lugar para a ação principal que já está no conteúdo", () => {
-    // Onda 57: a Início ganhou o cartão "Diário de Bordo" com o botão
-    // "Registrar saída", que leva ao mesmo registro. Com os dois, a tela de
-    // casa tinha duas ações principais douradas, uma delas flutuando por
-    // cima do conteúdo.
-    expect(mostrarRegistroRapido("/hoje")).toBe(false)
-    // e continua sendo tela de leitura, não de formulário — o motivo é outro
-    expect(ehTelaDeFormulario("/hoje")).toBe(false)
-  })
-
-  it("esconde o FAB em toda tela de formulário", () => {
-    for (const r of ["/barco/itens/novo", "/barco/editar", "/menu/perfil", "/barco/local"]) {
-      expect(mostrarRegistroRapido(r), r).toBe(false)
-    }
-  })
-
-  it("cede o lugar para a ação flutuante da própria tela", () => {
-    // /barco/resumos tem o "Exportar PDF" nas MESMAS coordenadas fixas; com
-    // os dois, o de cima come o toque e a exportação vira inalcançável.
-    expect(mostrarRegistroRapido("/barco/resumos")).toBe(false)
-    // e continua sendo tela de leitura, não de formulário
-    expect(ehTelaDeFormulario("/barco/resumos")).toBe(false)
-  })
-
-  it("mantém a exceção antiga do mapa", () => {
-    expect(mostrarRegistroRapido("/navegar")).toBe(false)
-    // a tela de viagem nova é formulário — some pelos dois motivos
-    expect(mostrarRegistroRapido("/navegar/viagem/nova")).toBe(false)
+    expect(temAcaoFlutuantePropria("/barco/resumos/")).toBe(true)
+    expect(temAcaoFlutuantePropria("/barco/resumos?periodo=ano")).toBe(true)
+    expect(temAcaoFlutuantePropria("/barco/resumos#gastos")).toBe(true)
   })
 })
 
 describe("folga inferior", () => {
   it("soma a safe-area em vez de assumir zero", () => {
-    // é a regressão desta onda: `pb-36` fixo funcionava no navegador e
-    // deixava o botão de salvar debaixo do FAB no iPhone.
-    expect(FOLGA_COM_FAB).toContain("env(safe-area-inset-bottom)")
-    expect(FOLGA_SEM_FAB).toContain("env(safe-area-inset-bottom)")
+    // lição da onda 54, que continua valendo: folga fixa fechava a conta no
+    // navegador e deixava o botão de salvar coberto no iPhone com barra de
+    // gestos (`viewportFit: "cover"` faz todo `fixed` subir a safe-area).
+    expect(FOLGA_BASE).toContain("env(safe-area-inset-bottom)")
+    expect(FOLGA_COM_ACAO_FLUTUANTE).toContain("env(safe-area-inset-bottom)")
   })
 
-  it("reserva menos espaço quando não há FAB", () => {
-    expect(FOLGA_COM_FAB).toContain("9rem")
-    expect(FOLGA_SEM_FAB).toContain("4.75rem")
+  it("reserva mais espaço só onde uma ação flutuante mora sobre o conteúdo", () => {
+    // 4.75rem cobre a bottom-nav (a folga de toda tela); 9rem cobre também o
+    // botão flutuante de /barco/resumos (topo a 128px + safe-area do rodapé).
+    expect(FOLGA_BASE).toContain("4.75rem")
+    expect(FOLGA_COM_ACAO_FLUTUANTE).toContain("9rem")
   })
 })
