@@ -5,7 +5,7 @@ import { ABAS, PRESETS, normalizarPermissoes, type Permissoes } from "@/lib/doma
 import { supabaseServer } from "@/lib/supabase/server"
 
 function erroMatriz(vinculoId: string, msg: string): never {
-  redirect(`/menu/tripulacao/${vinculoId}?erro=${encodeURIComponent(msg)}`)
+  redirect(`/tripulacao/${vinculoId}?erro=${encodeURIComponent(msg)}`)
 }
 
 async function atualizarVinculo(vinculoId: string, permissoes: Permissoes, nivel: string) {
@@ -16,8 +16,8 @@ async function atualizarVinculo(vinculoId: string, permissoes: Permissoes, nivel
     .eq("id", vinculoId)
     .select("id")
   if (error || data?.length === 0) erroMatriz(vinculoId, "Não deu para salvar as permissões. Recarregue a página e tente de novo.")
-  revalidatePath(`/menu/tripulacao/${vinculoId}`)
-  revalidatePath("/menu/tripulacao")
+  revalidatePath(`/tripulacao/${vinculoId}`)
+  revalidatePath("/tripulacao")
 }
 
 export async function salvarMatriz(formData: FormData) {
@@ -30,14 +30,14 @@ export async function salvarMatriz(formData: FormData) {
     }
   }
   await atualizarVinculo(vinculoId, normalizarPermissoes(bruto), "custom")
-  redirect(`/menu/tripulacao/${vinculoId}?salvo=1`)
+  redirect(`/tripulacao/${vinculoId}?salvo=1`)
 }
 
 export async function aplicarPreset(formData: FormData) {
   const vinculoId = String(formData.get("vinculo_id") ?? "")
   const preset = String(formData.get("preset") ?? "") === "completo" ? "completo" : "operacional"
   await atualizarVinculo(vinculoId, PRESETS[preset], preset)
-  redirect(`/menu/tripulacao/${vinculoId}?salvo=1`)
+  redirect(`/tripulacao/${vinculoId}?salvo=1`)
 }
 
 export async function removerCmdt(formData: FormData) {
@@ -45,6 +45,6 @@ export async function removerCmdt(formData: FormData) {
   const vinculoId = String(formData.get("vinculo_id") ?? "")
   const { error } = await supabase.from("vinculos").delete().eq("id", vinculoId)
   if (error) erroMatriz(vinculoId, "Não deu para remover o comandante da tripulação. Tente de novo.")
-  revalidatePath("/menu/tripulacao")
-  redirect("/menu/tripulacao")
+  revalidatePath("/tripulacao")
+  redirect("/tripulacao")
 }

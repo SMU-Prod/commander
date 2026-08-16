@@ -96,7 +96,12 @@ const ROTAS = [
   "/marketplace/disponibilidades",
   "/avaliacoes", "/explorar", "/prestadores", "/prestadores/perfil",
   "/comandantes", "/rede", "/navegar", "/navegar/viagem/nova",
-  "/notificacoes", "/menu", "/menu/perfil", "/menu/assinatura", "/menu/tripulacao",
+  // Onda 58: `/menu/ajustes` é tela nova e `/tripulacao` é o endereço novo da
+  // Tripulação. `/menu/tripulacao` (agora só redirect) fica de fora — medi-lo
+  // seria medir `/tripulacao` duas vezes; `/tripulacao/[id]` segue a regra
+  // das dinâmicas lá de cima.
+  "/notificacoes", "/menu", "/menu/perfil", "/menu/assinatura", "/menu/ajustes",
+  "/tripulacao",
   "/assinar", "/onboarding",
   "/admin", "/admin/administradores", "/admin/usuarios", "/admin/parceiros",
   "/admin/publicidade", "/admin/taxonomia", "/admin/taxonomia/solicitacoes",

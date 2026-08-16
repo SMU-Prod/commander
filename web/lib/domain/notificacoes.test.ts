@@ -178,6 +178,25 @@ describe("contadorSino", () => {
   it("informativa não entra no badge — badge que nunca zera perde o sentido", () => {
     expect(contadorSino([n({ id: "i", nivel: "informativa" })])).toBe(0)
   })
+
+  // ONDA 58 — a trava do spec de arquitetura §3.3: "a contagem passa a ser de
+  // pendências que pedem ação — que é o que um número vermelho sobre um ícone
+  // promete". Antes do spec, um "3" no sino podia ser três informativas; quem
+  // abre e não acha nada pra fazer aprende a ignorar o número — e aí ele não
+  // avisa mais nada quando importa. É a diferença entre número que se confia
+  // e número que se ignora. Mesmo critério de PUSH_POR_NIVEL: o que interrompe
+  // é o que conta.
+  it("1 crítica + 1 importante + 3 informativas = 2 (spec §3.3)", () => {
+    expect(
+      contadorSino([
+        n({ id: "c", nivel: "critica" }),
+        n({ id: "m", nivel: "importante" }),
+        n({ id: "i1", nivel: "informativa" }),
+        n({ id: "i2", nivel: "informativa" }),
+        n({ id: "i3", nivel: "informativa" }),
+      ]),
+    ).toBe(2)
+  })
 })
 
 // --- onda 53: as três categorias que ganharam fonte ------------------------
