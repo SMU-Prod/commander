@@ -137,9 +137,11 @@ export function TrilhoLateral({
                 Sem ele, a partir de 1024px o app inteiro ficava sem indicador
                 de alerta: a barra de baixo (que carrega o contador) é
                 `lg:hidden`, o sino tem UM consumidor (/hoje) e a faixa de
-                topo do spec §3.3 ainda não existe — ou seja, no desktop, em
-                qualquer tela que não fosse a Início, o seguro vencido não
-                avisava em lugar nenhum. */}
+                topo do spec §3.3 não existia — no desktop, em qualquer tela
+                que não fosse a Início, o seguro vencido não avisava em lugar
+                nenhum. Desde a onda 60 a faixa existe (`FaixaTopo`) e traz o
+                MESMO `ContadorAvisos` com o MESMO número do layout: os dois
+                sinos nunca discordam por construção. */}
             <span className="relative flex">
               <Icone nome={d.icone} className="size-5" />
               {d.href === "/notificacoes" && <ContadorAvisos avisos={avisos} />}
