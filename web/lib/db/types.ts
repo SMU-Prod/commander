@@ -16,6 +16,7 @@ import type {
   TipoTrabalho,
   TipoVaga,
 } from "@/lib/domain/marketplace"
+import type { ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 import type { PlanoId, PromocaoId } from "@/lib/domain/planos"
 import type { NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 
@@ -66,6 +67,10 @@ export interface Equipamento {
   observacoes: string | null
   /** Só faz sentido quando `tipo === "bateria"` (PRD §14). Null nos demais. */
   tipo_bateria: TipoBateria | null
+  /** Zona física onde o equipamento mora (Mapa da Embarcação, onda 61).
+   *  Nullable de propósito: equipamento sem zona aparece como "Não mapeado"
+   *  no mapa — não se inventa dado nos existentes. */
+  zona: ZonaEmbarcacao | null
   horas_atuais: number | null
   ultima_leitura: string | null
   created_at: string

@@ -13,7 +13,7 @@ import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 const eq = (extra: Partial<Equipamento>): Equipamento => ({
   id: "e1", embarcacao_id: "b1", tipo: "motor", posicao: "BB", marca: null, modelo: null,
   numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, horas_atuais: 100, ultima_leitura: null,
+  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, horas_atuais: 100, ultima_leitura: null,
   created_at: "2026-01-01", ...extra,
 })
 const ev = (extra: Partial<Evento>): Evento => ({
