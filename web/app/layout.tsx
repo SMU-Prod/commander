@@ -38,10 +38,16 @@ export const metadata: Metadata = {
   icons: { apple: "/apple-touch-icon.png" },
 }
 
-export const viewport: Viewport = { themeColor: "#f5f7fa", viewportFit: "cover" }
+export const viewport: Viewport = { themeColor: "#0a0e12", viewportFit: "cover" }
 
-// Aplica o tema salvo antes da pintura para evitar flash ao recarregar no dark.
-const temaInicial = `try{if(localStorage.getItem("tema")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`
+// O ESCURO É O PADRÃO (spec da fundação §7: "o tema escuro vira o padrão da
+// vitrine"). A referência que o dono aprovou é escura; a onda 57 construiu a
+// paleta inteira — e esta linha a deixava atrás de um toggle que ninguém
+// apertava: o dono passou três ondas olhando o tema claro e chamando o app
+// de genérico, com razão. O claro CONTINUA existindo (leitura sob sol na
+// marina, Ajustes → Aparência) — só deixa de ser o que abre.
+// Roda antes da pintura para não piscar claro em quem escolheu claro.
+const temaInicial = `try{if(localStorage.getItem("tema")!=="light")document.documentElement.dataset.theme="dark"}catch(e){document.documentElement.dataset.theme="dark"}`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
