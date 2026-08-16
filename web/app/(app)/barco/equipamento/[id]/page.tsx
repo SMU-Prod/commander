@@ -9,7 +9,8 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { calcularSemaforo, formatarDataCurta, PESO, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
+import { Selo } from "@/components/ui/selo"
+import { calcularSemaforo, formatarDataCurta, PESO, rotuloDoFarol, seloDoFarol, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento, ROTULO_MOTOR } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -35,7 +36,10 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
     .filter((i) => i.equipamento_id === id)
     .map((i) => ({ item: i, r: calcularSemaforo(itemMonitoradoToItemCalc(i), equipamento.horas_atuais ?? null, hoje) }))
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
-  const statusGeral = itens[0]?.r.status ?? "ok"
+  // `null` = nenhum item monitorado: o selo do cabeçalho fica neutro ("Sem
+  // dados") em vez de um "Em dia" sem dado por trás (honestidade, onda 16).
+  const statusFicha = itens[0]?.r.status ?? null
+  const statusGeral = statusFicha ?? "ok"
 
   const supabase = await supabaseServer()
   const urlFoto = equipamento.foto_path
@@ -116,7 +120,30 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
 
   return (
     <main>
-      <CabecalhoDetalhe voltarHref={ehMotor ? "/barco" : "/barco/eletrica"} voltarRotulo={ehMotor ? "Embarcação" : "Elétrica"} />
+      {/* ONDA 60 — a anatomia de ficha da imagem 2 (docs/DESIGN-SYSTEM.md):
+          título grande + chip de estado colado + subtítulo (marca/modelo) +
+          barra de ações. "Editar" em CONTORNO, sem ação preenchida de
+          propósito: a ação principal desta ficha ("Registrar serviço") já
+          mora no corpo, na seção Histórico — duplicá-la aqui quebraria o
+          "uma ação principal por tela" (docs/DESIGN.md §6.2), e o dourado de
+          conteúdo desta tela já é do chip ativo dos irmãos logo abaixo. */}
+      <CabecalhoDetalhe
+        voltarHref={ehMotor ? "/barco" : "/barco/eletrica"}
+        voltarRotulo={ehMotor ? "Embarcação" : "Elétrica"}
+        titulo={nomeCurto(equipamento)}
+        descricao={[equipamento.marca, equipamento.modelo].filter(Boolean).join(" ") || undefined}
+        selo={<Selo estado={seloDoFarol(statusFicha)}>{rotuloDoFarol(statusFicha)}</Selo>}
+        acoes={
+          editavel ? (
+            <Link
+              href={`/barco/equipamento/${id}/editar`}
+              className="flex min-h-11 items-center rounded-[var(--raio-pilula)] border border-line bg-panel px-4 text-sm text-texto"
+            >
+              Editar
+            </Link>
+          ) : undefined
+        }
+      />
 
       {irmaos.length > 1 && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -159,12 +186,10 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="mt-3">
-        <Horimetro
-          rotulo={`${nomeCurto(equipamento)} — ${[equipamento.marca, equipamento.modelo].filter(Boolean).join(" ") || "sem marca"}`}
-          horas={equipamento.horas_atuais}
-          status={statusGeral}
-          grande
-        />
+        {/* Onda 60: nome e marca/modelo subiram pro CabecalhoDetalhe — repetir
+            os dois aqui deixava a mesma frase duas vezes na primeira tela. O
+            mostrador volta a dizer só o que ele é. */}
+        <Horimetro rotulo="Horímetro" horas={equipamento.horas_atuais} status={statusGeral} grande />
       </div>
       {media != null && (
         <p className="apoio mt-2 text-center font-mono-instr tabular-nums text-dim">
@@ -296,11 +321,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           ))}
         </dl>
         {equipamento.observacoes && <p className="apoio mt-3 text-dim">{equipamento.observacoes}</p>}
-        {editavel && (
-          <Link href={`/barco/equipamento/${id}/editar`} className="corpo mt-3 inline-block text-accent-forte">
-            Editar equipamento
-          </Link>
-        )}
+        {/* O "Editar equipamento" que morava aqui subiu pra barra de ações do
+            cabeçalho (onda 60) — dois caminhos pro mesmo formulário na mesma
+            tela era exatamente o que a anatomia de ficha veio arrumar. */}
       </div>
 
       <SecaoPagina icone="calendario" acao={{ href: `/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Registrar serviço" }}>
