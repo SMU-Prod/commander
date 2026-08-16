@@ -36,10 +36,10 @@ completo. É a imagem mais importante para as ondas 59–60.
 
 | Padrão | O que é | No Commander | Estado |
 |---|---|---|---|
-| **Breadcrumb** `Dashboard › Fleet Vehicles › TX-4821-HX` | rastro de onde se está | fichas de equipamento/saída/ocorrência no desktop | 🔜 Onda 60 |
-| **Cabeçalho de ficha**: título GRANDE + chip de estado `Idle` colado + subtítulo (modelo) | identidade e estado na mesma linha | `CabecalhoDetalhe` ganha o chip de estado (hoje o estado fica no corpo) | 🔜 Onda 60 |
-| **Barra de ações da ficha**: `Maintenance · Take Offline · [Activate Route]` — duas de contorno, UMA preenchida | a ação principal é a única sólida | fichas: "Registrar manutenção · Editar · [ação principal da tela]" — hoje as ações ficam no fim da página | 🔜 Onda 60 |
-| **Abas com contagem**: `Overview · Cargo · Trips 2 · Maintenance 3 · Alerts 0` | número junto do rótulo | `Abas` (criado na onda 58, já com `contagem?`) — a API já prevê isto | ✅ componente / 🔜 uso nas fichas |
+| **Breadcrumb** `Dashboard › Fleet Vehicles › TX-4821-HX` | rastro de onde se está | fichas de equipamento/saída/ocorrência no desktop | 🔜 pós-60 (a onda 60 entregou o cabeçalho SEM o breadcrumb — ficou de fora da ficha de equipamento) |
+| **Cabeçalho de ficha**: título GRANDE + chip de estado `Idle` colado + subtítulo (modelo) | identidade e estado na mesma linha | `CabecalhoDetalhe` ganhou `selo` (chip de estado colado ao título, palavra E cor) na onda 60; a ficha de equipamento adota (semáforo via `seloDoFarol`; sem item monitorado = "Sem dados") | ✅ onda 60 no equipamento / 🔜 replicação nas demais fichas (saída, ocorrência, lançamento…) |
+| **Barra de ações da ficha**: `Maintenance · Take Offline · [Activate Route]` — duas de contorno, UMA preenchida | a ação principal é a única sólida | `CabecalhoDetalhe` ganhou `acoes` (onda 60); o equipamento usa com "Editar" em contorno — SEM preenchida de propósito: a ação principal ("Registrar serviço") continua no corpo e duplicar quebraria DESIGN §6.2 | ⚠️ parcial (slot pronto + 1 ficha; replicação pendente) |
+| **Abas com contagem**: `Overview · Cargo · Trips 2 · Maintenance 3 · Alerts 0` | número junto do rótulo | `Abas` (criado na onda 58, já com `contagem?`); onda 60: `FinanceiroNav` renderiza `Abas` por dentro — a sub-navegação do Financeiro (4 telas) já é o componente | ✅ componente + sub-navegações / 🔜 uso nas fichas (com contagem) |
 | **Painel lateral de itens** (Packages) com chips de prioridade `Critical/High/Low` | lista densa ao lado do visual | painel de equipamentos/ocorrências ao lado do Mapa da Embarcação | 🔜 Onda 61 |
 | **Barras de capacidade** `28 700/44 000 lbs · 65%` | valor/limite + barra fina colorida | cota de fotos, capacidade elétrica (painel de bordo), tanque | 🔜 pontual |
 
@@ -56,8 +56,11 @@ avatar + nome + credencial em chip mono + micro-KPIs + ação de contato.
 Aplica em: **Tripulação** (`/tripulacao`), **Comandantes** (vitrine — saídas
 registradas, avaliação, "Documentação declarada" como chip), **Prestadores**.
 O agrupamento por estado serve ao **Admin** (barcos por estado de saúde,
-demandas do marketplace por status). 🔜 Onda 60 (cartão de pessoa) / backlog
-(admin).
+demandas do marketplace por status). ⚠️ parcial (onda 60 entregou o cartão na
+**Tripulação**: avatar de iniciais + nome + papel + permissão legível;
+Prestadores e Comandantes JÁ TINHAM cartão próprio de vitrine — unificar as
+três anatomias numa só ficou pra replicação, junto com os micro-KPIs) /
+backlog (admin).
 
 ### Imagem 4 — Dashboard de cartões com o caminhão 3D
 
@@ -78,7 +81,8 @@ clicáveis**, cartão do motorista.
   o padrão para "Gastos do mês" e "Seu ano no mar" — área, não pizza. ✅
   (GraficoMesesGastos é barras; área entra quando houver série contínua).
 - **Cartão de pessoa com KPIs embaixo** (Marcus Johnson): mesma anatomia da
-  imagem 3. 🔜 Onda 60.
+  imagem 3. ⚠️ parcial — ver imagem 3 (Tripulação ✅ na onda 60; micro-KPIs
+  e replicação em Prestadores/Comandantes pendentes).
 
 ### Imagem 5 — Carga 3D explodida (tablet)
 
