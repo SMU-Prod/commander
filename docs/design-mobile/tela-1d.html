@@ -1,0 +1,102 @@
+<div id="1d" style="flex:none;width:402px;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+<div style="display:flex;align-items:baseline;gap:8px">
+<a href="#1d" style="font:600 10.5px/1 ui-monospace,Menlo,monospace;background:rgba(233,241,248,.09);color:#e9f1f8;border-radius:5px;padding:4px 7px;text-decoration:none">1d</a>
+<span style="font:500 12.5px/1.3 'IBM Plex Sans';color:#88a0b8">Barco — ficha e Mapa da Embarcação</span>
+</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:#0a0e12;box-sizing:border-box">
+<div style="flex:1;overflow:hidden;padding:60px 16px 0;display:flex;flex-direction:column">
+<span style="display:inline-flex;align-items:center;gap:6px;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#e5c55c">
+<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#e5c55c" stroke-width="2" stroke-linecap="round"><path d="m15 5-7 7 7 7"></path></svg> Início
+</span>
+<div style="margin-top:14px;display:flex;align-items:center;gap:10px">
+<h1 style="margin:0;font:600 24px/1.2 'IBM Plex Sans';letter-spacing:-.015em;color:#e9f1f8">{{ nomeEmbarcacao }}</h1>
+<span style="border:1px solid rgba(255,176,32,.4);color:#ffb020;border-radius:999px;padding:2px 8px;font:700 11px/1.4 'IBM Plex Sans';letter-spacing:.09em;text-transform:uppercase">{{ rotuloSaude }}</span>
+</div>
+<p style="margin:5px 0 0;font:400 13px/1.4 'IBM Plex Sans';color:#7c93ab">Azimut 55 · 2019 · Marina Verolme, Angra dos Reis</p>
+<div style="margin-top:14px;display:flex;gap:8px">
+<button style="flex:1;height:44px;border:1px solid #303a45;background:transparent;border-radius:8px;color:#e9f1f8;font:500 13.5px/1 'IBM Plex Sans';cursor:pointer">Manutenção</button>
+<button style="flex:1;height:44px;border:1px solid #303a45;background:transparent;border-radius:8px;color:#e9f1f8;font:500 13.5px/1 'IBM Plex Sans';cursor:pointer">Editar</button>
+<button style="flex:none;width:44px;height:44px;border:1px solid #303a45;background:transparent;border-radius:8px;color:#e9f1f8;font:600 15px/1 'IBM Plex Sans';cursor:pointer">···</button>
+</div>
+<div style="margin-top:16px;display:flex;gap:2px;border-bottom:1px solid #303a45;overflow:hidden">
+<span style="flex:none;display:flex;align-items:center;gap:5px;height:42px;padding:0 10px;border-bottom:2px solid #e5c55c;font:500 13.5px/1 'IBM Plex Sans';color:#e9f1f8">Zonas</span>
+<span style="flex:none;display:flex;align-items:center;gap:5px;height:42px;padding:0 10px;border-bottom:2px solid transparent;font:500 13.5px/1 'IBM Plex Sans';color:#7c93ab">Equipamentos <span style="font:400 11px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums">12</span></span>
+<span style="flex:none;display:flex;align-items:center;gap:5px;height:42px;padding:0 10px;border-bottom:2px solid transparent;font:500 13.5px/1 'IBM Plex Sans';color:#7c93ab">Docs <span style="font:400 11px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums">8</span></span>
+<span style="flex:none;display:flex;align-items:center;gap:5px;height:42px;padding:0 10px;border-bottom:2px solid transparent;font:500 13.5px/1 'IBM Plex Sans';color:#7c93ab">Ocorr. <span style="font:400 11px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums">2</span></span>
+</div>
+
+<div style="margin-top:12px;border:1px solid #303a45;background:#1c232c;border-radius:14px;padding:12px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+<span style="flex:1;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c93ab">Mapa da Embarcação</span>
+<span style="border:1px solid rgba(255,92,92,.4);color:#ff5c5c;border-radius:999px;padding:2px 8px;font:700 11px/1.4 'IBM Plex Sans';letter-spacing:.09em;text-transform:uppercase">1 crítico</span>
+</div>
+<div style="position:relative;border-radius:10px;overflow:hidden;height:150px;background:#060d16">
+<svg viewBox="0 0 346 150" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true"><defs><pattern id="hull" width="8" height="8" patternTransform="rotate(35)" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#0b1620"></rect><rect width="3" height="8" fill="#11202c"></rect></pattern></defs><rect width="346" height="150" fill="url(#hull)"></rect></svg>
+<span style="position:absolute;left:50%;top:22px;transform:translateX(-50%);font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#7c93ab;border:1px dashed #37485a;border-radius:999px;padding:6px 10px;white-space:nowrap">corte lateral da embarcação</span>
+<span style="position:absolute;left:52px;top:88px;width:22px;height:22px;border-radius:999px;border:1px solid rgba(255,92,92,.6);background:rgba(255,92,92,.16);display:flex;align-items:center;justify-content:center;font:700 11px/1 ui-monospace,Menlo,monospace;color:#ff5c5c">1</span>
+<span style="position:absolute;left:146px;top:66px;width:22px;height:22px;border-radius:999px;border:1px solid rgba(255,176,32,.6);background:rgba(255,176,32,.16);display:flex;align-items:center;justify-content:center;font:700 11px/1 ui-monospace,Menlo,monospace;color:#ffb020">2</span>
+<span style="position:absolute;left:236px;top:96px;width:22px;height:22px;border-radius:999px;border:1px solid rgba(47,208,122,.6);background:rgba(47,208,122,.16);display:flex;align-items:center;justify-content:center;font:700 11px/1 ui-monospace,Menlo,monospace;color:#2fd07a">3</span>
+<span style="position:absolute;left:10px;bottom:8px;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#7c93ab">← Proa</span>
+<span style="position:absolute;right:10px;bottom:8px;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#7c93ab">Popa →</span>
+</div>
+<p style="margin:10px 0 0;font:400 12.5px/1.45 'IBM Plex Sans';color:#7c93ab">Toque numa zona para ver equipamentos, manutenções e ocorrências fixados nela.</p>
+</div>
+
+<div style="margin-top:12px;border:1px solid #303a45;background:#1c232c;border-radius:14px;padding:0 12px">
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #303a45">
+<span style="width:8px;height:8px;border-radius:999px;background:#ff5c5c;box-shadow:0 0 6px rgba(255,92,92,.7);flex:none"></span>
+<div style="min-width:0;flex:1"><p style="margin:0;font:600 15px/1.35 'IBM Plex Sans';color:#e9f1f8">Casco e obra viva</p><p style="margin:2px 0 0;font:400 13px/1.4 'IBM Plex Sans';color:#7c93ab">1 ocorrência aberta · pintura de fundo vencida</p></div>
+<span style="font:600 14px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:#7c93ab">3</span>
+<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7c93ab" stroke-width="1.8" stroke-linecap="round" style="flex:none"><path d="m9 5 7 7-7 7"></path></svg>
+</div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #303a45">
+<span style="width:8px;height:8px;border-radius:999px;background:#ffb020;box-shadow:0 0 6px rgba(255,176,32,.7);flex:none"></span>
+<div style="min-width:0;flex:1"><p style="margin:0;font:600 15px/1.35 'IBM Plex Sans';color:#e9f1f8">Motores</p><p style="margin:2px 0 0;font:400 13px/1.4 'IBM Plex Sans';color:#7c93ab">Volvo Penta IPS 700 · BB e BE</p></div>
+<span style="font:600 14px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:#7c93ab">2</span>
+<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7c93ab" stroke-width="1.8" stroke-linecap="round" style="flex:none"><path d="m9 5 7 7-7 7"></path></svg>
+</div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #303a45">
+<span style="width:8px;height:8px;border-radius:999px;background:#2fd07a;box-shadow:0 0 6px rgba(47,208,122,.7);flex:none"></span>
+<div style="min-width:0;flex:1"><p style="margin:0;font:600 15px/1.35 'IBM Plex Sans';color:#e9f1f8">Elétrica</p><p style="margin:2px 0 0;font:400 13px/1.4 'IBM Plex Sans';color:#7c93ab">Baterias trocadas em 03/2026</p></div>
+<span style="font:600 14px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:#7c93ab">4</span>
+<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7c93ab" stroke-width="1.8" stroke-linecap="round" style="flex:none"><path d="m9 5 7 7-7 7"></path></svg>
+</div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+<span style="width:8px;height:8px;border-radius:999px;background:#2fd07a;box-shadow:0 0 6px rgba(47,208,122,.7);flex:none"></span>
+<div style="min-width:0;flex:1"><p style="margin:0;font:600 15px/1.35 'IBM Plex Sans';color:#e9f1f8">Hidráulica e convés</p><p style="margin:2px 0 0;font:400 13px/1.4 'IBM Plex Sans';color:#7c93ab">Sem pendência</p></div>
+<span style="font:600 14px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:#7c93ab">3</span>
+<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7c93ab" stroke-width="1.8" stroke-linecap="round" style="flex:none"><path d="m9 5 7 7-7 7"></path></svg>
+</div>
+</div>
+</div>
+<div style="flex:none;border-top:1px solid #303a45;background:rgba(10,14,18,.96);display:flex;padding:8px 0 30px">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#7c93ab" stroke-width="1.7" stroke-linecap="round"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8z"></path></svg>
+<span style="font:500 11px/1 'IBM Plex Sans';text-transform:uppercase;color:#7c93ab">Início</span>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#e5c55c" stroke-width="1.7" stroke-linecap="round"><path d="M3 15h18l-3 5H6l-3-5zM6 15V9h12v6M12 9V4"></path></svg>
+<span style="font:500 11px/1 'IBM Plex Sans';text-transform:uppercase;color:#e5c55c">Barco</span>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#7c93ab" stroke-width="1.7" stroke-linecap="round"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4"></path><path d="M9 17v-3M12 17v-5M15 17v-2"></path></svg>
+<span style="font:500 11px/1 'IBM Plex Sans';text-transform:uppercase;color:#7c93ab">Diário</span>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative">
+<span style="position:absolute;top:-3px;left:calc(50% + 5px);min-width:16px;height:16px;border-radius:999px;background:#ff5c5c;color:#0a0e12;font:600 11px/16px ui-monospace,Menlo,monospace;text-align:center">3</span>
+<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#7c93ab" stroke-width="1.7" stroke-linecap="round"><path d="M6 16V10a6 6 0 0 1 12 0v6l2 3H4l2-3zM10 19a2 2 0 0 0 4 0"></path></svg>
+<span style="font:500 11px/1 'IBM Plex Sans';text-transform:uppercase;color:#7c93ab">Avisos</span>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#7c93ab" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+<span style="font:500 11px/1 'IBM Plex Sans';text-transform:uppercase;color:#7c93ab">Menu</span>
+</div>
+</div>
+</div>
+</x-import>
+<sc-if value="{{ mostrarNotas }}" hint-placeholder-val="{{ true }}">
+<p style="margin:0;font:400 11.5px/1.6 ui-monospace,Menlo,monospace;color:#7c93ab;max-width:402px">A anatomia de ficha da imagem 2 do catálogo: título grande, chip de estado colado, barra de ações (duas de contorno) e abas com contagem. O "caminhão 3D" vira o corte por zonas — o desenho é placeholder até existir dado de posição física.</p>
+</sc-if>
+</div>
+
