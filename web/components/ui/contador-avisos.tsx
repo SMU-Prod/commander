@@ -24,9 +24,15 @@
 export function ContadorAvisos({ avisos }: { avisos: number }) {
   if (avisos <= 0) return null
   return (
+    /* ONDA 62 — o número sobe de 9px pra 11px: o canvas do dono
+       (nav-inferior.dc.html) escreve o badge a 11px mono 600, e 11px é o
+       PISO tipográfico do app (globals.css) — este era o último texto
+       abaixo dele. `text-ink` no lugar de branco fixo: no escuro é o
+       quase-preto do canvas sobre o vermelho; no claro, um quase-branco —
+       legível nos dois sem cor literal nova. */
     <span
       aria-label={`${avisos} avisos que pedem atenção`}
-      className="absolute -right-2 -top-1 flex min-w-[16px] items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[9px] font-semibold leading-4 tabular-nums text-white"
+      className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[11px] font-semibold leading-4 tabular-nums text-ink"
     >
       {avisos > 9 ? "9+" : avisos}
     </span>
