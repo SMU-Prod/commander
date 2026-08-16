@@ -10,6 +10,13 @@ import type { ReactNode } from "react"
  * num canto diferente e a varredura de 15/08 achou a mesma pílula de
  * filtro em 12 telas com 6 alturas. A ação de criar MORA aqui — não
  * flutuando, não no cabeçalho.
+ *
+ * REGRA: o slot `filtros` é UMA linha — um `ChipLinha` só, que esta função
+ * já fornece por fora. Se a tela tem um segundo grupo de chip (refinamento
+ * secundário, ex.: setor dentro de estado), ele NÃO entra aqui empilhado
+ * (`flex-col`) — isso reintroduz a variação de altura que este componente
+ * existe pra eliminar. Ele mora fora da barra, numa `ChipLinha` solta logo
+ * abaixo (ver Ocorrências e Lançamentos).
  */
 export function BarraFerramentas({
   filtros,
@@ -29,7 +36,7 @@ export function BarraFerramentas({
           href={acao.href}
           className="flex min-h-11 shrink-0 items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
         >
-          <Icone nome="mais" className="size-4" aria-hidden />
+          <Icone nome="mais" className="size-4" />
           {acao.rotulo}
         </Link>
       )}
