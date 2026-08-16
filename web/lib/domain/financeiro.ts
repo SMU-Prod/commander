@@ -201,6 +201,85 @@ export function formatarDataBr(iso: string): string {
   return iso.split("-").reverse().join("/")
 }
 
+// ---------------------------------------------------------------------
+// Extrato de Lançamentos — apresentação do canvas tela-3e. Só formato e
+// soma sobre status/tipo que já existem; nenhuma régua nova de estado.
+// ---------------------------------------------------------------------
+
+export interface TotaisDoMes {
+  pagoCentavos: number
+  aVencerCentavos: number
+}
+
+/**
+ * O cartão do topo de Lançamentos (canvas tela-3e): "Pago em agosto" soma só
+ * DESPESA PAGA com data dentro do mês corrente — "só lançamento pago entra
+ * no total do mês; conta a vencer não é dinheiro que saiu" (mesma regra de
+ * `resumoFinanceiro`, que também separa pago de pendente). "A vencer" soma
+ * despesa pendente de hoje em diante, em qualquer mês: é a conta já
+ * assumida que ainda vai bater. Entrada não entra em nenhum dos dois — o
+ * cartão é sobre o dinheiro que sai.
+ */
+export function totaisDoMes(
+  lancamentos: { tipo: TipoLancamento; status: StatusLancamento; data: string; valorCentavos: number }[],
+  hoje: string,
+): TotaisDoMes {
+  const mes = hoje.slice(0, 7)
+  let pago = 0
+  let aVencer = 0
+  for (const l of lancamentos) {
+    if (l.tipo !== "despesa") continue
+    if (l.status === "pago" && l.data.slice(0, 7) === mes) pago += l.valorCentavos
+    if (l.status === "pendente" && l.data >= hoje) aVencer += l.valorCentavos
+  }
+  return { pagoCentavos: pago, aVencerCentavos: aVencer }
+}
+
+/** "Pago em agosto" — o rótulo do cartão acompanha o mês corrente. */
+export function rotuloPagoNoMes(hoje: string): string {
+  const [ano, mes] = hoje.split("-").map(Number)
+  return `Pago em ${MES_EXTENSO.format(new Date(Date.UTC(ano, mes - 1, 1)))}`
+}
+
+/**
+ * A coluna de dinheiro do extrato (canvas tela-3e): mono tabular SEM o "R$"
+ * repetido em cada linha — a vírgula alinha e a comparação vira de valor,
+ * não de texto. Entrada ganha "+" (e a cor verde na tela); despesa vai sem
+ * sinal — o extrato é majoritariamente despesa, e o "−" repetido virava
+ * ruído. O "R$" continua existindo uma vez só, no cartão de totais do topo
+ * (`formatarReais`).
+ */
+export function valorDaLinha(tipo: TipoLancamento, valorCentavos: number): string {
+  const texto = (valorCentavos / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+  return tipo === "entrada" ? `+${texto}` : texto
+}
+
+/** Rótulo do grupo mensal do extrato (canvas: só "Agosto"): o ano só
+ *  aparece quando o grupo NÃO é do ano corrente — aí ele desambigua. */
+export function rotuloDoGrupoMensal(chave: string, hoje: string): string {
+  const [ano, mes] = chave.split("-").map(Number)
+  const nome = MES_EXTENSO.format(new Date(Date.UTC(ano, mes - 1, 1)))
+  const capitalizado = `${nome[0].toUpperCase()}${nome.slice(1)}`
+  return ano === Number(hoje.slice(0, 4)) ? capitalizado : `${capitalizado} de ${ano}`
+}
+
+/**
+ * A palavra de estado no MEIO da frase do subtítulo (canvas: "09/08 · Posto
+ * Verolme · pago") — minúscula, com o tom que a tela pinta. Pendente se
+ * divide pela data, a MESMA comparação que a tela já fazia: "a vencer"
+ * dentro do prazo, "atrasado" depois dele.
+ */
+export function estadoDaLinha(
+  l: { tipo: TipoLancamento; status: StatusLancamento; data: string },
+  hoje: string,
+): { texto: string; tom: "neutro" | "aviso" | "critico" } {
+  if (l.status === "pago") return { texto: l.tipo === "entrada" ? "recebido" : "pago", tom: "neutro" }
+  return l.data < hoje ? { texto: "atrasado", tom: "critico" } : { texto: "a vencer", tom: "aviso" }
+}
+
 /** O período imediatamente anterior, do mesmo tamanho — base da "comparação
  *  entre períodos" do PRD §9.3. Mês fecha com mês (não com 30 dias atrás):
  *  comparar fevereiro com "os 28 dias antes de 1º de março" daria um recorte

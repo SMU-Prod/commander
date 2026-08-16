@@ -4,6 +4,7 @@ import {
   categoriaFinanceiraDaDemanda,
   categoriaFinanceiraDoEvento,
   compararPeriodos,
+  estadoDaLinha,
   mesesNoPeriodo,
   periodoAnterior,
   periodoAnual,
@@ -11,9 +12,13 @@ import {
   periodoPersonalizado,
   proximoVencimento,
   resumoFinanceiro,
+  rotuloDoGrupoMensal,
+  rotuloPagoNoMes,
   rotuloStatus,
+  totaisDoMes,
   validarLancamento,
   validarRecorrente,
+  valorDaLinha,
   vencimento,
   vencimentosNoIntervalo,
   type LancamentoParaResumo,
@@ -216,5 +221,55 @@ describe("validação", () => {
     expect(validarRecorrente({ ...bom, frequencia: "mensal", fim: null })).toEqual({ ok: true })
     expect(validarRecorrente({ ...bom, frequencia: "quinzenal", fim: null }).ok).toBe(false)
     expect(validarRecorrente({ ...bom, frequencia: "mensal", fim: "2026-07-01" }).ok).toBe(false)
+  })
+})
+
+describe("extrato de Lançamentos — apresentação do canvas tela-3e", () => {
+  const HOJE = "2026-08-16"
+  const l = (
+    tipo: "despesa" | "entrada",
+    status: "pago" | "pendente",
+    data: string,
+    valorCentavos: number,
+  ) => ({ tipo, status, data, valorCentavos })
+
+  it("totaisDoMes: só despesa PAGA do mês corrente entra no pago; pendente futura vira 'a vencer'", () => {
+    const t = totaisDoMes(
+      [
+        l("despesa", "pago", "2026-08-09", 288_000),
+        l("despesa", "pago", "2026-08-05", 540_000),
+        l("despesa", "pago", "2026-07-30", 100_000), // mês passado: fora do pago
+        l("despesa", "pendente", "2026-08-20", 540_000), // a vencer
+        l("despesa", "pendente", "2026-08-01", 90_000), // atrasada: não é "a vencer"
+        l("entrada", "pago", "2026-08-10", 150_000), // entrada não entra em nada
+      ],
+      HOJE,
+    )
+    expect(t.pagoCentavos).toBe(828_000)
+    expect(t.aVencerCentavos).toBe(540_000)
+  })
+
+  it("rotuloPagoNoMes acompanha o mês corrente", () => {
+    expect(rotuloPagoNoMes("2026-08-16")).toBe("Pago em agosto")
+    expect(rotuloPagoNoMes("2026-12-01")).toBe("Pago em dezembro")
+  })
+
+  it("valorDaLinha: mono sem R$; entrada ganha '+', despesa vai sem sinal", () => {
+    expect(valorDaLinha("despesa", 288_000)).toBe("2.880,00")
+    expect(valorDaLinha("entrada", 150_000)).toBe("+1.500,00")
+    expect(valorDaLinha("despesa", 78_000)).toBe("780,00")
+  })
+
+  it("rotuloDoGrupoMensal: só o mês no ano corrente; ano por extenso fora dele", () => {
+    expect(rotuloDoGrupoMensal("2026-08", HOJE)).toBe("Agosto")
+    expect(rotuloDoGrupoMensal("2025-12", HOJE)).toBe("Dezembro de 2025")
+  })
+
+  it("estadoDaLinha: pago/recebido neutros; pendente divide em 'a vencer' e 'atrasado' pela data", () => {
+    expect(estadoDaLinha(l("despesa", "pago", "2026-08-09", 1), HOJE)).toEqual({ texto: "pago", tom: "neutro" })
+    expect(estadoDaLinha(l("entrada", "pago", "2026-08-09", 1), HOJE)).toEqual({ texto: "recebido", tom: "neutro" })
+    expect(estadoDaLinha(l("despesa", "pendente", "2026-08-20", 1), HOJE)).toEqual({ texto: "a vencer", tom: "aviso" })
+    expect(estadoDaLinha(l("despesa", "pendente", "2026-08-16", 1), HOJE)).toEqual({ texto: "a vencer", tom: "aviso" })
+    expect(estadoDaLinha(l("despesa", "pendente", "2026-08-01", 1), HOJE)).toEqual({ texto: "atrasado", tom: "critico" })
   })
 })
