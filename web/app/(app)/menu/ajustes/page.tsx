@@ -4,6 +4,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { sair } from "@/lib/acoes/auth"
+import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -18,6 +19,11 @@ import { supabaseServer } from "@/lib/supabase/server"
 export default async function AjustesPage() {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
+  // Pelo papel de verdade, não por suposição: o Menu antigo escrevia
+  // "Proprietário" fixo e um comandante lia o rótulo errado na própria
+  // conta. `carregarPainel` tem cache() — não custa segunda ida ao banco.
+  const painel = await carregarPainel()
+  const rotuloPapel = painel?.papel === "CMDT" ? "Comandante" : "Proprietário"
 
   return (
     <main>
@@ -28,7 +34,7 @@ export default async function AjustesPage() {
         href="/menu/perfil"
         variant="cartao"
         titulo={user?.email ?? "—"}
-        subtitulo="Proprietário"
+        subtitulo={rotuloPapel}
       />
       <LinhaLista
         href="/menu/assinatura"
@@ -38,7 +44,7 @@ export default async function AjustesPage() {
       />
 
       <SecaoPagina icone="imagem">Aparência</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4 py-3.5">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4 py-3.5">
         <ThemeToggle />
         <p className="apoio mt-2 text-dim">
           O modo claro é o padrão — feito para leitura sob sol forte na marina.

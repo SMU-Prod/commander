@@ -145,24 +145,41 @@ export default async function MenuPage({
         subtitulo="Em breve — conectividade NMEA 2000"
       />
 
-      <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
-      <LinhaLista
-        href="/financeiro"
-        variant="cartao"
-        titulo="Financeiro"
-        subtitulo={
-          totalMesCentavos > 0
-            ? <><span className="font-mono-instr tabular-nums">{formatarReais(totalMesCentavos)}</span> este mês</>
-            : "Despesas, entradas, recorrentes e relatórios"
-        }
-      />
-      <LinhaLista
-        href="/carteira"
-        variant="cartao"
-        className="mt-2"
-        titulo="Carteira da Tripulação"
-        subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
-      />
+      {/* A porta segue a sala (onda 52, reafirmado no trilho da onda 57):
+          Financeiro e Carteira só aparecem pra quem entra — /financeiro
+          devolve o CMDT sem `gastos` com faixa de erro, e anunciar porta
+          que o backend fecha era exatamente o defeito que a revisão da
+          onda 58 apontou: metade do Menu escondia (Tripulação, Agenda,
+          Admin) e esta seção não. `podeVer(null, ...)` é true — PROP vê
+          tudo, como no resto do app. */}
+      {painel != null &&
+        (podeVer(painel.permissoes, "gastos") ||
+          painel.papel === "PROP" ||
+          podeVer(painel.permissoes, "carteira")) && (
+          <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
+        )}
+      {painel != null && podeVer(painel.permissoes, "gastos") && (
+        <LinhaLista
+          href="/financeiro"
+          variant="cartao"
+          titulo="Financeiro"
+          subtitulo={
+            totalMesCentavos > 0
+              ? <><span className="font-mono-instr tabular-nums">{formatarReais(totalMesCentavos)}</span> este mês</>
+              : "Despesas, entradas, recorrentes e relatórios"
+          }
+        />
+      )}
+      {/* Mesmo gate da própria /carteira: PROP sempre; CMDT só com a área. */}
+      {painel != null && (painel.papel === "PROP" || podeVer(painel.permissoes, "carteira")) && (
+        <LinhaLista
+          href="/carteira"
+          variant="cartao"
+          className="mt-2"
+          titulo="Carteira da Tripulação"
+          subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
+        />
+      )}
 
       <SecaoPagina icone="pessoas">Gente</SecaoPagina>
       {painel?.papel === "PROP" && (

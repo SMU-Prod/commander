@@ -194,7 +194,15 @@ export default async function NotificacoesPage({
         className="mt-4"
         ativa={aba}
         abas={[
-          { valor: "pendentes", rotulo: "Pendentes", href: "/notificacoes", contagem: visiveis.length },
+          // A contagem da aba é a CAIXA INTEIRA, sem filtro e sem
+          // agrupamento — a mesma régua do chip "Todas" logo abaixo, e a
+          // mesma aritmética que o cartão mostra ("+2 semelhantes" somam).
+          // Com `visiveis.length` o número encolhia junto do filtro de
+          // categoria, mas o href da aba limpa o filtro: o número prometia
+          // um tanto e o clique mostrava outro. O sino usa OUTRA régua de
+          // propósito (só o que pede ação, spec §3.3): ele mede urgência,
+          // a aba mede volume.
+          { valor: "pendentes", rotulo: "Pendentes", href: "/notificacoes", contagem: todas.length },
           { valor: "historico", rotulo: "Histórico", href: "/notificacoes?aba=historico" },
         ]}
       />
