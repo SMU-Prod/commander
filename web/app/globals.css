@@ -345,9 +345,9 @@ body.fundo-tela-mapa {
 /* Onda 37 (Resumos, exportação em PDF) — impressão nativa do navegador em
    vez de lib de PDF no bundle (justificativa completa em
    BotaoExportarPdf). Duas coisas resolvidas aqui:
-   1) `.no-imprimir` esconde a casca do app (bottom nav, FAB de registro,
-      toast, o link "Voltar") — sem isso o PDF sairia com navegação que não
-      faz sentido fora do app.
+   1) `.no-imprimir` esconde a casca do app (bottom nav, toast, o link
+      "Voltar") — sem isso o PDF sairia com navegação que não faz sentido
+      fora do app.
    2) O relatório força o tema CLARO mesmo se o dono estiver no escuro: PDF é
       pra imprimir ou anexar num e-mail — dark mode em impressora é tinta
       gasta à toa e ilegível em papel. Reescreve os MESMOS tokens de :root

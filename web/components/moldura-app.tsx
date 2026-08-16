@@ -2,11 +2,11 @@
 import { usePathname } from "next/navigation"
 import type { Permissoes } from "@/lib/domain/permissoes"
 import {
-  FOLGA_COM_FAB,
-  FOLGA_SEM_FAB,
+  FOLGA_BASE,
+  FOLGA_COM_ACAO_FLUTUANTE,
   LARGURA_CONTEUDO,
   OFFSET_TRILHO,
-  mostrarRegistroRapido,
+  temAcaoFlutuantePropria,
 } from "@/lib/ui/superficies"
 import { TrilhoLateral } from "./trilho-lateral"
 
@@ -14,15 +14,17 @@ import { TrilhoLateral } from "./trilho-lateral"
  * ONDA 54 — a folga inferior do conteúdo deixa de ser constante.
  *
  * Antes era um `pb-36` cravado no `layout.tsx`: um número só, para toda
- * tela, calculado supondo safe-area zero e supondo que o "+ Registrar"
- * sempre existe. As duas suposições são falsas — ver a conta completa em
- * `lib/ui/superficies.ts`. O resultado prático era o botão "Criar
- * manutenção" debaixo da bottom-nav no iPhone, e ~90px de espaço morto no
- * fim de toda tela que nem tem FAB.
+ * tela, calculado supondo safe-area zero. A suposição é falsa — ver a conta
+ * completa em `lib/ui/superficies.ts`. O resultado prático era o botão
+ * "Criar manutenção" debaixo da bottom-nav no iPhone.
  *
- * Aqui a folga passa a ser DERIVADA do que realmente flutua na tela: a
- * rota (via `mostrarRegistroRapido`) e a presença de motor editável
- * (`temFab`, que o layout calcula no servidor com a permissão da pessoa).
+ * Aqui a folga é DERIVADA do que realmente flutua na tela: toda tela paga a
+ * folga da bottom-nav (`FOLGA_BASE`); quem tem ação flutuante própria
+ * (`temAcaoFlutuantePropria` — hoje só `/barco/resumos`, com o "Exportar
+ * PDF") paga a maior, pra caber o botão inteiro. Até a onda 60 esta conta
+ * era mais complicada porque existia o FAB global "+ Registrar" em quase
+ * toda tela — ele aposentou (a história está em `superficies.ts`), e com
+ * ele foi embora a prop `temFab` que o layout calculava no servidor.
  * É client component só por causa do `usePathname` — `children` chega como
  * prop e continua renderizando no servidor, então nada da árvore vira
  * cliente por causa disto.
@@ -41,14 +43,11 @@ import { TrilhoLateral } from "./trilho-lateral"
  * existem na página.
  */
 export function MolduraApp({
-  temFab,
   permissoes,
   avisos = 0,
   faixa,
   children,
 }: {
-  /** Há motor editável para o FAB registrar? Decidido no servidor, por permissão. */
-  temFab: boolean
   /** As permissões desta pessoa neste barco, direto de `painel.permissoes`.
    *  Passam por aqui só para chegar ao trilho: quem decide o que ele mostra é
    *  o `podeVer` de `lib/domain/permissoes.ts`, o MESMO do "Acesso rápido" da
@@ -68,14 +67,13 @@ export function MolduraApp({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const fabVisivel = temFab && mostrarRegistroRapido(pathname)
   return (
     <>
       <TrilhoLateral permissoes={permissoes} avisos={avisos} />
       <div
         data-moldura
         className={`mx-auto min-h-dvh ${LARGURA_CONTEUDO} ${OFFSET_TRILHO} px-4 pt-5 print:max-w-full print:px-0 print:pb-0 print:pt-0 ${
-          fabVisivel ? FOLGA_COM_FAB : FOLGA_SEM_FAB
+          temAcaoFlutuantePropria(pathname) ? FOLGA_COM_ACAO_FLUTUANTE : FOLGA_BASE
         }`}
       >
         {faixa}

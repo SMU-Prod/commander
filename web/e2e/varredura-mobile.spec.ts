@@ -187,7 +187,8 @@ async function medir(page: Page) {
     // termina DEBAIXO da casca mesmo com a página rolada até o fim — já tem
     // régua própria e mais precisa: `e2e/sem-saida.spec.ts` mede o
     // `paddingBottom` computado da `[data-moldura]` (a folga derivada de
-    // `FOLGA_COM_FAB`/`FOLGA_SEM_FAB`) e QUEBRA a suíte se ele encolher.
+    // `FOLGA_BASE`/`FOLGA_COM_ACAO_FLUTUANTE`) e QUEBRA a suíte se ele
+    // encolher.
     // A régua certa pro fenômeno certo; aqui a casca só produzia eco.
     //
     // A identificação é por seletor estável, nunca por posição na tela

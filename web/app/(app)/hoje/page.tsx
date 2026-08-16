@@ -448,11 +448,12 @@ export default async function HojePage({
       )}
 
       {/* O Diário é o coração do app (PRD §6) e era um ícone num grid de
-          cinco atalhos. Vira cartão com a ÚNICA ação dourada da tela — e é
-          por isso que o "+ Registrar" flutuante não aparece mais aqui (ver
-          `lib/ui/superficies.ts`): dois botões de registrar na mesma tela,
-          um deles por cima do conteúdo, é a definição de ação principal
-          duplicada. */}
+          cinco atalhos. Vira cartão com a ÚNICA ação dourada da tela. Foi
+          este cartão que tirou o FAB "+ Registrar" da Início na onda 57
+          (dois botões de registrar na mesma tela, um deles por cima do
+          conteúdo, é a definição de ação principal duplicada) — e na onda
+          60 o FAB aposentou do app inteiro (ver `lib/ui/superficies.ts`):
+          este botão é o caminho de registrar a partir daqui. */}
       {podeVerDiario && (
         <Cartao
           icone="relatorio"
