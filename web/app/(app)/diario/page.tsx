@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
-import { Chip, ChipLinha } from "@/components/ui/chip"
+import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
+import { Chip } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
@@ -77,20 +78,7 @@ export default async function DiarioPage({
 
   return (
     <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Diário de Bordo</h1>
-        {/* §27.2 — o botão só existe pra quem pode escrever. Até a onda 52
-            ele aparecia pra todo mundo e a recusa vinha três telas adiante,
-            depois de a pessoa preencher a saída inteira. Ler o Diário
-            continua liberado: quem tem `diario:ver` vê tudo abaixo. */}
-        {podeEscrever && (
-          <Link href="/diario/novo" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-            <span className="inline-flex items-center gap-1">
-              <Icone nome="mais" className="size-4" /> Registrar
-            </span>
-          </Link>
-        )}
-      </div>
+      <h1 className="titulo-pagina">Diário de Bordo</h1>
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
           Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
           Segunda acao discreta pra nao competir com "+ Registrar" (o gesto
@@ -113,17 +101,27 @@ export default async function DiarioPage({
       )}
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <ChipLinha className="mt-4">
-        {FILTROS.map((f) => (
-          <Chip
-            key={f.valor}
-            href={f.valor === "tudo" ? "/diario" : `/diario?filtro=${f.valor}`}
-            ativo={filtro === f.valor}
-          >
-            {f.rotulo}
-          </Chip>
-        ))}
-      </ChipLinha>
+      {/* ONDA 59 — a barra engole o ChipLinha de filtros e ganha a ação de
+          criar, que saiu do cabeçalho. §27.2 continua valendo: a ação só
+          existe pra quem pode escrever (`podeEscrever`); quem só lê vê os
+          filtros sozinhos, sem a pílula dourada. */}
+      <BarraFerramentas
+        className="mt-4"
+        filtros={
+          <>
+            {FILTROS.map((f) => (
+              <Chip
+                key={f.valor}
+                href={f.valor === "tudo" ? "/diario" : `/diario?filtro=${f.valor}`}
+                ativo={filtro === f.valor}
+              >
+                {f.rotulo}
+              </Chip>
+            ))}
+          </>
+        }
+        acao={podeEscrever ? { href: "/diario/novo", rotulo: "Registrar" } : undefined}
+      />
 
       {grupos.length === 0 && (
         <EstadoVazio

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { carregarPainel } from "@/lib/consultas"
@@ -50,36 +51,45 @@ export default async function OcorrenciasPage({
 
   return (
     <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Ocorrências</h1>
-        <Link href="/barco/ocorrencias/nova" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-          <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Registrar
-          </span>
-        </Link>
-      </div>
+      <h1 className="titulo-pagina">Ocorrências</h1>
       <p className="apoio mt-1 text-dim">Um problema apontado no Diário, ou registrado direto aqui — sempre ligado a um setor do barco.</p>
 
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
       {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 corpo">{ok}</p>}
 
-      <ChipLinha className="mt-4">
-        {ESTADO_FILTROS.map((f) => (
-          <Chip key={f.valor} href={comFiltro({ estado: f.valor })} ativo={estado === f.valor}>
-            {f.rotulo}
-          </Chip>
-        ))}
-      </ChipLinha>
-      <ChipLinha className="mt-2">
-        <Chip href={comFiltro({ setor: "tudo" })} ativo={setor === "tudo"} nivel="secundario">
-          Todos os setores
-        </Chip>
-        {ABAS_OCORRENCIA.map((aba) => (
-          <Chip key={aba} href={comFiltro({ setor: aba })} ativo={setor === aba} nivel="secundario">
-            {ROTULO_ABA[aba]}
-          </Chip>
-        ))}
-      </ChipLinha>
+      {/* ONDA 59 — a barra engole os dois ChipLinha (estado + setor). São
+          dois grupos de filtro, não um só, então em vez de disputar espaço
+          na mesma fila horizontal eles empilham dentro do slot `filtros` —
+          cada um mantém sua própria rolagem lateral. O setor usa
+          `nivel="secundario"` (contorno, sem preenchimento) e por isso não
+          soma ao orçamento de dourados: só a ação "Registrar ocorrência" e
+          o chip de estado ativo (nivel primário, preenchido) contam — 2 no
+          total, dentro do limite. */}
+      <BarraFerramentas
+        className="mt-4"
+        filtros={
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <ChipLinha>
+              {ESTADO_FILTROS.map((f) => (
+                <Chip key={f.valor} href={comFiltro({ estado: f.valor })} ativo={estado === f.valor}>
+                  {f.rotulo}
+                </Chip>
+              ))}
+            </ChipLinha>
+            <ChipLinha>
+              <Chip href={comFiltro({ setor: "tudo" })} ativo={setor === "tudo"} nivel="secundario">
+                Todos os setores
+              </Chip>
+              {ABAS_OCORRENCIA.map((aba) => (
+                <Chip key={aba} href={comFiltro({ setor: aba })} ativo={setor === aba} nivel="secundario">
+                  {ROTULO_ABA[aba]}
+                </Chip>
+              ))}
+            </ChipLinha>
+          </div>
+        }
+        acao={{ href: "/barco/ocorrencias/nova", rotulo: "Registrar ocorrência" }}
+      />
 
       {ocorrencias.length === 0 && (
         <EstadoVazio
