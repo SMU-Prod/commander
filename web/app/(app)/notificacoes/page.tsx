@@ -42,21 +42,24 @@ import type { AlertaEnviado } from "@/lib/db/types"
  * aqui.
  */
 
-/** Destaque visual por nível — o PRD manda destacar as críticas. Nada de
+/** Destaque visual por nível — a borda LATERAL por severidade da imagem 6
+ *  do catálogo: o sinal é a borda, não um preenchimento (o `bg-crit/[0.06]`
+ *  da onda 58 saiu — era o paliativo de quando a borda era igual nos três
+ *  níveis). Informativa fica na `border-line` de todo cartão. Nada de
  *  dourado (`accent`): esse é do Commander Gold. */
 const ESTILO_NIVEL: Record<NivelNotificacao, { cartao: string; chip: string; icone: string }> = {
   critica: {
-    cartao: "border-crit/50 bg-crit/[0.06]",
+    cartao: "border-l-crit",
     chip: "border-crit/50 text-crit",
     icone: "bg-crit/12 text-crit",
   },
   importante: {
-    cartao: "border-line",
+    cartao: "border-l-warn",
     chip: "border-warn/50 text-warn",
     icone: "bg-warn/12 text-warn",
   },
   informativa: {
-    cartao: "border-line",
+    cartao: "",
     chip: "border-line text-dim",
     icone: "bg-panel2 text-dim",
   },
@@ -67,7 +70,7 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
   return (
     <Link
       href={n.href}
-      className={`sombra-1 flex items-center gap-3 rounded-[14px] border bg-panel p-3.5 ${estilo.cartao}`}
+      className={`sombra-1 flex items-center gap-3 rounded-[14px] border border-l-2 border-line bg-panel p-3.5 ${estilo.cartao}`}
     >
       <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${estilo.icone}`}>
         <Icone nome="alerta" className="size-4" />
@@ -79,6 +82,15 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
           {/* "Oportunidades semelhantes devem ser agrupadas para evitar spam"
               (PRD §5.2) — o resto do grupo vira um "+N" em vez de N linhas. */}
           {n.quantidade > 1 && ` · +${n.quantidade - 1} semelhante${n.quantidade > 2 ? "s" : ""}`}
+        </p>
+        {/* A ação nomeada dentro do aviso (spec §3.2: "aviso que não se
+            resolve pelo aviso é aviso que se lê duas vezes"). É texto, não um
+            segundo link: o cartão INTEIRO já é o link, e <a> dentro de <a> é
+            o HTML inválido em que o app tropeçou na onda 28. Peso e cor de
+            texto — não dourado: os dois dourados da tela já têm dono. */}
+        <p className="mt-1.5 flex items-center gap-1 text-sm font-medium text-texto">
+          {n.acao}
+          <Icone nome="chevron" className="size-3.5 text-dim" />
         </p>
       </div>
       <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.08em] ${estilo.chip}`}>
@@ -250,11 +262,14 @@ export default async function NotificacoesPage({
             categoria === "todas" ? (
               /* Zero é uma resposta boa (spec §3.2): a caixa de entrada
                  EXISTE pra ficar vazia, então o vazio sem filtro é boa
-                 notícia, não lápide — e sem decoração (DESIGN.md §6 regra 4). */
+                 notícia, não lápide — e sem decoração (DESIGN.md §6 regra 4).
+                 "Verificado agora" é literal: a lista é calculada ao vivo
+                 nesta requisição (`carregarNotificacoes`) — por isso a frase
+                 dispensa carimbo de hora. */
               <EstadoVazio
                 icone="escudo"
                 titulo="Nenhuma pendência"
-                descricao="Quando algo crítico ou importante acontecer, aparece aqui e no aparelho."
+                descricao="Verificado agora. Críticas e importantes chegam aqui e no aparelho."
                 className="mt-6"
               />
             ) : (

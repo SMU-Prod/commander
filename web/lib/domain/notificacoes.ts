@@ -104,6 +104,15 @@ export interface Notificacao {
    */
   aba: Aba | null
   href: string
+  /**
+   * O verbo da tela de destino, visível no rodapé do cartão — "Registrar
+   * manutenção", "Responder proposta" (onda 59, imagem 6 do catálogo).
+   * Obrigatório de propósito: aviso sem ação nomeada é o defeito que o spec
+   * §3.2 aponta ("aviso que não se resolve pelo aviso é aviso que se lê
+   * duas vezes"). Quem constrói a notificação conhece o `href`; logo conhece
+   * o verbo — e o compilador cobra de cada construtor o seu.
+   */
+  acao: string
   /** ISO — null quando é um estado atual (item vencido hoje), não um evento datado. */
   quando: string | null
   /**

@@ -27,6 +27,7 @@ function n(parcial: Partial<Notificacao> & { id: string }): Notificacao {
     nivel: "importante",
     aba: null,
     href: "/barco",
+    acao: "Resolver",
     quando: null,
     grupo: parcial.id,
     ...parcial,
@@ -252,6 +253,31 @@ describe("vazio de categoria depois que os módulos existem (onda 53)", () => {
       expect(texto).not.toContain("ainda não está no ar")
       expect(texto).not.toContain("quando estiver")
     }
+  })
+})
+
+// --- onda 59: a ação nomeada dentro do aviso -------------------------------
+
+describe("acao — o verbo da tela de destino (spec §3.2)", () => {
+  // "Todo construtor devolve acao não vazia" é trabalho do COMPILADOR:
+  // `acao: string` obrigatório e sem default quebra o tsc em cada construtor
+  // de `lib/consultas.ts` até cada um nomear o seu verbo. O que sobra pro
+  // runtime é garantir que o verbo atravessa a mecânica sem se perder.
+  it("agrupar mantém a ação da representante — o cartão promete o verbo da mais urgente", () => {
+    const ordenadas = ordenarNotificacoes([
+      n({ id: "leve", grupo: "g", nivel: "importante", acao: "Ver ocorrência" }),
+      n({ id: "grave", grupo: "g", nivel: "critica", acao: "Registrar manutenção" }),
+    ])
+    const [linha] = agruparSemelhantes(ordenadas)
+    expect(linha.id).toBe("grave")
+    expect(linha.acao).toBe("Registrar manutenção")
+  })
+
+  it("ordenar e filtrar não derrubam o campo — refactor que reconstruir o objeto cai aqui", () => {
+    const lista = [n({ id: "a", categoria: "financeiro", acao: "Ver lançamento" })]
+    expect(ordenarNotificacoes(lista)[0].acao).toBe("Ver lançamento")
+    expect(filtrarPorCategoria(lista, "financeiro")[0].acao).toBe("Ver lançamento")
+    expect(filtrarPorPermissao(lista, null)[0].acao).toBe("Ver lançamento")
   })
 })
 

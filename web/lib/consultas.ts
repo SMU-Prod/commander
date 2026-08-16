@@ -425,6 +425,10 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
       nivel: nivelDoStatusItem(r.status),
       aba,
       href: `/barco/itens/${i.id}/editar`,
+      // O verbo da tela de destino (a ficha do item, onde se registra o
+      // serviço feito ou o vencimento novo) — documento renova, o resto
+      // recebe manutenção.
+      acao: aba === "documentos" ? "Renovar documento" : "Registrar manutenção",
       quando: null,
       // Agrupa por hub + severidade: "3 documentos vencidos" numa linha em
       // vez de três linhas quase iguais (PRD §5.2, evitar spam).
@@ -439,6 +443,7 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
     nivel: nivelDaOcorrencia(o.estado, o.gravidade),
     aba: o.aba,
     href: `/barco/ocorrencias/${o.id}`,
+    acao: "Ver ocorrência",
     quando: o.created_at,
     grupo: `ocorrencia:${o.aba}`,
   }))
@@ -499,6 +504,9 @@ async function notificacoesDaAgenda(
       nivel: deOutraPessoa ? ("importante" as const) : nivelDoCompromisso(dias),
       aba: "agenda" as const,
       href: `/agenda/${c.id}`,
+      // O href aponta pro compromisso, não pra lista da Agenda — o verbo
+      // segue o destino.
+      acao: "Ver compromisso",
       quando: c.data,
       // Agrupa por natureza, não por dia: "3 compromissos compartilhados"
       // numa linha, em vez de três linhas quase iguais (§5.2).
@@ -554,6 +562,9 @@ async function notificacoesDoFinanceiro(embarcacaoId: string, hoje: string): Pro
       nivel: nivelDoVencimentoFinanceiro(dias),
       aba: "gastos" as const,
       href: `/financeiro/lancamentos/${l.id}`,
+      // "Confirmar pagamento" prometeria um botão que quem tem acesso de
+      // leitura não vê na tela de destino — "Ver lançamento" vale pra todos.
+      acao: "Ver lançamento",
       quando: l.data,
       grupo: dias <= 0 ? "financeiro:vencido" : "financeiro:a-vencer",
     }
@@ -576,6 +587,9 @@ async function notificacoesDoFinanceiro(embarcacaoId: string, hoje: string): Pro
         nivel: nivelDoVencimentoFinanceiro(dias),
         aba: "gastos",
         href: `/financeiro/recorrentes/${bruta.id}`,
+        // A tela de destino é a ficha da série (o "Paguei" mora na lista de
+        // Recorrentes) — sem verbo de ação honesto, vale o nome da tela.
+        acao: "Ver recorrente",
         quando: data,
         grupo: dias <= 0 ? "financeiro:recorrente-vencida" : "financeiro:recorrente-a-vencer",
       })
@@ -620,6 +634,8 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
     nivel: NIVEL_AVISO_MARKETPLACE.proposta_recebida,
     aba: null,
     href: `/marketplace/${p.demanda_id}`,
+    // Na tela do pedido a proposta se aceita ou se recusa — responder é o verbo.
+    acao: "Responder proposta",
     quando: p.criado_em,
     grupo: `marketplace:recebida:${p.demanda_id}`,
   }))
@@ -634,6 +650,9 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
       nivel: aceita ? NIVEL_AVISO_MARKETPLACE.proposta_aceita : NIVEL_AVISO_MARKETPLACE.proposta_recusada,
       aba: null,
       href: `/marketplace/${p.demanda_id}`,
+      // Aceita libera o contato de quem publicou; recusada só resta ler o
+      // pedido — cada uma nomeia o que a tela de destino de fato entrega.
+      acao: aceita ? "Ver contato" : "Ver pedido",
       quando: p.atualizado_em,
       grupo: `marketplace:proposta-${p.status}`,
     })
@@ -665,6 +684,7 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
       nivel: NIVEL_AVISO_MARKETPLACE.negocio_aguardando,
       aba: null,
       href: `/marketplace/${n.demanda_id}`,
+      acao: "Confirmar negócio",
       quando: n.criado_em,
       grupo: "marketplace:negocio-aguardando",
     })
