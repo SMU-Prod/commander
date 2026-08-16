@@ -3,6 +3,7 @@ import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"
 import { mensagemBloqueio, vagasTripulacao } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
+import { Avatar } from "@/components/avatar"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
@@ -28,9 +29,26 @@ export default async function TripulacaoPage({
     supabase.from("vinculos").select("*").eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT"),
     supabase.from("convites").select("*").eq("embarcacao_id", painel.embarcacao.id)
       .is("usado_em", null).gt("expira_em", new Date().toISOString()).order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, nome"),
+    supabase.from("profiles").select("id, nome, avatar_path"),
   ])
   const nomePorId = new Map((perfis ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+  const avatarPathPorId = new Map(
+    (perfis ?? []).map((p: { id: string; avatar_path: string | null }) => [p.id, p.avatar_path]),
+  )
+  // Mesmo padrão da Início (onda 57): assina só o que vai aparecer — a
+  // Tripulação é curta por natureza (§19, no máximo poucas vagas por
+  // embarcação), então dá pra assinar a foto de todo mundo sem paginar.
+  const urlAvatarPorId = new Map(
+    await Promise.all(
+      [...new Set(((vinculos ?? []) as Vinculo[]).map((v) => v.usuario_id))]
+        .map((id) => [id, avatarPathPorId.get(id) ?? null] as const)
+        .filter((par): par is [string, string] => par[1] != null)
+        .map(async ([id, path]) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(path, 3600)
+          return [id, data?.signedUrl ?? null] as const
+        }),
+    ),
+  )
 
   const [nivel, uso] = await Promise.all([carregarNivelPlano(), carregarUsoTripulacao()])
   const vagas = vagasTripulacao(nivel, uso.vinculos, uso.convites)
@@ -80,16 +98,19 @@ export default async function TripulacaoPage({
             descricao="Crie um convite abaixo."
           />
         )}
-        {((vinculos ?? []) as Vinculo[]).map((v) => (
-          <LinhaLista
-            key={v.id}
-            href={`/tripulacao/${v.id}`}
-            titulo={nomePorId.get(v.usuario_id) || "Comandante"}
-            subtitulo={
-              v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"
-            }
-          />
-        ))}
+        {((vinculos ?? []) as Vinculo[]).map((v) => {
+          const nome = nomePorId.get(v.usuario_id) || "Comandante"
+          const preset = v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"
+          return (
+            <LinhaLista
+              key={v.id}
+              href={`/tripulacao/${v.id}`}
+              leading={<Avatar url={urlAvatarPorId.get(v.usuario_id) ?? null} nome={nome} />}
+              titulo={nome}
+              subtitulo={`Comandante · ${preset}`}
+            />
+          )
+        })}
       </div>
 
       <SecaoPagina>Convites pendentes</SecaoPagina>
@@ -100,8 +121,16 @@ export default async function TripulacaoPage({
         {((convites ?? []) as Convite[]).map((c) => (
           <LinhaLista
             key={c.id}
+            // Convite ainda não tem pessoa (ninguém aceitou) — mesma moldura
+            // circular do Avatar, com o relógio no lugar da foto/iniciais,
+            // pra manter a coluna alinhada com a lista de comandantes acima.
+            leading={
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-dim">
+                <Icone nome="relogio" className="size-5" />
+              </span>
+            }
             titulo={<span className="font-mono-instr tabular-nums">{c.codigo}</span>}
-            subtitulo={`${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
+            subtitulo={`Aguardando · ${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
             trailing={
               <form action={revogarConvite}>
                 <input type="hidden" name="convite_id" value={c.id} />
