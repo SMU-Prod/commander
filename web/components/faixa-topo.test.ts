@@ -29,20 +29,25 @@ function itemDeRevisao(sobre: Partial<ItemFaixa> = {}): ItemFaixa {
   }
 }
 
+const BARCO = { id: "e1", nome: "Andorinha do Mar" }
+
 function html({
   equipamentos = [],
   itens = [],
   avisos = 0,
   email = "maria.souza@exemplo.com",
+  embarcacoes = [BARCO],
 }: {
   equipamentos?: EquipamentoFaixa[]
   itens?: ItemFaixa[]
   avisos?: number
   email?: string | null
+  embarcacoes?: { id: string; nome: string }[]
 } = {}) {
   return renderToStaticMarkup(
     createElement(FaixaTopo, {
-      nomeEmbarcacao: "Andorinha do Mar",
+      embarcacao: BARCO,
+      embarcacoes,
       equipamentos,
       itens,
       hoje: HOJE,
@@ -59,6 +64,25 @@ describe("FaixaTopo", () => {
     expect(saida).toContain('href="/barco"')
     expect(saida).toContain('href="/notificacoes"')
     expect(saida).toContain('href="/menu/ajustes"')
+  })
+
+  it("com um barco só, o nome é link estático — sem seletor", () => {
+    // O seletor é um botão com `aria-expanded`; o link não tem. É a marca
+    // que separa as duas formas sem depender de classe de estilo.
+    const saida = html()
+    expect(saida).toContain('href="/barco"')
+    expect(saida).not.toContain("aria-expanded")
+  })
+
+  it("com mais de um barco, o nome vira o SeletorEmbarcacao (spec §3.3) — trocar de barco existe no desktop", () => {
+    const saida = html({ embarcacoes: [BARCO, { id: "e2", nome: "Vento Sul" }] })
+    expect(saida).toContain("aria-expanded")
+    expect(saida).toContain("Andorinha do Mar")
+    // O link estático pra ficha sai de cena junto com o nome — a ficha
+    // continua alcançável pelo trilho; a faixa não mostra o nome duas vezes.
+    expect(saida).not.toContain('href="/barco"')
+    // Fechado, o menu não vaza as opções pro HTML.
+    expect(saida).not.toContain("Vento Sul")
   })
 
   it("o contador do sino aparece com avisos e SOME em zero", () => {

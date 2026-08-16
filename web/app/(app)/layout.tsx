@@ -73,12 +73,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       avisos={avisos}
       // ONDA 60 — a faixa de topo do desktop (spec fundação §3.3), montada
       // AQUI porque tudo que ela mostra o layout já tem em mãos: `painel`
-      // (nome do barco, motores, itens, e-mail da conta) e `avisos`. Zero
-      // consulta nova por página — é a restrição que decidiu o que entra
-      // nela (ver `components/faixa-topo.tsx`). Sem barco, sem faixa.
+      // (barco atual, a lista de embarcações pro seletor, motores, itens,
+      // e-mail da conta) e `avisos`. Zero consulta nova por página — é a
+      // restrição que decidiu o que entra nela (ver
+      // `components/faixa-topo.tsx`). Sem barco, sem faixa.
       faixa={painel != null && (
         <FaixaTopo
-          nomeEmbarcacao={painel.embarcacao.nome}
+          embarcacao={{ id: painel.embarcacao.id, nome: painel.embarcacao.nome }}
+          embarcacoes={painel.embarcacoes}
           equipamentos={painel.equipamentos}
           itens={painel.itens}
           hoje={hojeISO()}

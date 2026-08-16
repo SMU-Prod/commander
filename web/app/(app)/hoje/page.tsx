@@ -335,19 +335,28 @@ export default async function HojePage({
      */
     <main className="grid gap-3 lg:grid-cols-3 lg:items-start lg:gap-6">
       {/* Sino no topo com contador (PRD §5.2). Fica aqui, no cabeçalho da
-          Início, porque o app não tem uma barra superior global — e o topo
-          da tela de casa é onde o dono chega. O contador aparece também no
-          rodapé, na aba Avisos, que essa sim segue em toda tela. */}
+          Início, porque NO CELULAR o app não tem uma barra superior global —
+          e o topo da tela de casa é onde o dono chega. O contador aparece
+          também no rodapé, na aba Avisos, que essa sim segue em toda tela.
+
+          A partir de `lg` a barra superior global EXISTE: a `FaixaTopo`
+          (onda 60) já carrega sino e nome do barco (o seletor, quando há
+          mais de um). Então sino e seletor daqui somem em `lg:hidden` — sem
+          isso eram dois sinos e dois nomes empilhados na mesma tela. A
+          saudação com a foto de verdade fica em toda largura: é o que a
+          faixa NÃO tem (lá o avatar é só iniciais do e-mail). */}
       <div className="flex items-center gap-3 lg:col-span-3">
         <Avatar url={urlAvatar} nome={nomeUsuario} />
         <div className="min-w-0 flex-1">
           <p className="apoio text-dim">Olá, {nomeUsuario.split(" ")[0]}</p>
-          <SeletorEmbarcacao
-            atual={{ id: embarcacao.id, nome: embarcacao.nome }}
-            opcoes={painel.embarcacoes}
-          />
+          <span className="lg:hidden">
+            <SeletorEmbarcacao
+              atual={{ id: embarcacao.id, nome: embarcacao.nome }}
+              opcoes={painel.embarcacoes}
+            />
+          </span>
         </div>
-        <SinoNotificacoes contador={contadorAvisos} />
+        <SinoNotificacoes contador={contadorAvisos} className="lg:hidden" />
       </div>
 
       {erro && (

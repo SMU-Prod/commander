@@ -9,6 +9,7 @@ import {
 } from "@/lib/domain/semaforo"
 import { Avatar } from "./avatar"
 import { Icone } from "./icone"
+import { SeletorEmbarcacao } from "./seletor-embarcacao"
 import { ContadorAvisos } from "./ui/contador-avisos"
 
 /**
@@ -18,8 +19,11 @@ import { ContadorAvisos } from "./ui/contador-avisos"
  * A peça que faltava da casca da onda 57: fora da Início, o desktop não
  * tinha nem o nome do barco nem o sino — o trilho carrega o contador, mas
  * contexto ("de QUAL barco esta tela fala") não existia em lugar nenhum a
- * partir de 1024px. A faixa põe, em toda tela: nome da embarcação, KPIs de
- * motor, sino e avatar.
+ * partir de 1024px. A faixa põe, em toda tela: nome da embarcação (o
+ * `SeletorEmbarcacao` quando houver mais de uma — §3.3), KPIs de motor,
+ * sino e avatar. E, porque agora ELA carrega sino e nome no desktop, o
+ * cabeçalho próprio da Início esconde os dele em `lg:` — antes eram dois
+ * sinos e dois nomes empilhados na tela de casa.
  *
  * A RESTRIÇÃO QUE DECIDE TUDO AQUI: a faixa deriva CADA pedaço de dado do
  * que o layout de `(app)` JÁ carrega (`carregarPainel` + `avisos`) — zero
@@ -92,15 +96,24 @@ function maisApertada(a: ResultadoCalc, b: ResultadoCalc): number {
 }
 
 export function FaixaTopo({
-  nomeEmbarcacao,
+  embarcacao,
+  embarcacoes,
   equipamentos,
   itens,
   hoje,
   avisos,
   email,
 }: {
-  /** `painel.embarcacao.nome` — o link leva à ficha (`/barco`). */
-  nomeEmbarcacao: string
+  /** `painel.embarcacao` reduzida a id + nome — com um barco só, o nome é
+   *  link pra ficha (`/barco`); o id existe pro seletor saber qual é a atual. */
+  embarcacao: { id: string; nome: string }
+  /** `painel.embarcacoes` — a MESMA lista que a Início sempre passou ao
+   *  seletor, já carregada por `carregarPainel` (zero consulta nova). Com
+   *  mais de uma, a faixa troca o nome estático pelo `SeletorEmbarcacao`:
+   *  spec fundação §3.3 ("seletor quando houver mais de uma") — e, desde a
+   *  correção da onda 60, trocar de barco no desktop deixa de ser função
+   *  que só existia na Início. */
+  embarcacoes: { id: string; nome: string }[]
   /** `painel.equipamentos` — daqui saem os motores e as horas. */
   equipamentos: EquipamentoFaixa[]
   /** `painel.itens` — daqui sai a revisão mais apertada dos motores. */
@@ -139,16 +152,30 @@ export function FaixaTopo({
 
   return (
     <header className="mb-5 hidden h-14 items-center gap-4 border-b border-line lg:flex">
-      {/* O nome é link pra ficha — no desktop a faixa é o caminho mais curto
-          pro barco em qualquer tela. `min-h-11` mantém o alvo no piso de
-          44px mesmo com a faixa medindo pela altura dos filhos. Hover por
-          sublinhado, não por cor: a faixa não gasta dourado nenhum. */}
-      <Link
-        href="/barco"
-        className="flex min-h-11 min-w-0 items-center text-sm font-semibold text-texto underline-offset-4 hover:underline"
-      >
-        <span className="truncate">{nomeEmbarcacao}</span>
-      </Link>
+      {/* Com um barco só, o nome é link pra ficha — no desktop a faixa é o
+          caminho mais curto pro barco em qualquer tela. `min-h-11` mantém o
+          alvo no piso de 44px mesmo com a faixa medindo pela altura dos
+          filhos. Hover por sublinhado, não por cor: a faixa não gasta
+          dourado nenhum.
+          Com MAIS de um, o nome vira o `SeletorEmbarcacao` (spec fundação
+          §3.3) — o MESMO client component da Início, com as MESMAS props
+          (`atual` + `opcoes`, ambas já em mãos do layout). É ele, e não um
+          link, porque trocar de barco precisa existir no desktop em toda
+          tela — e o caminho pra ficha continua a um clique, pelo trilho. */}
+      {embarcacoes.length > 1 ? (
+        /* `shrink-0`: o nome do barco atual não trunca — quem cede espaço é
+           a fileira de pílulas ao lado, que já tem `overflow-hidden`. */
+        <span className="shrink-0">
+          <SeletorEmbarcacao atual={{ id: embarcacao.id, nome: embarcacao.nome }} opcoes={embarcacoes} />
+        </span>
+      ) : (
+        <Link
+          href="/barco"
+          className="flex min-h-11 min-w-0 items-center text-sm font-semibold text-texto underline-offset-4 hover:underline"
+        >
+          <span className="truncate">{embarcacao.nome}</span>
+        </Link>
+      )}
 
       {/* As pílulas da imagem 1: contorno, rótulo curto + número mono.
           Não são alvos (nada clicável), então podem ter 32px de altura. */}
