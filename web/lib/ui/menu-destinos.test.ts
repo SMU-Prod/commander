@@ -111,4 +111,43 @@ describe("menu-destinos", () => {
         `(remova a linha do índice):\n${mortos.join("\n")}`,
     ).toEqual([])
   })
+
+  // ONDA 59 — A OUTRA METADE DO TESTE QUE O SPEC PEDE.
+  //
+  // O spec de arquitetura §6 pede DUAS coisas do Menu: "todo destino do Menu
+  // leva a uma rota que existe" (o teste acima, entregue na onda 58) "e nenhum
+  // ajuste sobrou entre os destinos" — esta aqui, que tinha ficado pra trás.
+  //
+  // A separação da onda 58 só funciona se for EXCLUSIVA: o Menu é o índice do
+  // produto, Ajustes é a casa única da configuração ("moram AQUI, e em nenhum
+  // outro lugar", diz o cabeçalho de `menu/ajustes/page.tsx`). Um destino que
+  // apareça nas DUAS telas desfaz a mudança em silêncio — foi exatamente o
+  // estado que o dono descreveu como "o menu mais parece configurações do que
+  // menu". Como "é ajuste" não é uma propriedade que dê pra deduzir do href,
+  // o critério verificável é o da moradia: o que mora em Ajustes não pode
+  // TAMBÉM morar no Menu.
+  //
+  // A única exceção é `/menu/ajustes` em si: a linha "Ajustes" no fim do Menu
+  // é a porta pra casa da configuração — sem ela, Ajustes viraria área que
+  // ninguém acha (o mesmo critério do teste de link morto). Hoje esse href só
+  // existe do lado do Menu; o filtro guarda o caso futuro de Ajustes ganhar
+  // um link pra si mesmo sem transformar isso numa reprovação sem sentido.
+  //
+  // Contra o "passa por vazio": a sentinela lá de cima já reprova se qualquer
+  // uma das duas telas extrair zero hrefs — este teste herda a proteção por
+  // usar os MESMOS helpers.
+  it("nenhum ajuste entre os destinos: o que mora em Ajustes não aparece no Menu", () => {
+    const [telaMenu, telaAjustes] = TELAS_DO_GATE
+    const noMenu = new Set(extrairHrefs(telaMenu))
+    const duplicados = extrairHrefs(telaAjustes)
+      .filter((href) => href !== "/menu/ajustes")
+      .filter((href) => noMenu.has(href))
+    expect(
+      duplicados,
+      `Destino morando nas duas telas do gate — a separação Menu (índice) × ` +
+        `Ajustes (configuração) da onda 58 exige moradia única.\n` +
+        `Decida a casa e remova a linha da outra tela:\n` +
+        duplicados.map((d) => `  ${d}`).join("\n"),
+    ).toEqual([])
+  })
 })

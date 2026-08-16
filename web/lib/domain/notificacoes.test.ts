@@ -27,6 +27,7 @@ function n(parcial: Partial<Notificacao> & { id: string }): Notificacao {
     nivel: "importante",
     aba: null,
     href: "/barco",
+    acao: "Resolver",
     quando: null,
     grupo: parcial.id,
     ...parcial,
@@ -255,6 +256,31 @@ describe("vazio de categoria depois que os módulos existem (onda 53)", () => {
   })
 })
 
+// --- onda 59: a ação nomeada dentro do aviso -------------------------------
+
+describe("acao — o verbo da tela de destino (spec §3.2)", () => {
+  // "Todo construtor devolve acao não vazia" é trabalho do COMPILADOR:
+  // `acao: string` obrigatório e sem default quebra o tsc em cada construtor
+  // de `lib/consultas.ts` até cada um nomear o seu verbo. O que sobra pro
+  // runtime é garantir que o verbo atravessa a mecânica sem se perder.
+  it("agrupar mantém a ação da representante — o cartão promete o verbo da mais urgente", () => {
+    const ordenadas = ordenarNotificacoes([
+      n({ id: "leve", grupo: "g", nivel: "importante", acao: "Ver ocorrência" }),
+      n({ id: "grave", grupo: "g", nivel: "critica", acao: "Registrar manutenção" }),
+    ])
+    const [linha] = agruparSemelhantes(ordenadas)
+    expect(linha.id).toBe("grave")
+    expect(linha.acao).toBe("Registrar manutenção")
+  })
+
+  it("ordenar e filtrar não derrubam o campo — refactor que reconstruir o objeto cai aqui", () => {
+    const lista = [n({ id: "a", categoria: "financeiro", acao: "Ver lançamento" })]
+    expect(ordenarNotificacoes(lista)[0].acao).toBe("Ver lançamento")
+    expect(filtrarPorCategoria(lista, "financeiro")[0].acao).toBe("Ver lançamento")
+    expect(filtrarPorPermissao(lista, null)[0].acao).toBe("Ver lançamento")
+  })
+})
+
 describe("agrupamento das categorias novas", () => {
   it("cinco propostas recebidas no mesmo pedido viram uma linha com +4", () => {
     const grupo = "marketplace:recebida:d1"
@@ -269,5 +295,26 @@ describe("agrupamento das categorias novas", () => {
     expect(agrupadas[0].quantidade).toBe(5)
     // A linha mostrada é a mais recente do grupo, porque ordena antes.
     expect(agrupadas[0].id).toBe("p4")
+  })
+})
+
+describe("toda notificação nasce com ação nomeada (spec arquitetura §3.2)", () => {
+  // O tipo obriga o campo a EXISTIR, mas `acao: ""` compilaria — e um aviso
+  // com ação vazia é exatamente o "link mudo" que a onda 59 matou. Como os
+  // construtores moram em lib/consultas.ts atrás do supabase, a checagem é
+  // estática, no espírito do tokens.test.ts: lê o arquivo e cobra que todo
+  // literal de `acao:` tem verbo de verdade.
+  it("nenhum construtor em lib/consultas.ts escreve acao vazia", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const fonte = readFileSync(join(process.cwd(), "lib/consultas.ts"), "utf-8")
+    const literais = [...fonte.matchAll(/\bacao: (?:[^,\n]*\? )?"([^"]*)"(?: : "([^"]*)")?/g)]
+    // Sentinela anti-vazio: se a extração quebrar com refactor, falha alto
+    // em vez de passar sem medir nada.
+    expect(literais.length).toBeGreaterThanOrEqual(8)
+    for (const m of literais) {
+      expect(m[1], `acao vazia perto de: ${m[0]}`).not.toBe("")
+      if (m[2] != null) expect(m[2], `acao vazia perto de: ${m[0]}`).not.toBe("")
+    }
   })
 })

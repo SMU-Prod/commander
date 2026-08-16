@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { FarolOcorrencia } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { carregarPainel } from "@/lib/consultas"
@@ -50,26 +51,33 @@ export default async function OcorrenciasPage({
 
   return (
     <main>
-      <div className="flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Ocorrências</h1>
-        <Link href="/barco/ocorrencias/nova" className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-          <span className="inline-flex items-center gap-1">
-            <Icone nome="mais" className="size-4" /> Registrar
-          </span>
-        </Link>
-      </div>
+      <h1 className="titulo-pagina">Ocorrências</h1>
       <p className="apoio mt-1 text-dim">Um problema apontado no Diário, ou registrado direto aqui — sempre ligado a um setor do barco.</p>
 
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
       {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 corpo">{ok}</p>}
 
-      <ChipLinha className="mt-4">
-        {ESTADO_FILTROS.map((f) => (
-          <Chip key={f.valor} href={comFiltro({ estado: f.valor })} ativo={estado === f.valor}>
-            {f.rotulo}
-          </Chip>
-        ))}
-      </ChipLinha>
+      {/* ONDA 59 — a barra recebe só o filtro PRIMÁRIO (estado), ao lado da
+          ação "Registrar ocorrência" — o slot `filtros` da barra é UMA linha
+          (regra em barra-ferramentas.tsx). O setor é refinamento
+          SECUNDÁRIO dentro do estado, então mora fora da barra, numa
+          `ChipLinha` solta logo abaixo, com `nivel="secundario"` (contorno,
+          sem preenchimento) — por isso não soma ao orçamento de dourados:
+          só a ação "Registrar ocorrência" e o chip de estado ativo (nivel
+          primário, preenchido) contam — 2 no total, dentro do limite. */}
+      <BarraFerramentas
+        className="mt-4"
+        filtros={
+          <>
+            {ESTADO_FILTROS.map((f) => (
+              <Chip key={f.valor} href={comFiltro({ estado: f.valor })} ativo={estado === f.valor}>
+                {f.rotulo}
+              </Chip>
+            ))}
+          </>
+        }
+        acao={{ href: "/barco/ocorrencias/nova", rotulo: "Registrar ocorrência" }}
+      />
       <ChipLinha className="mt-2">
         <Chip href={comFiltro({ setor: "tudo" })} ativo={setor === "tudo"} nivel="secundario">
           Todos os setores
@@ -85,8 +93,8 @@ export default async function OcorrenciasPage({
         <EstadoVazio
           icone="alerta"
           titulo="Nenhuma ocorrência por aqui"
-          descricao="Toque em “+ Registrar” pra abrir uma, ou aponte um problema num setor ao registrar uma saída no Diário."
-          acao={{ href: "/barco/ocorrencias/nova", rotulo: "Registrar" }}
+          descricao="Toque em “Registrar ocorrência” pra abrir uma, ou aponte um problema num setor ao registrar uma saída no Diário."
+          acao={{ href: "/barco/ocorrencias/nova", rotulo: "Registrar ocorrência" }}
           className="mt-6"
         />
       )}
