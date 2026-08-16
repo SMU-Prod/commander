@@ -181,7 +181,12 @@ body.fundo-tela-mapa {
   --sombra-2: 0 4px 16px rgb(11 29 45 / .10), 0 2px 4px rgb(11 29 45 / .06);
 }
 [data-theme="dark"] {
-  --sombra-1: 0 1px 2px rgb(0 0 0 / .3);
+  /* Acabamento Haulix (16/08): no escuro o cartão é CHAPADO — a borda de
+     1px separa, sombra nenhuma. Sombra em fundo quase-preto não lê como
+     elevação, lê como borrão; a referência não tem uma sombra de cartão
+     sequer. `--sombra-2` (o que FLUTUA: menu, bottom sheet) continua,
+     porque flutuar é outra coisa. */
+  --sombra-1: none;
   --sombra-2: 0 6px 20px rgb(0 0 0 / .45);
 }
 

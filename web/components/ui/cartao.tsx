@@ -23,7 +23,10 @@ export function Cartao({
   const temCabecalho = Boolean(titulo || selo || acao)
   return (
     <section
-      className={`rounded-[var(--raio-cartao)] border border-line bg-panel p-4 ${plano ? "" : "sombra-1"} ${className}`}
+      // Acabamento Haulix (16/08): p-3 (12px, degrau da escala) no lugar de
+      // p-4 — a referência é densa; padding folgado era metade da "cara de
+      // template" que sobrava no escuro.
+      className={`rounded-[var(--raio-cartao)] border border-line bg-panel p-3 ${plano ? "" : "sombra-1"} ${className}`}
     >
       {temCabecalho && (
         <header className="mb-3 flex items-center gap-2">

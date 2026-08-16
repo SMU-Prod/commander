@@ -125,7 +125,10 @@ export function TrilhoLateral({
               // O estado ativo NÃO pode depender de hover — é a única pista
               // de onde a pessoa está. Fundo tingido + cor do ícone: dois
               // canais, nunca só cor (docs/DESIGN.md).
-              ativo ? "bg-accent/12 text-accent-forte" : "text-dim hover:bg-panel2"
+              // Acabamento Haulix (16/08): o "você está aqui" vira pastilha
+              // CLARA (como a referência), não tinta dourada — o dourado
+              // fica pro que se age, o lugar se marca com luz.
+              ativo ? "bg-panel2 text-texto" : "text-dim hover:bg-panel2"
             }`}
           >
             {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.
