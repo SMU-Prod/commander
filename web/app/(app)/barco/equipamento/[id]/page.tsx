@@ -13,6 +13,7 @@ import { Selo } from "@/components/ui/selo"
 import { calcularSemaforo, formatarDataCurta, PESO, rotuloDoFarol, seloDoFarol, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento, ROTULO_MOTOR } from "@/lib/domain/diario"
+import { ROTULO_ZONA } from "@/lib/domain/mapa-embarcacao"
 import { formatarReais } from "@/lib/domain/gastos"
 import { iconeDoSistema, ordenarSistemas, urlManualNaPagina } from "@/lib/domain/sistemas"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
@@ -144,6 +145,23 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           ) : undefined
         }
       />
+
+      {/* Onda 61 — a zona física como chip (spec §3.4): um toque leva ao
+          Mapa da Embarcação já com esta zona aberta. Só aparece com zona
+          definida — sem zona, o convite mora no grupo "Não mapeados" do
+          próprio mapa, não aqui (não se decora o vazio). Alvo de 44px no
+          <Link>, pílula visual menor dentro — mesmo desenho dos pinos. */}
+      {equipamento.zona && (
+        <Link
+          href={`/barco/mapa?zona=${equipamento.zona}`}
+          aria-label={`Ver ${ROTULO_ZONA[equipamento.zona]} no Mapa da Embarcação`}
+          className="mt-1 inline-flex min-h-11 items-center"
+        >
+          <span className="apoio inline-flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel px-3 py-1 text-dim">
+            <Icone nome="mapa" className="size-3.5" /> {ROTULO_ZONA[equipamento.zona]}
+          </span>
+        </Link>
+      )}
 
       {irmaos.length > 1 && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>

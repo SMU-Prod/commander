@@ -75,6 +75,13 @@ describe("Casco", () => {
     expect(saida).not.toContain('aria-current="true"')
   })
 
+  it("com `ancora`, o pino leva pro painel dentro da página (o toque rola até a resposta)", () => {
+    const saida = renderToStaticMarkup(
+      createElement(Casco, { zonas: [pino()], hrefBase: "/barco/mapa", ancora: "painel-zona" }),
+    )
+    expect(saida).toContain('href="/barco/mapa?zona=praca_de_maquinas#painel-zona"')
+  })
+
   it("orientação escrita nas pontas: PROA e POPA", () => {
     const saida = html([])
     expect(saida).toContain("PROA")

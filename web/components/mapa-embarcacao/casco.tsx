@@ -123,10 +123,17 @@ export function Casco({
   zonas,
   selecionada = null,
   hrefBase,
+  ancora,
 }: {
   zonas: readonly ZonaDoCasco[]
   selecionada?: ZonaEmbarcacao | null
   hrefBase: string
+  /** Id (sem `#`) pra onde o pino leva DENTRO da página — no celular o
+   *  painel da zona fica abaixo do desenho, e sem a âncora o toque no pino
+   *  recarregaria a tela no topo, com a resposta fora da dobra (§3.3,
+   *  "tocar num pino rola até o painel"). Opcional: sem ela o href é só
+   *  `?zona=`, como no T3. */
+  ancora?: string
 }) {
   /* Ordem espacial fixa (proa→popa, casco por último) independente da ordem
      em que o chamador montou o array — e é também a ordem de tabulação dos
@@ -227,7 +234,7 @@ export function Casco({
         return (
           <Link
             key={z.zona}
-            href={`${hrefBase}?zona=${z.zona}`}
+            href={`${hrefBase}?zona=${z.zona}${ancora ? `#${ancora}` : ""}`}
             aria-label={rotuloDoPino(z)}
             aria-current={ativa ? "true" : undefined}
             className="absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center"

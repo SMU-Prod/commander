@@ -4,6 +4,7 @@ import {
   ROTULO_ZONA,
   sugestaoDeZona,
   ZONAS,
+  zonaDaOcorrencia,
   type ZonaEmbarcacao,
 } from "./mapa-embarcacao"
 
@@ -124,5 +125,39 @@ describe("estadoDaZona", () => {
   it("pior vence entre fontes: item vencido some sob ocorrência leve, continua vencido", () => {
     const itens = [{ status: "vencido" as const, temInformacao: true }]
     expect(estadoDaZona(eq, itens, [{ gravidade: "baixa" }])).toBe("vencido")
+  })
+})
+
+describe("zonaDaOcorrencia", () => {
+  const equipamentos = [
+    { id: "gerador-1", zona: "praca_de_maquinas" as const },
+    { id: "guincho-1", zona: null },
+  ]
+
+  it("ocorrência pendurada em equipamento mapeado mora na zona dele", () => {
+    expect(zonaDaOcorrencia({ equipamento_id: "gerador-1", aba: "eletrica" }, equipamentos)).toBe("praca_de_maquinas")
+  })
+
+  it("equipamento sem zona não arrasta a ocorrência — lugar desconhecido é null", () => {
+    expect(zonaDaOcorrencia({ equipamento_id: "guincho-1", aba: "equipamentos" }, equipamentos)).toBeNull()
+  })
+
+  it("setor casco sem equipamento mora na zona casco — obras vivas SÃO um lugar", () => {
+    expect(zonaDaOcorrencia({ equipamento_id: null, aba: "casco" }, equipamentos)).toBe("casco")
+  })
+
+  it("setor funcional sem equipamento não tem endereço no corte — null, nunca chute", () => {
+    for (const aba of ["eletrica", "motores", "documentos", "seguranca", "embarcacao"]) {
+      expect(zonaDaOcorrencia({ equipamento_id: null, aba }, equipamentos)).toBeNull()
+    }
+  })
+
+  it("equipamento que não existe mais na lista cai nas regras de setor", () => {
+    expect(zonaDaOcorrencia({ equipamento_id: "fantasma", aba: "casco" }, equipamentos)).toBe("casco")
+    expect(zonaDaOcorrencia({ equipamento_id: "fantasma", aba: "motores" }, equipamentos)).toBeNull()
+  })
+
+  it("vínculo físico vence o setor: equipamento mapeado manda mesmo com aba casco", () => {
+    expect(zonaDaOcorrencia({ equipamento_id: "gerador-1", aba: "casco" }, equipamentos)).toBe("praca_de_maquinas")
   })
 })

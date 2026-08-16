@@ -154,3 +154,31 @@ export function estadoDaZona(
 
   return candidatos.sort((a, b) => PESO[b] - PESO[a])[0]
 }
+
+/**
+ * ONDE uma ocorrência mora no mapa (T4, spec §3.3 "ocorrências abertas do
+ * setor correspondente") — a régua, escrita uma vez:
+ *
+ *   1. Ocorrência PENDURADA num equipamento mapeado mora na zona dele. É o
+ *      vínculo físico mais específico que existe no dado ("o vazamento é NO
+ *      gerador", e o gerador tem endereço no corte).
+ *   2. Sem esse vínculo, o único setor que É um lugar físico do corte é
+ *      `casco` (obras vivas): ocorrência do setor casco mora na zona casco.
+ *   3. Todo o resto devolve `null` — setor funcional (elétrica, documentos…)
+ *      não tem endereço no barco, e chutar um ("elétrica → casaria?") seria
+ *      inventar dado. Ocorrência sem zona não some do app: continua na
+ *      Saúde, em /barco/ocorrencias e nos avisos — só não ganha pino.
+ *
+ * Equipamento SEM zona não arrasta a ocorrência pra lugar nenhum (cai na
+ * regra 2/3): o lugar dela é tão desconhecido quanto o dele.
+ */
+export function zonaDaOcorrencia(
+  ocorrencia: { equipamento_id: string | null; aba: string },
+  equipamentos: readonly { id: string; zona: ZonaEmbarcacao | null }[],
+): ZonaEmbarcacao | null {
+  const dona = ocorrencia.equipamento_id != null
+    ? equipamentos.find((e) => e.id === ocorrencia.equipamento_id)
+    : undefined
+  if (dona?.zona != null) return dona.zona
+  return ocorrencia.aba === "casco" ? "casco" : null
+}

@@ -99,9 +99,19 @@ export default async function MenuPage({
           a coluna de títulos alinha, o chevron da direita é a única marca de
           "isto navega", e o ícone significa uma coisa só: a seção. */}
       <SecaoPagina icone="embarcacao">O barco</SecaoPagina>
+      {/* Onda 61 — o Mapa da Embarcação abre a seção: é a visão nova do
+          barco físico ("ONDE fica?"), e o Menu é gate de descoberta (PRD §9)
+          — /barco também leva lá, mas nada depende de link único. */}
+      <LinhaLista
+        href="/barco/mapa"
+        variant="cartao"
+        titulo="Mapa da embarcação"
+        subtitulo="O barco em corte — equipamentos, manutenções e ocorrências por zona"
+      />
       <LinhaLista
         href="/barco/equipamentos"
         variant="cartao"
+        className="mt-2"
         titulo="Equipamentos"
         subtitulo={
           equipamentosNoHub > 0
