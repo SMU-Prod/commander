@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test"
 import fs from "node:fs"
 import path from "node:path"
 import { ARQUIVO_SESSAO } from "./global-setup"
+import { SLOT_ACAO_FLUTUANTE } from "../lib/ui/superficies"
 
 // Sem sessão a varredura mede a tela de login 70 vezes — o `test.use` é o que
 // faz ela olhar o app de verdade. Mesmo padrão de `navegar-mapa.spec.ts`.
@@ -40,7 +41,10 @@ test.skip(!temSessao, "sem SUPABASE_SERVICE_ROLE_KEY — varredura precisa de se
  *   1. NÃO rolar na horizontal (o sintoma clássico de layout quebrado no
  *      celular; `documentElement.scrollWidth > clientWidth`).
  *   2. NÃO ter dois controles interativos sobrepostos (o "caixa em cima de
- *      caixa"). Medimos par a par com `getBoundingClientRect`.
+ *      caixa"). Medimos par a par com `getBoundingClientRect`. A casca fixa
+ *      (bottom-nav, trilho, ação flutuante) não entra nesta régua — onda 59,
+ *      ver o comentário em `medir()`; a folga que a protege é cobrada por
+ *      `e2e/sem-saida.spec.ts`.
  *   3. TER saída — alguma forma visível de voltar/navegar. Tela sem saída é
  *      o "fico travado sem conseguir voltar".
  *   4. NÃO ter alvo de toque menor que 44px (mínimo de acessibilidade que o
@@ -122,7 +126,7 @@ interface Achado {
 
 /** Rótulo curto e legível de um elemento, pro relatório apontar QUAL caixa. */
 async function medir(page: Page) {
-  return page.evaluate(() => {
+  return page.evaluate((classesDoSlot) => {
     const rotulo = (el: Element) => {
       const tag = el.tagName.toLowerCase()
       const texto = (el.textContent ?? "").trim().slice(0, 28)
@@ -167,6 +171,51 @@ async function medir(page: Page) {
       document.querySelectorAll("input, select, textarea, button, a[href]"),
     ).filter(visivel)
 
+    // ONDA 59 — A CASCA FIXA SAI DA RÉGUA DE SOBREPOSIÇÃO (e só dela).
+    //
+    // A régua mede as caixas em scroll 0 — e a casca do app (bottom-nav,
+    // trilho, ação flutuante) é `fixed`: por definição ela está SEMPRE em
+    // cima de alguma coisa em toda tela que role, esteja a página onde
+    // estiver. O relatório vinha acusando "sobreposição" em 25+ telas por
+    // rodada, todas o mesmo não-achado — a bottom-nav ou o FAB sobre um
+    // controle do conteúdo que ainda não rolou pra fora de baixo deles.
+    // Ruído nesse volume afoga achado real (a colisão de verdade de
+    // `/navegar/viagem/nova` aparecia como 1 linha entre 100) — o mesmo
+    // argumento da pastilha do trilho, logo acima.
+    //
+    // E o fenômeno real que essa medição parecia vigiar — conteúdo que
+    // termina DEBAIXO da casca mesmo com a página rolada até o fim — já tem
+    // régua própria e mais precisa: `e2e/sem-saida.spec.ts` mede o
+    // `paddingBottom` computado da `[data-moldura]` (a folga derivada de
+    // `FOLGA_COM_FAB`/`FOLGA_SEM_FAB`) e QUEBRA a suíte se ele encolher.
+    // A régua certa pro fenômeno certo; aqui a casca só produzia eco.
+    //
+    // A identificação é por seletor estável, nunca por posição na tela
+    // (um `fixed` qualquer do CONTEÚDO continua entrando na régua):
+    // - o trilho é o `nav` com o aria-label que os outros testes já usam;
+    // - a bottom-nav é o único `nav` filho DIRETO da `[data-moldura]`
+    //   (`components/moldura-app.tsx` — os navs de conteúdo, RedeNav e
+    //   afins, moram dentro do `<main>` da página);
+    // - a ação flutuante é quem veste TODAS as classes de
+    //   `SLOT_ACAO_FLUTUANTE` (`lib/ui/superficies.ts`): a constante
+    //   importada É o seletor, então quem mudar o slot arrasta o teste
+    //   junto, sem cópia pra apodrecer.
+    //
+    // As telas fora da moldura de `(app)` (/parceiro, /assinar) não têm
+    // `[data-moldura]` nem trilho — lá nada é descontado, como deve ser.
+    // Alvo pequeno e saída continuam contando a casca, e os limiares
+    // (4px de cruzamento, 40/24px de alvo) não mudam.
+    const trilho = document.querySelector('nav[aria-label="Navegação principal"]')
+    const bottomNav = document.querySelector("[data-moldura] > nav")
+    const casca = new Set(
+      interativos.filter(
+        (el) =>
+          (trilho?.contains(el) ?? false) ||
+          (bottomNav?.contains(el) ?? false) ||
+          classesDoSlot.every((c) => el.classList.contains(c)),
+      ),
+    )
+
     // Sobreposição: dois controles cujas caixas se cruzam de verdade. Ignora
     // aninhamento (um <a> dentro de um <button> não é bug de layout) e
     // ignora cruzamento de menos de 4px, que é borda/sombra e não confusão.
@@ -174,6 +223,7 @@ async function medir(page: Page) {
     for (let i = 0; i < interativos.length; i++) {
       for (let j = i + 1; j < interativos.length; j++) {
         const a = interativos[i], b = interativos[j]
+        if (casca.has(a) || casca.has(b)) continue
         if (a.contains(b) || b.contains(a)) continue
         const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect()
         const larguraCruz = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)
@@ -215,7 +265,7 @@ async function medir(page: Page) {
       alvosPequenos: [...new Set(alvosPequenos)].slice(0, 8),
       semSaida: !temSaida,
     }
-  })
+  }, SLOT_ACAO_FLUTUANTE.split(/\s+/))
 }
 
 // Um teste POR TAMANHO, e não um teste que troca o viewport no meio: com
