@@ -7,3 +7,6 @@ dados-nauticos/
 
 # Varredura de tela (onda 54) — screenshots e relatorio sao gerados, nao versionados
 web/.varredura/
+web/.varredura-claro/
+.varredura/
+.prova-o61/
