@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatarMN, maisProximos } from "./explorar"
+import { filtrarParceiros, formatarMN, maisProximos } from "./explorar"
 
 // Pontos reais da baía da Ilha Grande — os mesmos lugares que o canvas
 // tela-3h desenha (Verolme, Bracuhy, Abraão), pra conferir que a ordem de
@@ -54,5 +54,49 @@ describe("maisProximos — a folha do Explorar", () => {
   it("lista vazia e n=0 são casos honestos, não exceção", () => {
     expect(maisProximos([], pertoDeVerolme, 3)).toEqual([])
     expect(maisProximos(todos, pertoDeVerolme, 0)).toEqual([])
+  })
+})
+
+describe("filtrarParceiros — a busca do canvas tela-3h", () => {
+  const parceiros = [
+    { id: "1", nome: "Marina Verolme", categoria: "marina" },
+    { id: "2", nome: "Posto do Léo", categoria: "posto" },
+    { id: "3", nome: "Náutica São João", categoria: "loja_nautica" },
+    { id: "4", nome: "Restaurante do Costa", categoria: "restaurante" },
+  ] as const
+
+  const ids = (termo: string) => filtrarParceiros(parceiros, termo).map((p) => p.id)
+
+  it("'Verolme' acha 'verolme' — maiúscula não separa ninguém do resultado", () => {
+    expect(ids("verolme")).toEqual(["1"])
+    expect(ids("VEROLME")).toEqual(["1"])
+  })
+
+  it("acento não separa: 'nautica' acha 'Náutica', e 'São' acha 'sao'", () => {
+    expect(ids("nautica")).toContain("3")
+    expect(ids("sao joao")).toEqual(["3"])
+  })
+
+  it("acha pelo TIPO usando o rótulo dos chips — 'posto' traz o Posto do Léo", () => {
+    // "Posto Náutico" é o rótulo de ROTULO_TIPO_PARTNER; a categoria crua
+    // (`loja_nautica`) ninguém digita.
+    expect(ids("posto")).toEqual(["2"])
+    expect(ids("loja")).toEqual(["3"])
+  })
+
+  it("mais de uma palavra exige todas, em qualquer ordem", () => {
+    expect(ids("verolme marina")).toEqual(["1"])
+    expect(ids("marina joão")).toEqual([])
+  })
+
+  it("termo vazio (ou só espaço) devolve a lista inteira — busca limpa não é filtro", () => {
+    expect(ids("")).toEqual(["1", "2", "3", "4"])
+    expect(ids("   ")).toEqual(["1", "2", "3", "4"])
+  })
+
+  it("sem resultado devolve lista vazia (o 'Nada com esse nome por aqui' da tela), sem mutar a original", () => {
+    const copia = [...parceiros]
+    expect(ids("bracuhy")).toEqual([])
+    expect(parceiros).toEqual(copia)
   })
 })
