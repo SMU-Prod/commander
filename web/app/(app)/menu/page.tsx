@@ -10,6 +10,7 @@ import { abaDoEquipamento } from "@/lib/domain/diario"
 import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
 import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import type { ReactNode } from "react"
 
 /**
  * MENU = O ÍNDICE DO PRODUTO (onda 58, spec de arquitetura §4).
@@ -24,14 +25,26 @@ import { supabaseServer } from "@/lib/supabase/server"
  * Financeiro e Carteira aparecem aqui mesmo tendo caminho por /barco, e nada
  * pode depender de um link único (docs/CONTRIBUTING.md).
  *
+ * ONDA 62 (canvas tela-1j): a ANATOMIA das linhas alinhou à fatia — cada
+ * seção é UM painel com linhas separadas por borda (não um cartão solto por
+ * linha), e o número que orienta decisão fica à DIREITA, em mono, colado no
+ * chevron ("Tripulação · 3 ›"). A fatia também desenha o cartão de perfil e
+ * o bloco Gold DENTRO do Menu — aqui o spec da onda 58 ganha: Conta e
+ * Assinatura são ajuste e moram em /menu/ajustes; o Menu segue índice puro.
+ *
  * ÍNDICE SEM INFORMAÇÃO É SUMÁRIO (spec §4.2): cada destino diz o que tem lá
- * dentro quando existe um número que orienta decisão — "Financeiro · R$ 4.820
- * este mês" é um destino, "Financeiro" sozinho é um rótulo. As consultas são
+ * dentro quando existe um número que orienta decisão. As consultas são
  * baratas (um `count`/`head` por seção, nunca N por linha) e NÃO acontecem
  * para área que a pessoa não pode ver: contar o que está bloqueado vazaria
- * pelo subtítulo o número que a tela de destino recusa mostrar. Barco sem
- * dado mostra o subtítulo descritivo, nunca "0" seco.
+ * pelo subtítulo o número que a tela de destino recusa mostrar.
  */
+
+/** O painel de seção do canvas: uma borda pra lista inteira, linhas com
+ *  `border-b` dentro (`LinhaLista` variant "grupo"). */
+function PainelMenu({ children }: { children: ReactNode }) {
+  return <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">{children}</div>
+}
+
 export default async function MenuPage({
   searchParams,
 }: {
@@ -54,10 +67,11 @@ export default async function MenuPage({
 
   let ocorrenciasAbertas = 0
   let totalMesCentavos = 0
+  let comandantesComAcesso = 0
   if (painel != null) {
     const supabase = await supabaseServer()
     const hoje = hojeISO()
-    const [{ count: abertas }, { data: despesasMes }] = await Promise.all([
+    const [{ count: abertas }, { data: despesasMes }, { count: comandantes }] = await Promise.all([
       // Só `estado = 'aberta'`: o subtítulo diz "abertas", então "em
       // acompanhamento" não entra — número e palavra têm que ser o mesmo fato.
       supabase
@@ -74,17 +88,22 @@ export default async function MenuPage({
             .eq("tipo", "despesa").eq("status", "pago")
             .gte("data", `${hoje.slice(0, 7)}-01`)
         : Promise.resolve({ data: [] as { data: string; valor_centavos: number }[] }),
+      // O "Tripulação · 3" do canvas — a MESMA contagem da seção
+      // "Comandantes com acesso" de /tripulacao (vínculos CMDT), só que em
+      // `head` (o número, não as linhas). Só pro PROP, que é quem vê a porta.
+      painel.papel === "PROP"
+        ? supabase
+            .from("vinculos").select("id", { count: "exact", head: true })
+            .eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT")
+        : Promise.resolve({ count: 0 }),
     ])
     ocorrenciasAbertas = abertas ?? 0
+    comandantesComAcesso = comandantes ?? 0
     totalMesCentavos = resumoGastos(
       (despesasMes ?? []).map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" })),
       hoje,
     ).totalMesCentavos
   }
-
-  // Todo número em fonte de instrumento — e SÓ o número, nunca as palavras
-  // em volta (docs/DESIGN.md §5).
-  const num = (n: number) => <span className="font-mono-instr tabular-nums">{n}</span>
 
   return (
     <main>
@@ -99,114 +118,92 @@ export default async function MenuPage({
           a coluna de títulos alinha, o chevron da direita é a única marca de
           "isto navega", e o ícone significa uma coisa só: a seção. */}
       <SecaoPagina icone="embarcacao">O barco</SecaoPagina>
-      {/* Onda 61 — o Mapa da Embarcação abre a seção: é a visão nova do
-          barco físico ("ONDE fica?"), e o Menu é gate de descoberta (PRD §9)
-          — /barco também leva lá, mas nada depende de link único. */}
-      <LinhaLista
-        href="/barco/mapa"
-        variant="cartao"
-        titulo="Mapa da embarcação"
-        subtitulo="O barco em corte — equipamentos, manutenções e ocorrências por zona"
-      />
-      <LinhaLista
-        href="/barco/equipamentos"
-        variant="cartao"
-        className="mt-2"
-        titulo="Equipamentos"
-        subtitulo={
-          equipamentosNoHub > 0
-            ? <>{num(equipamentosNoHub)} {equipamentosNoHub === 1 ? "equipamento" : "equipamentos"}</>
-            : "Bote, guincho, ar-condicionado — o que você acompanha a bordo"
-        }
-      />
-      <LinhaLista
-        href="/barco/fotos"
-        variant="cartao"
-        className="mt-2"
-        titulo="Fotos"
-        subtitulo="Os álbuns do barco"
-      />
-      <LinhaLista
-        href="/barco/documentos"
-        variant="cartao"
-        className="mt-2"
-        titulo="Documentos"
-        subtitulo="Validade e arquivos — o semáforo avisa antes de vencer"
-      />
-      <LinhaLista
-        href="/barco/ocorrencias"
-        variant="cartao"
-        className="mt-2"
-        titulo="Ocorrências"
-        subtitulo={
-          ocorrenciasAbertas > 0
-            ? <>{num(ocorrenciasAbertas)} {ocorrenciasAbertas === 1 ? "aberta" : "abertas"}</>
-            : "Problemas apontados no Diário ou registrados direto, por setor"
-        }
-      />
-      {/* Saiu de "Minhas embarcações" (seção que acabou: cadastrar outra
-          embarcação é ajuste e mora em /menu/ajustes): o Connect é área do
-          barco, não ajuste. */}
-      <LinhaLista
-        href="/barco/connect"
-        variant="cartao"
-        className="mt-2"
-        titulo="Commander Connect"
-        subtitulo="Em breve — conectividade NMEA 2000"
-      />
+      <PainelMenu>
+        {/* Onda 61 — o Mapa da Embarcação abre a seção: é a visão nova do
+            barco físico ("ONDE fica?"), e o Menu é gate de descoberta (PRD
+            §9) — /barco também leva lá, mas nada depende de link único. */}
+        <LinhaLista
+          href="/barco/mapa"
+          titulo="Mapa da embarcação"
+          subtitulo="O barco em corte — equipamentos, manutenções e ocorrências por zona"
+        />
+        <LinhaLista
+          href="/barco/equipamentos"
+          titulo="Equipamentos"
+          subtitulo="Bote, guincho, ar-condicionado — o que você acompanha a bordo"
+          valor={equipamentosNoHub > 0 ? String(equipamentosNoHub) : undefined}
+        />
+        <LinhaLista href="/barco/fotos" titulo="Fotos" subtitulo="Os álbuns do barco" />
+        <LinhaLista
+          href="/barco/documentos"
+          titulo="Documentos"
+          subtitulo="Validade e arquivos — o semáforo avisa antes de vencer"
+        />
+        <LinhaLista
+          href="/barco/ocorrencias"
+          titulo="Ocorrências"
+          subtitulo="Problemas apontados no Diário ou registrados direto, por setor"
+          valor={ocorrenciasAbertas > 0 ? `${ocorrenciasAbertas} ${ocorrenciasAbertas === 1 ? "aberta" : "abertas"}` : undefined}
+        />
+        {/* Saiu de "Minhas embarcações" (seção que acabou: cadastrar outra
+            embarcação é ajuste e mora em /menu/ajustes): o Connect é área do
+            barco, não ajuste. */}
+        <LinhaLista
+          href="/barco/connect"
+          titulo="Commander Connect"
+          subtitulo="Em breve — conectividade NMEA 2000"
+        />
+      </PainelMenu>
 
       {/* A porta segue a sala (onda 52, reafirmado no trilho da onda 57):
           Financeiro e Carteira só aparecem pra quem entra — /financeiro
           devolve o CMDT sem `gastos` com faixa de erro, e anunciar porta
           que o backend fecha era exatamente o defeito que a revisão da
-          onda 58 apontou: metade do Menu escondia (Tripulação, Agenda,
-          Admin) e esta seção não. `podeVer(null, ...)` é true — PROP vê
-          tudo, como no resto do app. */}
+          onda 58 apontou. `podeVer(null, ...)` é true — PROP vê tudo. */}
       {painel != null &&
         (podeVer(painel.permissoes, "gastos") ||
           painel.papel === "PROP" ||
           podeVer(painel.permissoes, "carteira")) && (
-          <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
+          <>
+            <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
+            <PainelMenu>
+              {podeVer(painel.permissoes, "gastos") && (
+                <LinhaLista
+                  href="/financeiro"
+                  titulo="Financeiro"
+                  subtitulo="Despesas, entradas, recorrentes e relatórios"
+                  valor={totalMesCentavos > 0 ? formatarReais(totalMesCentavos) : undefined}
+                  valorSecundario={totalMesCentavos > 0 ? "este mês" : undefined}
+                />
+              )}
+              {/* Mesmo gate da própria /carteira: PROP sempre; CMDT só com a área. */}
+              {(painel.papel === "PROP" || podeVer(painel.permissoes, "carteira")) && (
+                <LinhaLista
+                  href="/carteira"
+                  titulo="Carteira da Tripulação"
+                  subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
+                />
+              )}
+            </PainelMenu>
+          </>
         )}
-      {painel != null && podeVer(painel.permissoes, "gastos") && (
-        <LinhaLista
-          href="/financeiro"
-          variant="cartao"
-          titulo="Financeiro"
-          subtitulo={
-            totalMesCentavos > 0
-              ? <><span className="font-mono-instr tabular-nums">{formatarReais(totalMesCentavos)}</span> este mês</>
-              : "Despesas, entradas, recorrentes e relatórios"
-          }
-        />
-      )}
-      {/* Mesmo gate da própria /carteira: PROP sempre; CMDT só com a área. */}
-      {painel != null && (painel.papel === "PROP" || podeVer(painel.permissoes, "carteira")) && (
-        <LinhaLista
-          href="/carteira"
-          variant="cartao"
-          className="mt-2"
-          titulo="Carteira da Tripulação"
-          subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
-        />
-      )}
 
       <SecaoPagina icone="pessoas">Gente</SecaoPagina>
-      {painel?.papel === "PROP" && (
+      <PainelMenu>
+        {painel?.papel === "PROP" && (
+          <LinhaLista
+            href="/tripulacao"
+            titulo="Tripulação"
+            subtitulo="Convide comandantes e ajuste as permissões"
+            valor={comandantesComAcesso > 0 ? String(comandantesComAcesso) : undefined}
+          />
+        )}
         <LinhaLista
-          href="/tripulacao"
-          variant="cartao"
-          titulo="Tripulação"
-          subtitulo="Convide comandantes e ajuste as permissões"
+          href="/comandantes"
+          titulo="Comandantes"
+          subtitulo="Disponíveis para contratar direto pelo WhatsApp"
         />
-      )}
-      <LinhaLista
-        href="/comandantes"
-        variant="cartao"
-        className={painel?.papel === "PROP" ? "mt-2" : undefined}
-        titulo="Comandantes"
-        subtitulo="Disponíveis para contratar direto pelo WhatsApp"
-      />
+      </PainelMenu>
 
       {/* Onda 39 — segundo caminho até as telas da rede profissional
           (RedeNav já cruza entre elas; gate de descoberta, ver
@@ -214,43 +211,43 @@ export default async function MenuPage({
           pode ver: desde a onda 46 ela tem área PRÓPRIA na matriz
           (`AREA_AGENDA` em lib/domain/agenda.ts). */}
       <SecaoPagina icone="chat">Rede</SecaoPagina>
-      <LinhaLista href="/prestadores" variant="cartao" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
-      <LinhaLista href="/marketplace" variant="cartao" className="mt-2" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
-      <LinhaLista href="/explorar" variant="cartao" className="mt-2" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
-      {painel != null && podeVerAgenda(painel.permissoes) && (
-        <LinhaLista
-          href="/agenda"
-          variant="cartao"
-          className="mt-2"
-          titulo="Agenda"
-          subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
-        />
-      )}
+      <PainelMenu>
+        <LinhaLista href="/prestadores" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
+        <LinhaLista href="/marketplace" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
+        <LinhaLista href="/explorar" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
+        {painel != null && podeVerAgenda(painel.permissoes) && (
+          <LinhaLista
+            href="/agenda"
+            titulo="Agenda"
+            subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
+          />
+        )}
+      </PainelMenu>
 
       <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
-      <LinhaLista
-        href="/parceiro"
-        variant="cartao"
-        titulo="É marina, posto, pousada, restaurante ou loja náutica?"
-        subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
-      />
+      <PainelMenu>
+        <LinhaLista
+          href="/parceiro"
+          titulo="É marina, posto, pousada, restaurante ou loja náutica?"
+          subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
+        />
+      </PainelMenu>
 
       {/* Admin Commander (§21). Só aparece pra quem tem papel — pra todo mundo
           mais a seção nem existe, porque anunciar a porta é meio caminho pra
           alguém tentar a maçaneta. A decisão de acesso continua sendo do
           servidor (`exigirAdmin` no layout de `(admin)` + RLS por papel); isto
-          aqui é só descoberta. Sem esta entrada, a única forma de chegar no
-          painel era digitar /admin na barra de endereço — e num app dentro de
-          WebView nativo não existe barra de endereço. */}
+          aqui é só descoberta. */}
       {papeisAdmin.length > 0 && (
         <>
           <SecaoPagina icone="escudo">Commander (interno)</SecaoPagina>
-          <LinhaLista
-            href="/admin"
-            variant="cartao"
-            titulo="Admin Commander"
-            subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
-          />
+          <PainelMenu>
+            <LinhaLista
+              href="/admin"
+              titulo="Admin Commander"
+              subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
+            />
+          </PainelMenu>
         </>
       )}
 
