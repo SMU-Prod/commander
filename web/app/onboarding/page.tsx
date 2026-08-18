@@ -1,12 +1,13 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { Logo } from "@/components/logo"
+import { Campo, CampoSelect } from "@/components/ui/campo"
 import { concluirOnboarding } from "@/lib/acoes/onboarding"
 import { carregarPainel } from "@/lib/consultas"
 import { supabaseServer } from "@/lib/supabase/server"
-
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+import { linhaCampos } from "@/lib/ui/form"
 
 export default async function OnboardingPage({
   searchParams,
@@ -30,62 +31,83 @@ export default async function OnboardingPage({
           <Icone nome="voltar" className="size-4" /> Menu
         </Link>
       )}
-      <h1 className="titulo-pagina mt-3">
-        {jaTemBarco ? "Cadastrar outra embarcação" : "Vamos cadastrar seu barco"}
+
+      {/* Canvas tela-3j: a marca abre a tela — no cadastro não há barra
+          inferior nem pra onde navegar, o wordmark é o que diz onde a pessoa
+          está. O contador "2 de 4" do canvas não entra: lá o cadastro é um
+          assunto por passo; aqui ele ainda é UMA página com três seções —
+          divergência de FLUXO relatada, não reestruturada por conta. */}
+      <div className={`text-[11px] ${jaTemBarco ? "mt-4" : ""}`}>
+        <Logo />
+      </div>
+
+      <h1 className="titulo-pagina mt-7">
+        {jaTemBarco ? "Cadastrar outra embarcação" : "Qual é a sua embarcação?"}
       </h1>
-      <p className="mt-1 text-sm text-dim">
+      <p className="corpo mt-2 text-dim">
         {jaTemBarco
-          ? "3 passos rápidos. Ela vira a embarcação ativa — você troca a qualquer momento pelo nome no topo da tela Início."
-          : "3 passos rápidos. O resto você completa depois, aos poucos."}
+          ? "Ela vira a embarcação ativa — você troca a qualquer momento pelo nome no topo da tela Início."
+          : "Só o nome é obrigatório. O resto você completa quando quiser — e a Saúde só liga quando houver dado real."}
       </p>
       {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={concluirOnboarding} className="mt-6 space-y-8">
+        {/* O erro de limite do plano volta com `?erro=` e antes apagava tudo
+            que a pessoa digitou — no PRIMEIRO contato com o app. A guarda
+            restaura (PRD §24, mesma peça dos outros formulários). */}
+        <GuardaFormulario chave="onboarding" />
+
         <section>
           <h2 className="font-mono-instr text-[11px] uppercase tracking-[.18em] text-accent-forte">1 · O barco</h2>
           <div className="mt-3 space-y-3">
-            <div><label className={rotulo} htmlFor="nome">Nome</label><input id="nome" name="nome" required className={campo} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={rotulo} htmlFor="estaleiro">Estaleiro</label><input id="estaleiro" name="estaleiro" className={campo} /></div>
-              <div><label className={rotulo} htmlFor="modelo">Modelo</label><input id="modelo" name="modelo" className={campo} /></div>
+            <Campo label="Nome" id="nome" name="nome" required />
+            <div className={linhaCampos}>
+              <Campo label="Estaleiro" id="estaleiro" name="estaleiro" />
+              <Campo label="Modelo" id="modelo" name="modelo" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={rotulo} htmlFor="ano">Ano</label><input id="ano" name="ano" inputMode="numeric" className={campo} /></div>
-              <div><label className={rotulo} htmlFor="marina">Marina</label><input id="marina" name="marina" className={campo} /></div>
+            <div className={linhaCampos}>
+              <Campo label="Ano" id="ano" name="ano" inputMode="numeric" />
             </div>
+            {/* "Onde ela fica" (canvas) em vez de "Marina" seco. A nota é a
+                versão honesta da do canvas: aqui só o NOME é gravado — quem
+                liga o boletim é a posição, marcada depois no mapa. */}
+            <Campo
+              label="Onde ela fica"
+              id="marina"
+              name="marina"
+              placeholder="Ex.: Marina Verolme, Angra dos Reis"
+              dica="Depois você marca a posição no mapa — é ela que liga o boletim de onda, vento e água na sua Início."
+            />
           </div>
         </section>
 
         <section>
           <h2 className="font-mono-instr text-[11px] uppercase tracking-[.18em] text-accent-forte">2 · Motores</h2>
           <div className="mt-3 space-y-3">
-            <div>
-              <label className={rotulo} htmlFor="qtd_motores">Quantos motores?</label>
-              <select id="qtd_motores" name="qtd_motores" defaultValue="2" className={campo}>
-                <option value="1">1 motor</option>
-                <option value="2">2 motores (BB e BE)</option>
-              </select>
+            <CampoSelect label="Quantos motores?" id="qtd_motores" name="qtd_motores" defaultValue="2">
+              <option value="1">1 motor</option>
+              <option value="2">2 motores (BB e BE)</option>
+            </CampoSelect>
+            <div className={linhaCampos}>
+              <Campo label="Marca" id="motor_marca" name="motor_marca" />
+              <Campo label="Modelo" id="motor_modelo" name="motor_modelo" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={rotulo} htmlFor="motor_marca">Marca</label><input id="motor_marca" name="motor_marca" className={campo} /></div>
-              <div><label className={rotulo} htmlFor="motor_modelo">Modelo</label><input id="motor_modelo" name="motor_modelo" className={campo} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={rotulo} htmlFor="horas_bb">Horas BB (ou único)</label><input id="horas_bb" name="horas_bb" inputMode="decimal" className={campo} /></div>
-              <div><label className={rotulo} htmlFor="horas_be">Horas BE</label><input id="horas_be" name="horas_be" inputMode="decimal" className={campo} /></div>
+            <div className={linhaCampos}>
+              <Campo label="Horas BB (ou único)" id="horas_bb" name="horas_bb" inputMode="decimal" />
+              <Campo label="Horas BE" id="horas_be" name="horas_be" inputMode="decimal" />
             </div>
           </div>
         </section>
 
         <section>
           <h2 className="font-mono-instr text-[11px] uppercase tracking-[.18em] text-accent-forte">3 · Vencimentos críticos</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div><label className={rotulo} htmlFor="seguro_validade">Seguro vence em</label><input id="seguro_validade" name="seguro_validade" type="date" className={campo} /></div>
-            <div><label className={rotulo} htmlFor="tie_validade">TIE vence em</label><input id="tie_validade" name="tie_validade" type="date" className={campo} /></div>
+          <div className={`mt-3 ${linhaCampos}`}>
+            <Campo label="Seguro vence em" id="seguro_validade" name="seguro_validade" type="date" />
+            <Campo label="TIE vence em" id="tie_validade" name="tie_validade" type="date" />
           </div>
         </section>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+        <button className="h-12 w-full rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto">
           {jaTemBarco ? "Cadastrar embarcação" : "Criar meu painel de bordo"}
         </button>
       </form>
