@@ -430,3 +430,66 @@ export function rotuloSemana(iso: string): string {
   const [, mf, df] = dias[6].split("-")
   return mi === mf ? `${di} – ${df}/${mf}` : `${di}/${mi} – ${df}/${mf}`
 }
+
+// ---------------------------------------------------------------------
+// Onda 62 (canvas tela-1h) — a Lista com a data em mono à esquerda no
+// lugar do cabeçalho de dia, agrupada por período legível ("Esta semana",
+// depois o nome do mês). Regras puras de apresentação, testáveis sem
+// relógio.
+// ---------------------------------------------------------------------
+
+/** O bloco de data à esquerda da linha: dia com dois dígitos + dia da
+ *  semana curto em minúsculas, sem ponto ("18" / "seg"). */
+export function diaCompacto(iso: string): { dia: string; semana: string } {
+  const [a, m, d] = iso.split("-").map(Number)
+  const semana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" })
+    .format(new Date(Date.UTC(a, m - 1, d)))
+    .replace(".", "")
+    .toLowerCase()
+  return { dia: String(d).padStart(2, "0"), semana }
+}
+
+export interface SecaoAgenda {
+  rotulo: string
+  itens: ItemAgenda[]
+}
+
+/** "Setembro" quando o ano é o corrente; "Janeiro de 2027" quando não é —
+ *  o ano só aparece quando acrescenta informação. */
+function rotuloMesSecao(mesISO: string, hoje: string): string {
+  const [a, m] = mesISO.split("-").map(Number)
+  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" })
+    .format(new Date(Date.UTC(a, m - 1, 1)))
+  const capitalizado = `${nome.charAt(0).toUpperCase()}${nome.slice(1)}`
+  return mesISO.slice(0, 4) === hoje.slice(0, 4) ? capitalizado : `${capitalizado} de ${a}`
+}
+
+/**
+ * Seções da Lista (canvas tela-1h): o que cai na semana corrente vira
+ * "Esta semana"; o resto se agrupa pelo nome do mês. A lista chega ORDENADA
+ * (`ordenarAgenda`) e o agrupamento é sequencial de propósito — a cronologia
+ * manda, então um mês que começa antes da semana corrente e continua depois
+ * dela aparece em duas seções com o mesmo nome, nunca fora de ordem.
+ */
+export function agruparPorPeriodo(itens: ItemAgenda[], hoje: string): SecaoAgenda[] {
+  const semana = new Set(diasDaSemana(hoje))
+  const secoes: SecaoAgenda[] = []
+  for (const item of itens) {
+    const rotulo = semana.has(item.data) ? "Esta semana" : rotuloMesSecao(item.data.slice(0, 7), hoje)
+    const ultima = secoes[secoes.length - 1]
+    if (ultima && ultima.rotulo === rotulo) ultima.itens.push(item)
+    else secoes.push({ rotulo, itens: [item] })
+  }
+  return secoes
+}
+
+/** Rótulo curto da pílula de origem na linha da Lista (canvas tela-1h):
+ *  singular, uma palavra — a pílula diz DE ONDE o item veio, o status diz a
+ *  cor. "Docs" e não "Documento" segue o canvas (a pílula divide a linha com
+ *  título e data; cada letra conta). */
+export const ROTULO_CAMADA_PILULA: Record<CamadaComFonte, string> = {
+  manutencoes: "Manutenção",
+  documentos: "Docs",
+  seguranca: "Segurança",
+  tarefas: "Tarefa",
+}

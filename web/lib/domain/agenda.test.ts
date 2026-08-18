@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest"
 import {
   agruparPorDia,
+  agruparPorPeriodo,
   camadaTemFonte,
   CAMADAS,
+  CAMADAS_COM_FONTE,
+  diaCompacto,
   diaDaSemana,
   diasDaSemana,
   ehCompartilhavel,
@@ -15,6 +18,7 @@ import {
   ordenarAgenda,
   podeGerenciarEventos,
   podeVerAgenda,
+  ROTULO_CAMADA_PILULA,
   rotuloDia,
   rotuloMes,
   rotuloSemana,
@@ -335,5 +339,68 @@ describe("rótulos de data", () => {
   })
   it("semana que atravessa o mês mostra os dois", () => {
     expect(rotuloSemana("2026-09-01")).toBe("30/08 – 05/09")
+  })
+})
+
+// --- onda 62 (canvas tela-1h): a Lista com data em mono à esquerda ---------
+
+describe("diaCompacto", () => {
+  it("dia com dois dígitos e semana curta minúscula sem ponto", () => {
+    expect(diaCompacto("2026-08-18")).toEqual({ dia: "18", semana: "ter" })
+    expect(diaCompacto("2026-09-02")).toEqual({ dia: "02", semana: "qua" })
+    expect(diaCompacto("2026-08-22")).toEqual({ dia: "22", semana: "sáb" })
+  })
+})
+
+describe("agruparPorPeriodo", () => {
+  const item = (data: string): ItemAgenda => ({
+    chave: `c:${data}`,
+    origem: "compromisso",
+    data,
+    hora: null,
+    titulo: data,
+    detalhe: null,
+    href: null,
+    status: null,
+    compartilhado: false,
+    meu: true,
+    concluido: false,
+  })
+
+  it("a semana corrente vira 'Esta semana'; o resto agrupa por mês", () => {
+    // hoje = terça 18/08/2026; semana corrente = 16 a 22/08.
+    const secoes = agruparPorPeriodo(
+      [item("2026-08-18"), item("2026-08-20"), item("2026-09-02"), item("2026-09-14")],
+      "2026-08-18",
+    )
+    expect(secoes.map((s) => s.rotulo)).toEqual(["Esta semana", "Setembro"])
+    expect(secoes[0].itens).toHaveLength(2)
+    expect(secoes[1].itens).toHaveLength(2)
+  })
+
+  it("mês de outro ano leva o ano no nome — 'Setembro' sozinho mentiria", () => {
+    const secoes = agruparPorPeriodo([item("2027-01-10")], "2026-08-18")
+    expect(secoes[0].rotulo).toBe("Janeiro de 2027")
+  })
+
+  it("agrupamento é sequencial: a cronologia manda, mesmo repetindo rótulo", () => {
+    // Item antes da semana corrente, dentro dela e depois dela, tudo em agosto.
+    const secoes = agruparPorPeriodo(
+      [item("2026-08-03"), item("2026-08-18"), item("2026-08-28")],
+      "2026-08-18",
+    )
+    expect(secoes.map((s) => s.rotulo)).toEqual(["Agosto", "Esta semana", "Agosto"])
+  })
+
+  it("lista vazia devolve zero seções", () => {
+    expect(agruparPorPeriodo([], "2026-08-18")).toEqual([])
+  })
+})
+
+describe("ROTULO_CAMADA_PILULA", () => {
+  it("toda camada com fonte tem rótulo curto de pílula", () => {
+    for (const c of CAMADAS_COM_FONTE) {
+      expect(ROTULO_CAMADA_PILULA[c].length).toBeGreaterThan(0)
+    }
   })
 })
