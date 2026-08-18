@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox } from "mapbox-gl"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
+import { Icone } from "@/components/icone"
 import { RedeNav } from "@/components/ui/rede-nav"
 import type { EstadoCamadas } from "@/lib/mapa/camadas"
 import { criarElementoMarcadorParceiro } from "@/lib/mapa/pino-parceiro"
-import { FILTRO_TODOS, ROTULO_TIPO_PARTNER, TIPOS_PARTNER, type TipoPartner } from "@/lib/domain/partner"
+import { formatarMN, maisProximos } from "@/lib/domain/explorar"
+import {
+  FILTRO_TODOS, ICONE_TIPO_PARTNER, ROTULO_TIPO_PARTNER, TIPOS_PARTNER, type TipoPartner,
+} from "@/lib/domain/partner"
 import type { Parceiro } from "@/lib/db/types"
 
 // Onda 51: a lista de categorias virou os TIPOS DE PARTNER do §13, com os
@@ -56,6 +60,10 @@ export function ExplorarMapa({
   }, [])
 
   const [mapaPronto, setMapaPronto] = useState<MapaMapbox | null>(null)
+  // Centro atual da carta — é dele que a folha de "mais próximos" mede as
+  // distâncias (canvas tela-3h). Atualiza no `moveend`, não a cada frame de
+  // arrasto: a lista reordenando durante o gesto seria ruído, não instrumento.
+  const [centro, setCentro] = useState<{ lat: number; lng: number } | null>(null)
   // Preferência de dispositivo compartilhada com /navegar (MapaNautico lê/
   // grava em localStorage) — desligar "Parceiros" aqui também desliga lá, o
   // que é o comportamento certo: é a MESMA camada, não uma cópia.
@@ -67,6 +75,24 @@ export function ExplorarMapa({
   const filtrados = useMemo(
     () => (categoria === FILTRO_TODOS ? parceiros : parceiros.filter((p) => p.categoria === categoria)),
     [parceiros, categoria],
+  )
+
+  useEffect(() => {
+    if (!mapaPronto) return
+    const atualizar = () => {
+      const c = mapaPronto.getCenter()
+      setCentro({ lat: c.lat, lng: c.lng })
+    }
+    atualizar()
+    mapaPronto.on("moveend", atualizar)
+    return () => {
+      mapaPronto.off("moveend", atualizar)
+    }
+  }, [mapaPronto])
+
+  const proximos = useMemo(
+    () => (centro ? maisProximos(filtrados, centro, 3) : []),
+    [filtrados, centro],
   )
 
   useEffect(() => {
@@ -119,8 +145,10 @@ export function ExplorarMapa({
             Vitrine
           </Link>
         </div>
+        {/* Onda 62 (canvas tela-3h) — o chip flutuante sobe pro alvo de 44px
+            da régua do app (era h-9/36px, abaixo do que a varredura cobra). */}
         <div
-          className="pointer-events-auto sombra-2 flex gap-1.5 overflow-x-auto rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento p-1.5"
+          className="rolagem-lateral pointer-events-auto sombra-2 flex gap-1.5 overflow-x-auto rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento p-1"
           style={{ scrollbarWidth: "none" }}
         >
           {CATEGORIAS.map((c) => (
@@ -129,8 +157,8 @@ export function ExplorarMapa({
               type="button"
               onClick={() => setCategoria(c.valor)}
               aria-pressed={categoria === c.valor}
-              className={`h-9 shrink-0 whitespace-nowrap rounded-full px-3 text-sm font-medium ${
-                categoria === c.valor ? "bg-accent text-acao-texto" : "text-meter-texto"
+              className={`h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm ${
+                categoria === c.valor ? "bg-accent font-semibold text-acao-texto" : "font-medium text-meter-texto"
               }`}
             >
               {c.rotulo}
@@ -154,6 +182,51 @@ export function ExplorarMapa({
               Ver planos
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Onda 62 (canvas tela-3h) — "metade carta, metade lista": a folha de
+          baixo mostra os mais próximos do centro da carta, com a distância
+          sempre em MN e sempre em mono. Some quando um parceiro está aberto
+          (o CardParceiro ocupa o mesmo lugar) e na amostra Free (ali o aviso
+          de amostra é a mensagem mais importante do rodapé). */}
+      {!amostraFree && !parceiroAberto && centro && (
+        <div className="sombra-2 absolute inset-x-0 bottom-0 z-10 rounded-t-2xl border-t border-mapa-instrumento-borda bg-mapa-instrumento px-4 pb-3 pt-3">
+          <div aria-hidden="true" className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-mapa-instrumento-borda" />
+          <div className="mb-1 flex items-baseline gap-2">
+            <p className="rotulo flex-1 text-meter-dim">
+              <span className="tabular-nums">{proximos.length}</span>
+              {proximos.length === 1 ? " parceiro por perto" : " parceiros por perto"}
+            </p>
+            {proximos.length > 0 && <p className="apoio text-meter-dim">Mais próximos</p>}
+          </div>
+          {proximos.length === 0 ? (
+            <p className="apoio py-2 text-meter-dim">
+              {categoria === FILTRO_TODOS
+                ? "Nenhum parceiro neste trecho da carta ainda."
+                : `Nenhum ${ROTULO_TIPO_PARTNER[categoria].toLowerCase()} neste trecho da carta.`}
+            </p>
+          ) : (
+            proximos.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setParceiroAberto(p)}
+                className="flex min-h-11 w-full items-center gap-3 border-b border-mapa-instrumento-borda py-2.5 text-left last:border-0"
+              >
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-mapa-instrumento-borda bg-meter">
+                  <Icone nome={ICONE_TIPO_PARTNER[p.categoria]} className="size-5 text-meter-dim" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="titulo-card block truncate text-meter-texto">{p.nome}</span>
+                  <span className="apoio block text-meter-dim">{ROTULO_TIPO_PARTNER[p.categoria]}</span>
+                </span>
+                <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums text-meter-texto">
+                  {formatarMN(p.distanciaNm)}
+                </span>
+              </button>
+            ))
+          )}
         </div>
       )}
 
