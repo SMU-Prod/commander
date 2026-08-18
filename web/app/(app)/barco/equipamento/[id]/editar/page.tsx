@@ -38,6 +38,7 @@ export default async function EditarEquipamentoPage({
             tipoInicial={eq.tipo}
             posicaoInicial={eq.posicao ?? ""}
             tipoBateriaInicial={eq.tipo_bateria ?? ""}
+            zonaInicial={eq.zona}
           />
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Marca" id="marca" name="marca" defaultValue={eq.marca ?? ""} />

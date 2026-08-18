@@ -106,6 +106,37 @@ export function formatarDataCurta(iso: string): string {
   return `${d}/${m}`
 }
 
+/** "2027-03-14" → "14/03/27" — a data de um vencimento LONGE (canvas
+ *  tela-3d): quando falta mais de um ciclo de atenção, o dia/mês sozinho
+ *  ("14/03") deixaria ambíguo SE é deste ano ou do que vem; o ano de dois
+ *  dígitos resolve sem alargar a coluna mono. */
+export function formatarDataCurtaComAno(iso: string): string {
+  const [a, m, d] = iso.split("-")
+  return `${d}/${m}/${a.slice(2)}`
+}
+
+/** A linha de regra de um item monitorado na ficha (canvas tela-3c):
+ *  "A cada 250 h · última em 1.069 h". Diz COMO o prazo é contado — a
+ *  contagem em si mora na coluna da direita (`prazoCompacto`/`textoRestante`,
+ *  o MESMO ResultadoCalc de `calcularSemaforo`; nenhuma régua nova aqui, só
+ *  a frase da regra). Item sem intervalo nenhum diz isso em voz alta
+ *  ("Sem intervalo informado") em vez de fingir estado — ele não entra na
+ *  conta da Saúde, nem a favor nem contra. */
+export function linhaDaRegra(item: ItemCalc): string {
+  if (item.intervaloHoras != null) {
+    const base = `A cada ${item.intervaloHoras.toLocaleString("pt-BR")} h`
+    return item.ultimoCicloHoras != null
+      ? `${base} · última em ${item.ultimoCicloHoras.toLocaleString("pt-BR")} h`
+      : base
+  }
+  if (item.intervaloMeses != null) {
+    const base = `A cada ${item.intervaloMeses} ${item.intervaloMeses === 1 ? "mês" : "meses"}`
+    return item.ultimoCicloData != null ? `${base} · última em ${formatarDataCurta(item.ultimoCicloData)}` : base
+  }
+  if (item.dataFixa != null) return `Vence em ${formatarDataCurtaComAno(item.dataFixa)}`
+  return "Sem intervalo informado"
+}
+
 export function textoRestante(r: ResultadoCalc): string {
   const h = r.horasRestantes
   const d = r.diasRestantes

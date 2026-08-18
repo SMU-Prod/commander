@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   calcularSaudeEmbarcacao,
+  contarEmDiaPorAba,
   ehAreaCritica,
   ESTADOS_SAUDE,
   FAROL_ESTADO_SAUDE,
@@ -334,5 +335,31 @@ describe('"Precisa da sua atencao" ordenado por criticidade (PRD §3.4)', () => 
     const invertido = calcularSaudeEmbarcacao([...itens].reverse(), []).fatores.map((f) => f.id)
     expect(direto).toEqual(invertido)
     expect(direto).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("contarEmDiaPorAba — os chips do bloco Em dia (canvas tela-3k)", () => {
+  it("conta só item COM informação e ok, maior área primeiro", () => {
+    const contagem = contarEmDiaPorAba([
+      itemOk({ id: "1", aba: "motores" }),
+      itemOk({ id: "2", aba: "motores" }),
+      itemOk({ id: "3", aba: "eletrica" }),
+      itemOk({ id: "4", aba: "seguranca", status: "atencao" }), // não está em dia
+      itemOk({ id: "5", aba: "casco", temInformacao: false }), // desconhecido, não "em dia"
+    ])
+    expect(contagem).toEqual([
+      { aba: "motores", quantidade: 2 },
+      { aba: "eletrica", quantidade: 1 },
+    ])
+  })
+  it("empate desempata alfabético — mesma entrada, mesma tela", () => {
+    const contagem = contarEmDiaPorAba([
+      itemOk({ id: "1", aba: "seguranca" }),
+      itemOk({ id: "2", aba: "casco" }),
+    ])
+    expect(contagem.map((c) => c.aba)).toEqual(["casco", "seguranca"])
+  })
+  it("sem nada em dia devolve lista vazia — o bloco nem aparece", () => {
+    expect(contarEmDiaPorAba([itemOk({ status: "vencido" })])).toEqual([])
   })
 })

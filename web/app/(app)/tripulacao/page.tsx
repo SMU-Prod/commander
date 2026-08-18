@@ -1,7 +1,9 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"
 import { mensagemBloqueio, vagasTripulacao } from "@/lib/domain/plano-acesso"
+import { horasNoMarCurto, usoPorTripulante, type SaidaParaTripulante } from "@/lib/domain/tripulacao"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Avatar } from "@/components/avatar"
 import { Confirmar } from "@/components/confirmar"
@@ -14,6 +16,35 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
+/**
+ * TRIPULAÇÃO (onda 62, canvas tela-1f) — o cartão de pessoa no lugar da
+ * linha: avatar, credencial em chip mono, micro-KPIs em pílula (Saídas /
+ * No mar / Acesso) e a ação de CONTATO à direita. Os KPIs saem do MESMO
+ * Diário de Bordo que alimenta tudo (`usoPorTripulante` em
+ * `lib/domain/tripulacao.ts`) — nenhuma segunda contagem pra divergir.
+ *
+ * O que o canvas tem e esta tela NÃO copia, de propósito:
+ * - "A bordo" (pílula verde): o app não registra quem está fisicamente no
+ *   barco agora — afirmar isso seria inventar presença.
+ * - "CMDT · ARRAIS-AM": a habilitação não existe no vínculo — o chip fica
+ *   só com o papel, que é o que o banco sabe.
+ */
+
+/** Só dígitos — telefone salvo com máscara vira link wa.me válido. */
+function digitosTelefone(telefone: string | null): string | null {
+  const d = (telefone ?? "").replace(/\D/g, "")
+  return d.length >= 10 ? d : null
+}
+
+function PilulaKpi({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1.5">
+      <span className="font-mono-instr text-[11px] uppercase tracking-[.12em] text-dim-chip">{rotulo}</span>
+      <span className="font-mono-instr text-xs font-semibold tabular-nums">{valor}</span>
+    </span>
+  )
+}
+
 export default async function TripulacaoPage({
   searchParams,
 }: {
@@ -25,16 +56,28 @@ export default async function TripulacaoPage({
   if (painel.papel !== "PROP") redirect("/menu")
 
   const supabase = await supabaseServer()
-  const [{ data: vinculos }, { data: convites }, { data: perfis }] = await Promise.all([
+  const [{ data: vinculos }, { data: convites }, { data: perfis }, { data: saidas }] = await Promise.all([
     supabase.from("vinculos").select("*").eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT"),
     supabase.from("convites").select("*").eq("embarcacao_id", painel.embarcacao.id)
       .is("usado_em", null).gt("expira_em", new Date().toISOString()).order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, nome, avatar_path"),
+    supabase.from("profiles").select("id, nome, avatar_path, telefone"),
+    // Os micro-KPIs do cartão (canvas tela-1f): as saídas do Diário, uma
+    // consulta só pra tripulação inteira — o índice por pessoa é feito em
+    // memória por `usoPorTripulante`.
+    supabase.from("eventos").select("tipo, criado_por, hora_saida, hora_retorno")
+      // `limit(300)` como /diario e /financeiro: sem teto, um barco com anos
+      // de diário baixa tudo a cada render pra somar três chips.
+      .eq("embarcacao_id", painel.embarcacao.id).eq("tipo", "navegacao")
+      .order("data", { ascending: false }).limit(300),
   ])
   const nomePorId = new Map((perfis ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+  const telefonePorId = new Map(
+    (perfis ?? []).map((p: { id: string; telefone: string | null }) => [p.id, p.telefone]),
+  )
   const avatarPathPorId = new Map(
     (perfis ?? []).map((p: { id: string; avatar_path: string | null }) => [p.id, p.avatar_path]),
   )
+  const usoPorId = usoPorTripulante((saidas ?? []) as SaidaParaTripulante[])
   // Mesmo padrão da Início (onda 57): assina só o que vai aparecer — a
   // Tripulação é curta por natureza (§19, no máximo poucas vagas por
   // embarcação), então dá pra assinar a foto de todo mundo sem paginar.
@@ -55,9 +98,17 @@ export default async function TripulacaoPage({
 
   const linkConvite = (codigo: string) => `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"}/convite/${codigo}`
 
+  const listaVinculos = (vinculos ?? []) as Vinculo[]
+  const listaConvites = (convites ?? []) as Convite[]
+
   return (
     <main>
-      <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Tripulação" />
+      <CabecalhoDetalhe
+        voltarHref="/menu"
+        voltarRotulo="Menu"
+        titulo="Tripulação"
+        descricao="Quem tem acesso a esta embarcação, e com qual permissão."
+      />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       {criado && (
@@ -78,99 +129,136 @@ export default async function TripulacaoPage({
           permissão de alteração dos dados da embarcação para toda a
           tripulação". Ícone neutro, não o "!" vermelho — a REGRA DE UX do
           PRD §16 reserva o vermelho pra alerta crítico, e isto é
-          orientação, não alarme. */}
-      <div className="mt-5 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+          orientação, não alarme. O texto encurtou pro do canvas (tela-1f):
+          mesma orientação, metade das palavras. */}
+      <div className="mt-4 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim">
-          Dê acesso de edição só a quem realmente cuida do barco. Tripulante que só embarca não
-          precisa poder alterar o cadastro, os documentos nem os custos — o acesso operacional
-          já deixa registrar horas e serviços.
+          Dê acesso de edição só a quem cuida do barco. Tripulante que só embarca não precisa
+          alterar cadastro, documentos nem custos.
         </p>
       </div>
 
-      <SecaoPagina>Comandantes com acesso</SecaoPagina>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
-        {((vinculos ?? []) as Vinculo[]).length === 0 && (
+      <SecaoPagina>
+        Comandantes com acesso{listaVinculos.length > 0 ? ` — ${listaVinculos.length}` : ""}
+      </SecaoPagina>
+      {listaVinculos.length === 0 && (
+        <div className="rounded-[14px] border border-line bg-panel px-4">
           <EstadoVazio
             variant="linha"
             icone="pessoas"
             titulo="Ninguém além de você ainda"
             descricao="Crie um convite abaixo."
           />
-        )}
-        {((vinculos ?? []) as Vinculo[]).map((v) => {
+        </div>
+      )}
+      <div className="space-y-2">
+        {listaVinculos.map((v) => {
           const nome = nomePorId.get(v.usuario_id) || "Comandante"
-          const preset = v.nivel === "completo" ? "Acesso completo" : v.nivel === "operacional" ? "Acesso operacional" : "Acesso personalizado"
+          const preset = v.nivel === "completo" ? "Completo" : v.nivel === "operacional" ? "Operacional" : "Personalizado"
+          const usoDele = usoPorId.get(v.usuario_id)
+          const telefone = digitosTelefone(telefonePorId.get(v.usuario_id) ?? null)
           return (
-            <LinhaLista
-              key={v.id}
-              href={`/tripulacao/${v.id}`}
-              leading={<Avatar url={urlAvatarPorId.get(v.usuario_id) ?? null} nome={nome} />}
-              titulo={nome}
-              subtitulo={`Comandante · ${preset}`}
-            />
+            <div key={v.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
+              <div className="flex items-center gap-3">
+                {/* O bloco pessoa navega pro detalhe; o telefone é link
+                    PRÓPRIO — nunca <a> dentro de <a> (a lição da onda 28). */}
+                <Link href={`/tripulacao/${v.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <Avatar url={urlAvatarPorId.get(v.usuario_id) ?? null} nome={nome} />
+                  <span className="min-w-0 flex-1">
+                    <span className="titulo-card block truncate">{nome}</span>
+                    {/* Credencial em chip mono (canvas): só o papel — a
+                        habilitação não existe no vínculo pra ser escrita. */}
+                    <span className="mt-1 inline-flex rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] tracking-[.06em] text-dim-chip">
+                      CMDT
+                    </span>
+                  </span>
+                </Link>
+                {telefone && (
+                  <a
+                    href={`https://wa.me/${telefone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Chamar ${nome} no WhatsApp`}
+                    className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line"
+                  >
+                    <Icone nome="telefone" className="size-4" />
+                  </a>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <PilulaKpi rotulo="Saídas" valor={String(usoDele?.saidas ?? 0)} />
+                {usoDele != null && usoDele.saidas > 0 && (
+                  <PilulaKpi rotulo="No mar" valor={horasNoMarCurto(usoDele)} />
+                )}
+                <PilulaKpi rotulo="Acesso" valor={preset} />
+              </div>
+            </div>
           )
         })}
       </div>
 
-      <SecaoPagina>Convites pendentes</SecaoPagina>
+      <SecaoPagina>
+        {listaConvites.length === 1 ? "Convite pendente — 1" : `Convites pendentes${listaConvites.length > 0 ? ` — ${listaConvites.length}` : ""}`}
+      </SecaoPagina>
       <div className="rounded-[14px] border border-line bg-panel px-4">
-        {((convites ?? []) as Convite[]).length === 0 && (
+        {listaConvites.length === 0 && (
           <EstadoVazio variant="linha" icone="pessoas" titulo="Nenhum convite aguardando" />
         )}
-        {((convites ?? []) as Convite[]).map((c) => (
+        {listaConvites.map((c) => (
           <LinhaLista
             key={c.id}
-            // Convite ainda não tem pessoa (ninguém aceitou) — mesma moldura
-            // circular do Avatar, com o relógio no lugar da foto/iniciais,
-            // pra manter a coluna alinhada com a lista de comandantes acima.
-            leading={
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-dim">
-                <Icone nome="relogio" className="size-5" />
-              </span>
-            }
-            titulo={<span className="font-mono-instr tabular-nums">{c.codigo}</span>}
-            subtitulo={`Aguardando · ${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
+            titulo={<span className="font-mono-instr tracking-[.06em] tabular-nums">{c.codigo}</span>}
+            subtitulo={`${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
             trailing={
               <form action={revogarConvite}>
                 <input type="hidden" name="convite_id" value={c.id} />
-                <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-xs text-crit" />
+                <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-sm font-medium text-crit" />
               </form>
             }
           />
         ))}
       </div>
 
-      <SecaoPagina>Novo convite</SecaoPagina>
       {/* §19 — "até 2 acessos de tripulação por embarcação. Convite pendente
           ocupa vaga", e §2.3 — Free "não pode adicionar tripulação" (0 vagas).
           O formulário some quando não há vaga, mas o MOTIVO fica: §24 exige
           "explicar o limite e mostrar CTA de upgrade; nunca falhar
           silenciosamente". A mesma conta roda na action e no banco. */}
       {vagas.cabeMais ? (
-        <form action={criarConvite} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
-          <p className="apoio text-dim">
-            {vagas.restantes === 1
-              ? "Resta 1 vaga de tripulação nesta embarcação."
-              : `Restam ${vagas.restantes} vagas de tripulação nesta embarcação.`}{" "}
+        <>
+          <p className="corpo mt-5 text-dim">
+            {vagas.restantes === 1 ? (
+              <>Resta <span className="font-mono-instr tabular-nums text-texto">1</span> vaga no seu plano.</>
+            ) : (
+              <>Restam <span className="font-mono-instr tabular-nums text-texto">{vagas.restantes}</span> vagas no seu plano.</>
+            )}{" "}
             Convite aguardando resposta também ocupa vaga.
           </p>
-          <CampoSelect
-            label="Acesso inicial"
-            id="nivel"
-            name="nivel"
-            defaultValue="operacional"
-            dica="Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar."
-          >
-            <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
-            <option value="completo">Completo — vê e edita tudo</option>
-          </CampoSelect>
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar convite</button>
-        </form>
+          <form action={criarConvite} className="mt-3 space-y-3">
+            <CampoSelect
+              label="Acesso inicial"
+              id="nivel"
+              name="nivel"
+              defaultValue="operacional"
+              dica="Você ajusta o acesso em detalhe depois, área por área — o que ele pode ver e editar."
+            >
+              <option value="operacional">Operacional — registra horas e serviços, sem custos e documentos</option>
+              <option value="completo">Completo — vê e edita tudo</option>
+            </CampoSelect>
+            {/* A ÚNICA dourada da tela (DESIGN §5) — e com o verbo do canvas:
+                convidar é o que acontece, "criar convite" era o mecanismo. */}
+            <button className="h-11 rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto">
+              Convidar comandante
+            </button>
+          </form>
+        </>
       ) : vagas.total === 0 ? (
-        <BloqueioPremium {...mensagemBloqueio("tripulacao_adicionar")} />
+        <div className="mt-5">
+          <BloqueioPremium {...mensagemBloqueio("tripulacao_adicionar")} />
+        </div>
       ) : (
-        <div className="rounded-[14px] border border-line bg-panel p-4">
+        <div className="mt-5 rounded-[14px] border border-line bg-panel p-4">
           <p className="titulo-card">Vagas de tripulação preenchidas</p>
           <p className="apoio mt-1 text-dim">
             Esta embarcação já usa as {vagas.total} vagas do plano, somando comandantes com acesso e convites

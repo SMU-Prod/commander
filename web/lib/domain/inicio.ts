@@ -1,8 +1,9 @@
-import { duracaoHoras, retornoNoDiaSeguinte } from "@/lib/domain/bordo"
+import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import type { EstadoSelo } from "@/components/ui/selo"
+import { diaCivilSP, diasAteData } from "@/lib/domain/datas"
 import type { SeloMar } from "@/lib/domain/mar"
 import { ROTULO_ESTADO_SAUDE, type EstadoSaude, type FatorSaude, type SaudeEmbarcacao } from "@/lib/domain/saude"
-import { formatarDataCurta, type ResultadoCalc } from "@/lib/domain/semaforo"
+import type { ResultadoCalc } from "@/lib/domain/semaforo"
 
 /**
  * AS FRASES E OS NÚMEROS DA INÍCIO — funções puras, testadas, fora do JSX.
@@ -72,34 +73,87 @@ export function rotuloDaSaude(estado: EstadoSaude | null): string {
 }
 
 /**
- * A contagem que sobrou do anel: "5 em dia · 1 em atenção · 2 vencidos".
+ * O resumo do cartão da Saúde: "1 vencido · 2 na margem · 1 ocorrência
+ * aberta" (canvas do dono, tela-1b) — o pior primeiro, e a mesma ordem de
+ * severidade do resto do app.
  *
  * Uma linha só, e não três com bolinha colorida do lado, porque o estado já
  * está dito em cima pelo selo — aqui embaixo o que falta é a leitura.
  *
- * O que é zero não aparece: "0 vencidos" ocupa o mesmo espaço de uma
- * informação sem ser uma.
+ * A REGRA DO CANVAS: quando existe problema, "em dia" não aparece — o
+ * resumo é do que pede ação, não um censo. Só quando NADA pede ação a linha
+ * vira "N em dia", que aí sim é a informação. O que é zero nunca aparece:
+ * "0 vencidos" ocupa o mesmo espaço de uma informação sem ser uma.
+ *
+ * ONDA 62 — a ocorrência aberta ENTROU na linha (era só manutenção): o
+ * canvas soma as duas na mesma leitura, e um barco cuja única pendência é
+ * uma ocorrência dizia "Nenhum item monitorado…" com o selo âmbar do lado.
+ * `ocorrenciasAbertas` já chega filtrado por RLS e por
+ * `ESTADOS_QUE_PESAM_NA_SAUDE` — esta função só apresenta.
  *
  * DEVOLVE PARTES E NÃO UMA FRASE (revisão da onda 57). Enquanto era string, a
  * tela punha `font-mono-instr tabular-nums` no parágrafo inteiro e as OITO
- * PALAVRAS iam em monoespaçada junto com os números — e no caminho vazio,
- * onde a tela caía num texto de reserva, uma frase inteira. É exatamente o
- * defeito que a onda 56 tirou do hero ("S e m   d a d o s" ao lado de
- * "612,0h"): fonte de instrumento é para NÚMERO (docs/DESIGN.md §5). Com as
- * partes separadas, quem renderiza põe a mono só no numeral, como o cartão
- * da Tripulação já faz.
+ * PALAVRAS iam em monoespaçada junto com os números. Fonte de instrumento é
+ * para NÚMERO (docs/DESIGN.md §5): com as partes separadas, quem renderiza
+ * põe a mono só no numeral, como o cartão da Tripulação já faz.
  */
 export function contagemDaSaude(
   saude: Pick<SaudeEmbarcacao, "emDia" | "atencao" | "vencido" | "total">,
+  ocorrenciasAbertas = 0,
 ): { numero: number; rotulo: string }[] | null {
-  if (saude.total === 0) return null
+  if (saude.total === 0 && ocorrenciasAbertas === 0) return null
   const partes: { numero: number; rotulo: string }[] = []
-  if (saude.emDia > 0) partes.push({ numero: saude.emDia, rotulo: "em dia" })
-  if (saude.atencao > 0) partes.push({ numero: saude.atencao, rotulo: "em atenção" })
   if (saude.vencido > 0) {
     partes.push({ numero: saude.vencido, rotulo: saude.vencido === 1 ? "vencido" : "vencidos" })
   }
+  if (saude.atencao > 0) partes.push({ numero: saude.atencao, rotulo: "na margem" })
+  if (ocorrenciasAbertas > 0) {
+    partes.push({
+      numero: ocorrenciasAbertas,
+      rotulo: ocorrenciasAbertas === 1 ? "ocorrência aberta" : "ocorrências abertas",
+    })
+  }
+  if (partes.length === 0 && saude.emDia > 0) partes.push({ numero: saude.emDia, rotulo: "em dia" })
   return partes.length > 0 ? partes : null
+}
+
+/**
+ * A contagem regressiva da coluna direita de "Precisa da sua atenção"
+ * (canvas tela-1b): "-19 d" vencido, "18 h" na margem — número de
+ * instrumento, curto, com a cor vindo do farol da linha (nunca daqui).
+ *
+ * NÃO É UMA SEGUNDA RÉGUA: recebe o MESMO `ResultadoCalc` de
+ * `calcularSemaforo` e repete a prioridade de `textoRestanteCompacto`
+ * (horas mandam sobre dias — o prazo mais preciso de motor); só o formato
+ * muda, de frase pra mostrador. Vencido há menos de meia hora arredonda pra
+ * "0 h" — "-0 h" é um número que não existe; o vermelho do farol já diz que
+ * venceu.
+ */
+export function prazoCompacto(r: ResultadoCalc): string {
+  if (r.horasRestantes != null) {
+    const h = Math.round(Math.abs(r.horasRestantes))
+    return r.horasRestantes < 0 && h > 0 ? `-${h} h` : `${h} h`
+  }
+  if (r.diasRestantes != null) {
+    return r.diasRestantes < 0 ? `-${-r.diasRestantes} d` : `${r.diasRestantes} d`
+  }
+  return "—"
+}
+
+/**
+ * A idade de uma ocorrência na mesma coluna: "6 d" aberta há seis dias
+ * (canvas tela-1b — a linha do vazamento). Ocorrência não tem prazo, então
+ * o único número honesto ali é há quanto tempo ela existe. Nunca negativo:
+ * carimbo de criação no futuro é relógio errado, não idade.
+ */
+export function idadeCompacta(criadaEmISO: string, hoje: string): string {
+  // `diaCivilSP`, não `.slice(0, 10)`: o slice pega o dia em UTC, e das 21h
+  // à meia-noite no Brasil o dia UTC já virou. A MESMA ocorrência aparecia
+  // como "6 d" aqui e "7 dias aberta" em /barco/ocorrencias (que sempre usou
+  // `diaCivilSP`) — dois lotes da onda 62 responderam diferente à mesma
+  // pergunta. É pra isso que `diaCivilSP` existe (ver o docblock dela).
+  const dias = Math.max(0, -diasAteData(diaCivilSP(criadaEmISO), hoje))
+  return `${dias} d`
 }
 
 /** Leitura do horímetro, com a casa decimal que o horímetro tem. Sem leitura
@@ -136,22 +190,40 @@ export function apoioDaRevisao(r: ResultadoCalc | null): string {
   if (r.status === "vencido") {
     if (r.horasRestantes != null && r.horasRestantes < 0) {
       const h = Math.round(-r.horasRestantes)
-      // Menos de meia hora arredonda pra zero: "vencida há 0h" é um número
+      // Menos de meia hora arredonda pra zero: "vencida há 0 h" é um número
       // que não diz nada. O fato — vencida — basta sozinho.
-      return h > 0 ? `Revisão vencida há ${h}h` : "Revisão vencida"
+      return h > 0 ? `Revisão vencida há ${h} h` : "Revisão vencida"
     }
     if (r.diasRestantes != null && r.diasRestantes < 0) {
       return `Revisão vencida há ${-r.diasRestantes} dias`
     }
     return "Revisão vencida"
   }
-  if (r.horasRestantes != null) return `Revisão em ${Math.round(r.horasRestantes)}h`
+  // "18 h" com espaço, não "18h" — a unidade separada do número é o formato
+  // do canvas (tela-1b) e o mesmo de textoDuracao/prazoCompacto.
+  if (r.horasRestantes != null) return `Revisão em ${Math.round(r.horasRestantes)} h`
   if (r.diasRestantes != null) return `Revisão em ${r.diasRestantes} dias`
   return "Sem revisão programada"
 }
 
+/** "2026-08-09" → "9 de agosto" — a data por extenso da frase do Diário
+ *  (canvas tela-1b). Sem o ano: a janela da consulta é o ano corrente, e o
+ *  estado vazio já o diz em voz alta quando importa. Aritmética via UTC de
+ *  propósito — `new Date("2026-08-09")` é meia-noite UTC e viraria 08/08 no
+ *  Brasil. */
+function dataPorExtenso(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number)
+  const mes = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" })
+    .format(new Date(Date.UTC(2000, m - 1, 1)))
+  return `${d} de ${mes}`
+}
+
 /**
- * A frase do cartão do Diário.
+ * A frase do cartão do Diário — a do canvas (tela-1b): "Última saída em
+ * 9 de agosto — 4 h 20 no mar." Data por extenso e a duração na voz de
+ * `textoDuracao`, a mesma que /diario e /diario/[id] usam (docs/DESIGN.md
+ * §6, regra 6: duas telas que dizem a mesma coisa dizem com as mesmas
+ * palavras).
  *
  * O ANO APARECE NO ESTADO VAZIO DE PROPÓSITO: a consulta que alimenta este
  * cartão cobre o ano corrente (é a mesma de "Seu ano no mar"), então um
@@ -161,9 +233,7 @@ export function apoioDaRevisao(r: ResultadoCalc | null): string {
  * A VIRADA DA MEIA-NOITE É DITA EM VOZ ALTA. "22:00 → 01:30" são 3,5 h de
  * verdade — `duracaoHoras` já conta o retorno como dia seguinte — mas sem a
  * marca a frase soa como conta errada, porque o dia da saída não tem 3,5 h
- * depois das 22h. `bordo.ts` já pedia isso de quem exibe a duração, e
- * /diario/[id] já usa exatamente estas palavras: duas telas que dizem a
- * mesma coisa dizem com as mesmas palavras (docs/DESIGN.md §6, regra 6).
+ * depois das 22h.
  */
 export function textoUltimaSaida(
   saida: { data: string; hora_saida: string | null; hora_retorno: string | null } | null,
@@ -171,13 +241,11 @@ export function textoUltimaSaida(
 ): string {
   if (saida == null) return `Nenhuma saída registrada em ${ano}.`
   const horas = duracaoHoras(saida.hora_saida, saida.hora_retorno)
-  const tempo = horas != null
-    ? ` · ${horas.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h no mar`
-    : ""
+  const tempo = horas != null ? ` — ${textoDuracao(horas)} no mar` : ""
   const virada = retornoNoDiaSeguinte(saida.hora_saida, saida.hora_retorno)
-    ? " · retorno no dia seguinte"
+    ? ", retorno no dia seguinte"
     : ""
-  return `Última saída em ${formatarDataCurta(saida.data)}${tempo}${virada}`
+  return `Última saída em ${dataPorExtenso(saida.data)}${tempo}${virada}.`
 }
 
 /**

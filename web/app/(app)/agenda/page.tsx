@@ -8,8 +8,10 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
   agruparPorDia,
+  agruparPorPeriodo,
   camadaTemFonte,
   CAMADAS,
+  diaCompacto,
   diasDaSemana,
   gradeDoMes,
   janelaDaVisualizacao,
@@ -18,6 +20,7 @@ import {
   podeGerenciarEventos,
   podeVerAgenda,
   ROTULO_CAMADA,
+  ROTULO_CAMADA_PILULA,
   ROTULO_VISUALIZACAO,
   rotuloDia,
   rotuloMes,
@@ -25,6 +28,7 @@ import {
   somarDias,
   VISUALIZACOES,
   type Camada,
+  type CamadaComFonte,
   type CompromissoParaAgenda,
   type DerivadoParaAgenda,
   type ItemAgenda,
@@ -79,9 +83,12 @@ export default async function AgendaPage({
   const podeCriar = podeGerenciarEventos(painel.permissoes)
 
   const hoje = hojeISO()
+  // ONDA 62 (canvas tela-1h) — a LISTA é a cara da Agenda: "o que está
+  // marcado" se responde lendo de cima pra baixo, não caçando bolinha na
+  // grade. Mês e Semana continuam a um toque; só o padrão mudou.
   const visualizacao: Visualizacao = (VISUALIZACOES as readonly string[]).includes(vBruto ?? "")
     ? (vBruto as Visualizacao)
-    : "mes"
+    : "lista"
   const ancora = /^\d{4}-\d{2}-\d{2}$/.test(dBruto ?? "") ? (dBruto as string) : hoje
   const janela = janelaDaVisualizacao(visualizacao, ancora)
   const incluirConcluidos = feitos === "1"
@@ -206,7 +213,7 @@ export default async function AgendaPage({
     const dd = novo.d ?? ancora
     const cc = novo.c ?? camadas.join(",")
     const ff = novo.feitos ?? (incluirConcluidos ? "1" : "")
-    if (vv !== "mes") p.set("v", vv)
+    if (vv !== "lista") p.set("v", vv)
     if (dd !== hoje) p.set("d", dd)
     if (cc) p.set("c", cc)
     if (ff === "1") p.set("feitos", "1")
@@ -230,26 +237,49 @@ export default async function AgendaPage({
 
   return (
     <main>
-      <div className="flex items-baseline justify-between gap-2">
-        <h1 className="titulo-pagina">Agenda</h1>
-        {podeCriar && (
-          <Link href="/agenda/novo" className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-acao-texto">
-            <span className="inline-flex items-center gap-1">
-              <Icone nome="mais" className="size-4" /> Compromisso
-            </span>
-          </Link>
-        )}
-      </div>
-      <p className="apoio mt-1 text-dim">
-        Seus compromissos e os que compartilharam com você. Ligue a Agenda detalhada para ver
-        também o que vence no barco.
-      </p>
+      <h1 className="titulo-pagina">Agenda</h1>
+      {/* A frase do canvas (tela-1h): o que mora aqui, em seis palavras. */}
+      <p className="apoio mt-1 text-dim">Serviços, vencimentos e saídas planejadas.</p>
 
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      {/* Mês | Semana | Lista — PRD §8 */}
-      <div className="mt-4 flex gap-1.5">
-        {VISUALIZACOES.map((vv) => (
+      {/* A barra do canvas (tela-1h): filtros à esquerda, a ação de criar à
+          direita, uma altura só (44px). Os chips são as camadas da Agenda
+          Detalhada (PRD §8) — só as que têm fonte de dado viram chip:
+          prometer "Financeiro" antes de o módulo existir seria porta pra
+          sala vazia. Sem contagem nos chips, de propósito: contar camada
+          desligada exigiria consultar tudo sempre, e a página só consulta a
+          camada que está ligada. */}
+      <div className="mt-4 flex items-center gap-2">
+        <ChipLinha className="min-w-0 flex-1">
+          <Chip href={link({ c: "" })} ativo={!detalhada}>
+            Todas
+          </Chip>
+          {CAMADAS.filter(camadaTemFonte).map((c) => (
+            <Chip key={c} href={alternarCamada(c)} ativo={camadas.includes(c)} nivel="secundario">
+              {ROTULO_CAMADA[c]}
+            </Chip>
+          ))}
+        </ChipLinha>
+        {podeCriar && (
+          <Link
+            href="/agenda/novo"
+            className="mb-1 flex h-11 shrink-0 items-center gap-1 rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+          >
+            <Icone nome="mais" className="size-4" /> Novo
+          </Link>
+        )}
+      </div>
+      {!detalhada && (
+        <p className="apoio mt-2 text-dim">
+          Toque em uma camada para trazer manutenções, documentos, segurança e tarefas do barco
+          para dentro da agenda.
+        </p>
+      )}
+
+      {/* Lista | Semana | Mês — PRD §8; a Lista virou o padrão (canvas). */}
+      <div className="mt-3 flex gap-1.5">
+        {([...VISUALIZACOES].reverse() as Visualizacao[]).map((vv) => (
           <Link
             key={vv}
             href={link({ v: vv })}
@@ -258,9 +288,11 @@ export default async function AgendaPage({
                seletor não usa o componente porque as três opções dividem a
                largura em partes iguais (`flex-1`), e não rolam numa fila; o
                que importa é que ele deixe de ser a quarta altura de pílula
-               desta mesma tela. */
+               desta mesma tela. Contorno no ativo, não dourado cheio: os
+               dois dourados de conteúdo da tela já têm dono (chip "Todas" e
+               "+ Novo"). */
             className={`flex h-11 flex-1 items-center justify-center rounded-full border text-sm ${
-              visualizacao === vv ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
+              visualizacao === vv ? "border-accent-forte font-semibold text-accent-forte" : "border-line bg-panel text-dim"
             }`}
           >
             {ROTULO_VISUALIZACAO[vv]}
@@ -284,29 +316,6 @@ export default async function AgendaPage({
           <Icone nome="chevron" className="size-4" />
         </Link>
       </div>
-
-      {/* Agenda Detalhada — camadas técnicas com filtro (PRD §8). Só as
-          camadas que têm fonte de dado viram chip: prometer "Financeiro"
-          antes de o módulo existir seria porta pra sala vazia. */}
-      <SecaoPagina icone="ferramenta">Agenda detalhada</SecaoPagina>
-      <ChipLinha quebra>
-        {CAMADAS.filter(camadaTemFonte).map((c) => (
-          <Chip key={c} href={alternarCamada(c)} ativo={camadas.includes(c)} nivel="secundario">
-            {ROTULO_CAMADA[c]}
-          </Chip>
-        ))}
-        {detalhada && (
-          <Chip href={link({ c: "" })} ativo={false} nivel="secundario">
-            Limpar
-          </Chip>
-        )}
-      </ChipLinha>
-      {!detalhada && (
-        <p className="apoio mt-2 text-dim">
-          Toque em uma camada para trazer manutenções, documentos, segurança e tarefas do barco
-          para dentro da agenda.
-        </p>
-      )}
 
       {visualizacao === "mes" && (
         <VistaMes mesISO={ancora.slice(0, 7)} diaSelecionado={ancora} hoje={hoje} porDia={porDia} link={link} />
@@ -442,6 +451,64 @@ function VistaSemana({
   )
 }
 
+/** Cores da pílula de origem — verde/âmbar/vermelho é ESTADO (DESIGN §5):
+ *  a pílula escreve de onde o item veio e veste a cor do farol que a área de
+ *  origem já calculou. Sem status (não deveria acontecer numa derivada), fica
+ *  neutra em vez de inventar urgência. */
+const ESTILO_PILULA: Record<string, string> = {
+  ok: "border-ok/40 text-ok",
+  atencao: "border-warn/40 text-warn",
+  vencido: "border-crit/40 text-crit",
+}
+
+/**
+ * A linha da Lista (canvas tela-1h): a data em mono à esquerda substitui o
+ * cabeçalho de dia — menos linha, mesma leitura. Derivada ganha pílula de
+ * origem à direita; compromisso leva a hora junto do detalhe, como no canvas
+ * ("Náutica Verolme · 09:00").
+ */
+function LinhaAgendaData({ item }: { item: ItemAgenda }) {
+  const { dia, semana } = diaCompacto(item.data)
+  const derivada = item.origem !== "compromisso" && camadaTemFonte(item.origem)
+  const detalhe = item.origem === "compromisso"
+    ? [item.detalhe, item.hora].filter(Boolean).join(" · ")
+    : item.detalhe ?? ""
+  const conteudo = (
+    <>
+      <span className="w-[42px] shrink-0 text-center">
+        <span className="block font-mono-instr text-[17px] font-semibold leading-none tabular-nums">{dia}</span>
+        <span className="mt-1 block font-mono-instr text-[11px] uppercase leading-none tracking-[.12em] text-dim">
+          {semana}
+        </span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`titulo-card block truncate ${item.concluido ? "text-dim line-through" : ""}`}>
+          {item.titulo}
+          {item.compartilhado && (
+            <Icone nome="pessoas" className="ml-1.5 inline size-3.5 align-[-2px] text-dim" />
+          )}
+        </span>
+        {detalhe && <span className="apoio mt-0.5 block truncate text-dim">{detalhe}</span>}
+      </span>
+      {derivada && (
+        <span
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[.09em] ${
+            (item.status && ESTILO_PILULA[item.status]) || "border-line text-dim-chip"
+          }`}
+        >
+          {ROTULO_CAMADA_PILULA[item.origem as CamadaComFonte]}
+        </span>
+      )}
+    </>
+  )
+  const cls = "flex min-h-11 items-center gap-3 border-b border-line py-3 last:border-0"
+  return item.href ? (
+    <Link href={item.href} className={cls}>{conteudo}</Link>
+  ) : (
+    <div className={cls}>{conteudo}</div>
+  )
+}
+
 function VistaLista({ itens, hoje, podeCriar }: { itens: ItemAgenda[]; hoje: string; podeCriar: boolean }) {
   if (itens.length === 0) {
     return (
@@ -454,16 +521,16 @@ function VistaLista({ itens, hoje, podeCriar }: { itens: ItemAgenda[]; hoje: str
       />
     )
   }
-  const porDia = agruparPorDia(itens)
+  // "Esta semana", depois o nome do mês (canvas tela-1h) — a régua é
+  // `agruparPorPeriodo`, testada em lib/domain/agenda.test.ts.
+  const secoes = agruparPorPeriodo(itens, hoje)
   return (
-    <div className="mt-4 space-y-3">
-      {[...porDia.entries()].map(([dia, doDia]) => (
-        <div key={dia}>
-          <p className={`rotulo mb-1 ${dia === hoje ? "text-accent-forte" : "text-dim"}`}>
-            {rotuloDia(dia)}{dia === hoje ? " · hoje" : ""}
-          </p>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-            {doDia.map((i) => <LinhaAgenda key={i.chave} item={i} />)}
+    <div className="mt-2">
+      {secoes.map((secao) => (
+        <div key={`${secao.rotulo}:${secao.itens[0].chave}`}>
+          <p className="rotulo mb-2 mt-5 text-dim">{secao.rotulo}</p>
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-3">
+            {secao.itens.map((i) => <LinhaAgendaData key={i.chave} item={i} />)}
           </div>
         </div>
       ))}

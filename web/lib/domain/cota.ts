@@ -1,3 +1,5 @@
+import { ehPago, LIMITES_FREE, type NivelPlano } from "./plano-acesso"
+
 const MB = 1024 * 1024
 
 export const COTA_MB = 500
@@ -20,6 +22,50 @@ export function usoDaCota(bytesUsados: number): UsoCota {
     percentual,
     restanteBytes: Math.max(0, limiteBytes - usadoBytes),
     cheio: usadoBytes >= limiteBytes,
+  }
+}
+
+/**
+ * O "18 / 40" do cartão "Cota do plano" (canvas tela-4a) — o número mono é
+ * sempre a cota REAL que aperta primeiro, nunca um enfeite:
+ *
+ *  · No Free, o teto que barra é a CONTAGEM (`LIMITES_FREE.fotos`, o mesmo
+ *    número que `recursoLiberado` usa pra fechar o envio) — é ela que o
+ *    cartão mostra.
+ *  · No plano pago não existe teto de contagem (§2.3); o que aperta é o
+ *    espaço em bytes (`usoDaCota`), então o cartão mostra os MB.
+ *
+ * Uma função só pros dois casos pra tela nunca escolher errado qual cota
+ * exibir — a escolha É a regra, então mora no domínio, com teste.
+ */
+export interface CotaDoPlano {
+  /** "3 / 8" (Free, contagem) ou "320 MB / 500 MB" (pago, espaço). */
+  valor: string
+  /** 0–100, pro preenchimento da barra. */
+  percentual: number
+  /** Teto alcançado (Free) ou acima de 90% do espaço (pago) — a barra troca
+   *  pra cor crítica. */
+  critico: boolean
+}
+
+export function cotaDoPlano(nivel: NivelPlano, usoFotos: number, bytesUsados: number): CotaDoPlano {
+  if (!ehPago(nivel)) {
+    const limite = LIMITES_FREE.fotos
+    const uso = Math.max(0, usoFotos)
+    return {
+      // Acima do teto (§23, acervo herdado de um plano maior) o número REAL
+      // aparece — "12 / 8" é verdade; "8 / 8" esconderia o excedente que o
+      // aviso logo acima da tela está explicando.
+      valor: `${uso} / ${limite}`,
+      percentual: Math.min(100, Math.round((uso / limite) * 100)),
+      critico: uso >= limite,
+    }
+  }
+  const uso = usoDaCota(bytesUsados)
+  return {
+    valor: `${formatarBytes(uso.usadoBytes)} / ${formatarBytes(uso.limiteBytes)}`,
+    percentual: uso.percentual,
+    critico: uso.percentual > 90,
   }
 }
 

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -5,13 +6,19 @@ import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { Selo } from "@/components/ui/selo"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { indiceDoDestaque, resumoDosDocumentos } from "@/lib/domain/documentos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
-import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
+import {
+  calcularSemaforo, formatarDataCurta, formatarDataCurtaComAno, PESO, vencimentoPorData,
+} from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import { Confirmar } from "@/components/confirmar"
 import type { Documento } from "@/lib/db/types"
+
+const ACEITA_ARQUIVO = "application/pdf,image/jpeg,image/png,image/webp"
 
 export default async function DocumentosPage({
   searchParams,
@@ -38,86 +45,187 @@ export default async function DocumentosPage({
     return data?.signedUrl ?? null
   }
 
+  // Canvas tela-3d — a lista ordena pior primeiro (MESMO `PESO` do semáforo,
+  // nenhuma régua nova) e o vencido há mais tempo SAI da lista pra virar o
+  // cartão de destaque: é o único documento que exige algo hoje.
+  // O vencimento pode vir de data fixa OU de último ciclo + intervalo em
+  // meses — `vencimentoPorData` é a mesma régua da ficha (não ler só
+  // `data_fixa`, que fazia duas telas discordarem do mesmo dado).
+  const avaliados = itensDocumento
+    .map((i) => {
+      const calc = itemMonitoradoToItemCalc(i)
+      return { item: i, r: calcularSemaforo(calc, null, hoje), venc: vencimentoPorData(calc) }
+    })
+    .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
+  const idxDestaque = indiceDoDestaque(avaliados.map((a) => a.r))
+  const destaque = idxDestaque != null ? avaliados[idxDestaque] : null
+  const restantes = avaliados.filter((_, i) => i !== idxDestaque)
+
+  const docDestaque = destaque ? docPorItem.get(destaque.item.id) : undefined
+  const urlDestaque = docDestaque?.arquivo_path ? await linkAssinado(docDestaque.arquivo_path) : null
+
+  const resumo = resumoDosDocumentos(
+    avaliados.length + avulsos.length,
+    avaliados.filter((a) => a.venc != null).length,
+    avaliados.filter((a) => a.r.status === "vencido").length,
+    avaliados.filter((a) => a.r.status === "atencao").length,
+  )
+
   return (
     <main>
-      <CabecalhoDetalhe voltarHref="/barco" voltarRotulo="Barco" titulo="Documentos" />
+      <CabecalhoDetalhe voltarHref="/barco" voltarRotulo="Barco" titulo="Documentos" descricao={resumo ?? undefined} />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <SecaoPagina icone="documento" className="mt-5">Com vencimento</SecaoPagina>
+      {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a
+          palavra no selo e as duas ações — ver o arquivo que está lá e
+          anexar o novo. O gate `editavel` vale aqui como na lista: quem só
+          vê, não anexa. */}
+      {destaque && (
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line border-l-2 border-l-crit bg-panel p-3.5">
+          <div className="flex items-center gap-2.5">
+            {editavel ? (
+              <Link href={`/barco/itens/${destaque.item.id}/editar`} className="titulo-card min-w-0 flex-1 truncate">
+                {destaque.item.nome}
+              </Link>
+            ) : (
+              <p className="titulo-card min-w-0 flex-1 truncate">{destaque.item.nome}</p>
+            )}
+            <Selo estado="critico">Vencido</Selo>
+          </div>
+          <p className="apoio mt-1.5 text-dim">
+            {destaque.venc ? (
+              <>
+                Venceu em{" "}
+                <span className="font-mono-instr tabular-nums text-crit">
+                  {destaque.venc.split("-").reverse().join("/")}
+                </span>
+              </>
+            ) : (
+              "Vencido"
+            )}
+            {docDestaque?.arquivo_path ? " · arquivo anexado" : " · sem arquivo anexado"}
+          </p>
+          {(urlDestaque || editavel) && (
+            <div className="mt-3 flex gap-2">
+              {urlDestaque && (
+                <a
+                  href={urlDestaque}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line text-sm font-medium"
+                >
+                  Ver arquivo
+                </a>
+              )}
+              {editavel && (
+                <form action={anexarArquivo} className="flex flex-1 items-center gap-2">
+                  <input type="hidden" name="item_id" value={destaque.item.id} />
+                  <label className="flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto">
+                    {docDestaque?.arquivo_path ? "Anexar novo" : "Anexar arquivo"}
+                    <input type="file" name="arquivo" accept={ACEITA_ARQUIVO} className="sr-only" />
+                  </label>
+                  <button className="apoio h-11 shrink-0 rounded-[var(--raio-controle)] border border-line px-3 text-dim">
+                    Enviar
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <SecaoPagina icone="documento" className={destaque ? undefined : "mt-5"}>Todos os documentos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-        {itensDocumento.length === 0 && (
+        {restantes.length === 0 && avulsos.length === 0 && (
           <EstadoVazio
             variant="linha"
             icone="documento"
-            titulo="Nenhum documento com vencimento cadastrado"
-            descricao={editavel ? "Cadastre abaixo pra o semáforo avisar antes de vencer." : undefined}
+            titulo={destaque ? "Nenhum outro documento cadastrado" : "Nenhum documento cadastrado ainda"}
+            descricao={editavel && !destaque ? "Cadastre abaixo pra o semáforo avisar antes de vencer." : undefined}
           />
         )}
-        {await Promise.all(itensDocumento.map(async (i) => {
-          const r = calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje)
+        {await Promise.all(restantes.map(async ({ item: i, r, venc }) => {
           const doc = docPorItem.get(i.id)
           const url = doc?.arquivo_path ? await linkAssinado(doc.arquivo_path) : null
-          // mesma regra da ficha: o vencimento pode vir de data fixa OU de
-          // último ciclo + intervalo em meses. Lendo só `data_fixa`, esta tela
-          // dizia "sem data" para item que a ficha mostrava com data — duas
-          // telas discordando sobre o mesmo dado.
-          const venc = vencimentoPorData(itemMonitoradoToItemCalc(i))
-          const subtitulo = [
-            venc ? `vence ${venc.split("-").reverse().join("/")}` : "sem data",
-            r.diasRestantes != null && r.diasRestantes >= 0 ? `${r.diasRestantes} dias` : null,
-            r.diasRestantes != null && r.diasRestantes < 0 ? `vencido há ${-r.diasRestantes} dias` : null,
-          ].filter(Boolean).join(" · ")
+          const hrefEditar = editavel ? `/barco/itens/${i.id}/editar` : undefined
+
+          // Canvas: item SEM data de validade não finge estado — ponto
+          // vazado e "Completar" no lugar da data (a mesma confissão da
+          // ficha de equipamento).
+          if (venc == null) {
+            return (
+              <LinhaLista
+                key={i.id}
+                href={hrefEditar}
+                leading={<span aria-label="sem data de validade" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+                titulo={i.nome}
+                subtitulo="Sem data de validade informada"
+                trailing={editavel ? <span className="apoio shrink-0 font-medium text-accent-forte">Completar</span> : undefined}
+              />
+            )
+          }
+
+          // Vencimento longe (ok): data completa dd/mm/aa, sem contagem.
+          // Na margem ou vencido: dd/mm colorido + os dias embaixo — a
+          // anatomia da coluna direita do canvas. "Abrir"/"Anexar" moram na
+          // mesma coluna, abaixo da data, pra nenhuma função se perder.
+          const dataTxt = r.status === "ok" ? formatarDataCurtaComAno(venc) : formatarDataCurta(venc)
+          const corData = r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : ""
+          const diasTxt =
+            r.diasRestantes != null && r.status !== "ok"
+              ? r.diasRestantes < 0
+                ? `há ${-r.diasRestantes} dias`
+                : `${r.diasRestantes} dias`
+              : null
           return (
             <LinhaLista
               key={i.id}
-              href={editavel ? `/barco/itens/${i.id}/editar` : undefined}
+              href={hrefEditar}
               leading={<Farol status={r.status} />}
               titulo={i.nome}
-              subtitulo={subtitulo}
+              subtitulo={doc?.arquivo_path ? "Arquivo anexado" : "Sem arquivo anexado"}
               trailing={
-                url ? (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm text-accent-forte">Abrir</a>
-                ) : (
-                  <form action={anexarArquivo} className="flex shrink-0 items-center gap-2">
-                    <input type="hidden" name="item_id" value={i.id} />
-                    <label className="cursor-pointer text-sm text-accent-forte">
-                      Anexar
-                      <input type="file" name="arquivo" accept="application/pdf,image/jpeg,image/png,image/webp" className="sr-only" />
-                    </label>
-                    <button className="apoio rounded-lg border border-line px-2.5 py-1 text-dim">Enviar</button>
+                <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                  <span className={`font-mono-instr text-sm font-semibold tabular-nums ${corData}`}>{dataTxt}</span>
+                  {diasTxt && <span className="apoio font-mono-instr tabular-nums text-dim">{diasTxt}</span>}
+                  {url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="apoio text-accent-forte">Abrir</a>
+                  ) : editavel ? (
+                    <form action={anexarArquivo} className="flex items-center gap-2">
+                      <input type="hidden" name="item_id" value={i.id} />
+                      <label className="apoio cursor-pointer text-accent-forte">
+                        Anexar
+                        <input type="file" name="arquivo" accept={ACEITA_ARQUIVO} className="sr-only" />
+                      </label>
+                      <button className="apoio rounded-lg border border-line px-2.5 py-1 text-dim">Enviar</button>
+                    </form>
+                  ) : null}
+                </span>
+              }
+            />
+          )
+        }))}
+        {await Promise.all(avulsos.map(async (d) => {
+          const url = d.arquivo_path ? await linkAssinado(d.arquivo_path) : null
+          return (
+            <LinhaLista
+              key={d.id}
+              leading={<span aria-label="arquivo sem vencimento" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+              titulo={d.nome}
+              subtitulo="Arquivo sem vencimento"
+              trailing={
+                <div className="flex shrink-0 items-center gap-3">
+                  {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>}
+                  <form action={excluirDocumento}>
+                    <input type="hidden" name="documento_id" value={d.id} />
+                    <Confirmar mensagem="Excluir documento?" rotulo="Excluir" className="flex h-11 items-center text-xs text-crit" />
                   </form>
-                )
+                </div>
               }
             />
           )
         }))}
       </div>
-
-      {avulsos.length > 0 && (
-        <>
-          <SecaoPagina icone="imagem">Arquivos sem vencimento</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-            {await Promise.all(avulsos.map(async (d) => {
-              const url = d.arquivo_path ? await linkAssinado(d.arquivo_path) : null
-              return (
-                <LinhaLista
-                  key={d.id}
-                  titulo={d.nome}
-                  trailing={
-                    <div className="flex shrink-0 items-center gap-3">
-                      {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-forte">Abrir</a>}
-                      <form action={excluirDocumento}>
-                        <input type="hidden" name="documento_id" value={d.id} />
-                        <Confirmar mensagem="Excluir documento?" rotulo="Excluir" className="flex h-11 items-center text-xs text-crit" />
-                      </form>
-                    </div>
-                  }
-                />
-              )
-            }))}
-          </div>
-        </>
-      )}
 
       <SecaoPagina icone="mais">Novo documento</SecaoPagina>
       <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">

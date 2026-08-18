@@ -16,6 +16,7 @@ import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type Stat
 import {
   carregarAcessoEmbarcacoes, carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc,
 } from "@/lib/consultas"
+import { carregarMapaDaEmbarcacao } from "@/lib/consultas-mapa"
 import { mensagemDowngrade } from "@/lib/domain/assinatura-ciclo"
 import { carregarSeloGold } from "@/lib/consultas-gold"
 import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
@@ -32,7 +33,7 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const [verified, seloGold, acesso, patrocinios] = await Promise.all([
+  const [verified, seloGold, acesso, patrocinios, mapa] = await Promise.all([
     carregarVerified(),
     carregarSeloGold(embarcacao.id),
     carregarAcessoEmbarcacoes(),
@@ -40,6 +41,9 @@ export default async function BarcoPage({
     // Nula significa "não sei onde este barco está": nesse caso só entra
     // campanha sem segmentação regional (ver `segmentacaoAtende`).
     carregarPatrocinioDashboard(embarcacao.regiao_id),
+    // Mapa da Embarcação (onda 61) — o MESMO agregado da tela /barco/mapa,
+    // pra porta nunca discordar da sala no número de zonas pedindo atenção.
+    carregarMapaDaEmbarcacao(),
   ])
   // Só avisa quando a embarcação ABERTA é uma das excedentes — um aviso
   // genérico em todo barco seria ruído pra quem está justamente no barco que
@@ -104,6 +108,27 @@ export default async function BarcoPage({
         urlCapa={urlCapa}
         podeEditarFotos={podeEditar(permissoes, "fotos")}
       />
+
+      {/* Mapa da Embarcação (onda 61, spec §3.4) — a porta pra tela nova,
+          logo abaixo do herói: com dado, diz quantas zonas pedem atenção
+          (mesma conta de /barco/mapa, via `carregarMapaDaEmbarcacao`); sem
+          nenhum equipamento mapeado, vira convite — nunca "0" seco. */}
+      {mapa && (
+        <LinhaLista
+          href="/barco/mapa"
+          variant="cartao"
+          className="mt-2"
+          leading={<Icone nome="mapa" className="size-5 shrink-0 text-dim" />}
+          titulo="Mapa da embarcação"
+          subtitulo={
+            mapa.zonas.length === 0
+              ? "O barco em corte — diga onde cada equipamento mora"
+              : mapa.zonasPedindoAtencao > 0
+                ? `${mapa.zonasPedindoAtencao === 1 ? "1 zona pede" : `${mapa.zonasPedindoAtencao} zonas pedem`} atenção${mapa.naoMapeados.length > 0 ? ` · ${mapa.naoMapeados.length} sem zona` : ""}`
+                : `Zonas mapeadas sem pendência${mapa.naoMapeados.length > 0 ? ` · ${mapa.naoMapeados.length} sem zona` : ""}`
+          }
+        />
+      )}
 
       <SecaoPagina icone="motor" acao={podeEditar(permissoes, "motores") ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Motor", icone: "mais" } : undefined}>
         Motores
@@ -276,7 +301,9 @@ export default async function BarcoPage({
             { href: "/diario", rotulo: "Diário de Bordo", desc: "registrar saídas e serviços" },
             { href: "/barco/ocorrencias", rotulo: "Ocorrências", desc: "abertas, em curso, resolvidas" },
             { href: "/barco/historico", rotulo: "Histórico", desc: "tudo, num lugar só", aba: "historico" },
-            { href: "/barco/resumos", rotulo: "Resumos", desc: "relatório do período, em PDF", aba: "historico" },
+            // Onda 62: "Resumos" virou "Relatórios" (canvas tela-1g) — a
+            // porta com o mesmo nome da sala.
+            { href: "/barco/resumos", rotulo: "Relatórios", desc: "custo e uso do período, em PDF", aba: "historico" },
             { href: "/barco/fotos", rotulo: "Fotos", desc: "álbuns do barco", aba: "fotos" },
             { href: "/barco/contatos", rotulo: "Contatos", desc: "quem cuida do barco", aba: "contatos" },
           ] as { href: string; rotulo: string; desc: string; aba?: Aba }[]

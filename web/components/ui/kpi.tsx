@@ -9,19 +9,29 @@ const COR_VALOR: Record<EstadoSelo, string> = {
   ok: "text-texto", atencao: "text-warn", critico: "text-crit", neutro: "text-dim",
 }
 
+/** A cor da LINHA DE APOIO, não do valor (canvas tela-1b, cartão Motores):
+ *  o horímetro fica claro e quem acende em âmbar é o "Revisão em 18 h" —
+ *  a leitura é fato, o estado é do prazo. `ok` fica dim de propósito:
+ *  apoio em dia é contexto, não alarme. */
+const COR_APOIO: Record<EstadoSelo, string> = {
+  ok: "text-dim", atencao: "text-warn", critico: "text-crit", neutro: "text-dim",
+}
+
 export function Kpi({
-  rotulo, valor, apoio, estado = "ok",
+  rotulo, valor, apoio, estado = "ok", apoioEstado = "neutro",
 }: {
   rotulo: string
   valor: string
   apoio?: string
   estado?: EstadoSelo
+  /** Estado só da linha de apoio (ex.: prazo de revisão) — ver COR_APOIO. */
+  apoioEstado?: EstadoSelo
 }) {
   return (
     <div className="min-w-0">
       <p className="rotulo truncate text-dim">{rotulo}</p>
       <p className={`font-mono-instr text-[20px] font-semibold tabular-nums ${COR_VALOR[estado]}`}>{valor}</p>
-      {apoio && <p className="apoio truncate text-dim">{apoio}</p>}
+      {apoio && <p className={`apoio truncate ${COR_APOIO[apoioEstado]}`}>{apoio}</p>}
     </div>
   )
 }

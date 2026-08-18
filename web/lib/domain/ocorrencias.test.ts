@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest"
 import {
   ABAS_OCORRENCIA,
+  chipsDaAtiva,
   ESTADOS_OCORRENCIA,
   faroDoEstado,
+  farolDaGravidade,
+  linhaDaAtiva,
+  linhaDaFinalizada,
   MINIMO_MOTIVO_ANULACAO,
   pesaNaSaude,
   podeTransicionar,
   proximaResolvidaEm,
   registroDaAnulacao,
   ROTULO_ESTADO,
+  tituloDasFinalizadas,
   transicoesPossiveis,
   validarMotivoAnulacao,
 } from "./ocorrencias"
@@ -133,6 +138,81 @@ describe("ROTULO_ESTADO", () => {
     expect(ROTULO_ESTADO.em_acompanhamento).toBe("Em acompanhamento")
     expect(ROTULO_ESTADO.resolvida).toBe("Resolvida")
     expect(ROTULO_ESTADO.anulada).toBe("Anulada")
+  })
+})
+
+describe("farolDaGravidade (canvas tela-3f: severidade na borda)", () => {
+  it("alta acende a luz de crítico — é o que a Saúde chama de ação necessária", () => {
+    expect(farolDaGravidade("alta")).toBe("vencido")
+  })
+  it("média e baixa acendem a de atenção — o canvas pinta as duas de âmbar", () => {
+    expect(farolDaGravidade("media")).toBe("atencao")
+    expect(farolDaGravidade("baixa")).toBe("atencao")
+  })
+  it("sem gravidade registrada não se inventa cor", () => {
+    expect(farolDaGravidade(null)).toBeNull()
+  })
+})
+
+describe("linhaDaAtiva", () => {
+  // 22:00 UTC de 10/08 é 19:00 de 10/08 em SP — o dia civil é 10/08 mesmo.
+  const ABERTURA = "2026-08-10T22:00:00+00:00"
+  it("setor, data curta e autor, na frase do canvas", () => {
+    expect(linhaDaAtiva({ rotuloAba: "Casco", aberturaISO: ABERTURA, autor: "Marcos Jordão", estado: "em_acompanhamento" }))
+      .toBe("Casco · aberta em 10/08 por Marcos Jordão · em acompanhamento")
+  })
+  it("aberta não repete o estado — 'aberta em 10/08' já diz", () => {
+    expect(linhaDaAtiva({ rotuloAba: "Elétrica", aberturaISO: ABERTURA, autor: "Erick", estado: "aberta" }))
+      .toBe("Elétrica · aberta em 10/08 por Erick")
+  })
+  it("sem autor conhecido a frase para na data — nunca 'por Alguém'", () => {
+    expect(linhaDaAtiva({ rotuloAba: "Casco", aberturaISO: ABERTURA, autor: null, estado: "aberta" }))
+      .toBe("Casco · aberta em 10/08")
+  })
+  it("madrugada UTC não empurra o dia civil: 01:00 UTC de 12/08 é 11/08 na marina", () => {
+    expect(linhaDaAtiva({ rotuloAba: "Casco", aberturaISO: "2026-08-12T01:00:00+00:00", autor: null, estado: "aberta" }))
+      .toBe("Casco · aberta em 11/08")
+  })
+})
+
+describe("chipsDaAtiva", () => {
+  const HOJE = "2026-08-16"
+  it("anexo quando há, e há quantos dias está em aberto", () => {
+    expect(chipsDaAtiva(true, "2026-08-10T12:00:00+00:00", HOJE)).toEqual(["1 anexo", "6 dias aberta"])
+  })
+  it("sem anexo não há chip de anexo — vazio honesto", () => {
+    expect(chipsDaAtiva(false, "2026-08-15T12:00:00+00:00", HOJE)).toEqual(["1 dia aberta"])
+  })
+  it("aberta no próprio dia diz 'aberta hoje', não '0 dias'", () => {
+    expect(chipsDaAtiva(false, "2026-08-16T12:00:00+00:00", HOJE)).toEqual(["aberta hoje"])
+  })
+})
+
+describe("linhaDaFinalizada", () => {
+  it("resolvida com data e a observação de quem fechou", () => {
+    expect(linhaDaFinalizada({ estado: "resolvida", quandoISO: "2026-08-02T18:00:00+00:00", nota: "troca de impelidor" }))
+      .toBe("Resolvida em 02/08 · troca de impelidor")
+  })
+  it("anulada com o motivo obrigatório do PRD §7", () => {
+    expect(linhaDaFinalizada({ estado: "anulada", quandoISO: "2026-07-21T12:00:00+00:00", nota: "registro não procedia" }))
+      .toBe("Anulada em 21/07 · registro não procedia")
+  })
+  it("sem data conhecida a palavra fica sozinha — nunca se inventa carimbo", () => {
+    expect(linhaDaFinalizada({ estado: "resolvida", quandoISO: null, nota: null })).toBe("Resolvida")
+  })
+  it("nota vazia ou só espaços não vira ' · ' pendurado", () => {
+    expect(linhaDaFinalizada({ estado: "resolvida", quandoISO: "2026-08-02", nota: "   " })).toBe("Resolvida em 02/08")
+  })
+})
+
+describe("tituloDasFinalizadas", () => {
+  it("diz o que o painel de fato contém", () => {
+    expect(tituloDasFinalizadas(true, true)).toBe("Resolvidas e anuladas")
+    expect(tituloDasFinalizadas(true, false)).toBe("Resolvidas recentemente")
+    expect(tituloDasFinalizadas(false, true)).toBe("Anuladas")
+  })
+  it("sem nada finalizado, painel nenhum", () => {
+    expect(tituloDasFinalizadas(false, false)).toBeNull()
   })
 })
 

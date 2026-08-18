@@ -4,7 +4,9 @@ import { CartaoAvaliacao } from "@/components/avaliacoes/cartao-avaliacao"
 import { SeletorNota } from "@/components/avaliacoes/estrelas"
 import { ResumoReputacao } from "@/components/avaliacoes/reputacao"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
@@ -36,9 +38,9 @@ const VOLTA = "/avaliacoes"
 export default async function AvaliacoesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; erro?: string }>
+  searchParams: Promise<{ ok?: string; erro?: string; ver?: string }>
 }) {
-  const { ok, erro } = await searchParams
+  const { ok, erro, ver } = await searchParams
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
@@ -49,14 +51,19 @@ export default async function AvaliacoesPage({
     carregarNegociosParaAvaliar(),
   ])
   const reputacao = calcularReputacao(recebidas.map((r) => r.avaliacao))
+  // Canvas tela-4c: "Recebidas | Enviadas" como pílulas de filtro — a mesma
+  // moeda de interface de toda lista do app (Chip), no lugar de duas seções
+  // empilhadas. Recebidas é o padrão: é a pergunta que traz a pessoa aqui.
+  const aba = ver === "enviadas" ? "enviadas" : "recebidas"
 
   return (
     <main>
-      <h1 className="titulo-pagina">Avaliações</h1>
-      <p className="apoio mt-1 text-dim">
-        Avaliação só existe depois que os dois lados confirmam o negócio no Commander. É o que faz a nota
-        valer alguma coisa.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/menu"
+        voltarRotulo="Menu"
+        titulo="Avaliações"
+        descricao="Avaliação só existe depois que os dois lados confirmam o negócio no Commander. É o que faz a nota valer alguma coisa."
+      />
 
       {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
@@ -67,14 +74,6 @@ export default async function AvaliacoesPage({
           <Link href={`/avaliacoes/${user.id}`} className="apoio mt-2 inline-block text-accent-forte">
             Ver como aparece no seu perfil
           </Link>
-        )}
-        {reputacao.ocultadas > 0 && (
-          <p className="apoio mt-2 text-dim">
-            {reputacao.ocultadas === 1
-              ? "1 avaliação foi ocultada por violação e não entra na média."
-              : `${reputacao.ocultadas} avaliações foram ocultadas por violação e não entram na média.`}{" "}
-            Você continua vendo cada uma abaixo.
-          </p>
         )}
       </div>
 
@@ -100,35 +99,50 @@ export default async function AvaliacoesPage({
         </>
       )}
 
-      <SecaoPagina icone="chat">Sobre você</SecaoPagina>
-      {recebidas.length === 0 ? (
-        <EstadoVazio
-          icone="estrela"
-          titulo="Ninguém avaliou você ainda"
-          descricao="Assim que um negócio fechado pelo Commander for confirmado pelos dois lados, o cliente pode avaliar."
-        />
-      ) : (
-        <div className="space-y-3">
-          {recebidas.map((item) => (
-            <CartaoAvaliacao key={item.avaliacao.id} item={item}>
-              <AcoesDoAvaliado item={item} />
-            </CartaoAvaliacao>
-          ))}
-        </div>
-      )}
+      <ChipLinha className="mt-5">
+        <Chip href="/avaliacoes" ativo={aba === "recebidas"}>Recebidas</Chip>
+        <Chip href="/avaliacoes?ver=enviadas" ativo={aba === "enviadas"}>Enviadas</Chip>
+      </ChipLinha>
 
-      <SecaoPagina icone="pessoas">Você avaliou</SecaoPagina>
-      {feitas.length === 0 ? (
+      {aba === "recebidas" ? (
+        <>
+          {reputacao.ocultadas > 0 && (
+            <p className="apoio mt-3 text-dim">
+              {reputacao.ocultadas === 1
+                ? "1 avaliação foi ocultada por violação e não entra na média."
+                : `${reputacao.ocultadas} avaliações foram ocultadas por violação e não entram na média.`}{" "}
+              Você continua vendo cada uma abaixo.
+            </p>
+          )}
+          {recebidas.length === 0 ? (
+            <EstadoVazio
+              className="mt-3"
+              icone="estrela"
+              titulo="Ninguém avaliou você ainda"
+              descricao="Assim que um negócio fechado pelo Commander for confirmado pelos dois lados, o cliente pode avaliar."
+            />
+          ) : (
+            <div className="mt-3 space-y-2">
+              {recebidas.map((item) => (
+                <CartaoAvaliacao key={item.avaliacao.id} item={item}>
+                  <AcoesDoAvaliado item={item} />
+                </CartaoAvaliacao>
+              ))}
+            </div>
+          )}
+        </>
+      ) : feitas.length === 0 ? (
         <EstadoVazio
+          className="mt-3"
           icone="marketplace"
           titulo="Você ainda não avaliou ninguém"
           descricao="Depois de fechar e confirmar um negócio no Marketplace, a avaliação abre na ficha do pedido."
           acao={{ href: "/marketplace", rotulo: "Ir para o Marketplace" }}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="mt-3 space-y-2">
           {feitas.map((item) => (
-            <CartaoAvaliacao key={item.avaliacao.id} item={item} cabecalho={`Sobre ${item.avaliacao.avaliado_nome}`}>
+            <CartaoAvaliacao key={item.avaliacao.id} item={item} cabecalho={item.avaliacao.avaliado_nome}>
               <AcoesDoCliente item={item} />
             </CartaoAvaliacao>
           ))}

@@ -24,6 +24,7 @@ const PATHS = {
   imagem: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="m21 16-5-5-9 8" /></>,
   estrela: <path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9L9.6 9z" />,
   medalha: <><circle cx="12" cy="15" r="5" /><path d="M8.5 10.5 6 3h12l-2.5 7.5M12 13v4l2 1" /></>,
+  check: <path d="m5 13 4 4L19 7" />,
   chevron: <path d="m9 5 7 7-7 7" />,
   voltar: <path d="m15 5-7 7 7 7" />,
   mais: <path d="M12 5v14M5 12h14" />,
@@ -79,6 +80,13 @@ const PATHS = {
   // acontecer". Distinto de "transferir" (setas opostas, troca de posse) e
   // de "relogio" (um instante, não uma repetição).
   repetir: <><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5" /><path d="M20 4v4.5h-4.5" /><path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5" /><path d="M4 20v-4.5h4.5" /></>,
+  // Onda 62 (cartão de pessoa da Tripulação, canvas tela-1f): fone clássico
+  // — a ação de CONTATO com um tripulante. Não confundir com "chat" (balão,
+  // conversa dentro do app): aqui o toque sai do app pro telefone/WhatsApp.
+  telefone: <path d="M5 4h4l2 5-2 1a11 11 0 0 0 5 5l1-2 5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1" />,
+  // Onda 62 (busca do Explorar, canvas tela-3h): a lupa — círculo + cabo,
+  // traço a traço como no canvas. Nova porque nenhuma tela tinha busca até aqui.
+  buscar: <><circle cx="11" cy="11" r="6" /><path d="M16 16l4 4" /></>,
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof PATHS

@@ -60,14 +60,56 @@ export function horasSugeridas(duracaoH: number | null): number | null {
   return Math.round(duracaoH * 10) / 10
 }
 
-/** Compoe horas e minutos em texto legivel, omitindo a parte zerada. */
+/** Compoe horas e minutos em texto legivel, omitindo a parte zerada.
+ *
+ *  ONDA 62 — o formato vira o do canvas do dono (docs/design-mobile/
+ *  tela-3a): "4 h 20", "6 h 05" — minuto SEMPRE com dois digitos, sem o
+ *  "min" atras quando ha horas. O zero a esquerda nao e capricho: nas
+ *  pilhas do feed as duracoes ficam lado a lado em fonte tabular, e
+ *  "6 h 5" ao lado de "4 h 20" desalinha a coluna e le como "6 h 5?".
+ *  Menos de uma hora continua "30 min" — "0 h 30" seria leitura de
+ *  instrumento pra um numero que nao precisa dela. */
 export function textoDuracao(h: number): string {
   const totalMin = Math.round(h * 60)
   const horas = Math.floor(totalMin / 60)
   const minutos = totalMin % 60
-  if (horas > 0 && minutos > 0) return `${horas} h ${minutos} min`
+  if (horas > 0 && minutos > 0) return `${horas} h ${String(minutos).padStart(2, "0")}`
   if (horas > 0) return `${horas} h`
   return `${minutos} min`
+}
+
+/**
+ * O titulo de uma SAIDA no feed do Diario (canvas tela-3a: "Angra dos Reis
+ * → Ilha Grande") — a rota no titulo, nao o rotulo generico "Navegação".
+ * Com um lado so, o titulo e esse lado sozinho; sem nenhum, devolve null e
+ * quem chama cai no rotulo do tipo — o feed nunca inventa rota.
+ */
+export function tituloDaSaida(localSaida: string | null, destino: string | null): string | null {
+  const de = localSaida?.trim() || null
+  const para = destino?.trim() || null
+  if (de && para) return `${de} → ${para}`
+  return para ?? de
+}
+
+/**
+ * O titulo de um registro NAO-saida no feed (canvas tela-3a: "Troca de
+ * impelidor — Motor BB", "Abastecimento — 320 L"): o verbo no titulo, como
+ * a nota do canvas pede — a descricao digitada vira o titulo, com o
+ * equipamento atras; abastecimento mantem o rotulo do tipo na frente
+ * porque a descricao dele e quantidade ("320 L"), nao verbo. Sem descricao,
+ * sobra o rotulo do tipo — nunca titulo inventado.
+ */
+export function tituloDoRegistro(
+  tipo: string,
+  rotuloTipo: string,
+  descricao: string | null,
+  nomeEquipamento: string | null,
+): string {
+  const sufixo = nomeEquipamento ? ` — ${nomeEquipamento}` : ""
+  const texto = descricao?.trim() || null
+  if (!texto) return `${rotuloTipo}${sufixo}`
+  if (tipo === "abastecimento") return `${rotuloTipo} — ${texto}`
+  return `${texto.charAt(0).toUpperCase()}${texto.slice(1)}${sufixo}`
 }
 
 /**

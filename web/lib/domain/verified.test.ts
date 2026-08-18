@@ -16,7 +16,7 @@ function motor(horas: number | null): Equipamento {
   return {
     id: "m1", embarcacao_id: "b1", tipo: "motor", posicao: "central", marca: null, modelo: null,
     numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-    quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, horas_atuais: horas, ultima_leitura: null,
+    quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, horas_atuais: horas, ultima_leitura: null,
     created_at: "2026-01-01",
   }
 }

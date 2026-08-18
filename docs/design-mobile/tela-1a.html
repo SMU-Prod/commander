@@ -1,0 +1,43 @@
+<div id="1a" style="flex:none;width:402px;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px">
+<div style="display:flex;align-items:baseline;gap:8px">
+<a href="#1a" style="font:600 10.5px/1 ui-monospace,Menlo,monospace;background:rgba(233,241,248,.09);color:#e9f1f8;border-radius:5px;padding:4px 7px;text-decoration:none">1a</a>
+<span style="font:500 12.5px/1.3 'IBM Plex Sans';color:#88a0b8">Entrar</span>
+</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:#0a0e12;box-sizing:border-box;padding:78px 24px 44px">
+<div style="display:flex;align-items:center;gap:10px">
+<svg viewBox="0 0 48 34" style="height:20px;width:auto" aria-hidden="true"><path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="#d4af37"></path></svg>
+<span style="font:600 13px/1 'IBM Plex Sans';letter-spacing:.28em;text-transform:uppercase;color:#e9f1f8">Commander</span>
+</div>
+<h1 style="margin:44px 0 0;font:600 24px/1.2 'IBM Plex Sans';letter-spacing:-.015em;color:#e9f1f8">Bem-vindo a bordo</h1>
+<p style="margin:6px 0 0;font:400 13px/1.45 'IBM Plex Sans';color:#7c93ab">Entre para acompanhar sua embarcação, o diário e o que precisa de você.</p>
+<div style="margin-top:28px;display:flex;flex-direction:column;gap:14px">
+<div>
+<p style="margin:0 0 6px;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c93ab">E-mail</p>
+<div style="height:48px;border:1px solid #303a45;background:#0a1521;border-radius:8px;display:flex;align-items:center;padding:0 14px;font:400 15px/1 'IBM Plex Sans';color:#e9f1f8">erick@exemplo.com</div>
+</div>
+<div>
+<p style="margin:0 0 6px;font:400 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c93ab">Senha</p>
+<div style="height:48px;border:1px solid #303a45;background:#0a1521;border-radius:8px;display:flex;align-items:center;justify-content:space-between;padding:0 14px">
+<span style="font:600 15px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#e9f1f8">••••••••</span>
+<span style="font:500 12.5px/1 'IBM Plex Sans';color:#88a0b8">mostrar</span>
+</div>
+</div>
+</div>
+<button style="margin-top:24px;height:48px;border:0;background:#d4af37;color:#0b1d2d;border-radius:8px;font:600 15px/1 'IBM Plex Sans';cursor:pointer">Entrar</button>
+<div style="margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:14px">
+<span style="font:500 13px/1 'IBM Plex Sans';color:#e9f1f8;text-decoration:underline;text-underline-offset:3px">Receber link de acesso por e-mail</span>
+<span style="font:400 13px/1 'IBM Plex Sans';color:#7c93ab">Esqueci minha senha</span>
+</div>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:16px">
+<div style="height:1px;background:#303a45"></div>
+<p style="margin:0;font:400 13px/1 'IBM Plex Sans';color:#7c93ab;text-align:center">Ainda não tem conta? <span style="color:#e5c55c;font-weight:600">Cadastrar embarcação</span></p>
+<p style="margin:0;font:400 11px/1.5 ui-monospace,Menlo,monospace;color:#7c93ab;text-align:center">O Commander não é auxílio à navegação.<br>Consulte sempre a carta náutica oficial.</p>
+</div>
+</div>
+</x-import>
+<sc-if value="{{ mostrarNotas }}" hint-placeholder-val="{{ true }}">
+<p style="margin:0;font:400 11.5px/1.6 ui-monospace,Menlo,monospace;color:#7c93ab;max-width:402px">Uma ação principal, uma só dourada. A ressalva de honestidade fica no rodapé desde o primeiro toque — CONTRIBUTING.md a exige em toda superfície de navegação.</p>
+</sc-if>
+</div>
+

@@ -2,7 +2,8 @@
 import { useState } from "react"
 import { CampoSelect } from "@/components/ui/campo"
 import { linhaCampos } from "@/lib/ui/form"
-import type { TipoBateria } from "@/lib/db/types"
+import type { Equipamento, TipoBateria } from "@/lib/db/types"
+import { ROTULO_ZONA, sugestaoDeZona, ZONAS, type ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 
 export const ROTULO_TIPO_BATERIA: Record<TipoBateria, string> = {
   chumbo_acido: "Chumbo-ácido",
@@ -13,8 +14,9 @@ export const ROTULO_TIPO_BATERIA: Record<TipoBateria, string> = {
 }
 
 /**
- * Tipo + Posição do equipamento e, só quando o tipo é "bateria", o campo
- * "Tipo de bateria" (onda 41, PRD §14).
+ * Tipo + Posição do equipamento, o campo "Onde fica no barco" (zona física,
+ * onda 61) e, só quando o tipo é "bateria", o campo "Tipo de bateria" (onda
+ * 41, PRD §14).
  *
  * É cliente por causa desse "só quando": o tipo de bateria não faz sentido
  * num gerador, e deixar o campo sempre visível convida a preencher errado.
@@ -25,17 +27,28 @@ export const ROTULO_TIPO_BATERIA: Record<TipoBateria, string> = {
  * Usado nos dois formulários (novo e editar) pra não haver duas listas de
  * tipo divergindo com o tempo — foi exatamente o que aconteceu quando
  * "painel" entrou e só um dos dois arquivos sabia dele.
+ *
+ * `zonaInicial` distingue os dois modos (spec §2.1 / §4, "fica como sugestão
+ * pré-preenchida no select, nunca gravada sem confirmação"):
+ *   - `undefined` (não passado, form NOVO): pré-preenche com
+ *     `sugestaoDeZona(tipoInicial)` — um palpite, não um dado gravado;
+ *   - qualquer outra coisa, incluindo `null` (form EDITAR): mostra
+ *     exatamente o que está gravado, mesmo que seja "nenhuma zona ainda".
  */
 export function CamposTipoEquipamento({
   tipoInicial,
   posicaoInicial = "",
   tipoBateriaInicial = "",
+  zonaInicial,
 }: {
   tipoInicial: string
   posicaoInicial?: string
   tipoBateriaInicial?: string
+  zonaInicial?: ZonaEmbarcacao | null
 }) {
   const [tipo, setTipo] = useState(tipoInicial)
+  const zonaPadrao =
+    zonaInicial !== undefined ? (zonaInicial ?? "") : (sugestaoDeZona(tipoInicial as Equipamento["tipo"]) ?? "")
 
   return (
     <>
@@ -63,6 +76,19 @@ export function CamposTipoEquipamento({
           <option value="central">Central</option>
         </CampoSelect>
       </div>
+
+      <CampoSelect
+        label="Onde fica no barco"
+        id="zona"
+        name="zona"
+        defaultValue={zonaPadrao}
+        dica="Ajuda a achar o equipamento no Mapa da embarcação — pode mudar depois."
+      >
+        <option value="">Ainda não sei</option>
+        {ZONAS.map((z) => (
+          <option key={z} value={z}>{ROTULO_ZONA[z]}</option>
+        ))}
+      </CampoSelect>
 
       {tipo === "bateria" && (
         <CampoSelect

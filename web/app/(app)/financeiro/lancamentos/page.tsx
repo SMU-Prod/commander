@@ -9,10 +9,12 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
-  CATEGORIAS_FINANCEIRAS, ROTULO_CATEGORIA, formatarDataBr, rotuloStatus,
+  CATEGORIAS_FINANCEIRAS, ROTULO_CATEGORIA, estadoDaLinha, rotuloDoGrupoMensal,
+  rotuloPagoNoMes, totaisDoMes, valorDaLinha,
   type CategoriaFinanceira,
 } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
+import { formatarDataCurta } from "@/lib/domain/semaforo"
 import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { LancamentoFinanceiro } from "@/lib/db/types"
@@ -59,18 +61,30 @@ export default async function LancamentosPage({
     return true
   })
 
-  // Agrupamento por mês, na ordem em que já vêm (data desc).
+  const hoje = hojeISO()
+
+  // Agrupamento por mês, na ordem em que já vêm (data desc). O rótulo é o
+  // do canvas (tela-3e): só o mês no ano corrente ("Agosto"); ano por
+  // extenso fora dele — `rotuloDoGrupoMensal`, com teste.
   const grupos: { chave: string; rotulo: string; itens: LancamentoFinanceiro[] }[] = []
   for (const l of lancamentos) {
     const chave = l.data.slice(0, 7)
     if (grupos.at(-1)?.chave !== chave) {
-      const [ano, mes] = chave.split("-").map(Number)
-      const nome = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" })
-        .format(new Date(Date.UTC(ano, mes - 1, 1)))
-      grupos.push({ chave, rotulo: `${nome[0].toUpperCase()}${nome.slice(1)} de ${ano}`, itens: [] })
+      grupos.push({ chave, rotulo: rotuloDoGrupoMensal(chave, hoje), itens: [] })
     }
     grupos.at(-1)!.itens.push(l)
   }
+
+  // O cartão de totais do topo (canvas tela-3e) soma sobre TODOS os
+  // lançamentos carregados, antes de filtro de chip — os filtros mudam a
+  // lista, não o fato do mês. Só despesa paga entra no total; a vencer é a
+  // conta assumida que ainda vai bater (`totaisDoMes`, com teste).
+  const totais = totaisDoMes(
+    ((brutos ?? []) as LancamentoFinanceiro[]).map((l) => ({
+      tipo: l.tipo, status: l.status, data: l.data, valorCentavos: l.valor_centavos,
+    })),
+    hoje,
+  )
 
   const href = (f: Filtro, c: CategoriaFinanceira | null) => {
     const p = new URLSearchParams()
@@ -79,7 +93,6 @@ export default async function LancamentosPage({
     const q = p.toString()
     return q ? `/financeiro/lancamentos?${q}` : "/financeiro/lancamentos"
   }
-  const hoje = hojeISO()
 
   return (
     <main>
@@ -87,6 +100,28 @@ export default async function LancamentosPage({
       <p className="apoio mt-1 text-dim">Todo lançamento do barco, do mais recente ao mais antigo.</p>
 
       <FinanceiroNav atual="lancamentos" className="mt-4" />
+
+      {/* Canvas tela-3e — o cartão de totais em cima do extrato: "Pago em
+          agosto" (só o que JÁ saiu) e "A vencer" (a conta assumida que
+          ainda vai bater). O "R$" aparece UMA vez aqui; nas linhas abaixo a
+          coluna mono vai sem ele — a vírgula alinha e a comparação é de
+          valor, não de texto. */}
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <p className="rotulo text-dim">{rotuloPagoNoMes(hoje)}</p>
+            <p className="mt-1.5 font-mono-instr text-xl font-semibold tabular-nums">
+              {formatarReais(totais.pagoCentavos)}
+            </p>
+          </div>
+          <div className="flex-1">
+            <p className="rotulo text-dim">A vencer</p>
+            <p className={`mt-1.5 font-mono-instr text-xl font-semibold tabular-nums ${totais.aVencerCentavos > 0 ? "text-warn" : ""}`}>
+              {formatarReais(totais.aVencerCentavos)}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* ONDA 59 — a barra recebe só o filtro PRIMÁRIO (tipo/status), ao
           lado da ação de criar, que sai de `AcoesUniversais`. O PRD previa
@@ -155,31 +190,44 @@ export default async function LancamentosPage({
         <section key={g.chave}>
           <SecaoPagina>{g.rotulo}</SecaoPagina>
           <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-            {g.itens.map((l) => (
-              <LinhaLista
-                key={l.id}
-                href={`/financeiro/lancamentos/${l.id}`}
-                titulo={l.descricao}
-                subtitulo={
-                  <>
-                    <span className="font-mono-instr text-[11px] tabular-nums">{formatarDataBr(l.data)}</span>
-                    {" · "}{ROTULO_CATEGORIA[l.categoria]}
-                    {l.status === "pendente" && (
-                      <span className={l.data < hoje ? "text-crit" : "text-warn"}>
-                        {" · "}{l.data < hoje ? "vencido" : "pendente"}
-                      </span>
-                    )}
-                    {l.carteira_movimento_id && " · via Carteira"}
-                  </>
-                }
-                valor={`${l.tipo === "entrada" ? "+" : "−"} ${formatarReais(l.valor_centavos)}`}
-                valorClassName={l.tipo === "entrada" ? "text-ok" : l.status === "pendente" ? "text-dim" : ""}
-                valorSecundario={rotuloStatus(l.tipo, l.status)}
-              />
-            ))}
+            {g.itens.map((l) => {
+              // Canvas tela-3e — a anatomia da linha: "09/08 · Posto
+              // Verolme · pago". Fornecedor quando existe (é como o dono
+              // lembra do gasto), categoria como reserva; "recorrente"
+              // quando veio de série; o estado em minúscula fechando a
+              // frase, com o tom da tela (`estadoDaLinha`, com teste).
+              const estado = estadoDaLinha(l, hoje)
+              const corEstado = estado.tom === "critico" ? "text-crit" : estado.tom === "aviso" ? "text-warn" : ""
+              return (
+                <LinhaLista
+                  key={l.id}
+                  href={`/financeiro/lancamentos/${l.id}`}
+                  titulo={l.descricao}
+                  subtitulo={
+                    <>
+                      <span className="font-mono-instr tabular-nums">{formatarDataCurta(l.data)}</span>
+                      {" · "}{l.fornecedor || ROTULO_CATEGORIA[l.categoria]}
+                      {l.recorrencia_id && " · recorrente"}
+                      {" · "}<span className={corEstado}>{estado.texto}</span>
+                      {l.carteira_movimento_id && " · via Carteira"}
+                    </>
+                  }
+                  // Coluna de dinheiro em mono tabular, sem "R$" repetido —
+                  // entrada com "+" e verde; pendente esmaece até virar fato.
+                  valor={valorDaLinha(l.tipo, l.valor_centavos)}
+                  valorClassName={l.tipo === "entrada" ? "text-ok" : l.status === "pendente" ? "text-dim" : ""}
+                />
+              )
+            })}
           </div>
         </section>
       ))}
+
+      {grupos.length > 0 && (
+        <p className="apoio mt-3 text-dim">
+          Só lançamento pago entra no total do mês — conta a vencer não é dinheiro que saiu.
+        </p>
+      )}
     </main>
   )
 }

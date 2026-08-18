@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase/server"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { hojeISO } from "@/lib/domain/datas"
+import { ehTipoEmbarcacao } from "@/lib/domain/tipo-embarcacao"
 import { definirEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 
 // Itens padrão por motor (espec §6.1): revisão 500 h, óleo 250 h ou 12 meses
@@ -59,6 +60,25 @@ export async function concluirOnboarding(formData: FormData) {
     : [{ posicao: "central", horas: numero("horas_bb") }]
 
   let falhas = 0
+
+  // O Tipo dos chips do wizard (onda 62, enum `tipo_embarcacao` da migration
+  // 056). Validado AQUI contra o enum (§27.2 — a regra nos dois lados), não
+  // só pelo banco: valor forjado é descartado em silêncio porque o campo é
+  // OPCIONAL — recusar o cadastro inteiro por um chip adulterado puniria o
+  // nome, os motores e as datas que vieram junto. Vai por UPDATE em vez de
+  // mudar a assinatura da RPC `criar_embarcacao`: a RPC é a porta do LIMITE
+  // de plano, e o tipo não participa dessa regra. O `.select()` é a mesma
+  // disciplina do resto — sem ele, uma linha barrada pela RLS voltaria com
+  // error null e o tipo sumiria em silêncio.
+  const tipoBruto = texto("tipo")
+  if (tipoBruto !== null && ehTipoEmbarcacao(tipoBruto)) {
+    const { data: comTipo, error: tipoError } = await supabase
+      .from("embarcacoes")
+      .update({ tipo: tipoBruto })
+      .eq("id", embarcacaoId)
+      .select("id")
+    if (tipoError || !comTipo?.length) falhas++
+  }
 
   for (const m of motores) {
     const { data: eq, error: eqError } = await supabase

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  custoPorHoraCentavos,
+  gastosPorGrupoComBarra,
+  mediaMensalGastosCentavos,
   mesesDoPeriodo,
   montarResumoPeriodo,
   opcoesAnuais,
@@ -13,7 +16,7 @@ import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 const eq = (extra: Partial<Equipamento>): Equipamento => ({
   id: "e1", embarcacao_id: "b1", tipo: "motor", posicao: "BB", marca: null, modelo: null,
   numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, horas_atuais: 100, ultima_leitura: null,
+  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, horas_atuais: 100, ultima_leitura: null,
   created_at: "2026-01-01", ...extra,
 })
 const ev = (extra: Partial<Evento>): Evento => ({
@@ -215,5 +218,46 @@ describe("montarResumoPeriodo", () => {
     )
     expect(periodoSemAtividade(r)).toBe(true)
     expect(r.hubs.find((h) => h.aba === "casco")?.total).toBe(1)
+  })
+})
+
+// --- onda 62 (canvas tela-1g): as réguas do relatório de custo -------------
+
+describe("custoPorHoraCentavos", () => {
+  it("divide o gasto pelas horas de motor do período", () => {
+    expect(custoPorHoraCentavos(1_824_000, 96)).toBe(19_000)
+  })
+  it("sem hora de motor devolve null — 'R$ 0/h' afirmaria que navegar é de graça", () => {
+    expect(custoPorHoraCentavos(1_824_000, 0)).toBeNull()
+  })
+  it("sem gasto devolve null — não há custo pra ratear", () => {
+    expect(custoPorHoraCentavos(0, 96)).toBeNull()
+  })
+})
+
+describe("mediaMensalGastosCentavos", () => {
+  it("total dividido pelos meses já decorridos", () => {
+    expect(mediaMensalGastosCentavos({ totalGastosCentavos: 1_200_00, meses: ["2026-01", "2026-02", "2026-03"] })).toBe(400_00)
+  })
+  it("um mês só (ou nenhum) devolve null — média de um número é o próprio número", () => {
+    expect(mediaMensalGastosCentavos({ totalGastosCentavos: 500_00, meses: ["2026-08"] })).toBeNull()
+    expect(mediaMensalGastosCentavos({ totalGastosCentavos: 0, meses: [] })).toBeNull()
+  })
+})
+
+describe("gastosPorGrupoComBarra", () => {
+  it("a barra é relativa ao MAIOR grupo, não ao total (o maior = 100)", () => {
+    const barras = gastosPorGrupoComBarra([
+      { grupo: "Combustível", totalCentavos: 812_000 },
+      { grupo: "Marina", totalCentavos: 406_000 },
+    ])
+    expect(barras[0].percentual).toBe(100)
+    expect(barras[1].percentual).toBe(50)
+  })
+  it("tudo zerado fica com barra zero, sem divisão por zero", () => {
+    expect(gastosPorGrupoComBarra([{ grupo: "x", totalCentavos: 0 }])[0].percentual).toBe(0)
+  })
+  it("lista vazia continua vazia", () => {
+    expect(gastosPorGrupoComBarra([])).toEqual([])
   })
 })

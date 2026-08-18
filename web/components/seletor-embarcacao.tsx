@@ -16,9 +16,11 @@ export function SeletorEmbarcacao({
   // "Cadastrar outra".
   return (
     <span className="relative inline-block">
+      {/* `titulo-card` (15px/600) e não corpo: no canvas (tela-1b) o nome do
+          barco é a linha FORTE do cabeçalho — "Olá, Erick" é o apoio. */}
       <button type="button" onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
-        className="inline-flex h-11 items-center gap-1 corpo font-medium">
+        className="titulo-card inline-flex h-11 items-center gap-1">
         {atual.nome}
         <Icone nome="chevron" className="size-3.5 rotate-90 text-dim" />
       </button>

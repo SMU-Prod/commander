@@ -3,16 +3,23 @@ import { notFound, redirect } from "next/navigation"
 import { ROTULO_TIPO_BATERIA } from "@/components/campos-tipo-equipamento"
 import { DicaLeitorNativo } from "@/components/dica-leitor-nativo"
 import { Farol } from "@/components/farol"
-import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
-import { calcularSemaforo, formatarDataCurta, PESO, rotuloDoFarol, seloDoFarol, textoRestante, vencimentoPorData } from "@/lib/domain/semaforo"
+import {
+  calcularSemaforo, formatarDataCurta, linhaDaRegra, PESO, rotuloDoFarol, seloDoFarol,
+  temInformacaoSuficiente, vencimentoPorData,
+} from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { abaDoEquipamento, ROTULO_MOTOR } from "@/lib/domain/diario"
+import { abaDoEquipamento } from "@/lib/domain/diario"
+// (ROTULO_MOTOR saiu junto com a linha de regra escrita à mão — a frase agora
+// é `linhaDaRegra`, a mesma do canvas, com teste em semaforo.test.ts.)
+import { prazoCompacto } from "@/lib/domain/inicio"
+import { carimboDaLeitura } from "@/lib/domain/leituras"
+import { ROTULO_ZONA } from "@/lib/domain/mapa-embarcacao"
 import { formatarReais } from "@/lib/domain/gastos"
 import { iconeDoSistema, ordenarSistemas, urlManualNaPagina } from "@/lib/domain/sistemas"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
@@ -32,14 +39,24 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
   const editavel = podeEditar(painel.permissoes, aba)
   const hoje = hojeISO()
 
+  // `calc` e `temInfo` calculados uma vez por item: a lista usa os três —
+  // o farol (`r`), a frase da regra (`linhaDaRegra(calc)`) e o estado
+  // "Completar" do canvas (tela-3c) pra item sem informação suficiente.
   const itens = painel.itens
     .filter((i) => i.equipamento_id === id)
-    .map((i) => ({ item: i, r: calcularSemaforo(itemMonitoradoToItemCalc(i), equipamento.horas_atuais ?? null, hoje) }))
+    .map((i) => {
+      const calc = itemMonitoradoToItemCalc(i)
+      return {
+        item: i,
+        calc,
+        r: calcularSemaforo(calc, equipamento.horas_atuais ?? null, hoje),
+        temInfo: temInformacaoSuficiente(calc, equipamento.horas_atuais ?? null),
+      }
+    })
     .sort((a, b) => PESO[b.r.status] - PESO[a.r.status])
   // `null` = nenhum item monitorado: o selo do cabeçalho fica neutro ("Sem
   // dados") em vez de um "Em dia" sem dado por trás (honestidade, onda 16).
   const statusFicha = itens[0]?.r.status ?? null
-  const statusGeral = statusFicha ?? "ok"
 
   const supabase = await supabaseServer()
   const urlFoto = equipamento.foto_path
@@ -49,13 +66,29 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
     supabase.from("eventos")
       .select("id, data, tipo, descricao, horas_no_momento, custo_centavos, anexo_path")
       .eq("equipamento_id", id).order("data", { ascending: false }).limit(10),
+    // `created_at`/`criado_por` entram pro carimbo do horímetro (canvas
+    // tela-3c: "Informado à mão em 09/08, 18:40 por Erick") — a MESMA
+    // consulta de sempre, duas colunas a mais; nada novo é buscado.
     supabase.from("eventos")
-      .select("data, horas_no_momento")
+      .select("data, horas_no_momento, created_at, criado_por")
       .eq("equipamento_id", id).eq("tipo", "leitura_horas")
       .not("horas_no_momento", "is", null).order("data", { ascending: false }).limit(30),
     supabase.from("equipamento_sistemas").select("*").eq("equipamento_id", id),
   ])
   const sistemas = ordenarSistemas((sistemasBrutos ?? []) as EquipamentoSistema[])
+
+  // O carimbo humano do horímetro: a última leitura informada e QUEM
+  // informou (nome do perfil, mesmo padrão de `profiles` usado no Diário).
+  // Sem leitura nenhuma, o cartucho confessa em vez de fingir data.
+  const ultimaLeitura = (leituras ?? [])[0] as
+    | { data: string; created_at: string; criado_por: string | null }
+    | undefined
+  const { data: perfilDaLeitura } = ultimaLeitura?.criado_por
+    ? await supabase.from("profiles").select("nome").eq("id", ultimaLeitura.criado_por).maybeSingle()
+    : { data: null }
+  const carimboHorimetro = ultimaLeitura
+    ? carimboDaLeitura(ultimaLeitura.created_at ?? ultimaLeitura.data, (perfilDaLeitura as { nome: string } | null)?.nome ?? null)
+    : null
 
   // Manual de cada sistema (onda 15, "motor vivo"): mesmo padrão de URL
   // assinada dos anexos do histórico logo abaixo — busca só os documentos
@@ -131,7 +164,12 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         voltarHref={ehMotor ? "/barco" : "/barco/eletrica"}
         voltarRotulo={ehMotor ? "Embarcação" : "Elétrica"}
         titulo={nomeCurto(equipamento)}
-        descricao={[equipamento.marca, equipamento.modelo].filter(Boolean).join(" ") || undefined}
+        // Canvas tela-3c: marca/modelo E ano na mesma linha de apoio
+        // ("Volvo Penta IPS 700 · 2019") — dados que a ficha já tem.
+        descricao={
+          [[equipamento.marca, equipamento.modelo].filter(Boolean).join(" "), equipamento.ano]
+            .filter(Boolean).join(" · ") || undefined
+        }
         selo={<Selo estado={seloDoFarol(statusFicha)}>{rotuloDoFarol(statusFicha)}</Selo>}
         acoes={
           editavel ? (
@@ -144,6 +182,23 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           ) : undefined
         }
       />
+
+      {/* Onda 61 — a zona física como chip (spec §3.4): um toque leva ao
+          Mapa da Embarcação já com esta zona aberta. Só aparece com zona
+          definida — sem zona, o convite mora no grupo "Não mapeados" do
+          próprio mapa, não aqui (não se decora o vazio). Alvo de 44px no
+          <Link>, pílula visual menor dentro — mesmo desenho dos pinos. */}
+      {equipamento.zona && (
+        <Link
+          href={`/barco/mapa?zona=${equipamento.zona}`}
+          aria-label={`Ver ${ROTULO_ZONA[equipamento.zona]} no Mapa da Embarcação`}
+          className="mt-1 inline-flex min-h-11 items-center"
+        >
+          <span className="apoio inline-flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel px-3 py-1 text-dim">
+            <Icone nome="mapa" className="size-3.5" /> {ROTULO_ZONA[equipamento.zona]}
+          </span>
+        </Link>
+      )}
 
       {irmaos.length > 1 && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -158,11 +213,98 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Foto como capa (onda 15, "motor vivo") — o herói do topo da ficha,
-          não mais um detalhe pequeno. Sem foto, convite claro pra adicionar
-          em vez de um retângulo vazio; mesmo padrão visual do card da
-          embarcação em components/card-embarcacao.tsx. */}
-      <div className="sombra-1 mt-3 overflow-hidden rounded-[14px] border border-line bg-[#0b1d2d]">
+      {/* ONDA 62 (canvas tela-3c) — o cartucho escuro é O INSTRUMENTO da
+          ficha: navy fixo (bg-meter, não segue o tema), número gigante em
+          mono, e o carimbo de quem informou embaixo — horímetro é dado
+          humano, não telemetria (PRD §11). A ação de informar leitura mora
+          AQUI, colada no número que ela atualiza (abre o registro do Diário
+          já no tipo certo). O farol saiu do mostrador: o estado da ficha já
+          está no chip do cabeçalho, repetir aqui era dizer duas vezes. */}
+      <div className="mt-3 rounded-[var(--raio-cartao)] border border-line bg-meter p-4 text-meter-texto">
+        <p className="rotulo text-meter-dim">Horímetro</p>
+        <div className="mt-2 flex items-baseline gap-2 font-mono-instr tabular-nums">
+          <span className="text-4xl font-semibold">
+            {equipamento.horas_atuais != null
+              ? equipamento.horas_atuais.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+              : "—"}
+          </span>
+          <span className="rotulo text-meter-dim">{equipamento.horas_atuais != null ? "horas" : "sem leitura"}</span>
+        </div>
+        <p className="apoio mt-2.5 text-meter-dim">
+          {carimboHorimetro ?? "Nenhuma leitura informada ainda."}
+          {media != null && media > 0 && (
+            <> Média de {media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h por semana.</>
+          )}
+        </p>
+        {editavel && (
+          <Link
+            href={`/diario/novo?tipo=leitura_horas&alvo=${encodeURIComponent(`eq:${id}`)}`}
+            className="mt-3.5 inline-flex h-11 items-center rounded-[var(--raio-controle)] bg-accent px-5 text-sm font-semibold text-acao-texto"
+          >
+            Informar leitura
+          </Link>
+        )}
+      </div>
+
+      <SecaoPagina icone="ferramenta" acao={editavel ? { href: `/barco/itens/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Nova manutenção" } : undefined}>
+        Manutenções
+      </SecaoPagina>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        {itens.length === 0 && (
+          <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma manutenção cadastrada aqui ainda" />
+        )}
+        {itens.map(({ item, calc, r, temInfo }) => {
+          const dias = r.horasRestantes != null && r.horasRestantes >= 0 && media != null ? previsaoDias(r.horasRestantes, media) : null
+          const venc = vencimentoPorData(calc)
+          // Canvas tela-3c — item SEM informação suficiente não finge estado:
+          // ponto vazado (não o farol verde) e "Completar" no lugar da
+          // contagem. Ele não entra na conta da Saúde, nem a favor nem contra.
+          if (!temInfo) {
+            return (
+              <LinhaLista
+                key={item.id}
+                href={editavel ? `/barco/itens/${item.id}/editar` : undefined}
+                leading={<span aria-label="sem informação suficiente" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+                titulo={item.nome}
+                subtitulo={linhaDaRegra(calc)}
+                trailing={editavel ? <span className="apoio shrink-0 font-medium text-accent-forte">Completar</span> : undefined}
+              />
+            )
+          }
+          return (
+            <LinhaLista
+              key={item.id}
+              href={editavel ? `/barco/itens/${item.id}/editar` : undefined}
+              leading={<Farol status={r.status} />}
+              titulo={item.nome}
+              subtitulo={linhaDaRegra(calc)}
+              // A contagem regressiva da coluna direita: MESMO ResultadoCalc,
+              // mesmo formato compacto da Início ("18 h", "-19 d") — nenhuma
+              // régua nova (`prazoCompacto`, lib/domain/inicio.ts).
+              valor={prazoCompacto(r)}
+              valorClassName={r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : ""}
+              valorSecundario={
+                dias != null && dias > 0 && r.status !== "vencido"
+                  ? `~${dias} dias`
+                  : venc
+                    ? formatarDataCurta(venc)
+                    : undefined
+              }
+            />
+          )
+        })}
+      </div>
+      {itens.some(({ temInfo }) => !temInfo) && (
+        <p className="apoio mt-3 text-dim">
+          Item sem intervalo não entra na conta da Saúde — nem a favor, nem contra.
+        </p>
+      )}
+
+      {/* Foto (onda 15, "motor vivo") — continua na ficha, mas abaixo do
+          instrumento e das manutenções: no canvas (tela-3c) o topo é do
+          horímetro e do que está pedindo ação; a foto é contexto. Sem foto,
+          convite claro em vez de retângulo vazio. */}
+      <div className="sombra-1 mt-6 overflow-hidden rounded-[14px] border border-line bg-[#0b1d2d]">
         {urlFoto ? (
           /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
           <img src={urlFoto} alt={`Foto de ${nomeCurto(equipamento)}`} className="h-56 w-full object-cover" />
@@ -184,20 +326,6 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           </div>
         )}
       </div>
-
-      <div className="mt-3">
-        {/* Onda 60: nome e marca/modelo subiram pro CabecalhoDetalhe — repetir
-            os dois aqui deixava a mesma frase duas vezes na primeira tela. O
-            mostrador volta a dizer só o que ele é. */}
-        <Horimetro rotulo="Horímetro" horas={equipamento.horas_atuais} status={statusGeral} grande />
-      </div>
-      {media != null && (
-        <p className="apoio mt-2 text-center font-mono-instr tabular-nums text-dim">
-          {media > 0
-            ? `média de ${media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h por semana`
-            : "sem uso registrado no período"}
-        </p>
-      )}
 
       {/* Sistemas (onda 15, "motor vivo") — o elo novo entre o equipamento e
           o manual do fabricante já guardado no acervo. Sistema com manual
@@ -276,56 +404,6 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         })}
       </div>
 
-      <SecaoPagina icone="ferramenta" acao={editavel ? { href: `/barco/itens/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Nova manutenção" } : undefined}>
-        Manutenções
-      </SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-        {itens.length === 0 && (
-          <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma manutenção cadastrada aqui ainda" />
-        )}
-        {itens.map(({ item, r }) => {
-          const dias = r.horasRestantes != null && media != null ? previsaoDias(r.horasRestantes, media) : null
-          const venc = vencimentoPorData(itemMonitoradoToItemCalc(item))
-          const regra = [
-            // Óleo/Filtros (onda 41, PRD §11) entram primeiro: dizem O QUE é
-            // o item independentemente do nome que a pessoa digitou.
-            item.categoria != null ? ROTULO_MOTOR[item.categoria] : null,
-            item.intervalo_horas != null ? `a cada ${item.intervalo_horas} h` : null,
-            item.intervalo_meses != null ? `${item.intervalo_meses} meses` : null,
-            item.especificacao,
-            item.quantidade,
-          ].filter(Boolean).join(" · ") || "sem regra definida"
-          return (
-            <LinhaLista
-              key={item.id}
-              href={editavel ? `/barco/itens/${item.id}/editar` : undefined}
-              leading={<Farol status={r.status} />}
-              titulo={item.nome}
-              subtitulo={regra}
-              valor={`${textoRestante(r)}${venc ? ` · ${formatarDataCurta(venc)}` : ""}`}
-              valorClassName={r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : "text-dim"}
-              valorSecundario={dias != null && dias > 0 && r.status !== "vencido" ? `~${dias} dias` : undefined}
-            />
-          )
-        })}
-      </div>
-
-      <SecaoPagina icone="documento">Especificação</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {especificacoes.map(([nome, valor]) => (
-            <div key={nome}>
-              <dt className="rotulo text-dim">{nome}</dt>
-              <dd className="corpo mt-0.5">{valor ?? <span className="text-dim">—</span>}</dd>
-            </div>
-          ))}
-        </dl>
-        {equipamento.observacoes && <p className="apoio mt-3 text-dim">{equipamento.observacoes}</p>}
-        {/* O "Editar equipamento" que morava aqui subiu pra barra de ações do
-            cabeçalho (onda 60) — dois caminhos pro mesmo formulário na mesma
-            tela era exatamente o que a anatomia de ficha veio arrumar. */}
-      </div>
-
       <SecaoPagina icone="calendario" acao={{ href: `/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Registrar serviço" }}>
         Histórico
       </SecaoPagina>
@@ -353,6 +431,26 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
             }
           />
         ))}
+      </div>
+
+      {/* "Dados" (canvas tela-3c) — o nome da aba do canvas pro que era
+          "Especificação": número de série, ano, potência, observações. Fecha
+          a ficha na mesma ordem do canvas: instrumento → manutenção →
+          histórico → dados. */}
+      <SecaoPagina icone="documento">Dados</SecaoPagina>
+      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+          {especificacoes.map(([nome, valor]) => (
+            <div key={nome}>
+              <dt className="rotulo text-dim">{nome}</dt>
+              <dd className="corpo mt-0.5">{valor ?? <span className="text-dim">—</span>}</dd>
+            </div>
+          ))}
+        </dl>
+        {equipamento.observacoes && <p className="apoio mt-3 text-dim">{equipamento.observacoes}</p>}
+        {/* O "Editar equipamento" que morava aqui subiu pra barra de ações do
+            cabeçalho (onda 60) — dois caminhos pro mesmo formulário na mesma
+            tela era exatamente o que a anatomia de ficha veio arrumar. */}
       </div>
     </main>
   )

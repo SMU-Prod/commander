@@ -1,9 +1,10 @@
 import type { ReactNode } from "react"
-import { Estrelas } from "@/components/avaliacoes/estrelas"
+import { Avatar } from "@/components/avatar"
 import { Icone } from "@/components/icone"
 import type { AvaliacaoCompleta } from "@/lib/consultas-avaliacoes"
 import {
-  estadoDaSolucao, ROTULO_ESTADO_SOLUCAO, SELO_NEGOCIO_CONFIRMADO, textoDaResposta, textoDoMotivo,
+  estadoDaSolucao, formatarMedia, ROTULO_ESTADO_SOLUCAO, SELO_NEGOCIO_CONFIRMADO,
+  textoDaResposta, textoDoMotivo,
 } from "@/lib/domain/avaliacoes"
 
 /**
@@ -38,21 +39,34 @@ export function CartaoAvaliacao({
         oculta ? "border-crit/40 bg-crit/5" : "border-line bg-panel"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <Estrelas nota={avaliacao.nota} />
-          <p className="apoio mt-1 text-dim">
-            {cabecalho ?? avaliacao.avaliador_nome} ·{" "}
+      {/* ONDA 62 — cabeçalho do canvas (tela-4c): avatar de iniciais, nome,
+          data em apoio, e a nota como NÚMERO mono + ★ à direita. As cinco
+          estrelinhas desenhadas saíram — a nota que existe é a que aparece,
+          escrita ("5,0 ★"), sem régua gráfica pra interpretar. */}
+      <div className="flex items-center gap-2.5">
+        <Avatar url={null} nome={cabecalho ?? avaliacao.avaliador_nome} tamanho="size-9" />
+        <div className="min-w-0 flex-1">
+          <p className="corpo truncate font-semibold">{cabecalho ?? avaliacao.avaliador_nome}</p>
+          <p className="apoio mt-0.5 text-dim">
             {new Date(avaliacao.criado_em).toLocaleDateString("pt-BR")}
           </p>
         </div>
-        <span className="apoio inline-flex shrink-0 items-center gap-1 rounded-full border border-ok/40 px-2 py-0.5 text-ok">
-          <Icone nome="guardado" className="size-3.5" />
-          {SELO_NEGOCIO_CONFIRMADO}
+        <span
+          className="shrink-0 font-mono-instr text-[13px] font-semibold tabular-nums"
+          aria-label={`${avaliacao.nota} de 5 estrelas`}
+        >
+          {formatarMedia(avaliacao.nota)} ★
         </span>
       </div>
 
-      {avaliacao.comentario && <p className="corpo mt-2 whitespace-pre-line">{avaliacao.comentario}</p>}
+      {avaliacao.comentario && <p className="corpo mt-2.5 whitespace-pre-line text-dim-chip">{avaliacao.comentario}</p>}
+
+      {/* §14 — o selo que separa isto de nota de site aberto continua no
+          cartão, agora abaixo do cabeçalho (o canto direito é da nota). */}
+      <p className="apoio mt-2.5 inline-flex items-center gap-1 rounded-full border border-ok/40 px-2 py-0.5 text-ok">
+        <Icone nome="guardado" className="size-3.5" />
+        {SELO_NEGOCIO_CONFIRMADO}
+      </p>
 
       {oculta && (
         <p className="apoio mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">

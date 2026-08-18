@@ -1,3 +1,5 @@
+import { formatarCarimbo } from "@/lib/domain/datas"
+
 const SALTO_MAXIMO_H = 500
 
 export function validarLeitura(
@@ -14,6 +16,26 @@ export function validarLeitura(
     return { ok: false, erro: `Salto de ${Math.round(nova - atual)} h de uma vez — confira a leitura.` }
   }
   return { ok: true }
+}
+
+/**
+ * O carimbo humano do horímetro na ficha de equipamento (canvas tela-3c):
+ * "Informado à mão em 09/08, 18:40 por Erick." — horímetro é dado de gente,
+ * não telemetria (PRD §11); dizer QUEM informou e QUANDO é o que dá
+ * confiança no número gigante logo acima. Reusa `formatarCarimbo` (o mesmo
+ * carimbo do cartão Motores da Início) — nenhum formato novo de data; só a
+ * concordância muda quando o carimbo é relativo ("hoje"/"ontem" no meio da
+ * frase, não "em Hoje"). Sem autor conhecido (conta removida, evento antigo
+ * sem `criado_por`), a frase fica só com o quando — nunca inventa um nome.
+ */
+export function carimboDaLeitura(criadoEm: string, nome: string | null, agora?: Date): string {
+  const quando = formatarCarimbo(criadoEm, agora)
+  const frase = quando.startsWith("Hoje")
+    ? `hoje${quando.slice("Hoje".length)}`
+    : quando.startsWith("Ontem")
+      ? `ontem${quando.slice("Ontem".length)}`
+      : `em ${quando}`
+  return `Informado à mão ${frase}${nome ? ` por ${nome}` : ""}.`
 }
 
 /**

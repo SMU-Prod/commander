@@ -4,7 +4,8 @@ test.describe("/login", () => {
   test("renderiza o formulário de entrar", async ({ page }) => {
     await page.goto("/login")
 
-    await expect(page.getByRole("heading", { name: "Entre na sua conta" })).toBeVisible()
+    // "Bem-vindo a bordo" — o título do canvas (tela-1a, onda 62).
+    await expect(page.getByRole("heading", { name: "Bem-vindo a bordo" })).toBeVisible()
     await expect(page.getByLabel("E-mail")).toBeVisible()
     await expect(page.getByLabel("Senha")).toBeVisible()
     await expect(page.getByRole("button", { name: "Entrar" })).toBeVisible()

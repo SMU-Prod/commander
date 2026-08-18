@@ -4,7 +4,9 @@ import {
   contagemDaSaude,
   estadoExibidoDaSaude,
   horasDoMotor,
+  idadeCompacta,
   linkDoFator,
+  prazoCompacto,
   rotuloDaSaude,
   seloDaSaude,
   seloDoMar,
@@ -88,35 +90,84 @@ describe("seloDoMar", () => {
 })
 
 describe("contagemDaSaude", () => {
-  it("conta do melhor pro pior", () => {
-    expect(contagemDaSaude(saude({ emDia: 5, atencao: 1, vencido: 2, total: 8 })))
+  it("a linha do canvas: o pior primeiro, ocorrência aberta incluída", () => {
+    // tela-1b: "1 vencido · 2 na margem · 1 ocorrência aberta"
+    expect(contagemDaSaude(saude({ emDia: 5, atencao: 2, vencido: 1, total: 8 }), 1))
       .toEqual([
-        { numero: 5, rotulo: "em dia" },
-        { numero: 1, rotulo: "em atenção" },
-        { numero: 2, rotulo: "vencidos" },
+        { numero: 1, rotulo: "vencido" },
+        { numero: 2, rotulo: "na margem" },
+        { numero: 1, rotulo: "ocorrência aberta" },
       ])
   })
 
-  it("omite o que é zero — '0 vencidos' é ruído, não informação", () => {
-    expect(contagemDaSaude(saude({ emDia: 5, total: 5 }))).toEqual([{ numero: 5, rotulo: "em dia" }])
-    expect(contagemDaSaude(saude({ atencao: 2, total: 2 }))).toEqual([{ numero: 2, rotulo: "em atenção" }])
+  it("com problema na linha, 'em dia' sai — o resumo é do que pede ação, não um censo", () => {
+    expect(contagemDaSaude(saude({ emDia: 5, atencao: 2, total: 7 })))
+      .toEqual([{ numero: 2, rotulo: "na margem" }])
   })
 
-  it("concorda em número na única palavra que varia", () => {
+  it("sem nenhum problema, aí sim 'N em dia' é a informação", () => {
+    expect(contagemDaSaude(saude({ emDia: 5, total: 5 }))).toEqual([{ numero: 5, rotulo: "em dia" }])
+  })
+
+  it("omite o que é zero — '0 vencidos' é ruído, não informação", () => {
+    expect(contagemDaSaude(saude({ atencao: 2, total: 2 }))).toEqual([{ numero: 2, rotulo: "na margem" }])
+  })
+
+  it("concorda em número nas palavras que variam", () => {
     expect(contagemDaSaude(saude({ vencido: 1, total: 1 }))).toEqual([{ numero: 1, rotulo: "vencido" }])
     expect(contagemDaSaude(saude({ vencido: 3, total: 3 }))).toEqual([{ numero: 3, rotulo: "vencidos" }])
+    expect(contagemDaSaude(saude({ total: 0 }), 2)).toEqual([{ numero: 2, rotulo: "ocorrências abertas" }])
+  })
+
+  it("barco cuja única pendência é ocorrência não fica mudo — o bug que a onda 62 fechou", () => {
+    // Antes: selo âmbar ao lado de "Nenhum item monitorado com data ou
+    // leitura." — o resumo ignorava a ocorrência que causou o âmbar.
+    expect(contagemDaSaude(saude({ total: 0 }), 1)).toEqual([{ numero: 1, rotulo: "ocorrência aberta" }])
   })
 
   it("separa número de palavra — a fonte de instrumento é só do número", () => {
     // A garantia do achado: nenhuma parte carrega o numeral dentro do texto,
     // senão a tela volta a ter palavra em monoespaçada.
-    for (const parte of contagemDaSaude(saude({ emDia: 5, atencao: 1, vencido: 2, total: 8 })) ?? []) {
+    for (const parte of contagemDaSaude(saude({ emDia: 5, atencao: 1, vencido: 2, total: 8 }), 3) ?? []) {
       expect(parte.rotulo).not.toMatch(/\d/)
     }
   })
 
-  it("sem item com informação suficiente, não inventa contagem", () => {
+  it("sem item com informação suficiente e sem ocorrência, não inventa contagem", () => {
     expect(contagemDaSaude(saude({ total: 0 }))).toBeNull()
+  })
+})
+
+describe("prazoCompacto", () => {
+  it("o mostrador do canvas: vencido negativo, na margem positivo", () => {
+    // tela-1b: "-19 d" no seguro vencido, "18 h" na troca de óleo
+    expect(prazoCompacto({ status: "vencido", horasRestantes: null, diasRestantes: -19 })).toBe("-19 d")
+    expect(prazoCompacto({ status: "atencao", horasRestantes: 18.2, diasRestantes: null })).toBe("18 h")
+    expect(prazoCompacto({ status: "atencao", horasRestantes: null, diasRestantes: 6 })).toBe("6 d")
+  })
+
+  it("horas mandam sobre dias — a mesma prioridade de textoRestanteCompacto, não uma segunda régua", () => {
+    expect(prazoCompacto({ status: "atencao", horasRestantes: 20, diasRestantes: 300 })).toBe("20 h")
+  })
+
+  it("vencido há menos de meia hora vira '0 h', nunca '-0 h'", () => {
+    expect(prazoCompacto({ status: "vencido", horasRestantes: -0.4, diasRestantes: null })).toBe("0 h")
+  })
+
+  it("sem prazo nenhum, um traço", () => {
+    expect(prazoCompacto({ status: "ok", horasRestantes: null, diasRestantes: null })).toBe("—")
+  })
+})
+
+describe("idadeCompacta", () => {
+  it("há quanto tempo a ocorrência existe — o único número honesto de quem não tem prazo", () => {
+    // tela-1b: "6 d" no vazamento em acompanhamento
+    expect(idadeCompacta("2026-08-10T14:32:00Z", "2026-08-16")).toBe("6 d")
+    expect(idadeCompacta("2026-08-16T08:00:00Z", "2026-08-16")).toBe("0 d")
+  })
+
+  it("carimbo no futuro é relógio errado, não idade negativa", () => {
+    expect(idadeCompacta("2026-08-20T00:00:00Z", "2026-08-16")).toBe("0 d")
   })
 })
 
@@ -140,17 +191,17 @@ describe("horasDoMotor", () => {
 
 describe("apoioDaRevisao", () => {
   it("conta pra frente quando ainda dá tempo", () => {
-    expect(apoioDaRevisao({ status: "atencao", horasRestantes: 37.4, diasRestantes: null })).toBe("Revisão em 37h")
+    expect(apoioDaRevisao({ status: "atencao", horasRestantes: 37.4, diasRestantes: null })).toBe("Revisão em 37 h")
     expect(apoioDaRevisao({ status: "atencao", horasRestantes: null, diasRestantes: 12 })).toBe("Revisão em 12 dias")
   })
 
   it("diz vencida com todas as letras — é o fato consumado", () => {
-    expect(apoioDaRevisao({ status: "vencido", horasRestantes: -12, diasRestantes: null })).toBe("Revisão vencida há 12h")
+    expect(apoioDaRevisao({ status: "vencido", horasRestantes: -12, diasRestantes: null })).toBe("Revisão vencida há 12 h")
     expect(apoioDaRevisao({ status: "vencido", horasRestantes: null, diasRestantes: -3 })).toBe("Revisão vencida há 3 dias")
   })
 
   it("horas mandam sobre dias: é o prazo mais preciso de motor", () => {
-    expect(apoioDaRevisao({ status: "atencao", horasRestantes: 20, diasRestantes: 300 })).toBe("Revisão em 20h")
+    expect(apoioDaRevisao({ status: "atencao", horasRestantes: 20, diasRestantes: 300 })).toBe("Revisão em 20 h")
   })
 
   it("sem item de revisão, admite que não sabe", () => {
@@ -180,14 +231,19 @@ describe("apoioDaRevisao", () => {
 })
 
 describe("textoUltimaSaida", () => {
-  it("data curta e tempo no mar quando os dois horários existem", () => {
+  it("a frase do canvas: data por extenso e a duração na voz de textoDuracao", () => {
+    // tela-1b: "Última saída em 9 de agosto — Angra dos Reis, 4 h 20 no mar."
+    // (o destino não entra: a consulta da Início não o busca — nada de dado
+    // novo por causa de frase).
     expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: "08:00", hora_retorno: "12:30" }, "2026"))
-      .toBe("Última saída em 12/08 · 4,5 h no mar")
+      .toBe("Última saída em 12 de agosto — 4 h 30 no mar.")
+    expect(textoUltimaSaida({ data: "2026-08-09", hora_saida: "08:30", hora_retorno: "12:50" }, "2026"))
+      .toBe("Última saída em 9 de agosto — 4 h 20 no mar.")
   })
 
   it("sem horário, só a data — nunca uma duração inventada", () => {
     expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: null, hora_retorno: null }, "2026"))
-      .toBe("Última saída em 12/08")
+      .toBe("Última saída em 12 de agosto.")
   })
 
   it("com só um dos dois horários, omite a duração — nunca NaN nem um zero inventado", () => {
@@ -195,9 +251,9 @@ describe("textoUltimaSaida", () => {
     // voltar). Sem os dois lados não existe duração: a frase tem que ficar
     // só com a data, e não virar "NaN h no mar" nem "0 h no mar".
     const sóSaída = textoUltimaSaida({ data: "2026-08-12", hora_saida: "08:00", hora_retorno: null }, "2026")
-    expect(sóSaída).toBe("Última saída em 12/08")
+    expect(sóSaída).toBe("Última saída em 12 de agosto.")
     const sóRetorno = textoUltimaSaida({ data: "2026-08-12", hora_saida: null, hora_retorno: "12:30" }, "2026")
-    expect(sóRetorno).toBe("Última saída em 12/08")
+    expect(sóRetorno).toBe("Última saída em 12 de agosto.")
     for (const frase of [sóSaída, sóRetorno]) {
       expect(frase).not.toMatch(/NaN/)
       expect(frase).not.toMatch(/no mar/)
@@ -211,7 +267,7 @@ describe("textoUltimaSaida", () => {
     // palavra que /diario/[id] usa, pela regra 6 do DESIGN: duas telas que
     // dizem a mesma coisa dizem com as mesmas palavras.
     expect(textoUltimaSaida({ data: "2026-08-12", hora_saida: "22:00", hora_retorno: "01:30" }, "2026"))
-      .toBe("Última saída em 12/08 · 3,5 h no mar · retorno no dia seguinte")
+      .toBe("Última saída em 12 de agosto — 3 h 30 no mar, retorno no dia seguinte.")
   })
 
   it("saída no mesmo dia não ganha a marca de virada", () => {

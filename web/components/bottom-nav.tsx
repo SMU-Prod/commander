@@ -81,7 +81,12 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
               key={a.href}
               href={a.href}
               aria-current={ativa ? "page" : undefined}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${
+              /* gap de 5px entre ícone e rótulo — o do canvas
+                 (nav-inferior.dc.html); o resto da anatomia já batia:
+                 ícone 21px stroke 1.7, rótulo 11px 500 uppercase, ativa
+                 em `accent-forte` — que nos dois temas vale exatamente os
+                 dois tons de dourado que o canvas pede. */
+              className={`flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >

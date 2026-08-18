@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { salvarDadosGerais } from "@/lib/acoes/embarcacao"
 import { carregarPainel } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
+import { ROTULO_TIPO_EMBARCACAO, TIPOS_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
 import { campo, linhaCampos, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
 
 export default async function EditarEmbarcacaoPage({
@@ -60,6 +61,19 @@ export default async function EditarEmbarcacaoPage({
               <label className={rot} htmlFor="marina">Marina</label>
               <input id="marina" name="marina" defaultValue={e.marina ?? ""} className={campo} />
             </div>
+          </div>
+          {/* Tipo (onda 62) — o mesmo vocabulário dos chips do onboarding
+              (enum `tipo_embarcacao`). Todo barco criado antes da migration
+              056 vive com tipo = null, e é AQUI que o dono completa depois —
+              opcional como lá, com o "Não informar" pra desfazer. */}
+          <div>
+            <label className={rot} htmlFor="tipo">Tipo</label>
+            <select id="tipo" name="tipo" defaultValue={e.tipo ?? ""} className={campo}>
+              <option value="">Não informar</option>
+              {TIPOS_EMBARCACAO.map((t) => (
+                <option key={t} value={t}>{ROTULO_TIPO_EMBARCACAO[t]}</option>
+              ))}
+            </select>
           </div>
           {/* Região da base (onda 52). Serve pro Marketplace saber onde o
               barco está e pra segmentação do §20 — sem ela, o Dashboard só

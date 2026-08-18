@@ -160,6 +160,42 @@ export function mesesDoPeriodo(tipo: TipoPeriodo, chave: string, hoje: string): 
   return meses
 }
 
+// --- Onda 62 (canvas tela-1g) — as réguas do relatório de custo ------------
+
+/**
+ * Custo por hora de motor no período. `null` quando não há hora de motor
+ * registrada — dividir por zero não é o problema; o problema é um "R$ 0/h"
+ * bonito afirmando que navegar sai de graça (DESIGN §6.7).
+ */
+export function custoPorHoraCentavos(totalGastosCentavos: number, horasMotor: number): number | null {
+  if (horasMotor <= 0 || totalGastosCentavos <= 0) return null
+  return Math.round(totalGastosCentavos / horasMotor)
+}
+
+/**
+ * Média mensal de gasto do período — total dividido pelos meses JÁ
+ * decorridos (`meses` vem cortado em hoje). `null` com zero meses (período
+ * inteiro no futuro) ou um mês só: média de um número é o próprio número, e
+ * mostrar o total duas vezes com nomes diferentes é ruído.
+ */
+export function mediaMensalGastosCentavos(r: Pick<ResumoPeriodo, "totalGastosCentavos" | "meses">): number | null {
+  if (r.meses.length <= 1) return null
+  return Math.round(r.totalGastosCentavos / r.meses.length)
+}
+
+/**
+ * As barras do "Por grupo" (canvas tela-1g): percentual de cada grupo
+ * relativo ao MAIOR grupo (o maior = 100), não ao total — a barra compara
+ * grupos entre si, e é assim que o canvas desenha (74% / 49% / 29% / 14%).
+ */
+export function gastosPorGrupoComBarra(
+  gastosPorGrupo: readonly { grupo: string; totalCentavos: number }[],
+): { grupo: string; totalCentavos: number; percentual: number }[] {
+  const maior = Math.max(0, ...gastosPorGrupo.map((g) => g.totalCentavos))
+  if (maior <= 0) return gastosPorGrupo.map((g) => ({ ...g, percentual: 0 }))
+  return gastosPorGrupo.map((g) => ({ ...g, percentual: Math.round((g.totalCentavos / maior) * 100) }))
+}
+
 export function periodoSemAtividade(r: ResumoPeriodo): boolean {
   return (
     r.horasMotor === 0 &&

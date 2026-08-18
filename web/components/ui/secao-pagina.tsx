@@ -17,6 +17,7 @@ export function SecaoPagina({
   acao,
   children,
   className = "",
+  id,
 }: {
   /** Ícone à esquerda do rótulo — mesmo `NomeIcone` do resto do app. */
   icone?: NomeIcone
@@ -24,13 +25,17 @@ export function SecaoPagina({
   acao?: { href: string; rotulo: string; icone?: NomeIcone }
   children: ReactNode
   className?: string
+  /** Âncora (`#id`) — pra ação no topo da tela apontar pra seção certa
+   *  (ex.: o "+ Adicionar" de /barco/fotos). Junte `scroll-mt-*` no
+   *  `className` pra âncora não colar no topo da viewport. */
+  id?: string
 }) {
   return (
     // ONDA 54 — `items-center` no lugar de `items-baseline`: a ação da
     // direita deixou de ser um texto e virou um alvo de toque de 44px (ver
     // abaixo), e alinhar pela BASE um texto de 14px com uma caixa de 44px
     // empurrava o rótulo da seção para o topo da linha.
-    <div className={`mt-6 mb-2 flex items-center justify-between gap-2 ${className}`}>
+    <div id={id} className={`mt-6 mb-2 flex items-center justify-between gap-2 ${className}`}>
       <p className="rotulo inline-flex items-center gap-1.5 text-dim">
         {icone && <Icone nome={icone} className="size-3.5" />}
         {children}

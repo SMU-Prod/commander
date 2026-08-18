@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { RedeNav } from "@/components/ui/rede-nav"
@@ -7,18 +8,22 @@ import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarMapaTaxonomia, nomeDaRegiao, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import { hojeISO } from "@/lib/domain/datas"
 import {
+  contarPorTipo,
   demandasCompativeis,
   diasAteExpirar,
-  ICONE_TIPO_DEMANDA,
+  filtroTipoDemandaValido,
+  ROTULO_CURTO_TIPO_DEMANDA,
   ROTULO_STATUS_DEMANDA,
-  ROTULO_TIPO_DEMANDA,
+  tempoRelativo,
+  TIPOS_DEMANDA,
   type InteresseParaMatching,
 } from "@/lib/domain/marketplace"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Demanda, InteresseMarketplace, Proposta } from "@/lib/db/types"
 
 /**
- * MARKETPLACE (onda 45, PRD upgrade2-master-final §11).
+ * MARKETPLACE (onda 45, PRD upgrade2-master-final §11; anatomia da onda 62,
+ * canvas tela-3i).
  *
  * "Marketplace é orientado por DEMANDA. Não é feed para empresas anunciarem
  * produtos aleatórios" (§11). Por isso a tela abre com o botão de PUBLICAR um
@@ -26,6 +31,14 @@ import type { Demanda, InteresseMarketplace, Proposta } from "@/lib/db/types"
  *
  * A separação com o Explorar é a do §10/§11: Explorar mostra QUEM existe
  * (perfis, vitrine); Marketplace mostra O QUE alguém precisa.
+ *
+ * CANVAS TELA-3I — a anatomia do cartão: "o tipo é chip mono, o preço é
+ * número de instrumento e a nota fica à direita — mesma anatomia para vaga,
+ * serviço e pessoa. A ressalva de responsabilidade fecha a lista, não abre."
+ * Uma demanda NÃO tem preço nem nota (isso é da proposta, §11.5) — então o
+ * cartão dela usa a mesma gramática com o que ela tem de verdade: chip mono
+ * do tipo, idade à direita ("há 2 h", `tempoRelativo`), título gerado pelo
+ * Commander e o prazo em mono quando aperta. Nenhum número inventado.
  */
 function avisoDePrazo(expiraEm: string, hoje: string): string | null {
   const dias = diasAteExpirar(expiraEm, hoje)
@@ -43,11 +56,13 @@ export default async function MarketplacePage({
   // existe mais ou já foi encerrado, e as actions de proposta usam
   // `/marketplace` como rota de erro de último caso. Sem este parâmetro a
   // pessoa era jogada na lista sem nenhuma explicação.
-  searchParams: Promise<{ erro?: string }>
+  searchParams: Promise<{ erro?: string; tipo?: string }>
 }) {
-  const { erro: aviso } = await searchParams
+  const { erro: aviso, tipo: tipoBruto } = await searchParams
+  const filtroTipo = filtroTipoDemandaValido(tipoBruto)
   const supabase = await supabaseServer()
   const hoje = hojeISO()
+  const agora = new Date().toISOString()
   const { data: { user } } = await supabase.auth.getUser()
 
   const [mapa, { data: vivasBrutas, error }] = await Promise.all([
@@ -83,21 +98,40 @@ export default async function MarketplacePage({
   const outras = todas.filter((d) => !idsCompativeis.has(d.id))
   const demandaPorId = new Map([...todas, ...minhas].map((d) => [d.id, d]))
 
-  const cartao = (d: Demanda) => {
+  // Chips com número (canvas: "Tudo 18 · Serviço 7 · Vaga 5"). Só existe chip
+  // de tipo que TEM pedido aberto — oferecer um filtro que leva a uma lista
+  // vazia é completude de menu contra honestidade de estado (§24). A contagem
+  // é sobre os pedidos dos outros (os filtráveis); os seus não filtram.
+  const contagem = contarPorTipo(todas)
+  const filtrar = (lista: Demanda[]) => (filtroTipo ? lista.filter((d) => d.tipo === filtroTipo) : lista)
+  const compativeisFiltradas = filtrar(compativeis)
+  const outrasFiltradas = filtrar(outras)
+
+  const cartao = (d: Demanda, subtituloProprio?: string) => {
     const prazo = avisoDePrazo(d.expira_em, hoje)
     return (
-      <LinhaLista
+      <Link
         key={d.id}
         href={`/marketplace/${d.id}`}
-        variant="grupo"
-        leading={<Icone nome={ICONE_TIPO_DEMANDA[d.tipo]} className="size-5 shrink-0 text-dim" />}
-        titulo={tituloDeDemanda(mapa, d)}
-        subtitulo={`${ROTULO_TIPO_DEMANDA[d.tipo]} · ${nomeDaRegiao(mapa, d.regiao_id)}`}
-        valor={prazo ?? undefined}
-        valorClassName={prazo ? "text-warn" : ""}
-      />
+        className="sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
+      >
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.08em] text-dim-chip">
+            {ROTULO_CURTO_TIPO_DEMANDA[d.tipo]}
+          </span>
+          <span className="flex-1" />
+          <span className="font-mono-instr text-xs tabular-nums text-dim">{tempoRelativo(d.criado_em, agora)}</span>
+        </div>
+        <p className="titulo-card mt-2">{tituloDeDemanda(mapa, d)}</p>
+        <p className="apoio mt-0.5 text-dim">
+          {subtituloProprio ?? `${d.autor_nome} · ${nomeDaRegiao(mapa, d.regiao_id)}`}
+        </p>
+        {prazo && <p className="mt-2 font-mono-instr text-xs tabular-nums text-warn">{prazo}</p>}
+      </Link>
     )
   }
+
+  const hrefTipo = (t: string | null) => (t ? `/marketplace?tipo=${t}` : "/marketplace")
 
   return (
     <main>
@@ -105,9 +139,6 @@ export default async function MarketplacePage({
       <p className="apoio mt-1 text-dim">
         Diga o que você precisa — profissional, tripulação, peça, vaga ou caminhão de combustível — e quem
         atende a sua região responde por aqui.
-      </p>
-      <p className="apoio mt-1 text-dim">
-        O Commander não cobra comissão e não intermedeia pagamento: o combinado é direto entre vocês.
       </p>
       {aviso && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{aviso}</p>}
       <RedeNav atual="marketplace" className="mt-4" />
@@ -133,20 +164,30 @@ export default async function MarketplacePage({
         </Link>
       </div>
 
+      {/* Os chips do canvas, com a contagem em mono. O chip ativo é um dos
+          dois dourados de conteúdo da tela (o outro é "Publicar um pedido") —
+          régua do DESIGN §5. */}
+      {todas.length > 0 && (
+        <ChipLinha className="mt-4">
+          <Chip href={hrefTipo(null)} ativo={filtroTipo === null}>
+            Tudo <span className="ml-1.5 font-mono-instr tabular-nums">{todas.length}</span>
+          </Chip>
+          {TIPOS_DEMANDA.filter((t) => contagem[t] > 0 || t === filtroTipo).map((t) => (
+            <Chip key={t} href={hrefTipo(t)} ativo={filtroTipo === t}>
+              {ROTULO_CURTO_TIPO_DEMANDA[t]}{" "}
+              <span className="ml-1.5 font-mono-instr tabular-nums">{contagem[t]}</span>
+            </Chip>
+          ))}
+        </ChipLinha>
+      )}
+
       {minhas.length > 0 && (
         <>
           <SecaoPagina icone="documento">Seus pedidos</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-            {minhas.map((d) => (
-              <LinhaLista
-                key={d.id}
-                href={`/marketplace/${d.id}`}
-                variant="grupo"
-                leading={<Icone nome={ICONE_TIPO_DEMANDA[d.tipo]} className="size-5 shrink-0 text-dim" />}
-                titulo={tituloDeDemanda(mapa, d)}
-                subtitulo={`${ROTULO_STATUS_DEMANDA[d.status]} · ${nomeDaRegiao(mapa, d.regiao_id)}`}
-              />
-            ))}
+          <div className="flex flex-col gap-2">
+            {minhas.map((d) =>
+              cartao(d, `${ROTULO_STATUS_DEMANDA[d.status]} · ${nomeDaRegiao(mapa, d.regiao_id)}`),
+            )}
           </div>
         </>
       )}
@@ -180,41 +221,56 @@ export default async function MarketplacePage({
       )}
 
       <SecaoPagina icone="sinal">Combinam com você</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-        {interesses.length === 0 ? (
-          <EstadoVazio
-            variant="linha"
-            icone="sinal"
-            titulo="Você ainda não disse o que quer receber"
-            descricao="Escolha suas regiões e áreas de atuação — só chegam os pedidos que combinam com elas."
-            acao={{ href: "/marketplace/interesses", rotulo: "Escolher o que recebo" }}
-          />
-        ) : compativeis.length === 0 ? (
-          <EstadoVazio
-            variant="linha"
-            icone="sinal"
-            titulo="Nenhum pedido compatível agora"
-            descricao="Tente ampliar as regiões ou as categorias que você atende."
-            acao={{ href: "/marketplace/interesses", rotulo: "Ajustar o que recebo" }}
-          />
-        ) : (
-          compativeis.map(cartao)
-        )}
-      </div>
+      {interesses.length === 0 ? (
+        <EstadoVazio
+          icone="sinal"
+          titulo="Você ainda não disse o que quer receber"
+          descricao="Escolha suas regiões e áreas de atuação — só chegam os pedidos que combinam com elas."
+          acao={{ href: "/marketplace/interesses", rotulo: "Escolher o que recebo" }}
+        />
+      ) : compativeisFiltradas.length === 0 ? (
+        <EstadoVazio
+          icone="sinal"
+          titulo={filtroTipo ? "Nenhum pedido compatível desse tipo" : "Nenhum pedido compatível agora"}
+          descricao={
+            filtroTipo
+              ? "Veja tudo de novo ou ajuste o que você recebe."
+              : "Tente ampliar as regiões ou as categorias que você atende."
+          }
+          acao={
+            filtroTipo
+              ? { href: "/marketplace", rotulo: "Limpar filtro" }
+              : { href: "/marketplace/interesses", rotulo: "Ajustar o que recebo" }
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-2">{compativeisFiltradas.map((d) => cartao(d))}</div>
+      )}
 
       <SecaoPagina icone="marketplace">Todos os pedidos abertos</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-        {outras.length === 0 ? (
-          <EstadoVazio
-            variant="linha"
-            icone="marketplace"
-            titulo="Nada aberto no momento"
-            descricao="Seja o primeiro a publicar o que precisa."
-            acao={{ href: "/marketplace/nova", rotulo: "Publicar um pedido" }}
-          />
-        ) : (
-          outras.map(cartao)
-        )}
+      {outrasFiltradas.length === 0 ? (
+        <EstadoVazio
+          icone="marketplace"
+          titulo={filtroTipo ? "Nada aberto desse tipo agora" : "Nada aberto no momento"}
+          descricao={filtroTipo ? "Limpe o filtro pra ver todos os pedidos." : "Seja o primeiro a publicar o que precisa."}
+          acao={
+            filtroTipo
+              ? { href: "/marketplace", rotulo: "Limpar filtro" }
+              : { href: "/marketplace/nova", rotulo: "Publicar um pedido" }
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-2">{outrasFiltradas.map((d) => cartao(d))}</div>
+      )}
+
+      {/* Canvas tela-3i: "a ressalva de responsabilidade fecha a lista, não
+          abre". É a mesma frase honesta que abria a tela — só mudou de lugar. */}
+      <div className="mt-4 flex gap-2.5 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
+        <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
+        <p className="apoio text-dim-chip">
+          O Commander apresenta as partes e não cobra comissão. Contrato, pagamento e responsabilidade
+          ficam entre vocês.
+        </p>
       </div>
     </main>
   )

@@ -80,6 +80,23 @@
   --texto-dim-chip: #88a0b8;
 }
 
+/* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
+   dono, docs/design-mobile/): a MESMA fonte carregada em todo dispositivo, em
+   vez de "o mono que o sistema tiver". A pilha ui-monospace fica de fallback
+   pro instante antes da fonte chegar (e pro caso de falha de carga);
+   --font-plex-mono vem do next/font em app/layout.tsx.
+
+   POR QUE ISTO MORA FORA DO @theme: `@theme inline` NÃO emite a variável no
+   :root — só inlina o valor nas utilities geradas (`font-mono-instr` nos
+   componentes). Até a onda 62, `.rotulo` fazia `var(--font-mono-instr)`
+   apontando pro token do @theme: a var não existia no DOM, a declaração
+   inteira era inválida e o rótulo herdava silenciosamente a fonte do body —
+   mono só no papel. A pilha agora é uma custom property de verdade, e o
+   @theme referencia ELA. */
+:root {
+  --pilha-mono-instr: var(--font-plex-mono), ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+}
+
 @theme inline {
   --color-ink: var(--fundo);
   --color-panel: var(--superficie);
@@ -100,7 +117,7 @@
   --color-meter-dim: var(--meter-dim);
   --color-mapa-instrumento: var(--mapa-instrumento);
   --color-mapa-instrumento-borda: var(--mapa-instrumento-borda);
-  --font-mono-instr: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+  --font-mono-instr: var(--pilha-mono-instr);
 }
 
 /* Onda 24 (passe de arte, /navegar) — cartões flutuantes sobre o mapa
@@ -140,7 +157,10 @@
 body {
   background: var(--fundo);
   color: var(--texto);
-  font-family: var(--font-urbanist), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Onda 62 — IBM Plex Sans no lugar da Urbanist (canvas do dono; a decisão
+     e o porquê estão em docs/DESIGN.md §5, Tipografia). A variável vem do
+     next/font em app/layout.tsx. */
+  font-family: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Onda 25 (bug de produção, print do dono 12/08, iPhone tema escuro,
@@ -230,7 +250,10 @@ body.fundo-tela-mapa {
   .corpo { font-size: .875rem; line-height: 1.5; }                            /* 14px */
   .apoio { font-size: .8125rem; line-height: 1.45; }                          /* 13px */
   .rotulo {
-    font-family: var(--font-mono-instr);
+    /* var(--pilha-mono-instr), e NÃO var(--font-mono-instr): o token do
+       @theme inline não existe como custom property no DOM — ver o comentário
+       na definição da pilha, acima do @theme. */
+    font-family: var(--pilha-mono-instr);
     font-size: .6875rem;    /* 11px — piso */
     letter-spacing: .16em;
     text-transform: uppercase;

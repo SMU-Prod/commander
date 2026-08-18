@@ -1,12 +1,25 @@
 import type { Metadata, Viewport } from "next"
-import { Urbanist } from "next/font/google"
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google"
 import { Analytics } from "@/components/analytics"
 import "./globals.css"
 
-const urbanist = Urbanist({
+// Onda 62 — IBM Plex assume no lugar da Urbanist. Decisão do dono no canvas
+// (docs/design-mobile/): a seção 2 testou três direções tipográficas e a 3
+// consolidou IBM Plex — as 32 telas foram desenhadas nela. Sans pro texto e
+// títulos; Mono pros números de instrumento E pros rótulos uppercase de
+// cartão (.rotulo em globals.css / --font-mono-instr no @theme).
+// IBM Plex no Google Fonts é família de pesos estáticos (não variable font),
+// por isso os quatro pesos explícitos.
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-urbanist",
+  variable: "--font-plex-sans",
+})
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex-mono",
 })
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
@@ -51,8 +64,14 @@ const temaInicial = `try{if(localStorage.getItem("tema")!=="light")document.docu
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${urbanist.variable} antialiased`}>
+    // As classes de VARIÁVEL das fontes ficam no <html>, não no <body> — a
+    // pilha --pilha-mono-instr (globals.css) é definida em :root e referencia
+    // var(--font-plex-mono): custom property resolve var() no elemento onde
+    // ELA é computada, então com a variável da fonte um nível abaixo (body) a
+    // pilha computava "guaranteed-invalid" no html e todo mundo herdava o
+    // inválido — rótulo e instrumento caíam silenciosamente na fonte do corpo.
+    <html lang="pt-BR" className={`${plexSans.variable} ${plexMono.variable}`} suppressHydrationWarning>
+      <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
         <Analytics />
         {children}

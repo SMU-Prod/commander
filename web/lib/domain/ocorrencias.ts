@@ -1,5 +1,6 @@
+import { diaCivilSP, diasAteData } from "@/lib/domain/datas"
 import type { Aba } from "@/lib/domain/permissoes"
-import type { StatusFarol } from "@/lib/domain/semaforo"
+import { formatarDataCurta, type StatusFarol } from "@/lib/domain/semaforo"
 
 /**
  * Ocorrências (onda 32) — "Diário gera histórico. Ocorrência gera ação."
@@ -157,4 +158,79 @@ export function registroDaAnulacao(
   return novoEstado === "anulada"
     ? { anulada_em: agoraISO, anulada_por: usuarioId, motivo_anulacao: motivo }
     : { anulada_em: null, anulada_por: null, motivo_anulacao: null }
+}
+
+// ---------------------------------------------------------------------------
+// Apresentação da lista (onda 62, canvas tela-3f) — "ativa é cartão com
+// severidade na borda; resolvida volta a ser linha". As funções abaixo só
+// escrevem as frases e escolhem a luz; nenhuma régua nova de estado nasce
+// aqui (estado continua sendo `faroDoEstado`/`pesaNaSaude` acima).
+// ---------------------------------------------------------------------------
+
+/** A luz da borda (e do selo) de um cartão de ocorrência ATIVA — a
+ *  severidade que a pessoa DECLAROU, não o estado. Alta acende a luz de
+ *  crítico (é o que a Saúde chama de ação necessária — `GRAVIDADE_CRITICA`
+ *  em saude.ts); média e baixa acendem a de atenção (o canvas 3f pinta as
+ *  duas de âmbar: problema conhecido, sem alarme). Sem gravidade registrada
+ *  não se inventa cor — `null`, borda neutra (mesma regra de honestidade da
+ *  Saúde: dado ausente nunca vira MAIS alarme). */
+export function farolDaGravidade(gravidade: Gravidade | null): StatusFarol | null {
+  if (gravidade == null) return null
+  return gravidade === "alta" ? "vencido" : "atencao"
+}
+
+/** A linha de contexto do cartão de uma ocorrência ATIVA (canvas 3f):
+ *  "Casco · aberta em 10/08 por Marcos Jordão · em acompanhamento".
+ *  Sem autor conhecido a frase para na data — nunca um "por Alguém" que só
+ *  confessa que não sabemos. O estado só entra quando acrescenta algo:
+ *  "aberta em 10/08" já diz que está aberta; "em acompanhamento" é a
+ *  informação nova (alguém já está cuidando). */
+export function linhaDaAtiva(p: {
+  rotuloAba: string
+  aberturaISO: string
+  autor: string | null
+  estado: EstadoQuePesaNaSaude
+}): string {
+  const quando = formatarDataCurta(diaCivilSP(p.aberturaISO))
+  const abertura = `${p.rotuloAba} · aberta em ${quando}${p.autor ? ` por ${p.autor}` : ""}`
+  return p.estado === "em_acompanhamento" ? `${abertura} · em acompanhamento` : abertura
+}
+
+/** Os chips de rodapé do cartão de uma ativa (canvas 3f: "2 fotos ·
+ *  1 orçamento · 6 dias aberta") — só o que EXISTE de verdade no dado:
+ *  o anexo quando há um, e há quanto tempo o problema está em aberto.
+ *  Orçamento não é entidade do Commander; não se desenha chip pra ele. */
+export function chipsDaAtiva(temAnexo: boolean, aberturaISO: string, hojeISO: string): string[] {
+  const chips: string[] = []
+  if (temAnexo) chips.push("1 anexo")
+  const dias = diasAteData(hojeISO, diaCivilSP(aberturaISO))
+  if (dias <= 0) chips.push("aberta hoje")
+  else chips.push(dias === 1 ? "1 dia aberta" : `${dias} dias aberta`)
+  return chips
+}
+
+/** O subtítulo de uma linha FINALIZADA (canvas 3f): "Resolvida em 02/08 ·
+ *  troca de impelidor" / "Anulada em 21/07 · registro não procedia". A nota
+ *  é a observação escrita por quem fechou (na anulada, o motivo obrigatório
+ *  do PRD §7); sem data conhecida a palavra fica sozinha — nunca se inventa
+ *  um carimbo. */
+export function linhaDaFinalizada(p: {
+  estado: "resolvida" | "anulada"
+  quandoISO: string | null
+  nota: string | null
+}): string {
+  const palavra = p.estado === "resolvida" ? "Resolvida" : "Anulada"
+  const quando = p.quandoISO ? ` em ${formatarDataCurta(diaCivilSP(p.quandoISO))}` : ""
+  const nota = p.nota?.trim() ? ` · ${p.nota.trim()}` : ""
+  return `${palavra}${quando}${nota}`
+}
+
+/** O título do painel de finalizadas — diz o que o painel de fato contém,
+ *  em vez de um "Resolvidas recentemente" fixo que mentiria quando o filtro
+ *  mostra só anuladas. `null` sem nada finalizado: painel nenhum. */
+export function tituloDasFinalizadas(temResolvida: boolean, temAnulada: boolean): string | null {
+  if (temResolvida && temAnulada) return "Resolvidas e anuladas"
+  if (temResolvida) return "Resolvidas recentemente"
+  if (temAnulada) return "Anuladas"
+  return null
 }

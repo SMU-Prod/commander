@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
   calcularSemaforo,
+  formatarDataCurtaComAno,
+  linhaDaRegra,
   rotuloDoFarol,
   seloDoFarol,
   temInformacaoSuficiente,
@@ -210,6 +212,44 @@ describe("seloDoFarol e rotuloDoFarol — o chip de estado do cabeçalho de fich
     for (const s of ["ok", "atencao", "vencido", null] as const) {
       expect(rotuloDoFarol(s)).not.toMatch(/\d|%/)
     }
+  })
+})
+
+describe("linhaDaRegra — a frase da regra na ficha de equipamento (canvas tela-3c)", () => {
+  it("intervalo em horas com último ciclo diz os dois números", () => {
+    expect(
+      linhaDaRegra({ intervaloHoras: 250, intervaloMeses: null, dataFixa: null, ultimoCicloData: null, ultimoCicloHoras: 1069 }),
+    ).toBe("A cada 250 h · última em 1.069 h")
+  })
+  it("intervalo em horas sem último ciclo diz só a regra", () => {
+    expect(
+      linhaDaRegra({ intervaloHoras: 500, intervaloMeses: null, dataFixa: null, ultimoCicloData: null, ultimoCicloHoras: null }),
+    ).toBe("A cada 500 h")
+  })
+  it("intervalo em meses com último ciclo usa a data curta", () => {
+    expect(
+      linhaDaRegra({ intervaloHoras: null, intervaloMeses: 12, dataFixa: null, ultimoCicloData: "2025-09-02", ultimoCicloHoras: null }),
+    ).toBe("A cada 12 meses · última em 02/09")
+    expect(
+      linhaDaRegra({ intervaloHoras: null, intervaloMeses: 1, dataFixa: null, ultimoCicloData: null, ultimoCicloHoras: null }),
+    ).toBe("A cada 1 mês")
+  })
+  it("data fixa diz quando vence, com ano curto", () => {
+    expect(
+      linhaDaRegra({ intervaloHoras: null, intervaloMeses: null, dataFixa: "2027-03-14", ultimoCicloData: null, ultimoCicloHoras: null }),
+    ).toBe("Vence em 14/03/27")
+  })
+  it("sem intervalo nenhum confessa em voz alta — nunca finge estado", () => {
+    expect(
+      linhaDaRegra({ intervaloHoras: null, intervaloMeses: null, dataFixa: null, ultimoCicloData: null, ultimoCicloHoras: null }),
+    ).toBe("Sem intervalo informado")
+  })
+})
+
+describe("formatarDataCurtaComAno", () => {
+  it("dd/mm/aa", () => {
+    expect(formatarDataCurtaComAno("2027-03-14")).toBe("14/03/27")
+    expect(formatarDataCurtaComAno("2026-12-01")).toBe("01/12/26")
   })
 })
 

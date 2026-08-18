@@ -85,6 +85,7 @@ const ROTAS = [
   "/barco/hidraulica", "/barco/seguranca", "/barco/documentos", "/barco/fotos",
   "/barco/contatos", "/barco/gastos", "/barco/historico", "/barco/ocorrencias",
   "/barco/ocorrencias/nova", "/barco/itens/novo", "/barco/equipamento/novo",
+  "/barco/mapa",
   "/barco/resumos", "/barco/local", "/barco/editar", "/barco/transferir",
   "/barco/selos", "/barco/selos/verified", "/barco/selos/gold", "/barco/connect",
   "/diario", "/diario/novo",
