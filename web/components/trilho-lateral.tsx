@@ -99,8 +99,16 @@ export function TrilhoLateral({
       // SEM `overflow-hidden` aqui, e isso é requisito e não descuido: as
       // pastilhas de rótulo vivem fora dos 72px. Qualquer `overflow` que não
       // seja `visible` neste <nav> corta o rótulo no meio da palavra.
-      className="no-imprimir fixed inset-y-0 left-0 z-20 hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-4 lg:flex"
+      className="no-imprimir fixed inset-y-0 left-0 z-20 hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-5 lg:flex"
     >
+      {/* ONDA 62 — a marca no alto do trilho (canvas tela-3n): o M dourado do
+          Commander abre a coluna, como no desenho do dono. Decorativa
+          (`aria-hidden`), não é alvo — o caminho pra casa continua sendo o
+          primeiro destino logo abaixo. É o dourado DE MARCA, que a regra da
+          moldura sempre permitiu ao lado do de navegação. */}
+      <svg viewBox="0 0 48 34" className="mb-3.5 h-[22px] w-auto" aria-hidden="true">
+        <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="var(--acao)" />
+      </svg>
       {DESTINOS.filter((d) => d.aba == null || podeVer(permissoes, d.aba)).map((d) => {
         // `startsWith` com a barra: sem ela `/barco` acenderia junto com
         // qualquer rota que só COMECE com essas letras.
@@ -121,14 +129,17 @@ export function TrilhoLateral({
             // já respeita (a varredura de tela reprova abaixo disso). Alvo
             // quadrado só com ícone: é o que dispensa reservar largura para
             // texto. `group` é o gancho do hover/foco da pastilha.
-            className={`group relative flex size-11 items-center justify-center rounded-[var(--raio-controle)] ${
+            className={`group relative flex size-11 items-center justify-center rounded-[var(--raio-cartao)] ${
               // O estado ativo NÃO pode depender de hover — é a única pista
               // de onde a pessoa está. Fundo tingido + cor do ícone: dois
               // canais, nunca só cor (docs/DESIGN.md).
-              // Acabamento Haulix (16/08): o "você está aqui" vira pastilha
-              // CLARA (como a referência), não tinta dourada — o dourado
-              // fica pro que se age, o lugar se marca com luz.
-              ativo ? "bg-panel2 text-texto" : "text-dim hover:bg-panel2"
+              // ONDA 62 — o canvas do dono (tela-3n) marca o onde-estou com a
+              // TINTA dourada (fundo dourado a ~14% + ícone accent-forte), e
+              // é exatamente o que a regra da moldura já dizia: "o dourado de
+              // moldura é só o de navegação". A pastilha clara do acabamento
+              // Haulix (16/08) valeu até o canvas fixar o desenho final; o
+              // raio também sobe pro de cartão (14px), como lá.
+              ativo ? "bg-accent/15 text-accent-forte" : "text-dim hover:bg-panel2"
             }`}
           >
             {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.
