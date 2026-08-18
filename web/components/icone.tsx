@@ -24,6 +24,7 @@ const PATHS = {
   imagem: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="m21 16-5-5-9 8" /></>,
   estrela: <path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7 1-5.5-4-3.9L9.6 9z" />,
   medalha: <><circle cx="12" cy="15" r="5" /><path d="M8.5 10.5 6 3h12l-2.5 7.5M12 13v4l2 1" /></>,
+  check: <path d="m5 13 4 4L19 7" />,
   chevron: <path d="m9 5 7 7-7 7" />,
   voltar: <path d="m15 5-7 7 7 7" />,
   mais: <path d="M12 5v14M5 12h14" />,
