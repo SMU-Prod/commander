@@ -25,6 +25,18 @@
      vivo via getComputedStyle: 5.00:1 aqui, 4.89:1 no dark abaixo. */
   --texto-dim-chip: #596976;
 
+  /* ONDA 63 — COR DE DADO, a categoria que faltava.
+     O app tinha três famílias de cor (texto, semântico ok/warn/crít, e o
+     dourado de ação/marca) e nenhuma pra DADO — barra de gráfico, área,
+     série. Sem ela, o gráfico de gastos pintava o mês corrente com
+     `--texto` (branco puro no escuro): a auditoria visual de 18/08 mediu
+     que ele virava o objeto mais alto da Início, mais forte que a própria
+     ação dourada. Verde/âmbar/vermelho também não servem — são estado do
+     barco, e gasto de junho não é "atenção".
+     Teal-aço: distinta do dourado, distinta dos semânticos, e é o que a
+     referência (painel Haulix) usa nos gráficos pelo mesmo motivo. */
+  --dado: #0f6d7a;
+
   /* Onda 57 — forma. Três raios e três elevações, e nada fora disto.
      Quatro raios diferentes na mesma tela foi o que fez a proposta de
      redesign parecer gerada: decoração distribuída em vez de sistema.
@@ -78,6 +90,8 @@
   --meter-texto: #e9f1f8;
   --meter-dim: #7c93ab;
   --texto-dim-chip: #88a0b8;
+  /* Mesma teal, clareada pro fundo quase-preto (ver o bloco do tema claro). */
+  --dado: #3fa7b8;
 }
 
 /* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
@@ -105,6 +119,7 @@
   --color-texto: var(--texto);
   --color-dim: var(--texto-dim);
   --color-dim-chip: var(--texto-dim-chip);
+  --color-dado: var(--dado);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-crit: var(--crit);

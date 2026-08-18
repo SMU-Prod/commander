@@ -1,7 +1,7 @@
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { FaixaTopo, nomeDoEmail, type EquipamentoFaixa, type ItemFaixa } from "./faixa-topo"
+import { FaixaTopo, nomeDoAvatar, type EquipamentoFaixa, type ItemFaixa } from "./faixa-topo"
 
 /**
  * Mesmo padrão de `abas.test.ts`: `renderToStaticMarkup` sem jsdom — a
@@ -158,15 +158,23 @@ describe("FaixaTopo", () => {
   })
 })
 
-describe("nomeDoEmail", () => {
-  it("transforma a parte local do e-mail num nome separável por espaços", () => {
-    expect(nomeDoEmail("joao.silva@x.com")).toBe("joao silva")
-    expect(nomeDoEmail("ana-paula_reis@x.com")).toBe("ana paula reis")
-    expect(nomeDoEmail("erick@x.com")).toBe("erick")
+describe("nomeDoAvatar", () => {
+  it("o NOME manda — é o que impede faixa e saudação de mostrarem letras diferentes", () => {
+    // O defeito que este teste tranca (auditoria visual 18/08 §10): a faixa
+    // derivava do e-mail ("E3") e a saudação do nome ("EC"), lado a lado na
+    // mesma tela. Com nome disponível, o e-mail nem é consultado.
+    expect(nomeDoAvatar("Erick Cardoso", "e2e-3f@soumardivers.com")).toBe("Erick Cardoso")
+    expect(nomeDoAvatar("  Erick  ", "outro@x.com")).toBe("Erick")
   })
 
-  it("sem e-mail devolve vazio (o Avatar resolve com '?')", () => {
-    expect(nomeDoEmail(null)).toBe("")
-    expect(nomeDoEmail("")).toBe("")
+  it("sem nome, cai no e-mail — cadastro incompleto continua tendo avatar", () => {
+    expect(nomeDoAvatar(null, "joao.silva@x.com")).toBe("joao silva")
+    expect(nomeDoAvatar("", "ana-paula_reis@x.com")).toBe("ana paula reis")
+    expect(nomeDoAvatar("   ", "erick@x.com")).toBe("erick")
+  })
+
+  it("sem nome e sem e-mail devolve vazio (o Avatar resolve com '?')", () => {
+    expect(nomeDoAvatar(null, null)).toBe("")
+    expect(nomeDoAvatar("", "")).toBe("")
   })
 })

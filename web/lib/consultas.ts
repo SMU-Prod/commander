@@ -41,10 +41,23 @@ export const carregarPainel = cache(async (): Promise<{
   permissoes: Permissoes | null
   embarcacoes: { id: string; nome: string }[]
   /** E-mail da conta logada — vem DE GRAÇA do `getUser()` que esta função
-   *  sempre fez (onda 60): a faixa de topo do desktop precisa de iniciais
-   *  pro avatar em toda página, e carregar o profile só pra isso seria uma
-   *  consulta nova por navegação. */
+   *  sempre fez (onda 60). Continua aqui porque é o único dado de conta que
+   *  NUNCA falta; o nome abaixo pode estar vazio num cadastro incompleto. */
   emailUsuario: string | null
+  /**
+   * ONDA 63 — O NOME DE VERDADE, PORQUE DUAS TELAS DISCORDAVAM SOBRE ELE.
+   *
+   * A faixa de topo derivava as iniciais do e-mail ("e2e-3f@…" → "E3") e a
+   * saudação da Início lia o `nome` do perfil ("Erick Cardoso" → "EC"): dois
+   * avatares com iniciais DIFERENTES a 60px um do outro, na mesma tela
+   * (auditoria visual 18/08, §10). O argumento pra derivar do e-mail era não
+   * pagar consulta por navegação — mas a conta estava errada nos dois
+   * sentidos: `/hoje` e `/menu/ajustes` JÁ pagavam essa consulta por conta
+   * própria, então trazê-la pra cá (que é `cache()` por requisição) não
+   * soma consulta nenhuma — ELIMINA a repetida, e de quebra a faixa passa a
+   * poder mostrar a foto real em vez de iniciais.
+   */
+  perfil: { nome: string | null; avatarPath: string | null } | null
 } | null> => {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -87,8 +100,13 @@ export const carregarPainel = cache(async (): Promise<{
   // dono): 1,3 ms com 2 barcos, ~456 ms projetados com 1.000 assinantes, em
   // TODA página. Era a consulta mais cara do app (auditoria CTO 18/08).
   const idsDoUsuario = (meusVinculos ?? []).map((v) => v.embarcacao_id)
-  const { data: todas } = await supabase
-    .from("embarcacoes").select("id, nome").in("id", idsDoUsuario).order("nome")
+  const [{ data: todas }, { data: perfilBruto }] = await Promise.all([
+    supabase.from("embarcacoes").select("id, nome").in("id", idsDoUsuario).order("nome"),
+    // Uma linha por id, indexada — e em paralelo com a de cima. Ver o
+    // comentário de `perfil` no tipo de retorno: quem já fazia esta consulta
+    // por conta própria (`/hoje`, `/menu/ajustes`) passa a reusar esta.
+    supabase.from("profiles").select("nome, avatar_path").eq("id", user?.id ?? "").maybeSingle(),
+  ])
 
   const papel = vinculo.papel as "PROP" | "CMDT"
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)
@@ -101,6 +119,9 @@ export const carregarPainel = cache(async (): Promise<{
     permissoes,
     embarcacoes: todas ?? [],
     emailUsuario: user?.email ?? null,
+    perfil: perfilBruto
+      ? { nome: perfilBruto.nome as string | null, avatarPath: perfilBruto.avatar_path as string | null }
+      : null,
   }
 })
 

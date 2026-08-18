@@ -143,11 +143,6 @@ export function TrilhoLateral({
             }`}
           >
             {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.
-                Ancorado num `<span relative>` em volta do ÍCONE, e não no
-                <Link>, porque o alvo aqui tem 44px e o ícone 20px: pendurado
-                no alvo, o número ficaria flutuando longe do desenho que ele
-                anota. É a mesma anatomia da bottom-nav, que também ancora no
-                ícone e não na coluna inteira.
                 Sem ele, a partir de 1024px o app inteiro ficava sem indicador
                 de alerta: a barra de baixo (que carrega o contador) é
                 `lg:hidden`, o sino tem UM consumidor (/hoje) e a faixa de
@@ -155,11 +150,19 @@ export function TrilhoLateral({
                 que não fosse a Início, o seguro vencido não avisava em lugar
                 nenhum. Desde a onda 60 a faixa existe (`FaixaTopo`) e traz o
                 MESMO `ContadorAvisos` com o MESMO número do layout: os dois
-                sinos nunca discordam por construção. */}
-            <span className="relative flex">
-              <Icone nome={d.icone} className="size-5" />
-              {d.href === "/notificacoes" && <ContadorAvisos avisos={avisos} />}
-            </span>
+                sinos nunca discordam por construção.
+
+                ONDA 63 — ANCORADO NO ALVO, NÃO NO ÍCONE. A versão anterior
+                pendurava o número num `<span relative>` em volta do ícone,
+                "pra não ficar longe do desenho que ele anota". O argumento
+                estava certo pra bottom-nav (ícone de 21px com ar em volta) e
+                errado aqui: neste trilho o mesmo ícone mora centrado num
+                alvo de 44px, e ancorar nos 20px do glifo joga o número EM
+                CIMA do sino. A auditoria visual de 18/08 mediu isso em ~70
+                telas — o indicador que existe justamente pra ser visto era o
+                que estava ilegível. */}
+            <Icone nome={d.icone} className="size-5" />
+            {d.href === "/notificacoes" && <ContadorAvisos avisos={avisos} posicao="canto" />}
             {/* A PASTILHA.
                 `left-full ml-[22px]`: o alvo tem 44px centrado nos 72px do
                 trilho, então sobram 14px até a borda direita — 14 + 8 de

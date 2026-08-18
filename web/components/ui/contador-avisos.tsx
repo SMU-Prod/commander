@@ -21,7 +21,32 @@
  * `font-mono-instr tabular-nums`: é número de instrumento, e "9+" ao lado de
  * "3" precisa ter a mesma largura de dígito (docs/DESIGN.md §5, tipografia).
  */
-export function ContadorAvisos({ avisos }: { avisos: number }) {
+/**
+ * ONDA 63, auditoria visual §9 — DUAS ÂNCORAS, PORQUE SÃO DUAS CAIXAS.
+ *
+ * O badge nasceu ancorado no ÍCONE (`-right-2 -top-1`), que é o certo na
+ * barra de baixo: lá o ícone de 21px tem ar em volta e o número sobe pra
+ * fora dele. No trilho de desktop a caixa é outra — o mesmo ícone mora
+ * centrado num alvo de 44px —, e ancorar no ícone joga o número EM CIMA do
+ * desenho do sino. A auditoria mediu isso em ~70 telas: o único indicador
+ * de alerta crítico do desktop, ilegível.
+ *
+ * `canto` ancora no alvo, não no glifo: o número vai pro canto superior
+ * direito dos 44px e o sino fica inteiro. Mesma cor, mesmo tamanho, mesma
+ * frase — só o ponto de origem muda.
+ */
+const POSICAO = {
+  icone: "-right-2 -top-1",
+  canto: "right-0.5 top-0.5",
+} as const
+
+export function ContadorAvisos({
+  avisos,
+  posicao = "icone",
+}: {
+  avisos: number
+  posicao?: keyof typeof POSICAO
+}) {
   if (avisos <= 0) return null
   return (
     /* ONDA 62 — o número sobe de 9px pra 11px: o canvas do dono
@@ -32,7 +57,7 @@ export function ContadorAvisos({ avisos }: { avisos: number }) {
        legível nos dois sem cor literal nova. */
     <span
       aria-label={`${avisos} avisos que pedem atenção`}
-      className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[11px] font-semibold leading-4 tabular-nums text-ink"
+      className={`absolute ${POSICAO[posicao]} flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[11px] font-semibold leading-4 tabular-nums text-ink`}
     >
       {avisos > 9 ? "9+" : avisos}
     </span>

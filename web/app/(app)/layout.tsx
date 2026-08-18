@@ -72,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           hoje={hojeISO()}
           avisos={avisos}
           email={painel.emailUsuario}
+          nome={painel.perfil?.nome ?? null}
         />
       )}
     >

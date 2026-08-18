@@ -16,20 +16,35 @@ export function GraficoMesesGastos({
   const maiorMes = Math.max(1, ...meses.map((m) => m.totalCentavos))
   const barras = (
     <div className="flex items-end gap-2" style={{ height: altura }}>
-      {meses.map((m) => (
-        <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
-          <div
-            /* Onda 57 — a barra do mês corrente era dourada. Dourado é ação
-               principal e marca (docs/DESIGN.md §5), e aqui ele estava só
-               marcando "este é o mês de agora" — trabalho que o contraste
-               faz igual, sem gastar o acento que a tela reserva pro botão
-               que importa. */
-            className={`w-full rounded-t ${m.mes === mesAtual ? "bg-texto" : "bg-panel2 border border-line"}`}
-            style={{ height: `${Math.round((m.totalCentavos / maiorMes) * 100)}%`, minHeight: m.totalCentavos > 0 ? 4 : 1 }}
-          />
-          <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
-        </div>
-      ))}
+      {meses.map((m) => {
+        const proporcao = m.totalCentavos / maiorMes
+        return (
+          <div key={m.mes} className="flex flex-1 flex-col items-center justify-end gap-1 self-stretch">
+            <div
+              /* ONDA 63, auditoria visual §2 — TRÊS DEFEITOS NUM GRÁFICO SÓ.
+                 A onda 57 tirou o dourado da barra do mês (certo: dourado é
+                 ação e marca) e pôs `bg-texto` no lugar — branco puro no
+                 escuro, preto puro no claro. O remédio virou o pior sintoma:
+                 num mês de gasto alto essa barra ficava o objeto MAIS FORTE
+                 da Início, acima da própria ação dourada. Junto vinham mais
+                 dois: as barras dos outros meses eram contorno vazio (um
+                 terceiro formato no mesmo gráfico) e um mês pequeno ao lado
+                 de um mês grande virava fio de 4px — dado que existe e não
+                 se lê.
+                 Agora: UMA cor, a de dado (`--dado`), com o mês corrente
+                 cheio e os anteriores a 45%. Zero continua sendo linha de
+                 base fina — mês sem gasto não inventa altura —, mas
+                 qualquer valor > 0 tem 8% de piso pra ser visível. */
+              className={`w-full rounded-t ${m.mes === mesAtual ? "bg-dado" : "bg-dado/45"}`}
+              style={{
+                height: `${Math.round(Math.max(proporcao, m.totalCentavos > 0 ? 0.08 : 0) * 100)}%`,
+                minHeight: m.totalCentavos > 0 ? 6 : 2,
+              }}
+            />
+            <span className="font-mono-instr text-[11px] uppercase text-dim">{m.rotulo}</span>
+          </div>
+        )
+      })}
     </div>
   )
   if (!comMoldura) return barras

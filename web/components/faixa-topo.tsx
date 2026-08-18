@@ -58,13 +58,24 @@ export type ItemFaixa = Pick<
 >
 
 /**
- * O nome que alimenta as iniciais do avatar, a partir do e-mail da conta.
- * "joao.silva@x.com" → "joao silva" → o `Avatar` tira "JS". O layout não
- * carrega o profile (nome/foto) — carregar seria uma consulta nova por
- * página, exatamente o que a faixa não pode custar. O e-mail já vem de graça
- * no `getUser()` que `carregarPainel` sempre fez.
+ * O nome que alimenta as iniciais do avatar.
+ *
+ * ONDA 63 — O NOME REAL MANDA; O E-MAIL É A RESERVA. Até aqui esta função
+ * derivava as iniciais SÓ do e-mail ("e2e-3f@…" → "E3"), enquanto a saudação
+ * da Início lia o `nome` do perfil ("Erick Cardoso" → "EC"): dois avatares
+ * com iniciais diferentes a 60px um do outro, na mesma tela (auditoria
+ * visual 18/08, §10). O argumento de então — "carregar o profile seria uma
+ * consulta nova por página" — caiu quando se olhou o custo de verdade:
+ * `/hoje` e `/menu/ajustes` já pagavam essa consulta por conta própria, e
+ * trazê-la pro `carregarPainel` (que é `cache()` por requisição) eliminou a
+ * repetição em vez de somar.
+ *
+ * O e-mail continua aqui como reserva porque cadastro incompleto existe:
+ * quem entrou e não pôs nome tem avatar mesmo assim.
  */
-export function nomeDoEmail(email: string | null): string {
+export function nomeDoAvatar(nome: string | null, email: string | null): string {
+  const limpo = nome?.trim()
+  if (limpo) return limpo
   if (!email) return ""
   return email.split("@")[0].split(/[._\-+]+/).filter(Boolean).join(" ")
 }
@@ -103,6 +114,7 @@ export function FaixaTopo({
   hoje,
   avisos,
   email,
+  nome,
 }: {
   /** `painel.embarcacao` reduzida a id + nome — com um barco só, o nome é
    *  link pra ficha (`/barco`); o id existe pro seletor saber qual é a atual. */
@@ -122,8 +134,12 @@ export function FaixaTopo({
   hoje: string
   /** O MESMO contador do trilho e da bottom-nav, já filtrado por permissão. */
   avisos: number
-  /** E-mail da conta (`painel.emailUsuario`) — só pras iniciais do avatar. */
+  /** E-mail da conta (`painel.emailUsuario`) — reserva pras iniciais quando
+   *  o cadastro ainda não tem nome. */
   email: string | null
+  /** Nome do perfil (`painel.perfil?.nome`) — é ELE que manda nas iniciais,
+   *  pra faixa e saudação nunca mostrarem letras diferentes na mesma tela. */
+  nome?: string | null
 }) {
   const motores = equipamentos.filter((e) => e.tipo === "motor")
 
@@ -222,7 +238,7 @@ export function FaixaTopo({
           aria-label="Sua conta e ajustes"
           className="flex size-11 items-center justify-center rounded-full"
         >
-          <Avatar url={null} nome={nomeDoEmail(email)} tamanho="size-9" />
+          <Avatar url={null} nome={nomeDoAvatar(nome ?? null, email)} tamanho="size-9" />
         </Link>
       </div>
     </header>
