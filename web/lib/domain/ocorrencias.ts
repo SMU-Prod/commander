@@ -179,6 +179,34 @@ export function farolDaGravidade(gravidade: Gravidade | null): StatusFarol | nul
   return gravidade === "alta" ? "vencido" : "atencao"
 }
 
+/**
+ * ONDA 63 — TRÊS GRAVIDADES, TRÊS TONS (auditoria visual 18/08, §7).
+ *
+ * `farolDaGravidade` acima responde uma pergunta de LÓGICA — "isto pesa na
+ * Saúde como ação necessária?" — e tem só duas respostas de peso, o que está
+ * certo pra ela. Mas a tela de Ocorrências a usava também pra decidir COR, e
+ * aí o resultado ficava mentiroso: "Média" e "Baixa" saíam no mesmo âmbar,
+ * indistinguíveis, e uma escala de três níveis com duas cores é uma escala
+ * de dois níveis com um rótulo a mais.
+ *
+ * A régua do tom é outra, e é a honesta: vermelho é o que pede ação agora
+ * (alta); âmbar é o que está no radar (média); baixa é problema CONHECIDO e
+ * registrado — não é alarme, é anotação, e anotação não acende luz. Neutro
+ * não quer dizer "sem gravidade": a palavra "Baixa" continua no selo (cor E
+ * palavra, DESIGN §6 regra 3), o que muda é ela parar de disputar atenção
+ * com o que é urgente de verdade.
+ *
+ * Sem gravidade registrada continua `null` — dado ausente nunca vira mais
+ * alarme, e nem menos.
+ */
+export type TomGravidade = "critico" | "atencao" | "neutro"
+
+export function tomDaGravidade(gravidade: Gravidade | null): TomGravidade | null {
+  if (gravidade == null) return null
+  if (gravidade === "alta") return "critico"
+  return gravidade === "media" ? "atencao" : "neutro"
+}
+
 /** A linha de contexto do cartão de uma ocorrência ATIVA (canvas 3f):
  *  "Casco · aberta em 10/08 por Marcos Jordão · em acompanhamento".
  *  Sem autor conhecido a frase para na data — nunca um "por Alguém" que só

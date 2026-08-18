@@ -5,11 +5,13 @@ import {
   ESTADOS_OCORRENCIA,
   faroDoEstado,
   farolDaGravidade,
+  GRAVIDADES,
   linhaDaAtiva,
   linhaDaFinalizada,
   MINIMO_MOTIVO_ANULACAO,
   pesaNaSaude,
   podeTransicionar,
+  tomDaGravidade,
   proximaResolvidaEm,
   registroDaAnulacao,
   ROTULO_ESTADO,
@@ -141,16 +143,37 @@ describe("ROTULO_ESTADO", () => {
   })
 })
 
-describe("farolDaGravidade (canvas tela-3f: severidade na borda)", () => {
+describe("farolDaGravidade — a pergunta de LÓGICA: isto pesa na Saúde?", () => {
   it("alta acende a luz de crítico — é o que a Saúde chama de ação necessária", () => {
     expect(farolDaGravidade("alta")).toBe("vencido")
   })
-  it("média e baixa acendem a de atenção — o canvas pinta as duas de âmbar", () => {
+  it("média e baixa pesam igual na Saúde — duas respostas bastam AQUI", () => {
+    // Esta função responde peso, não cor. Quem decide cor é `tomDaGravidade`
+    // logo abaixo, e lá são três respostas — foi a confusão entre as duas
+    // que deixou "Média" e "Baixa" no mesmo âmbar na tela (auditoria 18/08).
     expect(farolDaGravidade("media")).toBe("atencao")
     expect(farolDaGravidade("baixa")).toBe("atencao")
   })
   it("sem gravidade registrada não se inventa cor", () => {
     expect(farolDaGravidade(null)).toBeNull()
+  })
+})
+
+describe("tomDaGravidade — a pergunta VISUAL: três níveis, três tons", () => {
+  it("cada gravidade tem um tom próprio — escala de 3 com 2 cores é escala de 2", () => {
+    expect(tomDaGravidade("alta")).toBe("critico")
+    expect(tomDaGravidade("media")).toBe("atencao")
+    expect(tomDaGravidade("baixa")).toBe("neutro")
+  })
+  it("os três tons são distintos entre si", () => {
+    const tons = GRAVIDADES.map((g) => tomDaGravidade(g))
+    expect(new Set(tons).size).toBe(GRAVIDADES.length)
+  })
+  it("baixa é neutra, não verde: problema conhecido não é problema resolvido", () => {
+    expect(tomDaGravidade("baixa")).not.toBe("ok")
+  })
+  it("sem gravidade registrada continua sem tom", () => {
+    expect(tomDaGravidade(null)).toBeNull()
   })
 })
 

@@ -12,8 +12,9 @@ import {
   ABAS_OCORRENCIA,
   chipsDaAtiva,
   ESTADOS_OCORRENCIA,
-  farolDaGravidade,
   linhaDaAtiva,
+  tomDaGravidade,
+  type TomGravidade,
   linhaDaFinalizada,
   pesaNaSaude,
   ROTULO_ESTADO,
@@ -23,7 +24,6 @@ import {
   type EstadoQuePesaNaSaude,
 } from "@/lib/domain/ocorrencias"
 import { ROTULO_ABA, type Aba } from "@/lib/domain/permissoes"
-import type { StatusFarol } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Ocorrencia } from "@/lib/db/types"
 
@@ -34,17 +34,23 @@ const ESTADO_FILTROS: { valor: EstadoOcorrencia | "tudo"; rotulo: string }[] = [
 
 // A luz da severidade no cartão de uma ativa (canvas tela-3f): borda lateral
 // E selo com a palavra — cor e palavra, nunca só cor (DESIGN §6, regra 3).
-// Quem decide a luz é `farolDaGravidade`; "ok" não nasce de gravidade nenhuma,
-// os mapas cobrem a chave só pra régua de tipos fechar.
-const BORDA_GRAVIDADE: Record<StatusFarol, string> = {
-  vencido: "border-l-2 border-l-crit",
+//
+// ONDA 63 — quem decide a cor passa a ser `tomDaGravidade`, e não
+// `farolDaGravidade`: aquela responde "isto pesa na Saúde?" (duas respostas,
+// e está certa assim), esta responde "que tom isto tem na tela" (três, uma
+// por gravidade). Com a primeira fazendo os dois trabalhos, "Média" e
+// "Baixa" saíam no mesmo âmbar — três níveis, duas cores (auditoria 18/08).
+const BORDA_GRAVIDADE: Record<TomGravidade, string> = {
+  critico: "border-l-2 border-l-crit",
   atencao: "border-l-2 border-l-warn",
-  ok: "",
+  // Baixa não acende: é problema conhecido e anotado, não alarme. A borda
+  // fica na linha comum do cartão e a palavra "Baixa" segue no selo.
+  neutro: "",
 }
-const SELO_GRAVIDADE: Record<StatusFarol, EstadoSelo> = {
-  vencido: "critico",
+const SELO_GRAVIDADE: Record<TomGravidade, EstadoSelo> = {
+  critico: "critico",
   atencao: "atencao",
-  ok: "ok",
+  neutro: "neutro",
 }
 
 export default async function OcorrenciasPage({
@@ -184,7 +190,7 @@ export default async function OcorrenciasPage({
       {ativas.length > 0 && (
         <div className="mt-4 space-y-2">
           {ativas.map((o) => {
-            const luz = farolDaGravidade(o.gravidade)
+            const luz = tomDaGravidade(o.gravidade)
             return (
               <Link
                 key={o.id}
