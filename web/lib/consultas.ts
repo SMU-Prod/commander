@@ -80,7 +80,15 @@ export const carregarPainel = cache(async (): Promise<{
   ])
   if (equipamentosError || itensError) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
 
-  const { data: todas } = await supabase.from("embarcacoes").select("id, nome").order("nome")
+  // `.in()` pelos vínculos que já estão em memória: sem ele esta consulta
+  // varria `embarcacoes` INTEIRA a cada navegação autenticada — a RLS
+  // devolvia só as do usuário, mas o Postgres percorria a tabela toda antes
+  // de filtrar. Custo O(total de barcos da plataforma), não O(barcos do
+  // dono): 1,3 ms com 2 barcos, ~456 ms projetados com 1.000 assinantes, em
+  // TODA página. Era a consulta mais cara do app (auditoria CTO 18/08).
+  const idsDoUsuario = (meusVinculos ?? []).map((v) => v.embarcacao_id)
+  const { data: todas } = await supabase
+    .from("embarcacoes").select("id, nome").in("id", idsDoUsuario).order("nome")
 
   const papel = vinculo.papel as "PROP" | "CMDT"
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)

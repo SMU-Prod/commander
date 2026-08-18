@@ -43,8 +43,17 @@ export async function aplicarPreset(formData: FormData) {
 export async function removerCmdt(formData: FormData) {
   const supabase = await supabaseServer()
   const vinculoId = String(formData.get("vinculo_id") ?? "")
-  const { error } = await supabase.from("vinculos").delete().eq("id", vinculoId)
-  if (error) erroMatriz(vinculoId, "Não deu para remover o comandante da tripulação. Tente de novo.")
+  // `.select()` + checagem de linhas — o padrão da casa, que aqui faltava e
+  // é o mais grave de todos os lugares onde poderia faltar: quando a RLS
+  // barra o DELETE, o PostgREST devolve `error: null` com ZERO linhas
+  // afetadas. A tela dizia "removido", voltava pra lista, e o comandante
+  // continuava com acesso ao barco. Revogação de acesso que falha calada é
+  // pior que revogação que dá erro.
+  const { data: removidos, error } = await supabase
+    .from("vinculos").delete().eq("id", vinculoId).select("id")
+  if (error || (removidos ?? []).length === 0) {
+    erroMatriz(vinculoId, "Não deu para remover o comandante da tripulação. Tente de novo.")
+  }
   revalidatePath("/tripulacao")
   redirect("/tripulacao")
 }
