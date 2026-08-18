@@ -48,7 +48,7 @@ export default async function TransferirPage({
 
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      <div className="mt-4 rounded-[14px] border border-warn/40 bg-warn/10 p-4">
+      <div className="mt-4 rounded-[var(--raio-cartao)] border border-warn/35 bg-warn/10 p-3">
         <p className="corpo font-semibold">O que acontece quando for aceito</p>
         <ul className="mt-2 space-y-1.5 corpo text-dim">
           <li>· Você perde o acesso a esta embarcação — não dá pra desfazer depois de aceito.</li>
@@ -64,7 +64,7 @@ export default async function TransferirPage({
       )}
 
       {transferencia ? (
-        <div className="mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
           <p className="corpo font-semibold">Transferência aguardando aceite</p>
           <p className="apoio mt-1 text-dim">
             Para <span className="text-texto">{transferencia.destinatario_email}</span> · expira em{" "}
@@ -73,17 +73,22 @@ export default async function TransferirPage({
           <p className="mt-3 break-all rounded-lg border border-line bg-campo px-3 py-2 font-mono-instr text-xs text-dim">
             {linkTransferencia(transferencia.codigo)}
           </p>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`Você vai assumir a propriedade da ${painel.embarcacao.nome} no Commander: ${linkTransferencia(transferencia.codigo)}`)}`}
-            target="_blank" rel="noopener noreferrer"
-            className="mt-3 inline-block rounded-lg border border-line px-3 py-2 text-sm text-accent-forte"
-          >
-            Compartilhar no WhatsApp
-          </a>
-          <form action={cancelarTransferencia} className="mt-4">
-            <input type="hidden" name="transferencia_id" value={transferencia.id} />
-            <Confirmar rotulo="Cancelar transferência" mensagem="Cancelar? O link para de funcionar." className="text-sm text-crit" />
-          </form>
+          {/* A fileira do canvas (tela-4d): compartilhar em contorno ocupando a
+              linha, cancelar em vermelho ao lado — e cancelar SEMPRE pede
+              confirmação (fluxo sensível; o link para de funcionar na hora). */}
+          <div className="mt-3 flex items-center gap-2">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Você vai assumir a propriedade da ${painel.embarcacao.nome} no Commander: ${linkTransferencia(transferencia.codigo)}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line text-sm font-medium"
+            >
+              Compartilhar no WhatsApp
+            </a>
+            <form action={cancelarTransferencia} className="shrink-0">
+              <input type="hidden" name="transferencia_id" value={transferencia.id} />
+              <Confirmar rotulo="Cancelar" mensagem="Cancelar? O link para de funcionar." className="flex h-11 items-center px-3 text-sm font-medium text-crit" />
+            </form>
+          </div>
         </div>
       ) : (
         <form action={iniciarTransferencia} className="mt-4 space-y-3 rounded-[14px] border border-line bg-panel p-4">
