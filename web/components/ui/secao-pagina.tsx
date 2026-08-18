@@ -52,9 +52,23 @@ export function SecaoPagina({
         // de seção não engordar 28px em cada uma das ~35 telas. `-mr-1 px-1`
         // mantém o texto rente à margem direita e ainda assim alarga a área
         // tocável.
+        //
+        // ONDA 63 — ERA DOURADO, E ERA A MAIOR FONTE DE CONFETE DO APP.
+        // O orçamento do §5 é de DOIS dourados por tela e este componente
+        // aparece cinco vezes só em /barco ("Motor", "Ver tudo", "Ver tudo",
+        // "Manutenção", "Editar"): sozinho ele estourava o orçamento em toda
+        // tela de hub. E ele nunca foi a ação principal de tela nenhuma —
+        // varrendo os ~35 usos, é sempre "Ver tudo" ou "+ Alguma coisa"
+        // secundário; a ação principal mora no `acao` de `CabecalhoDetalhe`
+        // e `BarraFerramentas`, que continuam pílulas douradas.
+        //
+        // A cor nova não é um chute: o cinza-azulado que o canvas do
+        // proprietário usa no "Ver tudo" das seções é, dígito por dígito, o
+        // valor de `--texto-dim` no tema escuro. `text-dim` é a referência
+        // literal — não uma adaptação dela.
         <Link
           href={acao.href}
-          className="corpo -my-2.5 -mr-1 inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-accent-forte"
+          className="corpo -my-2.5 -mr-1 inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-dim"
         >
           {acao.icone && <Icone nome={acao.icone} className="size-4" />}
           {acao.rotulo}

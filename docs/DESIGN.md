@@ -144,6 +144,27 @@ ação flutuante do app é o "Exportar PDF" de `/barco/resumos` — dourado de
 **conteúdo** da própria tela, não de moldura (a regra de quem pode flutuar
 vive em `web/lib/ui/superficies.ts`).
 
+**Ação que se repete não é ação principal (onda 63).** A auditoria visual de
+18/08 contou **oito** dourados em `/barco` — quatro vezes o orçamento. A
+fonte não era descuido de uma tela: era a **ação do cabeçalho de seção**
+(`SecaoPagina acao`), dourada por padrão num componente usado em ~35
+arquivos. Só em `/barco` ela aparece cinco vezes ("Motor", "Ver tudo", "Ver
+tudo", "Manutenção", "Editar"); somava-se a isso o "Adicionar" do Casco, que
+num barco novo repete quatro vezes, uma por categoria vazia.
+
+A régua que saiu daí, e que vale pra qualquer componente novo: **se a mesma
+ação aparece mais de uma vez na tela, ela não pode ser dourada** — por
+definição, a ação principal é uma só. Varrendo os ~35 usos de `SecaoPagina`,
+nenhum era a ação principal da sua tela: é sempre "Ver tudo" ou "+ Alguma
+coisa" secundário. A ação principal mora no `acao` de `CabecalhoDetalhe` e
+`BarraFerramentas` — as pílulas douradas — e essas ficaram como estavam.
+
+O que a ação de seção veste hoje é `text-dim`, e não é escolha nossa: o
+cinza-azulado que o canvas do proprietário usa no "Ver tudo" das seções é,
+dígito por dígito, o valor de `--texto-dim` no tema escuro. Para ação
+secundária dentro de um cartão, o vestido é o sublinhado neutro que
+`EstadoVazio enfase="discreta"` já usava desde a onda 60.
+
 ### Tipografia — três papéis
 
 A família é **IBM Plex** (onda 62). A Urbanist saiu: quando o dono desenhou o

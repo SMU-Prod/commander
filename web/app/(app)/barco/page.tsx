@@ -217,7 +217,15 @@ export default async function BarcoPage({
               titulo={ROTULO_CASCO[c]}
               trailing={
                 doGrupo.length === 0 ? (
-                  <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`} className="shrink-0 text-xs text-accent-forte">
+                  // Onda 63 — sublinhado neutro, não dourado: o Casco tem
+                  // quatro categorias e num barco novo as quatro estão
+                  // vazias, ou seja, QUATRO "Adicionar" dourados de uma vez.
+                  // É o mesmo raciocínio (e o mesmo vestido) do
+                  // `enfase="discreta"` de `EstadoVazio`.
+                  <Link
+                    href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`}
+                    className="shrink-0 text-xs underline underline-offset-2"
+                  >
                     Adicionar
                   </Link>
                 ) : (
@@ -238,6 +246,10 @@ export default async function BarcoPage({
             titulo="Nenhum documento com vencimento cadastrado"
             descricao="Seguro, TIE, vistoria — cadastre a validade e o semáforo avisa antes de vencer."
             acao={podeEditar(permissoes, "documentos") ? { href: "/barco/documentos", rotulo: "Adicionar documento" } : undefined}
+            // Aninhado dentro do painel de Documentos, num hub que não tem
+            // ação principal: exatamente o caso que o cabeçalho de
+            // `EstadoVazio` descreve pro `enfase="discreta"`.
+            enfase="discreta"
           />
         )}
         {documentos.map((i) => {
