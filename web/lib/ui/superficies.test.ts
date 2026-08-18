@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest"
 import {
   temAcaoFlutuantePropria,
+  ACAO_NAO_ESTICA,
   FOLGA_BASE,
   FOLGA_COM_ACAO_FLUTUANTE,
+  GRADE_LADRILHOS,
+  LARGURA_CONTEUDO,
+  TETO_FORMULARIO,
+  TETO_LISTA,
+  TETO_PAINEL,
 } from "./superficies"
 
 // Até a onda 60 este arquivo testava também `mostrarRegistroRapido` e
@@ -60,5 +66,42 @@ describe("folga inferior", () => {
     // botão flutuante de /barco/resumos (topo a 128px + safe-area do rodapé).
     expect(FOLGA_BASE).toContain("4.75rem")
     expect(FOLGA_COM_ACAO_FLUTUANTE).toContain("9rem")
+  })
+})
+
+describe("régua de larguras (onda 63)", () => {
+  it("tem três degraus, do mais estreito ao mais largo", () => {
+    // A ordem importa mais que os números: formulário/texto é o mais
+    // estreito (linha de leitura), painel é o único que pode ocupar o
+    // monitor. Se um dia alguém trocar os valores, a relação continua
+    // sendo o que a régua promete.
+    const px = (c: string) => Number(/max-w-\[(\d+)px\]/.exec(c)?.[1])
+    expect(px(TETO_FORMULARIO)).toBeLessThan(px(TETO_LISTA))
+    expect(px(TETO_LISTA)).toBeLessThan(px(TETO_PAINEL))
+  })
+
+  it("o teto de painel é o mesmo teto de casca — não uma segunda verdade", () => {
+    // `LARGURA_CONTEUDO` repete o valor por exigência do Tailwind (ele varre
+    // a classe literal). Este teste é o que impede as duas de divergirem.
+    expect(LARGURA_CONTEUDO).toContain(TETO_PAINEL.replace("max-w-", "lg:max-w-"))
+  })
+
+  it("nenhum teto tem prefixo de breakpoint — o celular não pode mudar", () => {
+    // A 390px o conteúdo mede ~358px, abaixo de qualquer um destes tetos.
+    // Um `md:`/`lg:` aqui seria a porta pra alguém mexer no aparelho sem
+    // perceber; sem prefixo, a classe é inerte no celular por construção.
+    for (const teto of [TETO_FORMULARIO, TETO_LISTA, TETO_PAINEL]) {
+      expect(teto, teto).not.toMatch(/(sm|md|lg|xl):/)
+    }
+  })
+
+  it("botão e ladrilho só deixam de esticar a partir de `sm` (640px)", () => {
+    // `sm` é 640px no Tailwind — acima da largura de qualquer celular. É o
+    // que garante que o aparelho continue com o botão de linha inteira e a
+    // grade de 2 colunas de sempre.
+    expect(ACAO_NAO_ESTICA).toContain("w-full")
+    expect(ACAO_NAO_ESTICA).toContain("sm:w-auto")
+    expect(GRADE_LADRILHOS).toContain("grid-cols-2")
+    expect(GRADE_LADRILHOS).toContain("sm:grid-cols-3")
   })
 })

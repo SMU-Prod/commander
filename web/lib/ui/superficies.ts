@@ -128,6 +128,80 @@ export const FOLGA_COM_ACAO_FLUTUANTE =
 export const LARGURA_CONTEUDO = "max-w-[430px] md:max-w-[680px] lg:max-w-[1400px]"
 
 /**
+ * ONDA 63 — A RÉGUA DE LARGURAS, ESCRITA UMA VEZ.
+ *
+ * `LARGURA_CONTEUDO` acima é o teto da CASCA: quanto o app pode ocupar do
+ * monitor. Ele não é — nunca foi — o teto de cada TELA. Um teto só pra tudo
+ * é o que a auditoria de 18/08/2026 mediu como "grade esburacada e controle
+ * sem teto de largura" (§6):
+ *
+ * - `/menu/ajustes` tinha um botão dourado de **1265px** atravessando a
+ *   tela. Botão de largura inteira num monitor não é ênfase: é o sinal de
+ *   que um layout de celular foi esticado. No celular ele ocupa a linha
+ *   toda porque a linha toda tem 358px e o polegar precisa acertar; a 1440
+ *   ele vira uma faixa de tinta que grita mais alto que o conteúdo;
+ * - `/diario/novo` tinha seis ladrilhos de **645px por 90px** com uma
+ *   palavra dentro ("Docagem") — o grid de 2 colunas do celular esticado;
+ * - e todo formulário do app escrevia numa linha de leitura de 1300px.
+ *   Linha de leitura de 1400px é **ilegível**: o olho perde a volta ao
+ *   começo da linha seguinte, e um campo de texto largo desse tamanho não
+ *   diz quanto se espera que a pessoa escreva. A tipografia clássica fecha
+ *   a conta em 45–75 caracteres; a 16px da Plex, isso dá ~640px.
+ *
+ * Por isso a largura passa a ser por NATUREZA DE CONTEÚDO, e não por tela:
+ *
+ * | teto | vale para | por quê |
+ * |---|---|---|
+ * | `TETO_FORMULARIO` 640px | formulário e texto corrido | linha de leitura; campo com tamanho que informa |
+ * | `TETO_LISTA` 860px | lista de linhas (título + valor à direita) | acima disso o valor descola do título e a linha vira ponte |
+ * | `TETO_PAINEL` 1400px | painel/dashboard de cartões | é o único conteúdo que ganha em ocupar o monitor — e ganha porque são VÁRIOS blocos lado a lado, não um esticado |
+ *
+ * COMO SE APLICA, E POR QUE À ESQUERDA: a tela põe o teto no próprio
+ * `<main>`. A `[data-moldura]` já é `mx-auto` (centrada no espaço ao lado
+ * do trilho), e um `<main>` com `max-w` dentro dela fica **alinhado à
+ * esquerda** — que é o certo: o cabeçalho, o rastro de volta e a faixa de
+ * topo começam todos na mesma vertical. Um formulário centrado no vazio
+ * cria uma segunda margem esquerda que não bate com nada.
+ *
+ * Estes tetos NÃO TÊM PREFIXO DE BREAKPOINT de propósito: a 390px o
+ * conteúdo já mede ~358px, muito abaixo de 640 — a classe não muda um pixel
+ * do celular. Ela só passa a valer onde há largura sobrando, que é
+ * exatamente onde o defeito estava.
+ */
+export const TETO_FORMULARIO = "max-w-[640px]"
+export const TETO_LISTA = "max-w-[860px]"
+/** Mesmo 1400px do `lg:` de `LARGURA_CONTEUDO` — escrito de novo (e não
+ *  interpolado) porque o Tailwind varre o código-fonte atrás da classe
+ *  literal: `lg:${TETO_PAINEL}` não geraria CSS nenhum. */
+export const TETO_PAINEL = "max-w-[1400px]"
+
+/**
+ * BOTÃO QUE NÃO ESTICA.
+ *
+ * `w-full` no celular (o polegar agradece, e a linha tem 358px de qualquer
+ * jeito); a partir de `sm` a largura passa a ser a do CONTEÚDO, com um
+ * mínimo confortável pra ação principal não virar uma pílula magra perdida
+ * na tela. 640px é o `sm` do Tailwind — acima da largura de qualquer
+ * celular, então o comportamento no aparelho é byte a byte o de antes.
+ *
+ * Vale pra ação que ocupava a linha inteira (o "Ativar avisos neste
+ * aparelho" de `/menu/ajustes`, o "Criar manutenção" dos formulários).
+ * Ação que já era contida (a pílula "Registrar saída" da Início) não
+ * precisa disto.
+ */
+export const ACAO_NAO_ESTICA = "w-full sm:w-auto sm:min-w-[15rem]"
+
+/**
+ * GRADE DE LADRILHOS DE ESCOLHA (o "O que aconteceu?" de `/diario/novo`).
+ *
+ * 2 colunas no celular — a régua de sempre. A partir de `sm` o número de
+ * colunas SOBE junto com a largura em vez de o ladrilho engordar: é a
+ * diferença entre uma grade e um grid de celular esticado. Com 6 opções,
+ * `lg:grid-cols-3` fecha em duas linhas cheias, sem órfão.
+ */
+export const GRADE_LADRILHOS = "grid-cols-2 sm:grid-cols-3"
+
+/**
  * Espaço que o trilho de 72px (`components/trilho-lateral.tsx`) ocupa a
  * partir de `lg`.
  *
