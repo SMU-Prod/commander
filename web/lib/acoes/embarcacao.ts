@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel } from "@/lib/consultas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { ehTipoEmbarcacao } from "@/lib/domain/tipo-embarcacao"
 import { supabaseServer } from "@/lib/supabase/server"
 
 function erroEditar(msg: string): never {
@@ -32,12 +33,19 @@ export async function salvarDadosGerais(formData: FormData) {
     erroEditar("Informe um ano válido (ex.: 2016).")
   }
 
+  // Tipo (onda 62) — enum `tipo_embarcacao` da migration 056. "Não informar"
+  // (vazio) vira null de verdade — desfazer a escolha é permitido; valor fora
+  // do enum também vira null (§27.2: validação no servidor, não só no banco).
+  const tipoBruto = texto("tipo")
+  const tipo = tipoBruto !== null && ehTipoEmbarcacao(tipoBruto) ? tipoBruto : null
+
   const { data: salva, error } = await supabase
     .from("embarcacoes")
     .update({
       nome,
       estaleiro: texto("estaleiro"),
       modelo: texto("modelo"),
+      tipo,
       ano,
       marina: texto("marina"),
       // Região da base (onda 52) — item da `taxonomia`. Vazio vira null, que

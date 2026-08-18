@@ -18,6 +18,7 @@ import type {
 } from "@/lib/domain/marketplace"
 import type { ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 import type { PlanoId, PromocaoId } from "@/lib/domain/planos"
+import type { TipoEmbarcacao } from "@/lib/domain/tipo-embarcacao"
 import type { NomeIconeParceiro } from "@/lib/mapa/pino-parceiro"
 
 export interface Embarcacao {
@@ -25,6 +26,11 @@ export interface Embarcacao {
   nome: string
   estaleiro: string | null
   modelo: string | null
+  /** Tipo do barco (enum `tipo_embarcacao`, migration 056) — os chips do
+   *  onboarding (canvas tela-3j). Nullable de propósito: barco existente
+   *  fica sem tipo até o dono escolher em /barco/editar — não se inventa
+   *  dado. É também o futuro seletor do modelo 3D do Mapa da Embarcação. */
+  tipo: TipoEmbarcacao | null
   ano: number | null
   comprimento_m: number | null
   boca_m: number | null
