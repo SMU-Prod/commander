@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+﻿import { describe, expect, it } from "vitest"
 import type { ItemMonitorado } from "@/lib/db/types"
 import { itemMonitoradoToItemCalc } from "./conversores"
 
@@ -11,7 +11,7 @@ describe("itemMonitoradoToItemCalc", () => {
       id: "i1", embarcacao_id: "e1", equipamento_id: "q1",
       nome: "Revisão geral", especificacao: null, quantidade: null, categoria: null,
       intervalo_horas: 500, intervalo_meses: 12, data_fixa: "2027-03-12",
-      ultimo_ciclo_data: "2026-07-19", ultimo_ciclo_horas: 1000,
+      ultimo_ciclo_data: "2026-07-19", ultimo_ciclo_horas: 1000, part_number_oem: null, motor_componente_id: null,
       created_at: "2026-01-01T00:00:00Z",
     }
     expect(itemMonitoradoToItemCalc(linha)).toEqual({

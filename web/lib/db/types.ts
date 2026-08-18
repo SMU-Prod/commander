@@ -77,6 +77,12 @@ export interface Equipamento {
    *  Nullable de propósito: equipamento sem zona aparece como "Não mapeado"
    *  no mapa — não se inventa dado nos existentes. */
   zona: ZonaEmbarcacao | null
+  /** Vínculo com o catálogo de motor (onda 64, PRD 3D §16). Nullable e
+   *  opcional POR DESENHO: `marca`/`modelo` em texto livre continuam
+   *  valendo e nunca são apagados. Quem escolhe do catálogo ganha
+   *  identidade (e, na onda 67, os hotspots 3D da família); quem tem motor
+   *  fora do catálogo continua digitando. */
+  motor_modelo_id: string | null
   horas_atuais: number | null
   ultima_leitura: string | null
   created_at: string
@@ -104,8 +110,81 @@ export interface ItemMonitorado {
   data_fixa: string | null
   ultimo_ciclo_data: string | null
   ultimo_ciclo_horas: number | null
+  /** O part number que o DONO usa (onda 64, PRD 3D §16). Ganha do código
+   *  OEM do catálogo na hora de exibir — ver `partNumberVigente` em
+   *  `lib/domain/catalogo-motor.ts`: quem troca a peça pode usar um
+   *  equivalente de fornecedor, e o que importa na recompra é o dele. */
+  part_number_oem: string | null
+  /** Vínculo com o componente do catálogo. Nullable: item criado à mão
+   *  ("Troca de óleo BB") continua existindo sem componente nenhum. */
+  motor_componente_id: string | null
   created_at: string
 }
+
+// ---------------------------------------------------------------------------
+// Catálogo de motor (onda 64 — migrations 057/058)
+// ---------------------------------------------------------------------------
+// Vocabulário do produto, não dado de ninguém: leitura aberta a quem está
+// logado, escrita só admin — mesma política de `taxonomia`.
+
+export interface MotorFabricante {
+  id: string
+  slug: string
+  nome: string
+  segmento: "popa" | "centro_rabeta" | "diesel_interno"
+  ordem: number
+  ativo: boolean
+  criado_em: string
+}
+
+export interface MotorFamilia {
+  id: string
+  fabricante_id: string
+  slug: string
+  nome: string
+  observacao: string | null
+  ordem: number
+  ativo: boolean
+  criado_em: string
+}
+
+export interface MotorModelo {
+  id: string
+  familia_id: string
+  slug: string
+  nome: string
+  potencia_hp: number | null
+  /** As duas pontas nullable: motor em linha não tem ano final, e de motor
+   *  antigo às vezes não se sabe o inicial. */
+  ano_inicio: number | null
+  ano_fim: number | null
+  combustivel: string | null
+  ordem: number
+  ativo: boolean
+  criado_em: string
+}
+
+export interface MotorComponente {
+  id: string
+  familia_id: string
+  slug: string
+  nome: string
+  sistema: SistemaMotorDb
+  /** Nasce nulo na semente (migration 058): inventar código OEM faria o dono
+   *  comprar a peça errada confiando no app. */
+  part_number_oem: string | null
+  /** Idem: chutar intervalo num app que existe pra avisar de manutenção é o
+   *  tipo de erro que estraga motor. Vem do manual ou não vem. */
+  intervalo_horas: number | null
+  intervalo_meses: number | null
+  ordem: number
+  ativo: boolean
+  criado_em: string
+}
+
+export type SistemaMotorDb =
+  | "lubrificacao" | "combustivel" | "arrefecimento" | "eletrica"
+  | "transmissao" | "admissao_escape" | "propulsao" | "outro"
 
 export type TipoEvento =
   | "manutencao" | "abastecimento" | "navegacao" | "avaria" | "docagem" | "leitura_horas" | "outro"

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+﻿import { describe, expect, it } from "vitest"
 import {
   avaliarSeloVerified,
   avaliarVerified,
@@ -16,7 +16,7 @@ function motor(horas: number | null): Equipamento {
   return {
     id: "m1", embarcacao_id: "b1", tipo: "motor", posicao: "central", marca: null, modelo: null,
     numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-    quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, horas_atuais: horas, ultima_leitura: null,
+    quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, motor_modelo_id: null, horas_atuais: horas, ultima_leitura: null,
     created_at: "2026-01-01",
   }
 }
@@ -25,7 +25,7 @@ function itemOk(id: string): ItemMonitorado {
   return {
     id, embarcacao_id: "b1", equipamento_id: null, nome: `Item ${id}`, especificacao: null,
     quantidade: null, categoria: null, intervalo_horas: null, intervalo_meses: null,
-    data_fixa: null, ultimo_ciclo_data: null, ultimo_ciclo_horas: null, created_at: "2026-01-01",
+    data_fixa: null, ultimo_ciclo_data: null, ultimo_ciclo_horas: null, part_number_oem: null, motor_componente_id: null, created_at: "2026-01-01",
   }
 }
 

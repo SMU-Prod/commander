@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest"
+﻿import { describe, expect, it } from "vitest"
 import { mesAnteriorISO, resumoDoMes } from "./relatorio"
 import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 
 const eq = (extra: Partial<Equipamento>): Equipamento => ({
   id: "e1", embarcacao_id: "b1", tipo: "motor", posicao: "BB", marca: null, modelo: null,
   numero_serie: null, ano: null, potencia_hp: null, combustivel: null, identificacao_interna: null,
-  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, horas_atuais: 100, ultima_leitura: null,
+  quantidade: null, foto_path: null, observacoes: null, tipo_bateria: null, zona: null, motor_modelo_id: null, horas_atuais: 100, ultima_leitura: null,
   created_at: "2026-01-01", ...extra,
 })
 const ev = (extra: Partial<Evento>): Evento => ({
@@ -65,7 +65,7 @@ describe("resumoDoMes", () => {
     const item: ItemMonitorado = {
       id: "i1", embarcacao_id: "b1", equipamento_id: null, nome: "Seguro casco", especificacao: null,
       quantidade: null, categoria: "documento", intervalo_horas: null, intervalo_meses: null,
-      data_fixa: "2026-09-12", ultimo_ciclo_data: null, ultimo_ciclo_horas: null, created_at: "2026-01-01",
+      data_fixa: "2026-09-12", ultimo_ciclo_data: null, ultimo_ciclo_horas: null, part_number_oem: null, motor_componente_id: null, created_at: "2026-01-01",
     }
     const r = resumoDoMes({ eventos: [], itens: [item], equipamentos: [] }, "2026-08")
     expect(r.aVencer).toEqual([{ nome: "Seguro casco", quando: "2026-09-12" }])
@@ -74,7 +74,7 @@ describe("resumoDoMes", () => {
     const item: ItemMonitorado = {
       id: "i2", embarcacao_id: "b1", equipamento_id: null, nome: "Revisão do guincho", especificacao: null,
       quantidade: null, categoria: "deck", intervalo_horas: null, intervalo_meses: 6,
-      data_fixa: null, ultimo_ciclo_data: "2026-03-12", ultimo_ciclo_horas: null, created_at: "2026-01-01",
+      data_fixa: null, ultimo_ciclo_data: "2026-03-12", ultimo_ciclo_horas: null, part_number_oem: null, motor_componente_id: null, created_at: "2026-01-01",
     }
     const r = resumoDoMes({ eventos: [], itens: [item], equipamentos: [] }, "2026-08")
     expect(r.aVencer).toEqual([{ nome: "Revisão do guincho", quando: "2026-09-12" }])
