@@ -39,14 +39,19 @@ export default async function ComandantesPage() {
 
   return (
     <main>
+      {/* Canvas tela-3l — o subtítulo diz o que a vitrine é: disponibilidade
+          + histórico DENTRO do app, contratação direta. */}
       <h1 className="titulo-pagina">Comandantes</h1>
-      <p className="apoio mt-1 text-dim">Comandantes disponíveis para contratar direto pelo WhatsApp.</p>
+      <p className="apoio mt-1 text-dim">
+        Quem está disponível na sua região, com histórico no app — contrato direto pelo WhatsApp.
+      </p>
       <RedeNav atual="comandantes" className="mt-4" />
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
+      {/* Cartões soltos com respiro (anatomia do canvas), não mais linhas num
+          painel único — o cartão de pessoa tem chips e ação próprios. */}
+      <div className="mt-4 flex flex-col gap-2">
         {lista.length === 0 && (
           <EstadoVazio
-            variant="linha"
             icone="pessoas"
             titulo="Ainda não há comandantes cadastrados na sua região"
             descricao="Assim que houver, eles aparecem aqui."
@@ -63,10 +68,10 @@ export default async function ComandantesPage() {
         ))}
       </div>
 
+      {/* A frase honesta do canvas, curta: declarado ≠ verificado. */}
       <p className="apoio mt-4 leading-relaxed text-dim">
-        O selo &quot;Verificado&quot; será emitido quando a validação documental entrar em operação.
-        Até lá, os dados são declarados pelo próprio profissional e a contratação é combinada
-        diretamente entre as partes.
+        &quot;Documentação declarada&quot; é o que a própria pessoa informou — o Commander não verifica
+        habilitação. A contratação é combinada diretamente entre as partes.
       </p>
 
       <Link href="/comandantes/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   carreiraLiberada,
   mensagemCarreiraBloqueada,
+  microKpisDoPerfil,
   motivoForaDaVitrine,
   O_QUE_O_CAPTAIN_FREE_FAZ,
   O_QUE_O_CAPTAIN_PRO_LIBERA,
@@ -166,5 +167,27 @@ describe("as duas listas de copia", () => {
 
   it("a lista do Free comeca pela frase que o §12 protege: operar o barco", () => {
     expect(O_QUE_O_CAPTAIN_FREE_FAZ[0]).toContain("permissões que o proprietário deu")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 62 (canvas tela-3l) — micro-KPIs do cartão de pessoa
+// ---------------------------------------------------------------------------
+describe("microKpisDoPerfil — só número declarado vira chip", () => {
+  it("experiência e porte declarados viram os dois chips, nesta ordem", () => {
+    expect(microKpisDoPerfil({ experiencia_anos: 12, porte_max_pes: 60 })).toEqual([
+      { rotulo: "Experiência", valor: "12 anos" },
+      { rotulo: "Porte", valor: "até 60 pés" },
+    ])
+  })
+
+  it("singular de 1 ano — chip não fala errado", () => {
+    expect(microKpisDoPerfil({ experiencia_anos: 1, porte_max_pes: null })).toEqual([
+      { rotulo: "Experiência", valor: "1 ano" },
+    ])
+  })
+
+  it("nada declarado, nada de chip — ausência em vez de zero inventado", () => {
+    expect(microKpisDoPerfil({ experiencia_anos: null, porte_max_pes: null })).toEqual([])
   })
 })

@@ -273,3 +273,39 @@ export const O_QUE_O_CAPTAIN_FREE_FAZ: readonly string[] = [
   "Avisos de vencimento e alertas de segurança — sempre, sem cadeado",
   "Montar o perfil profissional inteiro e ver como ele fica",
 ]
+
+// ---------------------------------------------------------------------------
+// Onda 62 (canvas tela-3l) — os micro-KPIs do cartão de pessoa
+// ---------------------------------------------------------------------------
+
+export interface MicroKpiPerfil {
+  /** Etiqueta de instrumento — mono 11px uppercase na tela. */
+  rotulo: string
+  /** Valor em mono. */
+  valor: string
+}
+
+/**
+ * Os chips de número do cartão da vitrine (canvas: "Saídas 86 · Nota 4,8").
+ * O Commander não conta saídas de comandante — os números DECLARADOS que o
+ * §12 pede no perfil são experiência e porte, então são eles que viram chip.
+ * Só entra o que a pessoa realmente preencheu: chip vazio ou "0" inventado
+ * é pior que ausência (a nota, quando existe, vem de `SeloReputacao`, que já
+ * carrega média + quantidade do §14).
+ */
+export function microKpisDoPerfil(perfil: {
+  experiencia_anos: number | null
+  porte_max_pes: number | null
+}): MicroKpiPerfil[] {
+  const kpis: MicroKpiPerfil[] = []
+  if (perfil.experiencia_anos != null) {
+    kpis.push({
+      rotulo: "Experiência",
+      valor: `${perfil.experiencia_anos} ano${perfil.experiencia_anos === 1 ? "" : "s"}`,
+    })
+  }
+  if (perfil.porte_max_pes != null) {
+    kpis.push({ rotulo: "Porte", valor: `até ${perfil.porte_max_pes} pés` })
+  }
+  return kpis
+}

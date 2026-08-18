@@ -109,10 +109,11 @@ export default async function PrestadoresPage({
       <p className="rotulo mt-6 mb-2 text-dim">
         {categoria ? `Prestadores — ${categoria}` : "Todos os prestadores"}
       </p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      {/* Onda 62 — o cartão de pessoa virou cartão com borda própria (canvas
+          tela-3l); a lista acompanha /comandantes: cartões soltos com gap. */}
+      <div className="flex flex-col gap-2">
         {lista.length === 0 && (
           <EstadoVazio
-            variant="linha"
             icone="ferramenta"
             titulo={categoria ? "Ninguém cadastrado nessa especialidade ainda" : "Ainda não há prestadores cadastrados na sua região"}
             descricao="Publique o que precisa no Marketplace — quem atende sua região responde direto."
