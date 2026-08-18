@@ -251,7 +251,16 @@ export default async function ResumosPage({
                 {custoHora != null ? formatarReais(custoHora) : "—"}
               </p>
               <p className="apoio mt-0.5 text-dim">
-                {custoHora != null ? `sobre ${Math.round(r.horasMotor)} h de motor` : "sem hora de motor no período"}
+                {/* `custoPorHoraCentavos` devolve null por DOIS motivos (sem
+                    hora de motor OU sem gasto lançado) — a legenda antiga
+                    citava só um, e um período com 12 h de motor e nenhum
+                    gasto dizia "sem hora de motor" enquanto a aba Uso, na
+                    mesma tela, mostrava as 12 h. */}
+                {custoHora != null
+                  ? `sobre ${Math.round(r.horasMotor)} h de motor`
+                  : r.horasMotor > 0
+                    ? "sem gasto lançado no período"
+                    : "sem hora de motor no período"}
               </p>
             </div>
             <div className="sombra-1 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">

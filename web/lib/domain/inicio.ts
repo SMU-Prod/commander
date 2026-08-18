@@ -1,6 +1,6 @@
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
 import type { EstadoSelo } from "@/components/ui/selo"
-import { diasAteData } from "@/lib/domain/datas"
+import { diaCivilSP, diasAteData } from "@/lib/domain/datas"
 import type { SeloMar } from "@/lib/domain/mar"
 import { ROTULO_ESTADO_SAUDE, type EstadoSaude, type FatorSaude, type SaudeEmbarcacao } from "@/lib/domain/saude"
 import type { ResultadoCalc } from "@/lib/domain/semaforo"
@@ -147,7 +147,12 @@ export function prazoCompacto(r: ResultadoCalc): string {
  * carimbo de criação no futuro é relógio errado, não idade.
  */
 export function idadeCompacta(criadaEmISO: string, hoje: string): string {
-  const dias = Math.max(0, -diasAteData(criadaEmISO.slice(0, 10), hoje))
+  // `diaCivilSP`, não `.slice(0, 10)`: o slice pega o dia em UTC, e das 21h
+  // à meia-noite no Brasil o dia UTC já virou. A MESMA ocorrência aparecia
+  // como "6 d" aqui e "7 dias aberta" em /barco/ocorrencias (que sempre usou
+  // `diaCivilSP`) — dois lotes da onda 62 responderam diferente à mesma
+  // pergunta. É pra isso que `diaCivilSP` existe (ver o docblock dela).
+  const dias = Math.max(0, -diasAteData(diaCivilSP(criadaEmISO), hoje))
   return `${dias} d`
 }
 

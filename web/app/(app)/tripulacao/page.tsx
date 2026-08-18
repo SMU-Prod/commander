@@ -65,7 +65,10 @@ export default async function TripulacaoPage({
     // consulta só pra tripulação inteira — o índice por pessoa é feito em
     // memória por `usoPorTripulante`.
     supabase.from("eventos").select("tipo, criado_por, hora_saida, hora_retorno")
-      .eq("embarcacao_id", painel.embarcacao.id).eq("tipo", "navegacao"),
+      // `limit(300)` como /diario e /financeiro: sem teto, um barco com anos
+      // de diário baixa tudo a cada render pra somar três chips.
+      .eq("embarcacao_id", painel.embarcacao.id).eq("tipo", "navegacao")
+      .order("data", { ascending: false }).limit(300),
   ])
   const nomePorId = new Map((perfis ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
   const telefonePorId = new Map(

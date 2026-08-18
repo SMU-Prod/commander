@@ -43,7 +43,11 @@ export default async function ComandantesPage() {
           + histórico DENTRO do app, contratação direta. */}
       <h1 className="titulo-pagina">Comandantes</h1>
       <p className="apoio mt-1 text-dim">
-        Quem está disponível na sua região, com histórico no app — contrato direto pelo WhatsApp.
+        {/* Sem "na sua região" e sem "com histórico": a consulta filtra
+            `tipo` e `visivel`, região nenhuma, e o cartão mostra "Sem
+            avaliações" pra quem ainda não tem histórico. O texto prometia
+            dois filtros que não existem. */}
+        Comandantes que publicaram o perfil — contrato direto pelo WhatsApp.
       </p>
       <RedeNav atual="comandantes" className="mt-4" />
 
