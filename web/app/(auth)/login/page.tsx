@@ -29,11 +29,42 @@ export default async function LoginPage({
     ? `/login${volta ? `?volta=${encodeURIComponent(volta)}` : ""}`
     : `/login?modo=cadastro${volta ? `&volta=${encodeURIComponent(volta)}` : ""}`
   return (
-    <main
-      data-theme="dark"
-      className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-ink px-6 pb-10 pt-16 text-texto"
-    >
-      <div className="text-sm"><Logo /></div>
+    // ONDA 63 — O LOGIN DEIXA DE SER UMA COLUNA DE CELULAR NO NOTEBOOK.
+    //
+    // Até aqui o `<main>` era `mx-auto max-w-[430px] bg-ink`: a faixa escura
+    // media 430px no meio da tela e o resto do monitor ficava com o fundo do
+    // BODY aparecendo dos dois lados — no tema claro, duas tarjas brancas
+    // ladeando a tela de entrada. É a primeira tela que qualquer pessoa vê,
+    // e a primeira impressão era de página quebrada.
+    //
+    // O escuro agora cobre a viewport inteira e, a partir de `lg`, a tela vira
+    // duas colunas: à esquerda a marca (o mesmo tratamento do herói da
+    // Início — navy com véu), à direita o formulário centralizado. No celular
+    // nada muda: a coluna de 430px continua, porque lá ela é a tela toda.
+    <div data-theme="dark" className="min-h-dvh bg-ink text-texto lg:grid lg:grid-cols-2">
+      {/* Painel da marca — só no desktop, e decorativo: quem entra pelo
+          teclado vai direto pro formulário, sem passar por aqui. */}
+      <aside
+        aria-hidden="true"
+        className="relative hidden flex-col justify-end overflow-hidden border-r border-line bg-meter p-12 lg:flex"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_10%,rgb(212_175_55/.10),transparent_60%)]" />
+        <div className="relative">
+          <div className="text-base"><Logo /></div>
+          <p className="mt-6 max-w-[26ch] text-[26px] font-semibold leading-tight text-meter-texto">
+            Manutenção em dia, documentos alertados e um histórico que vale
+            dinheiro na hora de vender.
+          </p>
+          <p className="apoio mt-4 max-w-[38ch] text-meter-dim">
+            Marina da Glória, Angra, Búzios.
+          </p>
+        </div>
+      </aside>
+
+      <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-6 pb-10 pt-16 lg:min-h-dvh lg:justify-center lg:py-16">
+      {/* No desktop a marca já está no painel ao lado — aqui ela sairia
+          repetida duas vezes na mesma tela. */}
+      <div className="text-sm lg:hidden"><Logo /></div>
 
       <h1 className="titulo-pagina mt-10">{cadastro ? "Crie sua conta" : "Bem-vindo a bordo"}</h1>
       <p className="apoio mt-1.5 text-dim">
@@ -103,6 +134,7 @@ export default async function LoginPage({
           Consulte sempre a carta náutica oficial.
         </p>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }
