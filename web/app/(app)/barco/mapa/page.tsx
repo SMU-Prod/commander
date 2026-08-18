@@ -140,8 +140,35 @@ export default async function MapaEmbarcacaoPage({
         }
       />
 
-      <div className="mt-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
-        {/* ---- coluna do desenho: o corte + a lista de zonas ------------- */}
+      {/*
+        ONDA 63 — O CORTE GANHA A MAIOR CÉLULA, E TUDO QUE É LISTA VIRA
+        TRILHA.
+
+        A auditoria de 18/08 mediu esta tela a 1440 como "60% vazia", e a
+        conta era simples: duas colunas iguais davam ao desenho metade da
+        largura (o corte é travado em 760×320, então metade da largura é
+        também metade da altura — 259px de barco), enquanto a outra metade
+        exibia UMA frase com ~700px de nada embaixo. Ao mesmo tempo, a lista
+        de zonas ficava presa embaixo do desenho, na coluna larga, com
+        ~500px entre o nome da zona e a contagem — uma ponte de vazio no
+        meio de cada linha.
+
+        A referência (Haulix, imagens 4 e 5) põe o objeto central na maior
+        célula da grade e empilha os cartões pequenos numa coluna densa ao
+        lado. É o que passa a valer: `1.6fr / 1fr` dá ~780px ao corte (o
+        barco cresce pra ~320px de altura, um terço a mais) e a coluna da
+        direita recebe TUDO que é lista — zonas, painel da zona aberta e não
+        mapeados —, empilhado, com ~460px de linha em vez de 780.
+
+        O CELULAR NÃO MUDA, e não muda por acidente: a lista de zonas era o
+        segundo bloco da coluna esquerda e vira o primeiro da direita, que
+        vem logo em seguida — a ordem de leitura empilhada (corte → zonas →
+        painel → não mapeados) é byte a byte a mesma. As margens
+        acompanham: o `lg:mt-0` sai do painel e vai pra lista, que agora é
+        quem encabeça a coluna.
+      */}
+      <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start lg:gap-4">
+        {/* ---- a maior célula: o corte, e só ele --------------------- */}
         <div>
           <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
             <Casco zonas={pinos} selecionada={selecionada} hrefBase="/barco/mapa" ancora="painel-zona" />
@@ -149,9 +176,12 @@ export default async function MapaEmbarcacaoPage({
               Toque numa zona para ver equipamentos, manutenções e ocorrências fixados nela.
             </p>
           </div>
+        </div>
 
+        {/* ---- a trilha densa: zonas, a zona aberta e os não mapeados --- */}
+        <div className="scroll-mt-4">
           {zonas.length > 0 ? (
-            <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+            <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-4 lg:mt-0">
               {zonas.map((z) => (
                 <LinhaLista
                   key={z.zona}
@@ -166,20 +196,24 @@ export default async function MapaEmbarcacaoPage({
             </div>
           ) : (
             <EstadoVazio
-              className="mt-3"
+              className="mt-3 lg:mt-0"
               icone="mapa"
               titulo="Nenhum equipamento mapeado ainda"
               descricao="Diga onde cada um mora — abra o equipamento em “Não mapeados” e escolha a zona."
             />
           )}
-        </div>
 
-        {/* ---- coluna do painel: a zona aberta + os não mapeados --------- */}
-        <div id="painel-zona" className="scroll-mt-4">
           {selecionada ? (
             <section
+              /* A âncora do pino mora AQUI, e não mais na coluna inteira: a
+                 lista de zonas passou a encabeçar esta coluna, e com o id
+                 no wrapper o toque num pino no celular pararia de rolar até
+                 a resposta e pararia na lista (§3.3 — "tocar num pino rola
+                 até o painel"). Os dois ramos deste ternário são
+                 excludentes, então o id nunca aparece duas vezes na página. */
+              id="painel-zona"
               aria-label={ROTULO_ZONA[selecionada]}
-              className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 lg:mt-0"
+              className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 scroll-mt-4"
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="titulo-card">{ROTULO_ZONA[selecionada]}</h2>
@@ -223,7 +257,7 @@ export default async function MapaEmbarcacaoPage({
             // de zonas logo acima já É o convite, e um cartão "selecione uma
             // zona" entre ela e os não mapeados seria ruído.
             zonas.length > 0 && (
-              <div className="hidden rounded-[var(--raio-cartao)] border border-dashed border-line p-6 text-center lg:block">
+              <div id="painel-zona" className="mt-3 hidden rounded-[var(--raio-cartao)] border border-dashed border-line p-6 text-center lg:block">
                 <p className="corpo text-dim">
                   Selecione uma zona no corte ao lado pra ver o que mora nela.
                 </p>
