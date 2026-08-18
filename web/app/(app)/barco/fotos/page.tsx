@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
@@ -8,7 +9,7 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { definirCapa, excluirFoto, subirFoto } from "@/lib/acoes/fotos"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
-import { formatarBytes, usoDaCota } from "@/lib/domain/cota"
+import { cotaDoPlano } from "@/lib/domain/cota"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -42,7 +43,10 @@ export default async function FotosPage({
   // do álbum aberto: o limite é da embarcação inteira, cruzando álbuns.
   const usoFotos = todas.length
   const liberadoParaSubir = recursoLiberado("fotos", nivel, usoFotos)
-  const uso = usoDaCota(todas.reduce((s, f) => s + f.bytes, 0))
+  // Canvas tela-4a: o "18 / 40" mono do cartão é a cota REAL — a que aperta
+  // primeiro neste plano (contagem no Free, espaço em MB no pago). A escolha
+  // mora no domínio (`cotaDoPlano`), com teste.
+  const cota = cotaDoPlano(nivel, usoFotos, todas.reduce((s, f) => s + f.bytes, 0))
   const doAlbum = todas.filter((f) => f.album === albumAtivo)
   const urls = doAlbum.length
     ? (await supabase.storage.from("acervo").createSignedUrls(doAlbum.map((f) => f.arquivo_path), 3600)).data ?? []
@@ -56,23 +60,21 @@ export default async function FotosPage({
         voltarRotulo="Barco"
         titulo="Fotos"
         descricao="O álbum do barco — e o dossiê que vale na hora de vender."
+        // O "+ Adicionar" do canvas (tela-4a): pílula dourada ao lado do
+        // título, levando à MESMA seção de envio no fim da página — uma ação,
+        // dois pontos de entrada, nunca um segundo formulário.
+        acao={
+          editavel && liberadoParaSubir ? (
+            <Link
+              href="#adicionar"
+              className="flex h-11 shrink-0 items-center rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+            >
+              + Adicionar
+            </Link>
+          ) : undefined
+        }
       />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
-
-      <div className="mt-4 rounded-[14px] border border-line bg-panel p-4 sombra-1">
-        <div className="flex items-baseline justify-between">
-          <p className="rotulo text-dim">Espaço de fotos</p>
-          <p className="font-mono-instr text-xs tabular-nums text-dim">
-            {formatarBytes(uso.usadoBytes)} de {formatarBytes(uso.limiteBytes)}
-          </p>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel2">
-          <div
-            className={`h-full rounded-full ${uso.percentual > 90 ? "bg-crit" : "bg-accent-forte"}`}
-            style={{ width: `${Math.max(2, uso.percentual)}%` }}
-          />
-        </div>
-      </div>
 
       <ChipLinha className="mt-4">
         {ALBUNS.map((a) => (
@@ -82,6 +84,11 @@ export default async function FotosPage({
             ativo={a === albumAtivo}
           >
             {ROTULO_ALBUM[a]}
+            {/* O contador mono do chip ativo (canvas: "Todas 18") — só no
+                ativo, que é o recorte que a grade abaixo está mostrando. */}
+            {a === albumAtivo && doAlbum.length > 0 && (
+              <span className="ml-1.5 font-mono-instr tabular-nums">{doAlbum.length}</span>
+            )}
           </Chip>
         ))}
       </ChipLinha>
@@ -94,16 +101,26 @@ export default async function FotosPage({
           className="mt-4"
         />
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-1.5">
           {doAlbum.map((f) => {
             const url = urlPorPath.get(f.arquivo_path)
             const ehCapa = painel.embarcacao.foto_capa_path === f.arquivo_path
             return (
-              <div key={f.id} className="overflow-hidden rounded-[12px] border border-line bg-panel sombra-1">
-                {url && (
-                  /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
-                  <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" loading="lazy" />
-                )}
+              <div key={f.id} className="overflow-hidden rounded-[10px] border border-line bg-panel sombra-1">
+                <div className="relative">
+                  {url && (
+                    /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
+                    <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" loading="lazy" />
+                  )}
+                  {/* O selo "Capa" do canvas — sobre a própria foto, navy fixo
+                      nos dois temas (a foto não segue o tema; mesmo raciocínio
+                      de --mapa-instrumento em globals.css). */}
+                  {ehCapa && (
+                    <span className="absolute bottom-1.5 left-1.5 rounded-full border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[.06em] text-meter-texto">
+                      Capa
+                    </span>
+                  )}
+                </div>
                 {f.legenda && <p className={`apoio truncate px-2 pt-1.5 text-dim ${editavel ? "" : "pb-1.5"}`}>{f.legenda}</p>}
                 {editavel && (
                   <div className="flex items-center justify-between px-1.5 py-1">
@@ -129,12 +146,41 @@ export default async function FotosPage({
               </div>
             )
           })}
+          {/* O convite "+ foto" do canvas: último quadrado da grade, tracejado,
+              levando à mesma seção de envio. Só existe quando dá pra enviar —
+              convite pra porta fechada seria mentira. */}
+          {editavel && liberadoParaSubir && (
+            <Link
+              href="#adicionar"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-line text-dim"
+            >
+              <Icone nome="camera" className="size-5" />
+              <span className="font-mono-instr text-[11px]">+ foto</span>
+            </Link>
+          )}
         </div>
       )}
 
+      {/* O cartão de cota do canvas — rótulo mono, número mono à direita,
+          barra fina. Fica DEPOIS da grade, como lá: primeiro o álbum, depois
+          o quanto ainda cabe. */}
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
+        <div className="flex items-baseline justify-between">
+          <p className="rotulo text-dim">Cota do plano</p>
+          <p className="font-mono-instr text-[13px] font-semibold tabular-nums">{cota.valor}</p>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-panel2">
+          <div
+            className={`h-full rounded-full ${cota.critico ? "bg-crit" : "bg-dim"}`}
+            style={{ width: `${Math.max(2, cota.percentual)}%` }}
+          />
+        </div>
+        <p className="apoio mt-2 text-dim">A foto marcada como capa é a que abre o seu Commander.</p>
+      </div>
+
       {editavel && (
         <>
-          <SecaoPagina>Adicionar foto</SecaoPagina>
+          <SecaoPagina className="scroll-mt-4" id="adicionar">Adicionar foto</SecaoPagina>
           {liberadoParaSubir ? (
             <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
               <input type="hidden" name="album" value={albumAtivo} />
