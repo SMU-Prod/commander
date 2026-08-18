@@ -330,16 +330,45 @@ export default async function HojePage({
      * Agora: UMA anatomia (`Cartao`, com ícone + título + ação no topo) e
      * uma grade. No celular, uma coluna na ordem em que o dono decide as
      * coisas (foto → estado → pendências → diário → motores → gastos); a
-     * partir de `lg`, a mesma ordem numa grade de três colunas onde os
-     * blocos largos (foto, pendências, gastos) ocupam duas.
-     *
-     * `lg:items-start` porque cartão não deve esticar até a altura da linha:
-     * um cartão de três linhas esticado ao lado da foto vira uma caixa com
-     * um palmo de vazio embaixo do conteúdo.
+     * partir de `lg`, DUAS COLUNAS DE ALTURAS INDEPENDENTES.
      *
      * A DECISÃO ASSUMIDA É UMA (docs/DESIGN.md §4): a foto do barco. Todo o
      * resto se comporta como instrumento — número em fonte tabular, estado
      * em selo, nada de gradiente, sombra ou dourado disputando atenção.
+     *
+     * ONDA 63 — POR QUE A GRADE DE 3 COLUNAS VIROU PAINEL + TRILHA.
+     *
+     * A auditoria de 18/08 mediu aqui, a 1440, "~180px de vazio embaixo do
+     * cartão Saúde e um quadrante inferior direito morto do tamanho de um
+     * cartão". A causa não era a ordem dos blocos: era a GRADE. Numa grade,
+     * a linha tem uma altura só — o cartão Saúde (110px de conteúdo) ao
+     * lado do herói (256px) deixa 146px de buraco, e `lg:items-start` (que
+     * estava certo: esticar o cartão só transformaria o buraco num vazio
+     * DENTRO da borda) não tem como fechar isso. Reordenar não resolvia
+     * também: qualquer permutação de blocos de alturas diferentes em linhas
+     * de 3 recria o buraco em outro lugar.
+     *
+     * O que a referência (Haulix) faz e a grade não fazia: um painel grande
+     * de conteúdo principal e uma COLUNA de cartões menores ao lado, cada
+     * uma correndo na própria altura. Duas colunas de fluxo independente
+     * não têm linha, logo não têm buraco de linha — o vazio some por
+     * construção, sem inventar conteúdo pra preencher.
+     *
+     * COMO ISSO CONVIVE COM O CELULAR INTACTO: as duas colunas são
+     * `display: contents` abaixo de `lg` (as `<div>` somem da caixa e os
+     * cartões voltam a ser filhos diretos desta grade de uma coluna), e
+     * cada cartão carrega o `order-*` da posição que ele sempre teve no
+     * aparelho. Os valores sobem dentro de cada coluna, então em `lg` —
+     * onde as `<div>` viram colunas de verdade — a ordem do `order` é a
+     * ordem do DOM e nada se reembaralha. O 390 não muda um pixel; foi
+     * medido antes e depois.
+     *
+     * O reparto é por ALTURA, não por importância: o painel fica com a foto
+     * e os três blocos altos (pendências, gastos, tripulação) e a trilha com
+     * os seis compactos. Com o barco cheio da varredura as duas colunas
+     * fecham em ~1030px cada — a diferença que sobra é menor que um cartão,
+     * que é o critério: buraco de rodapé só é visível quando cabe um bloco
+     * dentro dele.
      */
     // Acabamento Haulix (16/08): gap de desktop desce de 24 pra 16px —
     // densidade é respeito (DESIGN §6.5), e era o que a referência tem.
@@ -375,370 +404,387 @@ export default async function HojePage({
         </p>
       )}
 
-      {/* A foto do dono é o assunto da tela — a única emoção, e a decisão
-          assumida do redesenho. Sem selo de status e sem grade de métricas
-          por cima dela desde a onda 57: o estado tem cartão próprio logo ao
-          lado (com o vocabulário do PRD §5, não um terceiro), e as horas de
-          motor têm o cartão "Motores". Hero é foto e nome. */}
-      <CardEmbarcacao
-        className="lg:col-span-2"
-        embarcacao={embarcacao}
-        urlCapa={urlCapa}
-        podeEditarFotos={podeEditar(permissoes, "fotos")}
-      />
+      {/* ---- PAINEL: a foto e os três blocos altos ----------------------
+          `contents` abaixo de `lg` — a <div> some da caixa e os cartões
+          voltam a ser filhos diretos da grade de uma coluna do celular,
+          onde o `order-*` de cada um repõe a posição de sempre. */}
+      <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
+        {/* A foto do dono é o assunto da tela — a única emoção, e a decisão
+            assumida do redesenho. Sem selo de status e sem grade de métricas
+            por cima dela desde a onda 57: o estado tem cartão próprio logo ao
+            lado (com o vocabulário do PRD §5, não um terceiro), e as horas de
+            motor têm o cartão "Motores". Hero é foto e nome. */}
+        <CardEmbarcacao
+          className="order-2"
+          embarcacao={embarcacao}
+          urlCapa={urlCapa}
+          podeEditarFotos={podeEditar(permissoes, "fotos")}
+        />
 
-      <Cartao
-        icone="escudo"
-        titulo="Saúde"
-        selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
-        acao={
-          estadoSaude != null
-            ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver detalhes</Link>
-            : <Link href="/barco" className={ACAO_CARTAO}>Completar</Link>
-        }
-      >
-        {estadoSaude != null ? (
-          /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
-             ocorrência aberta" — número em mono CLARO (`text-texto`), palavra
-             dim. A fonte de instrumento é do NÚMERO, não da frase (revisão da
-             onda 57): `contagemDaSaude` devolve as partes e só o numeral leva
-             a mono, como o cartão da Tripulação logo abaixo já fazia. */
-          <p className="apoio text-dim">
-            {contagemDaSaude(saude, ocorrenciasAtivas.length)?.map((parte, i) => (
-              <span key={parte.rotulo}>
-                {i > 0 && " · "}
-                <span className="font-mono-instr tabular-nums text-texto">{parte.numero}</span> {parte.rotulo}
-              </span>
-            )) ?? "Nenhum item monitorado com data ou leitura."}
-          </p>
-        ) : (
-          <p className="apoio text-dim">
-            Cadastre horas de motor ou vencimentos com data pra saber como está a embarcação.
-          </p>
-        )}
-      </Cartao>
-
-      {/* Um cartão só pro que pede ação, alimentado pela lista de FATORES da
-          Saúde: manutenção vencida e ocorrência aberta juntas, na ordem de
-          criticidade que o PRD §3.4 manda. Antes eram dois blocos separados
-          — e o dono tinha que comparar sozinho qual dos dois era mais
-          urgente. Não aparece quando não há dado real nenhum: nesse caso o
-          convite já está no cartão da Saúde, e dois convites idênticos na
-          mesma tela é o começo do "informação solta". */}
-      {(pendencias.length > 0 || temDadoReal) && (
-        <Cartao
-          icone="alerta"
-          titulo="Precisa da sua atenção"
-          className="lg:col-span-2"
-          acao={saude.fatores.length > pendencias.length
-            ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver tudo</Link>
-            : undefined}
-        >
-          {pendencias.length > 0 ? (
-            pendencias.map((f) => (
-              <LinhaLista
-                key={`${f.tipo}:${f.id}`}
-                href={linkDoFator(f, podeEditar(permissoes, f.aba))}
-                leading={<Farol status={f.farol} />}
-                titulo={f.nome}
-                subtitulo={f.detalhe}
-                /* A coluna mono do canvas (tela-1b): manutenção mostra a
-                   contagem regressiva ("-19 d", "18 h"); ocorrência não tem
-                   prazo — mostra a idade ("6 d" aberta há seis dias), o
-                   único número honesto de quem não tem vencimento. A cor é
-                   a do farol da linha. */
-                valor={f.tipo === "ocorrencia" ? idadePorOcorrencia.get(f.id) : restantePorItem.get(f.id)}
-                valorClassName={f.farol === "vencido" ? "text-crit" : "text-warn"}
-              />
-            ))
-          ) : (
-            <p className="corpo text-dim">Nenhum vencimento na margem. Bom vento e mar calmo.</p>
-          )}
-        </Cartao>
-      )}
-
-      {/* O Diário é o coração do app (PRD §6) e era um ícone num grid de
-          cinco atalhos. Vira cartão com a ÚNICA ação dourada da tela. Foi
-          este cartão que tirou o FAB "+ Registrar" da Início na onda 57
-          (dois botões de registrar na mesma tela, um deles por cima do
-          conteúdo, é a definição de ação principal duplicada) — e na onda
-          60 o FAB aposentou do app inteiro (ver `lib/ui/superficies.ts`):
-          este botão é o caminho de registrar a partir daqui. */}
-      {podeVerDiario && (
-        <Cartao
-          icone="relatorio"
-          titulo="Diário de Bordo"
-          acao={<Link href="/diario" className={ACAO_CARTAO}>Ver tudo</Link>}
-        >
-          <p className="corpo">{textoUltimaSaida(ultimaSaida, anoAtual)}</p>
-          {totaisAno && (
-            <>
-              <p className="rotulo mt-3 text-dim">Seu ano no mar</p>
-              <div className="mt-2 grid grid-cols-3 gap-3">
-                <Kpi rotulo="Saídas" valor={String(totaisAno.saidas)} />
-                {/* Distância só existe com trilha GPS de verdade
-                    (`resumoAno`). Sem nenhuma, o honesto é um traço: "0 MN"
-                    diria que o barco saiu e não andou. */}
-                <Kpi
-                  rotulo="Distância"
-                  valor={totaisAno.milhasNm > 0 ? `${Math.round(totaisAno.milhasNm).toLocaleString("pt-BR")} MN` : "—"}
-                />
-                <Kpi rotulo="No mar" valor={`${Math.round(totaisAno.horasNoMar).toLocaleString("pt-BR")} h`} />
-              </div>
-            </>
-          )}
-          {podeEditar(permissoes, "diario") && (
-            <Link
-              /* ONDA 62 — o botão diz "Registrar saída", então ele abre o
-                 formulário de SAÍDA (canvas tela-3b), não o seletor de 6
-                 tipos: `?tipo=navegacao` faz /diario/novo cair direto na
-                 tela do canvas. */
-              href="/diario/novo?tipo=navegacao"
-              // Acabamento Haulix (16/08): a ação é uma pílula CONTIDA, não
-              // uma laje de largura inteira — na referência o acento é
-              // pequeno ("Activate Route"); o tamanho vinha gritando mais
-              // que o conteúdo.
-              className="mt-3 inline-flex min-h-11 items-center self-start rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
-            >
-              Registrar saída
-            </Link>
-          )}
-        </Cartao>
-      )}
-
-      <Cartao
-        icone="motor"
-        titulo="Motores"
-        /* Vazio, quem convida é o próprio `EstadoVazio` — dois links pro
-           mesmo assunto no mesmo cartão é ruído, não conveniência. */
-        acao={motores.length > 0 ? <Link href="/barco" className={ACAO_CARTAO}>Ver ficha</Link> : undefined}
-      >
-        {/* `enfase="discreta"` nos QUATRO estados vazios desta tela (aqui,
-            Gastos, Mar agora e Tripulação). Num barco recém-cadastrado eles
-            aparecem TODOS ao mesmo tempo, e cada um dourado somava quatro
-            "aqui se age" em cima dos que a tela já gasta legitimamente — o
-            orçamento é dois (docs/DESIGN.md §5). Nenhum deles é a ação
-            principal da Início: essa é "Registrar saída", no Diário. O
-            padrão do componente segue dourado pras ~49 telas em que o estado
-            vazio É o corpo inteiro e a ação dele É a ação da tela. */}
-        {motores.length === 0 ? (
-          <EstadoVazio
-            variant="linha"
-            enfase="discreta"
-            icone="motor"
-            titulo="Nenhum motor cadastrado"
-            descricao="Cadastre pra ganhar horímetro e alerta de revisão automáticos."
-            acao={podeEditar(permissoes, "motores")
-              ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Cadastrar motor" }
+        {/* Um cartão só pro que pede ação, alimentado pela lista de FATORES da
+            Saúde: manutenção vencida e ocorrência aberta juntas, na ordem de
+            criticidade que o PRD §3.4 manda. Antes eram dois blocos separados
+            — e o dono tinha que comparar sozinho qual dos dois era mais
+            urgente. Não aparece quando não há dado real nenhum: nesse caso o
+            convite já está no cartão da Saúde, e dois convites idênticos na
+            mesma tela é o começo do "informação solta". */}
+        {(pendencias.length > 0 || temDadoReal) && (
+          <Cartao
+            icone="alerta"
+            titulo="Precisa da sua atenção"
+            className="order-4"
+            acao={saude.fatores.length > pendencias.length
+              ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver tudo</Link>
               : undefined}
-          />
-        ) : (
-          <>
-            <div className={`grid gap-3 ${motores.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-              {motores.map((m) => (
-                <Kpi
-                  key={m.id}
-                  rotulo={nomeDoEquipamento(m)}
-                  valor={horasDoMotor(m)}
-                  apoio={apoioDaRevisao(revisaoPorMotor.get(m.id) ?? null)}
-                  /* O apoio acende junto com o prazo (canvas tela-1b: o
-                     "Revisão em 18 h" do motor BE é âmbar; o horímetro em
-                     cima fica claro — a leitura é fato, o estado é do
-                     prazo). `seloDoFarol` é a mesma tradução de sempre. */
-                  apoioEstado={seloDoFarol(revisaoPorMotor.get(m.id)?.status ?? null)}
+          >
+            {pendencias.length > 0 ? (
+              pendencias.map((f) => (
+                <LinhaLista
+                  key={`${f.tipo}:${f.id}`}
+                  href={linkDoFator(f, podeEditar(permissoes, f.aba))}
+                  leading={<Farol status={f.farol} />}
+                  titulo={f.nome}
+                  subtitulo={f.detalhe}
+                  /* A coluna mono do canvas (tela-1b): manutenção mostra a
+                     contagem regressiva ("-19 d", "18 h"); ocorrência não tem
+                     prazo — mostra a idade ("6 d" aberta há seis dias), o
+                     único número honesto de quem não tem vencimento. A cor é
+                     a do farol da linha. */
+                  valor={f.tipo === "ocorrencia" ? idadePorOcorrencia.get(f.id) : restantePorItem.get(f.id)}
+                  valorClassName={f.farol === "vencido" ? "text-crit" : "text-warn"}
                 />
-              ))}
-            </div>
-            {/* Honestidade (PRD §11): o horímetro é sempre informado à mão,
-                então dizer QUANDO foi a última leitura é parte do número. */}
-            {ultimaLeitura && <p className="apoio mt-3 text-dim">Última leitura: {ultimaLeitura}</p>}
-          </>
+              ))
+            ) : (
+              <p className="corpo text-dim">Nenhum vencimento na margem. Bom vento e mar calmo.</p>
+            )}
+          </Cartao>
         )}
-      </Cartao>
 
-      {podeVerGastos && (
+        {podeVerGastos && (
+          <Cartao
+            icone="cifrao"
+            titulo="Gastos do mês"
+            className="order-7"
+            acao={resumoMes.totalMesCentavos > 0
+              ? <Link href="/financeiro" className={ACAO_CARTAO}>Ver financeiro</Link>
+              : undefined}
+          >
+            {resumoMes.totalMesCentavos > 0 ? (
+              <>
+                <Kpi
+                  rotulo="Total pago no mês"
+                  valor={formatarReais(resumoMes.totalMesCentavos)}
+                  apoio={variacaoDoMes(variacaoGastos)}
+                />
+                <div className="mt-3">
+                  <GraficoMesesGastos meses={resumoMes.meses} mesAtual={hoje.slice(0, 7)} altura={72} comMoldura={false} />
+                </div>
+              </>
+            ) : (
+              <EstadoVazio
+                variant="linha"
+                enfase="discreta"
+                icone="cifrao"
+                titulo="Nenhuma despesa paga este mês"
+                descricao="Vaga, combustível, manutenção — o que sai do bolso fica registrado aqui."
+                acao={{ href: "/financeiro/novo?tipo=despesa", rotulo: "Registrar despesa" }}
+              />
+            )}
+          </Cartao>
+        )}
+
         <Cartao
-          icone="cifrao"
-          titulo="Gastos do mês"
-          className="lg:col-span-2"
-          acao={resumoMes.totalMesCentavos > 0
-            ? <Link href="/financeiro" className={ACAO_CARTAO}>Ver financeiro</Link>
+          icone="pessoas"
+          titulo="Tripulação"
+          className="order-9"
+          acao={!sozinhoNoBarco && podeConvidar
+            ? <Link href="/tripulacao" className={ACAO_CARTAO}>Gerenciar</Link>
             : undefined}
         >
-          {resumoMes.totalMesCentavos > 0 ? (
-            <>
-              <Kpi
-                rotulo="Total pago no mês"
-                valor={formatarReais(resumoMes.totalMesCentavos)}
-                apoio={variacaoDoMes(variacaoGastos)}
-              />
-              <div className="mt-3">
-                <GraficoMesesGastos meses={resumoMes.meses} mesAtual={hoje.slice(0, 7)} altura={72} comMoldura={false} />
-              </div>
-            </>
-          ) : (
+          {sozinhoNoBarco ? (
             <EstadoVazio
               variant="linha"
               enfase="discreta"
-              icone="cifrao"
-              titulo="Nenhuma despesa paga este mês"
-              descricao="Vaga, combustível, manutenção — o que sai do bolso fica registrado aqui."
-              acao={{ href: "/financeiro/novo?tipo=despesa", rotulo: "Registrar despesa" }}
+              icone="pessoas"
+              titulo="Só você tem acesso a este barco"
+              descricao={podeConvidar
+                ? "Convide comandantes de confiança pra dividir o controle."
+                : "Nenhum outro comandante convidado ainda."}
+              acao={podeConvidar ? { href: "/tripulacao", rotulo: "Convidar comandante" } : undefined}
             />
+          ) : (
+            <>
+              <div className="flex items-center -space-x-2">
+                {tripulantesVisiveis.map((t) => (
+                  <Avatar key={t.id} url={urlsTripulacao.get(t.id) ?? null} nome={t.nome} tamanho="size-9" />
+                ))}
+                {tripulantesExtras > 0 && (
+                  <span className="flex size-9 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-xs text-dim">
+                    +{tripulantesExtras}
+                  </span>
+                )}
+              </div>
+              <p className="apoio mt-2 text-dim">
+                <span className="font-mono-instr tabular-nums">{tripulantes.length}</span>{" "}
+                {tripulantes.length === 1 ? "pessoa tem" : "pessoas têm"} acesso a este barco
+              </p>
+            </>
           )}
         </Cartao>
-      )}
 
-      <Cartao icone="mapa" titulo="Mar agora">
-        {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
-          <EstadoVazio
-            variant="linha"
-            enfase="discreta"
-            icone="mapa"
-            titulo="Ligue o boletim do mar"
-            descricao="Defina a posição da marina para ver onda, vento e água aqui."
-            acao={{ href: "/barco/local", rotulo: "Definir posição" }}
-          />
-        ) : (
-          // Esqueleto MEDIDO, não chutado. Era uma barra de `h-[46px]` — fora
-          // da escala (docs/DESIGN.md §5) e 31px mais curta que o conteúdo:
-          // o boletim renderizado mede 77px, tanto em 390 quanto em 1440
-          // (a fileira de números quebra em duas linhas nas duas larguras,
-          // porque o cartão "Mar agora" é estreito também na grade de três
-          // colunas), e embaixo dela vem a linha da maré estimada. Esqueleto
-          // curto demais troca a espera por um salto de layout.
-          // Duas barras, todas em degraus da escala: 48 + 12 + 16 = 76px.
-          <Suspense
-            fallback={
-              <div className="animate-pulse">
-                <div className="h-12 rounded-[var(--raio-controle)] bg-panel2" />
-                <div className="mt-3 h-4 w-2/3 rounded-[var(--raio-controle)] bg-panel2" />
-              </div>
-            }
-          >
-            <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
-          </Suspense>
-        )}
-        {/* Iniciar navegação mora aqui e não num botão dourado próprio: é a
-            ação do MAR, e o dourado da tela já tem dono. */}
-        <LinhaLista
-          className="mt-3"
-          href="/navegar"
-          leading={<Icone nome="mapa" className="size-4 shrink-0 text-dim" />}
-          titulo="Iniciar navegação"
-          subtitulo="Grave a trilha desta saída no mapa"
-        />
-      </Cartao>
-
-      <Cartao
-        icone="pessoas"
-        titulo="Tripulação"
-        acao={!sozinhoNoBarco && podeConvidar
-          ? <Link href="/tripulacao" className={ACAO_CARTAO}>Gerenciar</Link>
-          : undefined}
-      >
-        {sozinhoNoBarco ? (
-          <EstadoVazio
-            variant="linha"
-            enfase="discreta"
+        {(comandantes ?? []).length > 0 && (
+          <Cartao
             icone="pessoas"
-            titulo="Só você tem acesso a este barco"
-            descricao={podeConvidar
-              ? "Convide comandantes de confiança pra dividir o controle."
-              : "Nenhum outro comandante convidado ainda."}
-            acao={podeConvidar ? { href: "/tripulacao", rotulo: "Convidar comandante" } : undefined}
-          />
-        ) : (
-          <>
-            <div className="flex items-center -space-x-2">
-              {tripulantesVisiveis.map((t) => (
-                <Avatar key={t.id} url={urlsTripulacao.get(t.id) ?? null} nome={t.nome} tamanho="size-9" />
-              ))}
-              {tripulantesExtras > 0 && (
-                <span className="flex size-9 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-xs text-dim">
-                  +{tripulantesExtras}
-                </span>
-              )}
-            </div>
-            <p className="apoio mt-2 text-dim">
-              <span className="font-mono-instr tabular-nums">{tripulantes.length}</span>{" "}
-              {tripulantes.length === 1 ? "pessoa tem" : "pessoas têm"} acesso a este barco
-            </p>
-          </>
-        )}
-      </Cartao>
-
-      {/* 5 colunas desde a onda 43 (Agenda entrou aqui): em 375px sobram
-          ~62px por coluna e o maior rótulo ("Contatos", 11px) mede ~47px —
-          cabe. Este é o caminho de descoberta da Agenda a partir da Início
-          (gate do CONTRIBUTING.md: no máximo 3 toques); o segundo caminho é
-          o Menu.
-          O Diário trocou de ícone (calendário -> relatório) porque o
-          calendário passou a ser da Agenda: dois atalhos vizinhos com o
-          mesmo desenho é o mesmo problema que o glossário resolve nos nomes.
-          O Diário é o registro do que aconteceu; a Agenda é o que está
-          marcado.
-          ONDA 57 — os cinco ícones eram dourados. Cinco atalhos de navegação
-          não são cinco ações principais: viraram cinza, e o dourado ficou
-          com quem manda na tela. */}
-      <Cartao icone="raio" titulo="Acesso rápido">
-        <div className="grid grid-cols-5 gap-2 text-center">
-          {(
-            [
-              { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
-              // Onda 46: a Agenda ganhou área própria na matriz (PRD §8). Este
-              // atalho lê `AREA_AGENDA` em vez de escrever a área na mão — assim
-              // o que a Início esconde é exatamente o que a RLS recusa.
-              { href: "/agenda", rotulo: "Agenda", aba: AREA_AGENDA, icone: "calendario" },
-              { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
-              { href: "/diario", rotulo: "Diário", icone: "relatorio" },
-              { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
-            ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
-          )
-            .filter((a) => !a.aba || podeVer(permissoes, a.aba))
-            .map((a) => (
-              <Link key={a.href} href={a.href}
-                className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2">
-                <Icone nome={a.icone} className="size-5 text-dim" />
-                <span className="text-[11px] font-medium">{a.rotulo}</span>
-              </Link>
+            titulo="Comandantes disponíveis"
+            className="order-11"
+            acao={<Link href="/comandantes" className={ACAO_CARTAO}>Ver todos</Link>}
+          >
+            {(comandantes ?? []).map((c) => (
+              <LinhaLista
+                key={c.usuario_id}
+                href="/comandantes"
+                titulo={c.nome_publico}
+                subtitulo={[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}
+              />
             ))}
-        </div>
-      </Cartao>
+          </Cartao>
+        )}
+      </div>
 
-      {(comandantes ?? []).length > 0 && (
+      {/* ---- TRILHA: os seis blocos compactos, na própria altura -------
+          Mesma mecânica da coluna acima: `contents` no celular, coluna de
+          verdade em `lg`. É esta coluna que antes terminava 180px antes do
+          herói e deixava o quadrante inferior direito morto. */}
+      <div className="contents lg:flex lg:flex-col lg:gap-4">
         <Cartao
-          icone="pessoas"
-          titulo="Comandantes disponíveis"
-          acao={<Link href="/comandantes" className={ACAO_CARTAO}>Ver todos</Link>}
+          icone="escudo"
+          titulo="Saúde"
+          className="order-3"
+          selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
+          acao={
+            estadoSaude != null
+              ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver detalhes</Link>
+              : <Link href="/barco" className={ACAO_CARTAO}>Completar</Link>
+          }
         >
-          {(comandantes ?? []).map((c) => (
-            <LinhaLista
-              key={c.usuario_id}
-              href="/comandantes"
-              titulo={c.nome_publico}
-              subtitulo={[c.categoria, c.disponibilidade].filter(Boolean).join(" · ")}
-            />
-          ))}
+          {estadoSaude != null ? (
+            /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
+               ocorrência aberta" — número em mono CLARO (`text-texto`), palavra
+               dim. A fonte de instrumento é do NÚMERO, não da frase (revisão da
+               onda 57): `contagemDaSaude` devolve as partes e só o numeral leva
+               a mono, como o cartão da Tripulação logo abaixo já fazia. */
+            <p className="apoio text-dim">
+              {contagemDaSaude(saude, ocorrenciasAtivas.length)?.map((parte, i) => (
+                <span key={parte.rotulo}>
+                  {i > 0 && " · "}
+                  <span className="font-mono-instr tabular-nums text-texto">{parte.numero}</span> {parte.rotulo}
+                </span>
+              )) ?? "Nenhum item monitorado com data ou leitura."}
+            </p>
+          ) : (
+            <p className="apoio text-dim">
+              Cadastre horas de motor ou vencimentos com data pra saber como está a embarcação.
+            </p>
+          )}
         </Cartao>
-      )}
 
-      {/* Próximas paradas (onda 19) — só aparece com uma viagem planejada de
-          verdade (data futura), nunca um cartão vazio convidando pra uma
-          feature sem dado nenhum atrás. */}
-      {proximaViagem && (
-        <Cartao icone="estrela" titulo="Próxima viagem">
+        {/* O Diário é o coração do app (PRD §6) e era um ícone num grid de
+            cinco atalhos. Vira cartão com a ÚNICA ação dourada da tela. Foi
+            este cartão que tirou o FAB "+ Registrar" da Início na onda 57
+            (dois botões de registrar na mesma tela, um deles por cima do
+            conteúdo, é a definição de ação principal duplicada) — e na onda
+            60 o FAB aposentou do app inteiro (ver `lib/ui/superficies.ts`):
+            este botão é o caminho de registrar a partir daqui. */}
+        {podeVerDiario && (
+          <Cartao
+            icone="relatorio"
+            titulo="Diário de Bordo"
+            className="order-5"
+            acao={<Link href="/diario" className={ACAO_CARTAO}>Ver tudo</Link>}
+          >
+            <p className="corpo">{textoUltimaSaida(ultimaSaida, anoAtual)}</p>
+            {totaisAno && (
+              <>
+                <p className="rotulo mt-3 text-dim">Seu ano no mar</p>
+                <div className="mt-2 grid grid-cols-3 gap-3">
+                  <Kpi rotulo="Saídas" valor={String(totaisAno.saidas)} />
+                  {/* Distância só existe com trilha GPS de verdade
+                      (`resumoAno`). Sem nenhuma, o honesto é um traço: "0 MN"
+                      diria que o barco saiu e não andou. */}
+                  <Kpi
+                    rotulo="Distância"
+                    valor={totaisAno.milhasNm > 0 ? `${Math.round(totaisAno.milhasNm).toLocaleString("pt-BR")} MN` : "—"}
+                  />
+                  <Kpi rotulo="No mar" valor={`${Math.round(totaisAno.horasNoMar).toLocaleString("pt-BR")} h`} />
+                </div>
+              </>
+            )}
+            {podeEditar(permissoes, "diario") && (
+              <Link
+                /* ONDA 62 — o botão diz "Registrar saída", então ele abre o
+                   formulário de SAÍDA (canvas tela-3b), não o seletor de 6
+                   tipos: `?tipo=navegacao` faz /diario/novo cair direto na
+                   tela do canvas. */
+                href="/diario/novo?tipo=navegacao"
+                // Acabamento Haulix (16/08): a ação é uma pílula CONTIDA, não
+                // uma laje de largura inteira — na referência o acento é
+                // pequeno ("Activate Route"); o tamanho vinha gritando mais
+                // que o conteúdo.
+                className="mt-3 inline-flex min-h-11 items-center self-start rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
+              >
+                Registrar saída
+              </Link>
+            )}
+          </Cartao>
+        )}
+
+        <Cartao
+          icone="motor"
+          titulo="Motores"
+          className="order-6"
+          /* Vazio, quem convida é o próprio `EstadoVazio` — dois links pro
+             mesmo assunto no mesmo cartão é ruído, não conveniência. */
+          acao={motores.length > 0 ? <Link href="/barco" className={ACAO_CARTAO}>Ver ficha</Link> : undefined}
+        >
+          {/* `enfase="discreta"` nos QUATRO estados vazios desta tela (aqui,
+              Gastos, Mar agora e Tripulação). Num barco recém-cadastrado eles
+              aparecem TODOS ao mesmo tempo, e cada um dourado somava quatro
+              "aqui se age" em cima dos que a tela já gasta legitimamente — o
+              orçamento é dois (docs/DESIGN.md §5). Nenhum deles é a ação
+              principal da Início: essa é "Registrar saída", no Diário. O
+              padrão do componente segue dourado pras ~49 telas em que o estado
+              vazio É o corpo inteiro e a ação dele É a ação da tela. */}
+          {motores.length === 0 ? (
+            <EstadoVazio
+              variant="linha"
+              enfase="discreta"
+              icone="motor"
+              titulo="Nenhum motor cadastrado"
+              descricao="Cadastre pra ganhar horímetro e alerta de revisão automáticos."
+              acao={podeEditar(permissoes, "motores")
+                ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Cadastrar motor" }
+                : undefined}
+            />
+          ) : (
+            <>
+              <div className={`grid gap-3 ${motores.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                {motores.map((m) => (
+                  <Kpi
+                    key={m.id}
+                    rotulo={nomeDoEquipamento(m)}
+                    valor={horasDoMotor(m)}
+                    apoio={apoioDaRevisao(revisaoPorMotor.get(m.id) ?? null)}
+                    /* O apoio acende junto com o prazo (canvas tela-1b: o
+                       "Revisão em 18 h" do motor BE é âmbar; o horímetro em
+                       cima fica claro — a leitura é fato, o estado é do
+                       prazo). `seloDoFarol` é a mesma tradução de sempre. */
+                    apoioEstado={seloDoFarol(revisaoPorMotor.get(m.id)?.status ?? null)}
+                  />
+                ))}
+              </div>
+              {/* Honestidade (PRD §11): o horímetro é sempre informado à mão,
+                  então dizer QUANDO foi a última leitura é parte do número. */}
+              {ultimaLeitura && <p className="apoio mt-3 text-dim">Última leitura: {ultimaLeitura}</p>}
+            </>
+          )}
+        </Cartao>
+
+        <Cartao icone="mapa" titulo="Mar agora" className="order-8">
+          {embarcacao.marina_lat == null || embarcacao.marina_lon == null ? (
+            <EstadoVazio
+              variant="linha"
+              enfase="discreta"
+              icone="mapa"
+              titulo="Ligue o boletim do mar"
+              descricao="Defina a posição da marina para ver onda, vento e água aqui."
+              acao={{ href: "/barco/local", rotulo: "Definir posição" }}
+            />
+          ) : (
+            // Esqueleto MEDIDO, não chutado. Era uma barra de `h-[46px]` — fora
+            // da escala (docs/DESIGN.md §5) e 31px mais curta que o conteúdo:
+            // o boletim renderizado mede 77px, tanto em 390 quanto em 1440
+            // (a fileira de números quebra em duas linhas nas duas larguras,
+            // porque o cartão "Mar agora" é estreito também na grade de três
+            // colunas), e embaixo dela vem a linha da maré estimada. Esqueleto
+            // curto demais troca a espera por um salto de layout.
+            // Duas barras, todas em degraus da escala: 48 + 12 + 16 = 76px.
+            <Suspense
+              fallback={
+                <div className="animate-pulse">
+                  <div className="h-12 rounded-[var(--raio-controle)] bg-panel2" />
+                  <div className="mt-3 h-4 w-2/3 rounded-[var(--raio-controle)] bg-panel2" />
+                </div>
+              }
+            >
+              <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
+            </Suspense>
+          )}
+          {/* Iniciar navegação mora aqui e não num botão dourado próprio: é a
+              ação do MAR, e o dourado da tela já tem dono. */}
           <LinhaLista
-            href={`/navegar/viagem/${proximaViagem.id}`}
-            titulo={proximaViagem.nome}
-            subtitulo={
-              proximaViagem.paradas.slice(0, 3).map((p) => p.nome).join(" · ") +
-              (proximaViagem.paradas.length > 3 ? ` · +${proximaViagem.paradas.length - 3}` : "")
-            }
-            valor={formatarDataCurta(proximaViagem.data_prevista)}
+            className="mt-3"
+            href="/navegar"
+            leading={<Icone nome="mapa" className="size-4 shrink-0 text-dim" />}
+            titulo="Iniciar navegação"
+            subtitulo="Grave a trilha desta saída no mapa"
           />
         </Cartao>
-      )}
+
+        {/* 5 colunas desde a onda 43 (Agenda entrou aqui): em 375px sobram
+            ~62px por coluna e o maior rótulo ("Contatos", 11px) mede ~47px —
+            cabe. Este é o caminho de descoberta da Agenda a partir da Início
+            (gate do CONTRIBUTING.md: no máximo 3 toques); o segundo caminho é
+            o Menu.
+            O Diário trocou de ícone (calendário -> relatório) porque o
+            calendário passou a ser da Agenda: dois atalhos vizinhos com o
+            mesmo desenho é o mesmo problema que o glossário resolve nos nomes.
+            O Diário é o registro do que aconteceu; a Agenda é o que está
+            marcado.
+            ONDA 57 — os cinco ícones eram dourados. Cinco atalhos de navegação
+            não são cinco ações principais: viraram cinza, e o dourado ficou
+            com quem manda na tela. */}
+        <Cartao icone="raio" titulo="Acesso rápido" className="order-10">
+          <div className="grid grid-cols-5 gap-2 text-center">
+            {(
+              [
+                { href: "/barco", rotulo: "Barco", icone: "embarcacao" },
+                // Onda 46: a Agenda ganhou área própria na matriz (PRD §8). Este
+                // atalho lê `AREA_AGENDA` em vez de escrever a área na mão — assim
+                // o que a Início esconde é exatamente o que a RLS recusa.
+                { href: "/agenda", rotulo: "Agenda", aba: AREA_AGENDA, icone: "calendario" },
+                { href: "/barco/documentos", rotulo: "Docs", aba: "documentos", icone: "documento" },
+                { href: "/diario", rotulo: "Diário", icone: "relatorio" },
+                { href: "/barco/contatos", rotulo: "Contatos", aba: "contatos", icone: "pessoas" },
+              ] as { href: string; rotulo: string; aba?: Aba; icone: NomeIcone }[]
+            )
+              .filter((a) => !a.aba || podeVer(permissoes, a.aba))
+              .map((a) => (
+                <Link key={a.href} href={a.href}
+                  className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2">
+                  <Icone nome={a.icone} className="size-5 text-dim" />
+                  <span className="text-[11px] font-medium">{a.rotulo}</span>
+                </Link>
+              ))}
+          </div>
+        </Cartao>
+
+        {/* Próximas paradas (onda 19) — só aparece com uma viagem planejada de
+            verdade (data futura), nunca um cartão vazio convidando pra uma
+            feature sem dado nenhum atrás. */}
+        {proximaViagem && (
+          <Cartao icone="estrela" titulo="Próxima viagem" className="order-12">
+            <LinhaLista
+              href={`/navegar/viagem/${proximaViagem.id}`}
+              titulo={proximaViagem.nome}
+              subtitulo={
+                proximaViagem.paradas.slice(0, 3).map((p) => p.nome).join(" · ") +
+                (proximaViagem.paradas.length > 3 ? ` · +${proximaViagem.paradas.length - 3}` : "")
+              }
+              valor={formatarDataCurta(proximaViagem.data_prevista)}
+            />
+          </Cartao>
+        )}
+      </div>
     </main>
   )
 }
