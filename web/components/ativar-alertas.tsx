@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { enviarPushTeste, removerAssinaturaPush, salvarAssinaturaPush } from "@/lib/acoes/push"
+import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 
 function base64ParaUint8(base64: string): Uint8Array {
   const preenchimento = "=".repeat((4 - (base64.length % 4)) % 4)
@@ -102,13 +103,17 @@ export function AtivarAlertas() {
         </p>
       )}
       {estado === "inativo" && (
+        /* Era um botão dourado de 1265px atravessando `/menu/ajustes` a
+           1440 — a pior amostra do "app esticado" na auditoria de 18/08.
+           `ACAO_NAO_ESTICA` mantém a linha inteira no celular e devolve a
+           largura do conteúdo no monitor. */
         <button onClick={ativar} disabled={ocupado}
-          className="mt-3 w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto disabled:opacity-60">
+          className={`${ACAO_NAO_ESTICA} mt-3 rounded-xl bg-accent py-3 font-semibold text-acao-texto disabled:opacity-60`}>
           Ativar avisos neste aparelho
         </button>
       )}
       {estado === "ativo" && (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-2 sm:max-w-[26rem]">
           <button onClick={teste} disabled={ocupado}
             className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium disabled:opacity-60">
             Enviar teste

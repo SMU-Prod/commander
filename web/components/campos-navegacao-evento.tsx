@@ -10,6 +10,7 @@ import {
   CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
   nomeDoEquipamento, ROTULO_CASCO, ROTULO_HIDRAULICA,
 } from "@/lib/domain/diario"
+import { ACAO_NAO_ESTICA, GRADE_LADRILHOS } from "@/lib/ui/superficies"
 
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
@@ -151,7 +152,13 @@ export function FormularioNovoEvento({
       {!tipoFixo && (
         <div>
           <p className={rotulo}>O que aconteceu?</p>
-          <div className="mt-2 grid grid-cols-2 gap-3">
+          {/* A 1440 estes ladrilhos mediam 645px de largura por 90px de
+              altura pra dizer uma palavra ("Docagem"), com 400px de vazio
+              embaixo — o grid de 2 colunas do celular esticado. Com
+              `GRADE_LADRILHOS` o número de COLUNAS sobe com a largura em vez
+              de o ladrilho engordar: 2 no celular, 3 a partir de `sm`, e as
+              6 opções fecham em duas linhas cheias, sem órfão. */}
+          <div className={`mt-2 grid gap-3 ${GRADE_LADRILHOS}`}>
             {TIPOS.map((t) => {
               const selecionado = tipo === t.valor
               return (
@@ -420,7 +427,7 @@ export function FormularioNovoEvento({
               (tela-3b). Era `rounded-xl` (12px), um quarto raio fora da
               escala de três do DESIGN §5. A saída fala "Salvar saída", como
               no canvas; os demais tipos seguem com o verbo genérico. */}
-          <button className="h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto">
+          <button className={`${ACAO_NAO_ESTICA} h-12 rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto`}>
             {tipo === "navegacao" ? "Salvar saída" : "Registrar no diário"}
           </button>
         </>

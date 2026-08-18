@@ -8,6 +8,7 @@ import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO } from "
 import { podeEditar } from "@/lib/domain/permissoes"
 import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoEventoPage({
   searchParams,
@@ -56,7 +57,7 @@ export default async function NovoEventoPage({
     // que a pessoa precisa ler é que nada dela foi apagado.
     const aviso = avisoAcervoAcimaDoTeto("diario_registros", nivel, usoDiario)
     return (
-      <main>
+      <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo={titulo} />
         {aviso && (
           <p className="corpo mt-4 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">{aviso}</p>
@@ -86,7 +87,7 @@ export default async function NovoEventoPage({
   const tipoInicial = tipo ?? (alvo ? "manutencao" : null)
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe
         voltarHref="/diario"
         voltarRotulo="Diário"

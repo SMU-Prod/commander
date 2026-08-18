@@ -12,6 +12,7 @@ import {
 import { podeEditar } from "@/lib/domain/permissoes"
 import { rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 /**
  * "+ Despesa" e "+ Entrada" — as duas ações universais do PRD §9.1. Mesmo
@@ -40,7 +41,7 @@ export default async function NovoLancamentoPage({
   // que vira cadeado. Mesma checagem na action, porque tela não é segurança.
   if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
     return (
-      <main>
+      <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/financeiro" voltarRotulo="Financeiro" titulo="Novo lançamento" />
         <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-5" />
       </main>
@@ -65,7 +66,7 @@ export default async function NovoLancamentoPage({
     : ""
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe
         voltarHref="/financeiro/lancamentos"
         voltarRotulo="Financeiro"
@@ -162,7 +163,7 @@ export default async function NovoLancamentoPage({
 
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={3} />
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
           {ehEntrada ? "Registrar entrada" : "Registrar despesa"}
         </button>
       </form>

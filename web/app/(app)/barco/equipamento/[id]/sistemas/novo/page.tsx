@@ -8,6 +8,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Documento } from "@/lib/db/types"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoSistemaPage({
   params,
@@ -33,7 +34,7 @@ export default async function NovoSistemaPage({
     .not("arquivo_path", "is", null).order("nome")
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe
         voltarHref={`/barco/equipamento/${id}`}
         titulo="Novo sistema"
@@ -63,7 +64,7 @@ export default async function NovoSistemaPage({
         )}
         <Campo label="Página do manual — opcional" id="pagina" name="pagina" inputMode="numeric" placeholder="Ex.: 42" className="font-mono-instr tabular-nums" />
         <Campo label="Observação — opcional" id="observacao" name="observacao" placeholder="Ex.: trocar o termostato a cada 2 anos" />
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar sistema</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
       </form>
     </main>
   )

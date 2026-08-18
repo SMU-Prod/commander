@@ -15,6 +15,7 @@ import {
 import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 /**
  * "Marcar compromisso" — o caso de uso literal do PRD §8: o proprietário
@@ -43,7 +44,7 @@ export default async function NovoCompromissoPage({
   // que vira cadeado — aqui, na action e em nenhum outro lugar.
   if (!recursoLiberado("agenda_criar", await carregarNivelPlano())) {
     return (
-      <main>
+      <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo="Marcar compromisso" />
         <BloqueioPremium {...mensagemBloqueio("agenda_criar")} className="mt-5" />
       </main>
@@ -68,7 +69,7 @@ export default async function NovoCompromissoPage({
   const dataInicial = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") ? (d as string) : hojeISO()
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo="Marcar compromisso" />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -147,7 +148,7 @@ export default async function NovoCompromissoPage({
           </CampoSelect>
         )}
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Marcar compromisso</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Marcar compromisso</button>
       </form>
     </main>
   )

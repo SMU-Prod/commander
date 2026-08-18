@@ -7,6 +7,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { ROTULO_TIPO_EMBARCACAO, TIPOS_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
 import { campo, linhaCampos, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function EditarEmbarcacaoPage({
   searchParams,
@@ -23,7 +24,7 @@ export default async function EditarEmbarcacaoPage({
   const regioes = itensDoTipo(await carregarTaxonomia(), "regiao")
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Barco
       </Link>
@@ -157,7 +158,7 @@ export default async function EditarEmbarcacaoPage({
           </div>
         </section>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar dados</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar dados</button>
       </form>
 
       <Link

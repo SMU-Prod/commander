@@ -8,6 +8,7 @@ import { criarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoEquipamentoPage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function NovoEquipamentoPage({
   }
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe
         voltarHref={tipoInicial === "motor" ? "/barco" : "/barco/eletrica"}
         voltarRotulo={tipoInicial === "motor" ? "Embarcação" : "Elétrica"}
@@ -77,7 +78,7 @@ export default async function NovoEquipamentoPage({
             className="py-2.5 text-sm"
           />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Criar equipamento</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Criar equipamento</button>
       </form>
     </main>
   )

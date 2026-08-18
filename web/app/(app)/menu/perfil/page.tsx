@@ -4,6 +4,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { salvarPerfil } from "@/lib/acoes/perfil"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function PerfilPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function PerfilPage({
     : null
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Meu perfil" />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -52,7 +53,7 @@ export default async function PerfilPage({
           accept="image/jpeg,image/png,image/webp"
           className="py-2.5 text-sm"
         />
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar perfil</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar perfil</button>
       </form>
     </main>
   )

@@ -10,6 +10,7 @@ import {
 } from "@/lib/domain/diario"
 import { podeEditar, ROTULO_ABA } from "@/lib/domain/permissoes"
 import { numeroParaCampoPtBr } from "@/lib/ui/form"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function EditarItemPage({
   params,
@@ -44,7 +45,7 @@ export default async function EditarItemPage({
       : "/barco"
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref={voltarPara} titulo={ehDocumento ? "Editar vencimento" : "Editar manutenção"} />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -102,7 +103,7 @@ export default async function EditarItemPage({
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal"
             defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className="font-mono-instr tabular-nums" />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
           {ehDocumento ? "Salvar vencimento" : "Salvar manutenção"}
         </button>
       </form>

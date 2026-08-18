@@ -4,6 +4,7 @@ import { Icone } from "@/components/icone"
 import { UsarPosicao } from "@/components/usar-posicao"
 import { salvarLocalMarina } from "@/lib/acoes/local"
 import { carregarPainel } from "@/lib/consultas"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
@@ -20,7 +21,7 @@ export default async function LocalPage({
   const { embarcacao } = painel
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
         <Icone nome="voltar" className="size-4" /> Barco
       </Link>
@@ -45,7 +46,7 @@ export default async function LocalPage({
               defaultValue={embarcacao.marina_lon ?? undefined} className={campo} />
           </div>
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
           Salvar posição
         </button>
       </form>

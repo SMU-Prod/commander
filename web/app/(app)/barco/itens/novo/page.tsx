@@ -9,6 +9,7 @@ import {
   CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA, CATEGORIAS_MOTOR,
   ROTULO_CASCO, ROTULO_HIDRAULICA, ROTULO_MOTOR,
 } from "@/lib/domain/diario"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoItemPage({
   searchParams,
@@ -32,7 +33,7 @@ export default async function NovoItemPage({
       : "/barco"
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe
         voltarHref={voltarPara}
         titulo="Nova manutenção"
@@ -92,7 +93,7 @@ export default async function NovoItemPage({
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date" defaultValue={hojeISO()} />
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Criar manutenção</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Criar manutenção</button>
       </form>
     </main>
   )

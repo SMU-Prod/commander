@@ -10,6 +10,7 @@ import { ehPago } from "@/lib/domain/plano-acesso"
 import { PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import pacote from "@/package.json"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 /**
  * AJUSTES (onda 58) — a casa de tudo que é configuração. O Menu virou o
@@ -49,7 +50,7 @@ export default async function AjustesPage() {
   const plano = PLANOS[nivel]
 
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Ajustes" />
 
       <SecaoPagina icone="pessoas">Conta</SecaoPagina>

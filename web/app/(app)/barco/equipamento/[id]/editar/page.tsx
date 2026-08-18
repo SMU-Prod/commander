@@ -8,6 +8,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { numeroParaCampoPtBr } from "@/lib/ui/form"
+import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function EditarEquipamentoPage({
   params,
@@ -27,7 +28,7 @@ export default async function EditarEquipamentoPage({
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite editar este equipamento.")}`)
   }
   return (
-    <main>
+    <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref={`/barco/equipamento/${id}`} titulo="Editar equipamento" />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -74,7 +75,7 @@ export default async function EditarEquipamentoPage({
             className="py-2.5 text-sm"
           />
         </div>
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar equipamento</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar equipamento</button>
       </form>
 
       <form action={excluirEquipamento} className="mt-8 flex justify-center">
