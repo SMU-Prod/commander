@@ -386,3 +386,36 @@ export function estrelasCheias(media: number | null): number {
   if (media == null) return 0
   return Math.round(media)
 }
+
+/**
+ * O histograma do cartão-resumo (canvas tela-4c): uma barra por estrela, de
+ * 5 pra 1, com o percentual REAL da distribuição — nada de curva decorativa.
+ * `destaque` marca UMA barra (a moda; no empate, a de mais estrelas) pra
+ * receber o dourado do canvas — as demais ficam neutras. Vazio quando não há
+ * avaliação nenhuma: histograma de zero linhas é ausência, não "tudo 0%".
+ */
+export interface BarraDistribuicao {
+  estrela: number
+  quantidade: number
+  /** 0–100, participação desta nota entre as que contam. */
+  percentual: number
+  /** A barra que leva o dourado — só uma, a mais frequente. */
+  destaque: boolean
+}
+
+export function barrasDaDistribuicao(r: Reputacao): BarraDistribuicao[] {
+  if (r.quantidade === 0) return []
+  const maior = Math.max(...r.distribuicao)
+  let destacada = false
+  return [5, 4, 3, 2, 1].map((estrela) => {
+    const quantidade = r.distribuicao[estrela - 1]
+    const destaque = !destacada && quantidade === maior && quantidade > 0
+    if (destaque) destacada = true
+    return {
+      estrela,
+      quantidade,
+      percentual: Math.round((quantidade / r.quantidade) * 100),
+      destaque,
+    }
+  })
+}

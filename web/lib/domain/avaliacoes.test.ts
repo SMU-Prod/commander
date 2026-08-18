@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import {
+  barrasDaDistribuicao,
   calcularReputacao,
   DIAS_EDICAO_AVALIACAO,
   diasRestantesParaEditar,
@@ -282,5 +283,36 @@ describe("média e quantidade do perfil (§14)", () => {
     expect(notaValida(6)).toBe(false)
     expect(notaValida(3.5)).toBe(false)
     expect(notaValida(3)).toBe(true)
+  })
+})
+
+describe("histograma do resumo (canvas tela-4c)", () => {
+  it("uma barra por estrela, de 5 pra 1, com percentual real", () => {
+    const r = calcularReputacao([
+      { nota: 5, visibilidade: "publica" },
+      { nota: 5, visibilidade: "publica" },
+      { nota: 5, visibilidade: "publica" },
+      { nota: 4, visibilidade: "publica" },
+      { nota: 3, visibilidade: "publica" },
+    ])
+    const barras = barrasDaDistribuicao(r)
+    expect(barras.map((b) => b.estrela)).toEqual([5, 4, 3, 2, 1])
+    expect(barras[0]).toMatchObject({ quantidade: 3, percentual: 60, destaque: true })
+    expect(barras[1]).toMatchObject({ quantidade: 1, percentual: 20, destaque: false })
+    expect(barras[3]).toMatchObject({ quantidade: 0, percentual: 0 })
+  })
+
+  it("um dourado só — no empate, vence a barra de mais estrelas", () => {
+    const r = calcularReputacao([
+      { nota: 5, visibilidade: "publica" },
+      { nota: 1, visibilidade: "publica" },
+    ])
+    const destaques = barrasDaDistribuicao(r).filter((b) => b.destaque)
+    expect(destaques).toHaveLength(1)
+    expect(destaques[0].estrela).toBe(5)
+  })
+
+  it("sem avaliação não há histograma — ausência, não 'tudo 0%'", () => {
+    expect(barrasDaDistribuicao(calcularReputacao([]))).toEqual([])
   })
 })
