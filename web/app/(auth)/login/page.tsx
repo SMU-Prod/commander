@@ -1,9 +1,22 @@
 import Link from "next/link"
+import { CampoSenha } from "@/components/campo-senha"
 import { Logo } from "@/components/logo"
 import { cadastrar, entrar } from "@/lib/acoes/auth"
 
+/**
+ * ENTRAR (onda 62, canvas tela-1a) — wordmark no topo, campos com rótulo
+ * mono, UMA ação dourada, e a ressalva de honestidade no rodapé desde o
+ * primeiro toque (CONTRIBUTING.md a exige em toda superfície de navegação).
+ *
+ * O FLUXO não mudou nada: `entrar`/`cadastrar` de `lib/acoes/auth.ts`,
+ * `?volta=` preservado nos dois sentidos. O canvas desenha ainda "Receber
+ * link de acesso por e-mail" e "Esqueci minha senha" — os dois ficaram FORA
+ * de propósito: não existe backend de link mágico nem de recuperação hoje, e
+ * link pra porta que não abre é o beco que a onda 54 caçou.
+ */
+
 const campo =
-  "w-full rounded-[10px] border border-white/15 bg-white/5 px-3 py-3.5 text-base text-texto placeholder:text-dim"
+  "h-12 w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 text-[15px] text-texto placeholder:text-dim"
 
 export default async function LoginPage({
   searchParams,
@@ -12,42 +25,51 @@ export default async function LoginPage({
 }) {
   const { erro, aviso, modo, volta } = await searchParams
   const cadastro = modo === "cadastro"
+  const linkAlternar = cadastro
+    ? `/login${volta ? `?volta=${encodeURIComponent(volta)}` : ""}`
+    : `/login?modo=cadastro${volta ? `&volta=${encodeURIComponent(volta)}` : ""}`
   return (
     <main
       data-theme="dark"
-      className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-ink px-6 pb-16 text-texto"
-      style={{ backgroundImage: "radial-gradient(ellipse 80% 45% at 50% 0%, var(--superficie-2) 0%, transparent 60%)" }}
+      className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-ink px-6 pb-10 pt-16 text-texto"
     >
-      <div className="text-xl"><Logo /></div>
-      <p className="mt-2 text-xs uppercase tracking-[.18em] text-dim">
-        O dossiê do seu barco
+      <div className="text-sm"><Logo /></div>
+
+      <h1 className="titulo-pagina mt-10">{cadastro ? "Crie sua conta" : "Bem-vindo a bordo"}</h1>
+      <p className="apoio mt-1.5 text-dim">
+        {cadastro
+          ? "Sua conta primeiro; a embarcação você cadastra logo depois."
+          : "Entre para acompanhar sua embarcação, o diário e o que precisa de você."}
       </p>
-      <h1 className="titulo-pagina mt-7">{cadastro ? "Crie sua conta" : "Entre na sua conta"}</h1>
+
       {erro && (
-        <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>
+        <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>
       )}
       {aviso && (
-        <p className="mt-4 rounded-lg border border-line bg-white/5 px-3 py-2 corpo">{aviso}</p>
+        <p className="corpo mt-4 rounded-lg border border-line bg-panel px-3 py-2">{aviso}</p>
       )}
-      <form action={cadastro ? cadastrar : entrar} className="mt-6 space-y-3.5">
+
+      <form action={cadastro ? cadastrar : entrar} className="mt-7 space-y-3.5">
         <input type="hidden" name="volta" value={volta ?? ""} />
         {cadastro && (
           <div>
-            <label htmlFor="nome" className="sr-only">Nome</label>
+            <label htmlFor="nome" className="rotulo mb-1.5 block text-dim">Nome</label>
             <input id="nome" name="nome" required placeholder="Seu nome" autoComplete="name" className={campo} />
           </div>
         )}
         <div>
-          <label htmlFor="email" className="sr-only">E-mail</label>
-          <input id="email" name="email" type="email" required placeholder="E-mail" autoComplete="email" className={campo} />
+          <label htmlFor="email" className="rotulo mb-1.5 block text-dim">E-mail</label>
+          <input
+            id="email" name="email" type="email" required
+            placeholder="voce@exemplo.com" autoComplete="email" className={campo}
+          />
         </div>
-        <div>
-          <label htmlFor="senha" className="sr-only">Senha</label>
-          <input id="senha" name="senha" type="password" required minLength={8}
-            placeholder="Senha (mín. 8 caracteres)"
-            autoComplete={cadastro ? "new-password" : "current-password"} className={campo} />
-        </div>
-        <button className="sombra-2 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
+        <CampoSenha
+          autoComplete={cadastro ? "new-password" : "current-password"}
+          placeholder={cadastro ? "Mínimo de 8 caracteres" : undefined}
+        />
+        {/* A única dourada da tela (DESIGN §5): uma ação principal. */}
+        <button className="mt-1 h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto">
           {cadastro ? "Criar conta" : "Entrar"}
         </button>
         {cadastro && (
@@ -64,12 +86,23 @@ export default async function LoginPage({
           </p>
         )}
       </form>
-      <a
-        href={cadastro ? `/login${volta ? `?volta=${encodeURIComponent(volta)}` : ""}` : `/login?modo=cadastro${volta ? `&volta=${encodeURIComponent(volta)}` : ""}`}
-        className="mt-6 text-center corpo text-dim"
-      >
-        {cadastro ? "Já tenho conta — entrar" : "Não tem conta? Criar agora"}
-      </a>
+
+      {/* O rodapé do canvas: divisor, a troca entrar/cadastrar e a ressalva
+          de honestidade — presente antes mesmo do primeiro login. */}
+      <div className="mt-auto flex flex-col gap-4 pt-10">
+        <div className="h-px bg-line" />
+        <a href={linkAlternar} className="corpo -my-2 flex min-h-11 items-center justify-center text-dim">
+          {cadastro ? (
+            <>Já tem conta?&nbsp;<span className="font-semibold text-accent-forte">Entrar</span></>
+          ) : (
+            <>Ainda não tem conta?&nbsp;<span className="font-semibold text-accent-forte">Cadastrar embarcação</span></>
+          )}
+        </a>
+        <p className="text-center font-mono-instr text-[11px] leading-relaxed text-dim">
+          O Commander não é auxílio à navegação.<br />
+          Consulte sempre a carta náutica oficial.
+        </p>
+      </div>
     </main>
   )
 }

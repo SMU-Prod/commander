@@ -6,6 +6,6 @@ test.describe("rota protegida sem sessão", () => {
 
     // middleware.ts: sem `user`, redireciona pra /login?volta=<pathname>.
     await expect(page).toHaveURL(/\/login\?volta=%2Fhoje/)
-    await expect(page.getByRole("heading", { name: "Entre na sua conta" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Bem-vindo a bordo" })).toBeVisible()
   })
 })
