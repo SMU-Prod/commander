@@ -114,8 +114,11 @@ export const PLANOS: Record<PlanoId, Plano> = {
     perfil: "proprietario",
     valorCentavos: 4990,
     ciclo: "MONTHLY",
-    descricao: "Commander — gestão completa de 1 embarcação",
-    regra: "1 embarcação; até 2 acessos de tripulação; gestão completa.",
+    // Sem "gestão" (palavra proibida pela narrativa — o produto é o DOSSIÊ do
+    // barco): esta `descricao` vai na FATURA do Asaas, é o que o dono lê no
+    // cartão de crédito. Auditoria de CMO, 18/08.
+    descricao: "Commander — o dossiê de 1 embarcação",
+    regra: "1 embarcação; até 2 acessos de tripulação; dossiê completo.",
     disponibilidade: "disponivel",
     limiteEmbarcacoes: 1,
     limiteAcessosPorEmbarcacao: 2,

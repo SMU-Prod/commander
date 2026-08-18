@@ -2,7 +2,11 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Commander — Gestão completa da sua embarcação",
+    // "Gestão" é palavra proibida pela narrativa do produto (PRD/CONTRIBUTING:
+    // o Commander é o DOSSIÊ do barco, não um sistema de gestão) — e este é o
+    // nome que aparece embaixo do ícone no iPhone do dono. A auditoria de CMO
+    // (18/08) achou aqui a contradição mais cara por caractere do app.
+    name: "Commander — o dossiê do seu barco",
     short_name: "Commander",
     description: "Documentação, manutenção e histórico do seu barco num lugar só.",
     start_url: "/hoje",
