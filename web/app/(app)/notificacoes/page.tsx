@@ -10,7 +10,8 @@ import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import {
   agruparSemelhantes, CATEGORIAS_NOTIFICACAO, contarPorCategoria, filtrarPorCategoria,
-  ROTULO_CATEGORIA_NOTIFICACAO, ROTULO_NIVEL_NOTIFICACAO, VAZIO_CATEGORIA_NOTIFICACAO,
+  iconeDoAviso, ROTULO_CATEGORIA_NOTIFICACAO, ROTULO_NIVEL_NOTIFICACAO,
+  VAZIO_CATEGORIA_NOTIFICACAO,
   type CategoriaNotificacao, type NivelNotificacao, type NotificacaoAgrupada,
 } from "@/lib/domain/notificacoes"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -72,8 +73,11 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
       href={n.href}
       className={`sombra-1 flex items-center gap-3 rounded-[14px] border border-l-2 border-line bg-panel p-3.5 ${estilo.cartao}`}
     >
+      {/* O desenho da ÁREA de origem, não um sino repetido (canvas tela-1e):
+          documento vencido mostra a folha, extintor o escudo, revisão o motor
+          — `iconeDoAviso` deriva de categoria+aba, nada gravado à parte. */}
       <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${estilo.icone}`}>
-        <Icone nome="alerta" className="size-4" />
+        <Icone nome={iconeDoAviso(n)} className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="titulo-card truncate">{n.titulo}</p>
@@ -93,7 +97,10 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
           <Icone nome="chevron" className="size-3.5 text-dim" />
         </p>
       </div>
-      <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[10.5px] uppercase tracking-[.08em] ${estilo.chip}`}>
+      {/* 11px, não 10.5: o piso tipográfico do app (DESIGN §5) vale também
+          pro chip de nível — o canvas (tela-1e) escreve o chip exatamente
+          no piso. */}
+      <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.08em] ${estilo.chip}`}>
         {ROTULO_NIVEL_NOTIFICACAO[n.nivel]}
       </span>
     </Link>

@@ -6,6 +6,7 @@ import {
   contarPorCategoria,
   filtrarPorCategoria,
   filtrarPorPermissao,
+  iconeDoAviso,
   nivelDaOcorrencia,
   nivelDoCompromisso,
   nivelDoStatusItem,
@@ -295,6 +296,28 @@ describe("agrupamento das categorias novas", () => {
     expect(agrupadas[0].quantidade).toBe(5)
     // A linha mostrada é a mais recente do grupo, porque ordena antes.
     expect(agrupadas[0].id).toBe("p4")
+  })
+})
+
+// --- onda 62: o ícone do cartão (canvas tela-1e) ---------------------------
+
+describe("iconeDoAviso", () => {
+  it("categoria manda primeiro: agenda, financeiro e marketplace têm desenho próprio", () => {
+    expect(iconeDoAviso({ categoria: "agenda", aba: null })).toBe("calendario")
+    expect(iconeDoAviso({ categoria: "financeiro", aba: "gastos" })).toBe("cifrao")
+    expect(iconeDoAviso({ categoria: "marketplace", aba: null })).toBe("marketplace")
+  })
+  it("dentro da embarcação, o ícone é o do hub de origem", () => {
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "documentos" })).toBe("documento")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "seguranca" })).toBe("seguranca")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "motores" })).toBe("motor")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "eletrica" })).toBe("ferramenta")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "hidraulica" })).toBe("ferramenta")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "equipamentos" })).toBe("ferramenta")
+  })
+  it("sem hub conhecido, cai no sino genérico — nunca inventa origem", () => {
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: null })).toBe("alerta")
+    expect(iconeDoAviso({ categoria: "embarcacao", aba: "diario" })).toBe("alerta")
   })
 })
 

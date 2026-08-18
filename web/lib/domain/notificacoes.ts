@@ -281,3 +281,36 @@ export function contarPorCategoria(
 export function contadorSino(notificacoes: readonly Notificacao[]): number {
   return notificacoes.filter((n) => PUSH_POR_NIVEL[n.nivel]).length
 }
+
+// --- Ícone do cartão (onda 62, canvas tela-1e) -----------------------------
+
+/**
+ * Nomes válidos pro ícone de um aviso — subconjunto do sistema de ícones
+ * fixo do app (`components/icone.tsx`), escrito aqui como união própria de
+ * propósito: o domínio não importa componente, e o TypeScript confere a
+ * compatibilidade no ponto de uso da página.
+ */
+export type IconeAviso =
+  | "alerta" | "documento" | "seguranca" | "motor" | "ferramenta"
+  | "calendario" | "cifrao" | "marketplace"
+
+/**
+ * O desenho dentro do círculo do cartão (canvas tela-1e): cada aviso carrega
+ * o ícone da ÁREA de onde veio — documento vencido mostra a folha, extintor
+ * mostra o escudo, revisão de motor mostra o motor — em vez do sino genérico
+ * repetido em toda linha, que não ajudava a ler nada. DERIVADO dos campos
+ * que a notificação já tem (categoria + aba), nunca um campo novo gravado em
+ * outro lugar pra poder divergir.
+ */
+export function iconeDoAviso(n: Pick<Notificacao, "categoria" | "aba">): IconeAviso {
+  if (n.categoria === "agenda") return "calendario"
+  if (n.categoria === "financeiro") return "cifrao"
+  if (n.categoria === "marketplace") return "marketplace"
+  if (n.aba === "documentos") return "documento"
+  if (n.aba === "seguranca") return "seguranca"
+  if (n.aba === "motores") return "motor"
+  if (n.aba === "eletrica" || n.aba === "hidraulica" || n.aba === "equipamentos" || n.aba === "casco") {
+    return "ferramenta"
+  }
+  return "alerta"
+}
