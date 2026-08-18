@@ -5,6 +5,7 @@ import {
   calcularExpiracao,
   calcularMetricasComerciais,
   CAMPOS_PROPOSTA,
+  contarPorTipo,
   demandaExpirada,
   demandaViva,
   demandasCompativeis,
@@ -13,12 +14,15 @@ import {
   estadoDoNegocio,
   etapaComercial,
   faltaConfirmacaoDe,
+  filtroTipoDemandaValido,
   formatarDiaCurto,
   interesseAtendeDemanda,
   propostaTem,
   resumoDaProposta,
   rotuloDaResposta,
+  ROTULO_CURTO_TIPO_DEMANDA,
   taxonomiaDaCategoria,
+  tempoRelativo,
   tituloDaDemanda,
   tituloDaDisponibilidade,
   TIPOS_DEMANDA,
@@ -515,5 +519,52 @@ describe("calcularMetricasComerciais (§21.1)", () => {
     expect(m.ticketMedioCentavos).toBeNull()
     expect(m.conversaoPercentual).toBeNull()
     expect(m.volumeInformadoCentavos).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Onda 62 (canvas tela-3i) — a apresentação do cartão e dos chips
+// ---------------------------------------------------------------------------
+describe("tempoRelativo — o carimbo de idade do cartão", () => {
+  const AGORA = "2026-08-18T12:00:00Z"
+
+  it("abaixo de um minuto é 'agora' — segundos não decidem nada", () => {
+    expect(tempoRelativo("2026-08-18T11:59:30Z", AGORA)).toBe("agora")
+  })
+
+  it("minutos, depois horas, depois dias — os degraus do canvas", () => {
+    expect(tempoRelativo("2026-08-18T11:25:00Z", AGORA)).toBe("há 35 min")
+    expect(tempoRelativo("2026-08-18T10:00:00Z", AGORA)).toBe("há 2 h")
+    expect(tempoRelativo("2026-08-15T12:00:00Z", AGORA)).toBe("há 3 dias")
+    expect(tempoRelativo("2026-08-17T11:00:00Z", AGORA)).toBe("há 1 dia")
+  })
+
+  it("relógio adiantado ou data inválida viram 'agora', nunca 'há -3 min'", () => {
+    expect(tempoRelativo("2026-08-18T13:00:00Z", AGORA)).toBe("agora")
+    expect(tempoRelativo("não-é-data", AGORA)).toBe("agora")
+  })
+})
+
+describe("contarPorTipo + filtroTipoDemandaValido — os chips com número", () => {
+  it("conta por tipo e zera o que não tem demanda (pra tela esconder o chip)", () => {
+    const c = contarPorTipo([
+      { tipo: "profissional" }, { tipo: "profissional" }, { tipo: "vaga_embarcacao" },
+    ])
+    expect(c.profissional).toBe(2)
+    expect(c.vaga_embarcacao).toBe(1)
+    expect(c.produto).toBe(0)
+    expect(c.caminhao).toBe(0)
+  })
+
+  it("filtro da URL: tipo válido passa, lixo vira null (Tudo), nunca erro", () => {
+    expect(filtroTipoDemandaValido("tripulacao")).toBe("tripulacao")
+    expect(filtroTipoDemandaValido("qualquer-coisa")).toBeNull()
+    expect(filtroTipoDemandaValido(undefined)).toBeNull()
+  })
+
+  it("todo tipo tem rótulo curto — chip nunca fica sem nome", () => {
+    for (const t of TIPOS_DEMANDA) {
+      expect(ROTULO_CURTO_TIPO_DEMANDA[t]).toBeTruthy()
+    }
   })
 })

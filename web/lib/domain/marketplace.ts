@@ -68,6 +68,56 @@ export const ICONE_TIPO_DEMANDA: Record<TipoDemanda, NomeIcone> = {
   caminhao: "oleo",
 }
 
+/**
+ * Rótulo CURTO do tipo — o chip mono do cartão e do filtro (canvas tela-3i:
+ * "Serviço", "Tripulante", "Vaga"). `ROTULO_TIPO_DEMANDA` acima é a frase do
+ * formulário ("Preciso de profissional"); num chip de 11px ela não cabe e
+ * vira reticência. Uma constante só pros dois lugares, senão o filtro diria
+ * "Tripulação" e o cartão "Tripulante" na mesma tela.
+ */
+export const ROTULO_CURTO_TIPO_DEMANDA: Record<TipoDemanda, string> = {
+  profissional: "Serviço",
+  tripulacao: "Tripulante",
+  produto: "Produto",
+  vaga_embarcacao: "Vaga",
+  caminhao: "Combustível",
+}
+
+/** Valor de filtro que veio da URL — qualquer coisa fora da lista vira null
+ *  ("Tudo"), nunca erro de página. Mesma postura de `filtroTipoValido` do
+ *  Explorar. */
+export function filtroTipoDemandaValido(v: unknown): TipoDemanda | null {
+  return typeof v === "string" && (TIPOS_DEMANDA as readonly string[]).includes(v)
+    ? (v as TipoDemanda)
+    : null
+}
+
+/** Contagem por tipo pros chips com número do canvas ("Tudo 18 · Serviço 7").
+ *  Tipo sem demanda alguma fica em 0 — a tela usa isso pra NÃO oferecer um
+ *  filtro que leva a uma lista vazia (honestidade de menu, §24). */
+export function contarPorTipo(demandas: readonly { tipo: TipoDemanda }[]): Record<TipoDemanda, number> {
+  const contagem = Object.fromEntries(TIPOS_DEMANDA.map((t) => [t, 0])) as Record<TipoDemanda, number>
+  for (const d of demandas) contagem[d.tipo] += 1
+  return contagem
+}
+
+/**
+ * "agora" / "há 35 min" / "há 2 h" / "há 3 dias" — o carimbo de idade do
+ * cartão (canvas tela-3i). Piso de minuto e teto de dia: mais fino que isso é
+ * precisão que ninguém usa pra decidir se responde um pedido. `agoraISO`
+ * entra por parâmetro — o domínio nunca lê o relógio do sistema.
+ */
+export function tempoRelativo(criadoEmISO: string, agoraISO: string): string {
+  const ms = Date.parse(agoraISO) - Date.parse(criadoEmISO)
+  if (!Number.isFinite(ms) || ms < 60_000) return "agora"
+  const min = Math.floor(ms / 60_000)
+  if (min < 60) return `há ${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `há ${h} h`
+  const d = Math.floor(h / 24)
+  return `há ${d} dia${d === 1 ? "" : "s"}`
+}
+
 export const STATUS_DEMANDA = ["aberta", "em_negociacao", "fechada", "cancelada"] as const
 export type StatusDemanda = (typeof STATUS_DEMANDA)[number]
 
