@@ -165,6 +165,14 @@ dígito por dígito, o valor de `--texto-dim` no tema escuro. Para ação
 secundária dentro de um cartão, o vestido é o sublinhado neutro que
 `EstadoVazio enfase="discreta"` já usava desde a onda 60.
 
+**O "Voltar" dourado NÃO é confete — não mexa nele.** A mesma varredura que
+achou os oito de `/barco` acusa o link de volta de `CabecalhoDetalhe` em
+cada tela de detalhe. Fomos ao canvas antes de consertar: o breadcrumb de
+volta está lá em dourado, na cor exata do `--acao`, com a seta e o rótulo em
+mono uppercase. É a referência, então fica. A régua da repetição não se
+aplica a ele por um motivo simples: aparece **uma vez** por tela, e é
+moldura — o mesmo caso do item ativo do trilho.
+
 ### Tipografia — três papéis
 
 A família é **IBM Plex** (onda 62). A Urbanist saiu: quando o dono desenhou o
