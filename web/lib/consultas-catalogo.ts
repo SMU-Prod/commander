@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server"
+import { ehSegmentoMotor } from "@/lib/domain/catalogo-motor"
 import type { ComponenteCatalogo, ModeloCatalogo, SistemaMotor } from "@/lib/domain/catalogo-motor"
 
 /**
@@ -23,7 +24,7 @@ export async function carregarModelosDoCatalogo(): Promise<ModeloCatalogo[]> {
   const supabase = await supabaseServer()
   const { data, error } = await supabase
     .from("motor_modelos")
-    .select("id, nome, potencia_hp, ano_inicio, ano_fim, ativo, motor_familias!inner(nome, ativo, motor_fabricantes!inner(nome, ativo))")
+    .select("id, nome, potencia_hp, ano_inicio, ano_fim, ativo, motor_familias!inner(nome, ativo, motor_fabricantes!inner(nome, ativo, segmento))")
     .eq("ativo", true)
     .order("ordem")
 
@@ -39,7 +40,11 @@ export async function carregarModelosDoCatalogo(): Promise<ModeloCatalogo[]> {
     potencia_hp: number | null
     ano_inicio: number | null
     ano_fim: number | null
-    motor_familias: { nome: string; ativo: boolean; motor_fabricantes: { nome: string; ativo: boolean } }
+    motor_familias: {
+      nome: string
+      ativo: boolean
+      motor_fabricantes: { nome: string; ativo: boolean; segmento: string | null }
+    }
   }
 
   return (data as unknown as Linha[])
@@ -47,15 +52,25 @@ export async function carregarModelosDoCatalogo(): Promise<ModeloCatalogo[]> {
     // ativos — desativar um fabricante tem que sumir com os modelos dele da
     // busca, senão "desativar" não desativa nada.
     .filter((l) => l.motor_familias.ativo && l.motor_familias.motor_fabricantes.ativo)
-    .map((l) => ({
-      id: l.id,
-      nome: l.nome,
-      potenciaHp: l.potencia_hp,
-      anoInicio: l.ano_inicio,
-      anoFim: l.ano_fim,
-      familia: l.motor_familias.nome,
-      fabricante: l.motor_familias.motor_fabricantes.nome,
-    }))
+    .map((l) => {
+      // O SEGMENTO SOBE PELO FABRICANTE (§20). A coluna é `not null` no banco,
+      // mas o que chega aqui é `text`: `ehSegmentoMotor` é a única porta entre
+      // o texto e o vocabulário do domínio. Valor fora dele vira `null`, e o
+      // modelo continua na lista — quem decide o que fazer com esse `null` é
+      // `podeFiltrarPorSegmento`, que desliga o filtro em vez de esconder o
+      // modelo num chip que não existe.
+      const bruto = l.motor_familias.motor_fabricantes.segmento
+      return {
+        id: l.id,
+        nome: l.nome,
+        potenciaHp: l.potencia_hp,
+        anoInicio: l.ano_inicio,
+        anoFim: l.ano_fim,
+        familia: l.motor_familias.nome,
+        fabricante: l.motor_familias.motor_fabricantes.nome,
+        segmento: ehSegmentoMotor(bruto) ? bruto : null,
+      }
+    })
 }
 
 /** Um modelo só, pra ficha do motor mostrar a identidade do catálogo.

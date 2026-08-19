@@ -3,6 +3,7 @@ import { CampoSenha } from "@/components/campo-senha"
 import { Logo } from "@/components/logo"
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { cadastrar, entrar, pedirNovaSenha, reenviarConfirmacao } from "@/lib/acoes/auth"
+import { mensagemAviso, mensagemErro } from "@/lib/seguranca/mensagens-auth"
 
 /**
  * ENTRAR (onda 62, canvas tela-1a) — wordmark no topo, campos com rótulo
@@ -37,7 +38,13 @@ export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    erro?: string; aviso?: string; modo?: string; volta?: string
+    /** CÓDIGO, não frase: `credenciais`, `link-expirado`, `muitas-tentativas`…
+     *  Quem traduz é `lib/seguranca/mensagens-auth.ts`, aqui no servidor.
+     *  Código de fora da lista vira a frase genérica. */
+    erro?: string
+    /** Mesma regra do `erro`, mas na tarja neutra. */
+    aviso?: string
+    modo?: string; volta?: string
     /** `1` abre o bloco de reenvio de confirmação — quem manda é `entrar`
      *  (conta não confirmada) e `/auth/callback` (link morto). */
     reenviar?: string
@@ -47,6 +54,15 @@ export default async function LoginPage({
   }>
 }) {
   const { erro, aviso, modo, volta, reenviar, email } = await searchParams
+  // ONDA 86 (P2-11) — O TEXTO DAS TARJAS NÃO VEM MAIS DA URL.
+  //
+  // Antes a tela imprimia a frase que chegasse em `?erro=`, e por isso um link
+  // forjado por qualquer pessoa saía com a nossa cara, no nosso domínio e com
+  // o cadeado do lado. Agora a URL carrega só um código e a frase é escolhida
+  // aqui no servidor, contra a lista fechada de `lib/seguranca/mensagens-auth.ts`
+  // — que explica o vetor em detalhe. `null` quando não há nada a dizer.
+  const textoErro = mensagemErro(erro)
+  const textoAviso = mensagemAviso(aviso)
   const cadastro = modo === "cadastro"
   const recuperar = modo === "recuperar"
   const linkAlternar = cadastro
@@ -101,11 +117,11 @@ export default async function LoginPage({
             : "Entre para acompanhar sua embarcação, o diário e o que precisa de você."}
       </p>
 
-      {erro && (
-        <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>
+      {textoErro && (
+        <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{textoErro}</p>
       )}
-      {aviso && (
-        <p className="corpo mt-4 rounded-lg border border-line bg-panel px-3 py-2">{aviso}</p>
+      {textoAviso && (
+        <p className="corpo mt-4 rounded-lg border border-line bg-panel px-3 py-2">{textoAviso}</p>
       )}
 
       <form

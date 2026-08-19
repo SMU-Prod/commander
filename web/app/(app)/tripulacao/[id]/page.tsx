@@ -7,12 +7,15 @@ import { carregarPainel } from "@/lib/consultas"
 import {
   EXPLICACAO_MODO_APROVACAO,
   FUNCAO_PAPEL,
+  MODOS_APROVACAO,
   ROTULO_MODO_APROVACAO,
   ROTULO_PAPEL,
   ehPapelEnterprise,
 } from "@/lib/domain/enterprise"
 import { normalizarPermissoes } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { CampoSelect } from "@/components/ui/campo"
+import { mudarModoAprovacao } from "./acoes"
 import { MatrizDeAcesso } from "./matriz-acesso"
 import type { Vinculo } from "@/lib/db/types"
 
@@ -74,7 +77,15 @@ export default async function MatrizPage({
         descricao="Defina, área por área, o que esta pessoa vê e edita nesta embarcação."
       />
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
-      {salvo && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2">Permissões salvas.</p>}
+      {/* `salvo=1` é o aviso genérico da matriz (`salvarMatriz`/`aplicarPreset`);
+          qualquer outro valor é a frase que a própria action escreveu — a régua
+          de aprovação devolve QUAL ficou valendo, e "Permissões salvas." em
+          cima disso responderia por uma mudança que não foi a que aconteceu. */}
+      {salvo && (
+        <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2">
+          {salvo === "1" ? "Permissões salvas." : salvo}
+        </p>
+      )}
 
       {/* A CREDENCIAL, ANTES DA GRADE. Quem chega nesta tela precisa saber com
           quem está mexendo antes de mexer — e o papel sozinho ("Mecânica") não
@@ -93,16 +104,45 @@ export default async function MatrizPage({
             e nesta tela "sem aprovação" não é ausência de informação: é a
             resposta pra "o que esta pessoa lança entra direto?".
 
-            SÓ LEITURA, e isso não é esquecimento: nenhuma action do app grava
-            `modo_aprovacao` hoje (varri o repo — `enterprise.ts`, `afazeres`,
-            `mecanica` e a lista só LEEM a coluna). Desenhar aqui um seletor
-            sem escritor seria um controle que mente, que é pior que controle
-            nenhum. Quando a action existir, o lugar dela é este parágrafo. */}
-        <p className="apoio mt-2 text-dim">
-          <span className="text-texto">{ROTULO_MODO_APROVACAO[v.modo_aprovacao]}</span>
-          {" — "}
-          {EXPLICACAO_MODO_APROVACAO[v.modo_aprovacao]}
-        </p>
+            ERA SÓ LEITURA ATÉ 19/08/2026, e o comentário que ficava aqui dizia
+            o porquê com todas as letras: nenhuma action do app gravava
+            `modo_aprovacao`, e desenhar um seletor sem escritor seria um
+            controle que mente. `mudarModoAprovacao` (em `./acoes`) é esse
+            escritor — com a policy de UPDATE conferida no banco antes de
+            existir, `.select()` conferindo linhas e rastro na auditoria. */}
+        <form action={mudarModoAprovacao} className="mt-3 space-y-2">
+          <input type="hidden" name="vinculo_id" value={v.id} />
+          <CampoSelect
+            label="Régua de aprovação"
+            id="modo_aprovacao"
+            name="modo_aprovacao"
+            defaultValue={v.modo_aprovacao}
+            // A explicação do modo ATUAL vira a dica do campo. O §3 é uma
+            // regra de confiança, não um jargão: "Somente críticos" não
+            // significa nada pra quem não leu o PRD, e quem administra a
+            // equipe é quem menos pode ficar adivinhando. Cada opção repete a
+            // sua no próprio rótulo, pra a escolha ser informada ANTES do
+            // toque e não depois.
+            dica={EXPLICACAO_MODO_APROVACAO[v.modo_aprovacao]}
+          >
+            {MODOS_APROVACAO.map((m) => (
+              <option key={m} value={m}>
+                {ROTULO_MODO_APROVACAO[m]} — {EXPLICACAO_MODO_APROVACAO[m]}
+              </option>
+            ))}
+          </CampoSelect>
+          {/* `BotaoEnviar` e não uma pílula: é submit de formulário, e o que
+              o componente soma é o aviso de envio (rótulo que troca, duplo
+              toque bloqueado). Contorno porque a dourada desta tela é o
+              "Salvar" da matriz — o orçamento de dois dourados por tela
+              (DESIGN §5) não paga um terceiro. */}
+          <BotaoEnviar
+            rotulo="Salvar régua"
+            rotuloEnviando="Salvando…"
+            variante="contorno"
+            larguraCheia
+          />
+        </form>
       </div>
 
       <SecaoPagina>Perfil e áreas</SecaoPagina>

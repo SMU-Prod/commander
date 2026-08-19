@@ -1,7 +1,19 @@
 "use client"
 import { useMemo, useRef, useState } from "react"
 import { Icone } from "./icone"
-import { buscarModelos, faixaDeAno, nomeCompletoDoModelo, type ModeloCatalogo } from "@/lib/domain/catalogo-motor"
+import {
+  buscarModelos,
+  faixaDeAno,
+  filtrarPorSegmento,
+  nomeCompletoDoModelo,
+  podeFiltrarPorSegmento,
+  ROTULO_SEGMENTO,
+  segmentosPresentes,
+  type ModeloCatalogo,
+  type SegmentoMotor,
+} from "@/lib/domain/catalogo-motor"
+import { ChipLinha } from "./ui/chip"
+import { TOQUE } from "@/lib/ui/acoes"
 import { campo as classeCampo, rot } from "@/lib/ui/form"
 
 /**
@@ -35,25 +47,30 @@ import { campo as classeCampo, rot } from "@/lib/ui/form"
  * linha. É o mesmo problema de identidade, agora no teclado de quem digita.
  *
  * ---------------------------------------------------------------------------
- * POR QUE NÃO EXISTE FILTRO DE SEGMENTO NESTA TELA
+ * O FILTRO DE SEGMENTO (§20) — O DADO SUBIU, E AÍ ELE LIGOU
  * ---------------------------------------------------------------------------
  * `SEGMENTOS_MOTOR` e `ROTULO_SEGMENTO` (`lib/domain/catalogo-motor.ts`) foram
- * escritos pensando exatamente neste lugar — o §20 separa popa, centro-rabeta
- * e diesel interno, e quem tem popa não precisa ver MTU rolando na lista. A
- * ideia continua boa; o que não existe é o dado.
+ * escritos pensando exatamente neste lugar: o §20 separa popa, centro-rabeta e
+ * diesel interno, e quem tem popa não precisa ver MTU rolando na lista. Até
+ * 19/08/2026 o filtro não existia por falta de DADO, não de vontade — o
+ * segmento é coluna de `motor_fabricantes` e não subia no `.select()`, então
+ * desenhar os chips teria sido afirmar o que a tela não consultou.
  *
- * O segmento é coluna de `motor_fabricantes`, ou seja, sobe pela família até o
- * fabricante. `ModeloCatalogo` não tem esse campo e `carregarModelosDoCatalogo`
- * não pede essa coluna no `.select()` — o que chega aqui, em `modelos`, não
- * carrega segmento nenhum. Uma fila de chips "Popa / Centro-rabeta / Diesel
- * interno" desenhada assim mesmo seria uma tela afirmando o que ela não
- * consultou, que é o defeito mais caro que esta auditoria já pagou (o `/frota`
- * desenhando origem que ninguém preenchia).
+ * Duas linhas fecharam o caminho: o campo em `ModeloCatalogo` e o `segmento`
+ * dentro do `motor_fabricantes!inner(...)` da consulta.
  *
- * Então o filtro fica de fora ATÉ o dado subir, e não o contrário. No dia em
- * que subir, ele nasce lendo a ordem de `SEGMENTOS_MOTOR` e o texto de
- * `ROTULO_SEGMENTO` — os rótulos moram no domínio e não se reescrevem aqui,
- * senão a tela e o banco passam a discordar em silêncio.
+ * E A CONFERÊNCIA VEIO ANTES DE LIGAR, porque a mesma auditoria acabava de
+ * achar uma tela prometendo "part number OEM" com a coluna nula em 144 de 144
+ * linhas. Medido no banco remoto: 12 fabricantes, 12 com segmento, ZERO nulos,
+ * três valores distintos e os três dentro do vocabulário. Um filtro sobre
+ * coluna vazia esconderia modelos sem dizer por quê; sobre esta, não esconde.
+ *
+ * QUEM DECIDE SE O FILTRO APARECE NÃO É ESTA TELA. `podeFiltrarPorSegmento` e
+ * `segmentosPresentes` moram no domínio, com teste, e é lá que está escrito
+ * por que um segmento sem modelo nenhum (centro-rabeta, hoje) não vira chip e
+ * por que um único modelo de segmento desconhecido desliga o filtro inteiro.
+ * Os rótulos saem de `ROTULO_SEGMENTO` e a ordem de `SEGMENTOS_MOTOR` — não se
+ * reescrevem aqui, senão a tela e o banco passam a discordar em silêncio.
  */
 export function SeletorModeloMotor({
   modelos,
@@ -66,9 +83,22 @@ export function SeletorModeloMotor({
   const [escolhido, setEscolhido] = useState<ModeloCatalogo | null>(inicial ?? null)
   const [termo, setTermo] = useState("")
   const [aberto, setAberto] = useState(false)
+  const [segmento, setSegmento] = useState<SegmentoMotor | null>(null)
   const caixa = useRef<HTMLDivElement>(null)
 
-  const achados = useMemo(() => buscarModelos(termo, modelos), [termo, modelos])
+  // As três perguntas do §20, respondidas pelo domínio: o filtro cabe? quais
+  // segmentos existem de verdade? e o que sobra depois do recorte?
+  const comFiltro = useMemo(() => podeFiltrarPorSegmento(modelos), [modelos])
+  const segmentos = useMemo(() => segmentosPresentes(modelos), [modelos])
+  // O RECORTE VEM ANTES DA BUSCA, e a ordem importa: `buscarModelos` corta em
+  // 8 resultados. Buscar primeiro e filtrar depois devolveria menos de 8 (às
+  // vezes zero) sem que nada tivesse acabado — a lista pareceria vazia com o
+  // motor certo logo abaixo do corte.
+  const universo = useMemo(
+    () => (comFiltro ? filtrarPorSegmento(modelos, segmento) : [...modelos]),
+    [modelos, segmento, comFiltro],
+  )
+  const achados = useMemo(() => buscarModelos(termo, universo), [termo, universo])
 
   // Catálogo vazio (consulta falhou, ou banco sem semente): o componente
   // some inteiro em vez de mostrar uma busca que nunca acha nada. Marca e
@@ -114,6 +144,26 @@ export function SeletorModeloMotor({
       ) : (
         <>
           <label className={rot} htmlFor="busca-modelo-motor">Motor do catálogo — opcional</label>
+          {/* §20 — O RECORTE POR NATUREZA DO MOTOR, antes da busca.
+              `quebra` e não rolagem: são no máximo quatro chips (Todos + os
+              segmentos que existem), e a régua do `ChipLinha` diz que lista
+              curta e fechada quebra em vez de rolar — opção escondida não é
+              escolhida. Cada chip é um `<button type="button">`: o filtro é
+              estado local dentro de um `<form>` que grava outra coisa, então
+              nem `<Link>` (trocaria de rota e perderia o formulário) nem
+              submit (enviaria o cadastro pela metade). */}
+          {comFiltro && (
+            <ChipLinha quebra className="mb-2 mt-1">
+              <ChipSegmento ativo={segmento === null} onClick={() => setSegmento(null)}>
+                Todos
+              </ChipSegmento>
+              {segmentos.map((s) => (
+                <ChipSegmento key={s} ativo={segmento === s} onClick={() => setSegmento(s)}>
+                  {ROTULO_SEGMENTO[s]}
+                </ChipSegmento>
+              ))}
+            </ChipLinha>
+          )}
           <input
             id="busca-modelo-motor"
             type="text"
@@ -134,8 +184,21 @@ export function SeletorModeloMotor({
                 // Nada achado NÃO é erro: é o caso comum de quem tem motor
                 // fora do catálogo. A frase manda a pessoa pro texto livre
                 // em vez de deixá-la travada procurando.
+                //
+                // COM SEGMENTO ESCOLHIDO A FRASE MUDA, e é a metade do filtro
+                // que não pode faltar: "não achei" seria mentira quando o
+                // motor está no catálogo e foi o chip que o escondeu. O
+                // recorte ativo aparece pelo nome, com o caminho de volta.
                 <p className="apoio px-3.5 py-3 text-dim">
-                  Não achei esse motor no catálogo. Sem problema: preencha Marca e Modelo abaixo.
+                  {segmento === null ? (
+                    "Não achei esse motor no catálogo. Sem problema: preencha Marca e Modelo abaixo."
+                  ) : (
+                    <>
+                      Nada em <span className="text-texto">{ROTULO_SEGMENTO[segmento]}</span> com esse
+                      nome. Toque em <span className="text-texto">Todos</span> para procurar no catálogo
+                      inteiro — ou preencha Marca e Modelo abaixo.
+                    </>
+                  )}
                 </p>
               ) : (
                 achados.map((m) => (
@@ -163,6 +226,48 @@ export function SeletorModeloMotor({
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * O CHIP DO SEGMENTO — o vestido do `Chip` de `components/ui/chip.tsx`, num
+ * `<button>`.
+ *
+ * Não dá pra reusar o `Chip` de verdade: ele é um `<Link href>`, porque no
+ * resto do app filtro de lista mora na URL (compartilhável, sobrevive ao
+ * voltar). Aqui o filtro é estado LOCAL dentro de um formulário de cadastro —
+ * navegar jogaria fora o que a pessoa já digitou nos outros campos.
+ *
+ * O que é copiado é a linguagem, e de propósito: mesma altura de
+ * `--altura-controle` (a régua de 44px, que aqui está no próprio elemento
+ * clicável porque o chip É o alvo), mesmo `--raio-pilula`, mesmo par de cores
+ * do nível `secundario` — contorno e `text-dim-chip` quando frio, borda e
+ * texto `accent-forte` quando ativo. Um filtro com outro vestido leria como
+ * outro tipo de controle.
+ *
+ * `aria-pressed` e não `aria-current`: `current` é para navegação, e isto não
+ * navega — é um alternador que liga e desliga.
+ */
+function ChipSegmento({
+  ativo,
+  onClick,
+  children,
+}: {
+  ativo: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={`flex h-[var(--altura-controle)] shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm ${TOQUE} ${
+        ativo ? "border-accent-forte font-semibold text-accent-forte" : "border-line text-dim-chip"
+      }`}
+    >
+      {children}
+    </button>
   )
 }
 

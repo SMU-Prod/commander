@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { ehRotaPublica } from "@/lib/seguranca/rotas-publicas"
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -20,30 +21,10 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const caminho = request.nextUrl.pathname
-  // /convite/[codigo] ficou de fora da lista: a página chama a RPC
-  // info_convite, que só tem grant para "authenticated" (migration 008) —
-  // um visitante anônimo sempre veria "convite não encontrado". Reavaliar
-  // se um dia essa RPC ganhar grant para anon.
-  // /parceiros (onda 25) é a página pública de vendas pro parceiro
-  // comercial — sem login, é ela que o Pedro abre na marina pra fechar em
-  // 10 minutos. Diferente de /parceiro (singular, formulário autoatendido,
-  // continua atrás do gate normal).
-  // /termos e /privacidade (onda 30) precisam ser lidas por qualquer
-  // visitante ANTES de criar conta — sem login, como /parceiros.
-  // /auth/* (onda 83) é o destino dos links que saem por e-mail —
-  // confirmação de conta e recuperação de senha. Ela PRECISA rodar
-  // deslogada: a sessão é justamente o que ela vai criar, trocando o código
-  // PKCE por cookie. Sem esta linha o middleware olharia o `user` nulo,
-  // mandaria pro /login e mataria o código — e o defeito seria idêntico ao
-  // que a onda 83 está consertando, só que com a rota já existindo.
-  const rotaPublica =
-    caminho === "/" ||
-    caminho === "/parceiros" ||
-    caminho === "/termos" ||
-    caminho === "/privacidade" ||
-    caminho.startsWith("/auth/") ||
-    caminho.startsWith("/login")
-  if (!user && !rotaPublica) {
+  // Quem entra sem sessão está decidido em lib/seguranca/rotas-publicas.ts —
+  // lá mora o motivo de cada rota estar (ou não) na lista, junto do teste que
+  // prova a regra. Aqui o middleware só pergunta.
+  if (!user && !ehRotaPublica(caminho)) {
     const destino = new URL("/login", request.url)
     destino.searchParams.set("volta", request.nextUrl.pathname)
     return NextResponse.redirect(destino)

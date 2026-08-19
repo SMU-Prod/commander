@@ -19,9 +19,14 @@ uma e onde conseguir o valor real, está em `web/.env.example` — abra esse arq
 lado e copie o **nome** exatamente igual, colando o **valor real** (nunca o texto de
 exemplo) para cada uma. Marque pelo menos o ambiente **Production**.
 
-Duas variáveis ficam **vazias por enquanto** — elas são ligadas depois, no passo 7:
-`NEXT_PUBLIC_COBRANCA_ATIVA`. As demais (Supabase, VAPID, Resend, Asaas) já entram
-preenchidas. Depois de colar tudo, clique em **Deploy**.
+Todas entram preenchidas (Supabase, VAPID, Resend, Asaas). **Não existe variável de
+"ligar a cobrança"** — `NEXT_PUBLIC_COBRANCA_ATIVA` foi retirada deste roteiro e do
+`.env.example` em 19/08/2026 (achado A-11 de
+`docs/auditoria/2026-08-19-asaas-cobranca.md`): o gate global de cobrança saiu na onda
+47 e a variável não era lida em lugar nenhum desde então. Cadastrá-la fazia quem
+seguisse esta doc acreditar que tinha ligado a cobrança sem ter ligado nada. Quem liga
+a cobrança de verdade são as três do Asaas, na ordem do passo 7. Depois de colar tudo,
+clique em **Deploy**.
 
 ### 3. Domínio custom
 1. No projeto criado, **Settings → Domains → Add**.
@@ -65,11 +70,13 @@ Não ligue as três juntas: confirme que cada uma funciona antes de ligar a pró
    execução termina verde.
 2. **`RELATORIOS_ATIVOS`** — mesma tela, nome `RELATORIOS_ATIVOS`, valor `1`. Teste
    rodando manualmente **Actions → Relatório mensal do Commander → Run workflow**.
-3. **`NEXT_PUBLIC_COBRANCA_ATIVA`** — só depois de validar um pagamento de teste
-   completo no Asaas (sandbox) e confirmar que o webhook do passo 5 está atualizando a
-   assinatura. Na Vercel: **Settings → Environment Variables**, edite o valor para `1` e
-   faça um **redeploy** (variáveis `NEXT_PUBLIC_*` só atualizam em um novo build, não
-   basta salvar).
+3. **A cobrança do Asaas** — e aqui **não há flag**: o que liga é a presença de
+   `ASAAS_API_KEY`, `ASAAS_AMBIENTE` e `ASAAS_WEBHOOK_TOKEN`, nesta ordem e com o
+   webhook do passo 5 já cadastrado. Ligar fora de ordem produz o pior caso possível
+   (cliente paga e o acesso não abre), porque sem o token o webhook devolve 401 em
+   100% dos eventos. O roteiro completo, passo a passo, está na seção "Checklist de
+   ligação" de `docs/auditoria/2026-08-19-asaas-cobranca.md` — siga aquele, não este
+   resumo. Depois de salvar qualquer variável de servidor: **redeploy**.
 
 ### 8. Supabase Auth antes de abrir para o público
 - **Confirm email**: hoje está **desligado** para facilitar o desenvolvimento. Antes de
@@ -180,9 +187,21 @@ honestamente em vez de fingir uma agenda vazia.
 - Critérios mínimos de aprovação do Protocolo Commander ainda não têm régua fechada pelo dono
   (PRD §41 já marca isso como pendente) — hoje a aprovação é decisão humana do admin na tela de
   Análise, sem checagem automática de "quantos hubs em atenção reprovam".
-- Concessão de 6/12 meses de Premium (`premium_concessoes`) é registrada ao aprovar, mas nenhuma
-  tela ainda lê essa tabela pra liberar algo — o Premium em si não bloqueia nada hoje (mesmo
-  estado descrito na auditoria de 14/08/2026).
+- ~~"A concessão em `premium_concessoes` é registrada ao aprovar, mas nenhuma tela ainda lê essa
+  tabela pra liberar algo."~~ **Era verdade e deixou de ser** — corrigido em 19/08/2026 (achado
+  A-13 de `docs/auditoria/2026-08-19-asaas-cobranca.md`). **Aprovar um Commander Gold já concede
+  plano pago de verdade**, por dois caminhos que concordam entre si:
+  - no banco, `plano_do_usuario()` — a função que a RLS usa pra decidir limite de embarcação e de
+    tripulação — cai em `premium_concessoes.plano_concedido` quando não há assinatura
+    `ativa`/`problema_pagamento`, filtrando por `valido_ate >= current_date`;
+  - no app, `carregarAssinatura` (`web/lib/consultas.ts:258-284`) faz o mesmo fallback pra tela.
+
+  `gold_definir_estado(..., 'aprovado')` grava a concessão pro PROP da embarcação, com
+  `valido_ate` = a validade do selo e `plano_concedido` = `commander` (o default da coluna).
+  **Consequência operacional: aprovar um Gold tem efeito financeiro imediato** — a pessoa passa a
+  ter Commander sem pagar assinatura, pelo prazo do selo, e o acesso cai sozinho quando a validade
+  passa (o filtro é por data, não há passo manual de revogação). É mais um motivo pra fechar a
+  régua de aprovação do item acima antes de vender Gold.
 
 ## Alertas automáticos
 O motor de alertas é a rota `POST /api/alertas/disparar`, protegida por
@@ -243,8 +262,9 @@ notifica por e-mail, igual aos alertas.
 | `NEXT_PUBLIC_APP_URL` | app | link do convite de tripulação |
 | `COMMANDER_URL` | CI (secret) | URL da rota chamada por `alertas.yml` e `relatorio.yml` |
 
-Lista completa e sempre atual de toda variável usada pelo app (incluindo Asaas,
-PostHog e o gate de cobrança), com comentário de onde obter cada uma: `web/.env.example`.
+Lista completa e sempre atual de toda variável usada pelo app (incluindo Asaas e
+PostHog), com comentário de onde obter cada uma: `web/.env.example`. Não há variável de
+gate de cobrança — ver o passo 2 do roteiro de deploy.
 
 ## Mapa (Mapbox + OpenSeaMap)
 

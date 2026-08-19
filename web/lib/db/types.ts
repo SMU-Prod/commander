@@ -116,10 +116,16 @@ export interface ItemMonitorado {
   data_fixa: string | null
   ultimo_ciclo_data: string | null
   ultimo_ciclo_horas: number | null
-  /** O part number que o DONO usa (onda 64, PRD 3D §16). Ganha do código
-   *  OEM do catálogo na hora de exibir — ver `partNumberVigente` em
-   *  `lib/domain/catalogo-motor.ts`: quem troca a peça pode usar um
-   *  equivalente de fornecedor, e o que importa na recompra é o dele. */
+  /** O part number que o DONO usa (onda 64, PRD 3D §16): quem troca a peça
+   *  pode usar um equivalente de fornecedor, e o que importa na recompra é o
+   *  dele, não o código OEM do catálogo.
+   *
+   *  COLETADO E NUNCA EXIBIDO — medido em 19/08/2026. Os formulários de
+   *  `barco/itens/novo` e `barco/itens/[id]/editar` pedem este campo e
+   *  nenhuma tela o mostra de volta. A função que escolhia entre este código
+   *  e o do catálogo (`partNumberVigente`) foi apagada por não ter
+   *  consumidor; o histórico está no comentário que ficou no lugar dela, em
+   *  `lib/domain/catalogo-motor.ts`. */
   part_number_oem: string | null
   /** Vínculo com o componente do catálogo. Nullable: item criado à mão
    *  ("Troca de óleo BB") continua existindo sem componente nenhum. */

@@ -1,0 +1,175 @@
+-- ============================================================================
+-- ÍNDICES DE CHAVE ESTRANGEIRA — 19/08/2026
+-- ============================================================================
+--
+--   *** ESTE ARQUIVO NÃO RODA DENTRO DE TRANSAÇÃO. ***
+--
+-- `create index concurrently` é PROIBIDO dentro de um bloco de transação
+-- (Postgres levanta `25001: CREATE INDEX CONCURRENTLY cannot run inside a
+-- transaction block`). Por isso ele não entrou em nenhuma das migrations
+-- numeradas — todas elas são `begin; … commit;`.
+--
+-- COMO RODAR: uma linha por vez, sem `begin`, sem `commit`, sem selecionar o
+-- arquivo inteiro e mandar de uma vez. No editor SQL do Supabase, cole UM
+-- comando, execute, confira que voltou "Success", cole o próximo.
+--
+-- `concurrently` não bloqueia escrita na tabela — é seguro em produção com
+-- gente usando. Em troca, se um comando falhar no meio, ele deixa um índice
+-- INVÁLIDO para trás; a checagem no fim deste arquivo acha esses, e a correção
+-- é `drop index <nome>` e rodar de novo.
+--
+-- ----------------------------------------------------------------------------
+-- CRITÉRIO — por que 8 e não 86
+-- ----------------------------------------------------------------------------
+-- Medido no banco em 19/08/2026: **189 chaves estrangeiras, 86 sem índice.**
+-- Criar as 86 seria trocar um problema hipotético de leitura por um custo
+-- garantido de escrita: todo INSERT/UPDATE/DELETE paga a manutenção de cada
+-- índice da tabela, para sempre. Índice de FK só se paga quando (a) alguma
+-- consulta filtra por aquela coluna, ou (b) a tabela referenciada sofre DELETE
+-- com frequência — e apagar perfil/embarcação aqui é evento raro.
+--
+-- Então a régua foi (a), e literal: **cada índice abaixo cita a consulta REAL
+-- que o usa, com arquivo e linha.** "Consulta real" inclui a policy de RLS,
+-- que é um predicado de verdade aplicado em toda leitura da tabela — e em
+-- três casos aqui (`tanques`, `afazeres`, `envios_cotista`) é o ÚNICO
+-- predicado, porque a tela busca `select *` sem filtro e deixa a RLS recortar.
+--
+-- Os outros 78 foram descartados por um destes motivos, sempre o mesmo em
+-- essência — não há consulta atrás deles:
+--
+--   · ~70 são `criado_por` / `decidido_por` / `atualizado_por` / `autor_id`
+--     apontando para `profiles`. Nenhuma tela filtra por eles; todas resolvem
+--     nome com um `.in("id", …)` em `profiles` DEPOIS de carregar a lista
+--     (ex.: consultas-patio.ts:71, carteira/[id]/page.tsx:61). Só pesariam
+--     num DELETE de perfil, que é raro e pode esperar.
+--   · `estoque_movimentos.embarcacao_id`, `estoque_itens.base_id`,
+--     `tanques.base_id`, `tanque_movimentos.destino_embarcacao_id`,
+--     `movimentos_patio.{responsavel_id,ocorrencia_id}`,
+--     `orcamentos.servico_id`, `servicos_mecanica.ocorrencia_id`,
+--     `lancamentos_financeiros.criado_por`, `votos.votante_id` — todos
+--     citados na sugestão do P2-4 da auditoria, e todos SEM consulta que
+--     filtre por eles hoje (as telas de /estoque, /combustivel, /mecanica e
+--     /financeiro filtram por `embarcacao_id`, `item_id`, `tipo` ou
+--     `carteira_id`, que já têm índice). Ficam de fora até existir a consulta.
+--   · As taxonomias de `demandas` / `interesses_marketplace` /
+--     `perfis_comandante` / `parceiros` / `publicidade_campanhas`
+--     (`regiao_id`, `categoria_id`, `funcao_id`, `combustivel_id`,
+--     `marca_id`): o Marketplace filtra por `status` + `expira_em`
+--     (marketplace/page.tsx:72-76) e recorta o resto em memória. `regiao_id`
+--     e `funcao_id` de `disponibilidades` já estão cobertos pelo
+--     `disponibilidades_vitrine_idx`.
+--
+-- **Ressalva honesta, a mesma da auditoria:** este banco tem entre 0 e 144
+-- linhas por tabela. Nenhum destes 8 índices resolve um problema MEDIDO — eles
+-- resolvem um problema PREVISTO, na consulta que já está escrita no código e
+-- que hoje é rápida porque a tabela é minúscula. E os 78 descartados não são
+-- "errados": são "ainda sem motivo". Reavaliar depois de uns meses de uso real,
+-- com `pg_stat_user_indexes` e `pg_stat_statements` na mão.
+--
+-- ----------------------------------------------------------------------------
+-- OS 8 COMANDOS — um por linha, um de cada vez
+-- ----------------------------------------------------------------------------
+
+-- 1. /afazeres carrega a lista da unidade com
+--    `.or("embarcacao_id.eq.<id>,embarcacao_id.is.null")`
+--    (web/app/(app)/afazeres/page.tsx:52-53). É o filtro principal da tela.
+create index concurrently if not exists afazeres_embarcacao_idx on public.afazeres (embarcacao_id);
+
+-- 2. A policy de leitura de `afazeres` (migration 069) é
+--    `dono_id = auth.uid() OR responsavel_id = auth.uid() OR eh_prop(...)`.
+--    `dono_id` já está coberto (`afazeres_dono_idx`); sem o par de
+--    `responsavel_id` o planner não consegue montar o BitmapOr e a tela de
+--    quem é só RESPONSÁVEL (não dono) cai em varredura.
+create index concurrently if not exists afazeres_responsavel_idx on public.afazeres (responsavel_id);
+
+-- 3. /combustivel busca `from("tanques").select("*").order("nome")` SEM filtro
+--    (web/app/(app)/combustivel/page.tsx:54) — quem recorta é a policy
+--    `tanques: o dono le`, que é `dono_id = auth.uid()`. A tabela hoje só tem
+--    a PK: esta é a única coluna filtrada em toda leitura da tela.
+create index concurrently if not exists tanques_dono_idx on public.tanques (dono_id);
+
+-- 4. /atualizacoes lista `envios_cotista` por embarcação
+--    (web/app/(app)/atualizacoes/page.tsx:41 — `embarcacao_id` já indexado),
+--    e a policy de leitura é
+--    `cotista_id = auth.uid() OR eh_prop(embarcacao_id)`. Para o COTISTA — o
+--    papel que mais abre essa tela — o ramo útil é o de `cotista_id`.
+create index concurrently if not exists envios_cotista_cotista_idx on public.envios_cotista (cotista_id);
+
+-- 5. /mecanica soma as peças já retiradas por serviço com
+--    `.eq("tipo","retirada").in("servico_id", […])`
+--    (web/app/(app)/mecanica/page.tsx:149-152). O índice existente é
+--    `(item_id, criado_em)` — não serve para este filtro.
+create index concurrently if not exists estoque_movimentos_servico_idx on public.estoque_movimentos (servico_id);
+
+-- 6. A tela de uma demanda do Marketplace busca os negócios dela com
+--    `.eq("demanda_id", id)` (web/app/(app)/marketplace/[id]/page.tsx:108).
+create index concurrently if not exists negocios_demanda_idx on public.negocios (demanda_id);
+
+-- 7. O sino de notificações busca os negócios da pessoa com
+--    `.or("cliente_id.eq.<id>,fornecedor_id.eq.<id>")`
+--    (web/lib/consultas.ts:732-733). O índice `negocios_partes_idx` é
+--    `(cliente_id, fornecedor_id)` — cobre o primeiro ramo do OR e NÃO o
+--    segundo, porque `fornecedor_id` não é a coluna líder. Este índice é o
+--    que falta para o BitmapOr fechar.
+create index concurrently if not exists negocios_fornecedor_idx on public.negocios (fornecedor_id);
+
+-- 8. O perfil público de comandante lista as disponibilidades da pessoa com
+--    `.eq("autor_id", usuarioId).eq("ativo", true)`
+--    (web/lib/consultas-captain.ts:106-107). O `disponibilidades_vitrine_idx`
+--    é `(regiao_id, funcao_id, expira_em) where ativo` — é o índice da
+--    VITRINE, não o do perfil de uma pessoa.
+create index concurrently if not exists disponibilidades_autor_idx on public.disponibilidades (autor_id);
+
+-- ----------------------------------------------------------------------------
+-- DEPOIS DE RODAR OS 8
+-- ----------------------------------------------------------------------------
+-- 1) Nenhum índice inválido (é o que sobra de um `concurrently` interrompido).
+--    Tem de voltar 0 linhas:
+-- select c.relname from pg_index i join pg_class c on c.oid = i.indexrelid
+--   join pg_namespace n on n.oid = c.relnamespace
+--  where n.nspname = 'public' and not i.indisvalid;
+--    -- se voltar alguma: `drop index public.<nome>;` e rode o comando de novo.
+--
+-- 2) Os 8 estão lá e são válidos. Tem de voltar 8:
+-- select count(*) from pg_indexes
+--  where schemaname = 'public' and indexname in (
+--    'afazeres_embarcacao_idx','afazeres_responsavel_idx','tanques_dono_idx',
+--    'envios_cotista_cotista_idx','estoque_movimentos_servico_idx',
+--    'negocios_demanda_idx','negocios_fornecedor_idx','disponibilidades_autor_idx');
+--
+-- 3) As FK sem índice caem de 86 para 78:
+-- with fk as (
+--   select c.conrelid::regclass::text as tabela,
+--          (select string_agg(a.attname, ',' order by k.ord)
+--             from unnest(c.conkey) with ordinality k(attnum, ord)
+--             join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum) as colunas
+--   from pg_constraint c
+--   where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+-- )
+-- select count(*) from fk where not exists (
+--   select 1 from pg_index i
+--   where i.indrelid = fk.tabela::regclass
+--     and (select string_agg(a.attname, ',' order by k.ord)
+--            from unnest(i.indkey::smallint[]) with ordinality k(attnum, ord)
+--            join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
+--           where k.ord <= array_length(string_to_array(fk.colunas, ','), 1)) = fk.colunas);
+--
+-- 4) Estatísticas atualizadas nas 6 tabelas tocadas (barato, tabelas minúsculas):
+-- analyze public.afazeres;
+-- analyze public.tanques;
+-- analyze public.envios_cotista;
+-- analyze public.estoque_movimentos;
+-- analyze public.negocios;
+-- analyze public.disponibilidades;
+--
+-- ----------------------------------------------------------------------------
+-- REVERSÃO (também fora de transação, um por vez)
+-- ----------------------------------------------------------------------------
+-- drop index concurrently if exists public.afazeres_embarcacao_idx;
+-- drop index concurrently if exists public.afazeres_responsavel_idx;
+-- drop index concurrently if exists public.tanques_dono_idx;
+-- drop index concurrently if exists public.envios_cotista_cotista_idx;
+-- drop index concurrently if exists public.estoque_movimentos_servico_idx;
+-- drop index concurrently if exists public.negocios_demanda_idx;
+-- drop index concurrently if exists public.negocios_fornecedor_idx;
+-- drop index concurrently if exists public.disponibilidades_autor_idx;

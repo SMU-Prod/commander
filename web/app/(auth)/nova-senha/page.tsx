@@ -2,6 +2,7 @@ import { CampoSenha } from "@/components/campo-senha"
 import { Logo } from "@/components/logo"
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { definirNovaSenha } from "@/lib/acoes/auth"
+import { mensagemErro } from "@/lib/seguranca/mensagens-auth"
 
 /**
  * NOVA SENHA (onda 83) — o segundo passo da recuperação.
@@ -21,9 +22,17 @@ import { definirNovaSenha } from "@/lib/acoes/auth"
 export default async function NovaSenhaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string }>
+  searchParams: Promise<{
+    /** CÓDIGO, não frase — `senha-curta`, `senha-nao-trocada`… Quem traduz é
+     *  `lib/seguranca/mensagens-auth.ts`; desconhecido vira a genérica. */
+    erro?: string
+  }>
 }) {
   const { erro } = await searchParams
+  // ONDA 86 (P2-11) — mesma correção do `/login`: a URL carrega código, a
+  // frase é escolhida aqui. Um link forjado não fala mais pela boca do
+  // produto. O porquê está inteiro em `lib/seguranca/mensagens-auth.ts`.
+  const textoErro = mensagemErro(erro)
   return (
     <div data-theme="dark" className="min-h-dvh bg-ink text-texto lg:grid lg:grid-cols-2">
       <aside
@@ -48,8 +57,10 @@ export default async function NovaSenhaPage({
           frente.
         </p>
 
-        {erro && (
-          <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>
+        {textoErro && (
+          <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">
+            {textoErro}
+          </p>
         )}
 
         <form action={definirNovaSenha} className="mt-7 space-y-3.5">

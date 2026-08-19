@@ -1,0 +1,115 @@
+-- ============================================================================
+-- 081 — A lista de interesse no Commander Connect passa a ser legível pelo time
+-- ============================================================================
+-- FECHA: `connect_interesses` era write-only para a operação — quem levanta a
+--        mão entra numa lista que ninguém do Commander consegue abrir.
+--
+-- O PROBLEMA
+-- ----------
+-- A definição VIVA da tabela (lida com `pg_policies` em 19/08/2026) tem duas
+-- policies, as duas escopadas por vínculo de embarcação e nenhuma por papel
+-- administrativo:
+--
+--   INSERT  "connect_interesses: criar pela matriz"
+--           with check permissao(embarcacao_id, 'embarcacao', 'editar')
+--   SELECT  "connect_interesses: ver pela matriz"
+--           using      permissao(embarcacao_id, 'embarcacao', 'ver')
+--
+-- Ou seja: o proprietário declara interesse e depois enxerga o próprio
+-- registro — e mais ninguém. O Comercial, que é quem decide se o Connect vira
+-- produto, não tem caminho nenhum até essa lista. Uma lista de espera que só
+-- existe para o banco não é uma lista de espera.
+--
+-- O DETALHE QUE FAZ ISSO SER PIOR QUE UM BURACO COMUM
+-- ---------------------------------------------------
+-- Com a RLS atual, um `select` do Comercial não daria erro: voltaria
+-- `[]` com `error: null` — RLS filtra linha, não recusa consulta. O Comercial
+-- leria "zero interessados" e arquivaria o produto com base num número que o
+-- banco nunca disse. É por isso que `/admin/connect` foi construída **sem
+-- fazer a consulta**, mostrando cartões tracejados que dizem que a lista está
+-- bloqueada — "lista bloqueada" e "lista vazia" são conclusões opostas e o
+-- app se recusou a confundir as duas. Depois desta migration a tela pode
+-- passar a consultar de verdade.
+--
+-- POR QUE `comercial`, E POR QUE UMA POLICY A MAIS (NÃO NO LUGAR DE)
+-- ------------------------------------------------------------------
+-- · O papel é `comercial` pelo §21 do PRD: o escopo dele é "partners,
+--   destaques, campanhas, publicidade e métricas comerciais". Interesse
+--   declarado num produto é sinal comercial, não chamado de suporte.
+-- · `tem_papel_admin('comercial')` já implica CEO — a definição viva da função
+--   é `p.papel = p_papel or p.papel = 'ceo'`. Não é preciso (nem correto)
+--   acrescentar `eh_ceo()` ao lado: seria a mesma coisa escrita duas vezes.
+-- · A policy é **acrescentada**, e as duas antigas ficam intactas. Policy
+--   permissiva se SOMA (OR), então o proprietário continua enxergando o
+--   próprio registro exatamente como antes, e o Comercial passa a enxergar
+--   todos. Se esta migration substituísse a policy de leitura em vez de somar,
+--   o dono perderia o acesso ao que ele mesmo declarou.
+-- · Nenhuma policy de UPDATE ou de DELETE é criada, e isso é deliberado: a
+--   lista é registro histórico de intenção. O Comercial lê e conta; não edita
+--   nem apaga a manifestação de ninguém.
+--
+-- QUEM GANHA / QUEM PERDE — conferido no banco em 19/08/2026
+-- ----------------------------------------------------------
+--   select count(*) from public.connect_interesses;                       -- 0
+--   select count(*) from public.admin_papeis
+--    where ativo and papel = 'comercial';                                 -- 0
+--   select count(*) from public.admin_papeis where ativo and papel = 'ceo'; -- 1
+--
+-- A tabela tem **0 linhas**: esta migration não expõe dado de ninguém, ela só
+-- abre a porta pro dia em que alguém levantar a mão. E como não há nenhum
+-- `comercial` ativo hoje, quem passa a enxergar é exatamente uma pessoa — o
+-- CEO —, pela regra de implicação que já vale em todo o resto do admin.
+--
+-- Idempotente: `drop policy if exists` (só do nome NOVO) + `create policy`.
+-- REVERSÃO: ver supabase/migrations/APLICAR-2026-08-19.md
+-- ============================================================================
+
+begin;
+
+-- O nome é novo de propósito: as duas policies vivas
+-- ("connect_interesses: criar pela matriz" e "…: ver pela matriz") NÃO são
+-- tocadas. O `drop ... if exists` abaixo existe só pra reaplicação desta mesma
+-- migration não estourar — ele não pode, em hipótese nenhuma, casar com o nome
+-- de uma das antigas.
+drop policy if exists "connect_interesses: comercial le" on public.connect_interesses;
+
+create policy "connect_interesses: comercial le" on public.connect_interesses
+  for select to authenticated
+  using (public.tem_papel_admin('comercial'));
+
+commit;
+
+-- ---------------------------------------------------------------------------
+-- CONFERÊNCIA (rodar depois)
+-- ---------------------------------------------------------------------------
+-- 1) Passam a ser TRÊS policies — 1 INSERT e 2 SELECT. Se voltar 2, o
+--    `create` não pegou; se a de matriz sumir, algo dropou o que não devia:
+-- select policyname, cmd, roles::text, qual from pg_policies
+--  where schemaname='public' and tablename='connect_interesses'
+--  order by cmd, policyname;
+--    Esperado, nesta ordem:
+--      INSERT  connect_interesses: criar pela matriz
+--      SELECT  connect_interesses: comercial le
+--      SELECT  connect_interesses: ver pela matriz
+--
+-- 2) A policy da matriz continua exatamente como era — tem de voltar 1:
+-- select count(*) from pg_policies
+--  where schemaname='public' and tablename='connect_interesses'
+--    and policyname='connect_interesses: ver pela matriz'
+--    and qual = 'permissao(embarcacao_id, ''embarcacao''::text, ''ver''::text)';
+--
+-- 3) Continua sem policy de UPDATE e de DELETE — tem de voltar 0:
+-- select count(*) from pg_policies
+--  where schemaname='public' and tablename='connect_interesses'
+--    and cmd in ('UPDATE','DELETE','ALL');
+--
+-- 4) Ninguém novo passou a enxergar dado nenhum, porque não há dado — 0:
+-- select count(*) from public.connect_interesses;
+--
+-- 5) Teste de fumaça, com login real: entrar com a conta do CEO e abrir
+--    `/admin/connect`. Enquanto a tela não passar a consultar, a prova é o
+--    `select` direto pelo PostgREST com o token do CEO — tem de responder 200
+--    com `[]` (lista vazia de verdade), e não mais `[]` por bloqueio.
+--
+-- REVERSÃO:
+-- drop policy if exists "connect_interesses: comercial le" on public.connect_interesses;

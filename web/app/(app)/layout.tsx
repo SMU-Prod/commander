@@ -10,25 +10,16 @@ import { contadorSino } from "@/lib/domain/notificacoes"
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const painel = await carregarPainel()
 
-  // ONDA 47 — O GATE DE COBRANÇA GLOBAL FOI REMOVIDO.
+  // NÃO EXISTE GATE DE COBRANÇA AQUI, e é de propósito (onda 47).
   //
-  // Até aqui, com `NEXT_PUBLIC_COBRANCA_ATIVA === "1"`, qualquer PROP sem
-  // assinatura viva levava um redirect duro pra `/assinar` em TODA página de
-  // `(app)`: o app inteiro era pago ou nada. O PRD FINAL desmonta essa
-  // premissa — §2 cria o "Proprietário Free" como plano de verdade e §2.3
-  // manda o Free "navegar pelos hubs" com cadeado nos pontos certos ("Free
-  // deve funcionar como demonstração interativa", §1.1). Um redirect global
-  // tornaria o plano gratuito literalmente inalcançável.
-  //
-  // O paywall agora é POR RECURSO, não por aplicativo: `recursoLiberado`
-  // (`lib/domain/plano-acesso.ts`) nos pontos que o §2.3 lista, e
-  // `avaliarCiclo` (`lib/domain/assinatura-ciclo.ts`) decidindo quando a
-  // tolerância do §23 acaba. §23 é explícito sobre o que acontece quando o
-  // pagamento some: "conta volta ao nível Free aplicável, PRESERVANDO DADOS
-  // E HISTÓRICO; recursos pagos ficam bloqueados, NÃO APAGADOS" — e não
-  // "a pessoa não entra mais no app".
-  //
-  // A variável `NEXT_PUBLIC_COBRANCA_ATIVA` não é mais lida em lugar nenhum.
+  // O paywall do Commander é POR RECURSO, nunca por aplicativo: quem decide é
+  // `recursoLiberado` (`lib/domain/plano-acesso.ts`) nos pontos que o §2.3 do
+  // PRD lista, e `avaliarCiclo` (`lib/domain/assinatura-ciclo.ts`) quando a
+  // tolerância do §23 acaba. Um redirect global daqui pra `/assinar` tornaria
+  // o "Proprietário Free" (§2) inalcançável — e o §23 é explícito: sem
+  // pagamento a "conta volta ao nível Free aplicável, PRESERVANDO DADOS E
+  // HISTÓRICO; recursos pagos ficam bloqueados, NÃO APAGADOS". Não é "a
+  // pessoa não entra mais no app".
 
   // Contador de avisos no rodapé (onda 44, PRD §5.2 "sino no topo com
   // contador"). Fica no layout pra acompanhar a pessoa em toda tela, e usa

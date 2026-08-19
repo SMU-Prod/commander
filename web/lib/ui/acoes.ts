@@ -155,46 +155,40 @@ export const PILULA_ACAO_PRINCIPAL =
   `inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto ${TOQUE}`
 
 /**
- * A AÇÃO QUE OCUPA A LINHA INTEIRA — e que, por isso, carrega o próprio alvo.
+ * A AÇÃO DE LARGURA CHEIA NÃO MORA AQUI — ELA É `BotaoEnviar`.
+ * ---------------------------------------------------------------------------
+ * Existiu neste arquivo uma quarta constante, `PILULA_ACAO_LARGA`, criada pelo
+ * achado 5.2 da auditoria de 19/08/2026 para a ação que preenche a largura do
+ * bloco onde mora. Ela foi APAGADA no fechamento da mesma auditoria, sem nunca
+ * ter tido um consumidor, e o motivo fica escrito porque ele é uma régua e não
+ * um evento: **constante sem consumidor é o vício que esta rodada passou o dia
+ * apagando** — o `.valor` com zero usos, o `--raio-panel` com zero usos, o
+ * bloco de venda do plano de cotista. Uma constante de estilo que ninguém
+ * importa não é neutra: ela aparece no `grep` de quem procura "como se faz
+ * isso aqui" e responde com um caminho que o app não anda.
  *
- * Nasce do achado 5.2 da auditoria de 19/08/2026: "ação secundária" tinha
- * NOVE vestidos no app, três declarados aqui e seis escritos à mão nas telas.
- * Duas das seis eram a mesma coisa que este arquivo não sabia dizer — uma
- * ação que precisa preencher a largura do bloco onde mora (o "Compartilhar"
- * do rodapé da saída do Diário, o "Agora não" abaixo do formulário de horas):
- * quem quis isso teve de inventar `rounded-xl border border-accent/40` e
- * companhia, e foi assim que a contagem chegou a nove.
+ * O QUE FOI MEDIDO ANTES DE APAGAR, e é o que sustenta a decisão:
  *
- * O ALVO ESTÁ AQUI DENTRO, e é a diferença que separa esta constante das
- * outras três. `PILULA_ACAO` e as duas de bloco são DESENHO dentro de um
- * `ALVO_ACAO` porque são pequenas e a folga precisa voltar pro layout via
- * margem negativa. Esta não é pequena: ela já é um bloco, com espaço próprio
- * em volta, e não há folga nenhuma a devolver — então ela lê
- * `--altura-controle` direto, como `Chip`, `RedeNav` e `BotaoFicha`. Vai no
- * `<Link>`/`<button>`, sem `<span>` por dentro.
+ *   · ZERO importações em todo o `web/` — e nem sequer um `.test.ts`, porque
+ *     `lib/ui/acoes.ts` não tem arquivo de teste.
+ *   · As cinco ações que a motivaram viraram `BotaoEnviar variante="contorno"
+ *     larguraCheia`, e viraram CERTO: são submits de formulário, e o que a
+ *     pílula sozinha não dá é justamente o aviso de envio (`useFormStatus`,
+ *     rótulo que troca, duplo toque bloqueado). As duas últimas — o
+ *     "Compartilhar" de `barco/selos/gold` e o "Agora não" de
+ *     `diario/[id]/horas` — são submits pelo mesmo motivo.
+ *   · Uma varredura atrás do consumidor legítimo que a salvaria (uma ação de
+ *     largura cheia, contorno, que NÃO fosse submit e estivesse escrita à mão
+ *     numa tela) não achou nenhuma. Os dois únicos `w-full` + `rounded-full`
+ *     do app são outro vestido: o botão dourado cheio de
+ *     `importar-gpx-cliente` e o flutuante com `sombra-2`/`backdrop-blur` do
+ *     mapa de planejar viagem.
  *
- * QUANDO ESTICAR, E QUANDO NÃO. Estica quando a ação fecha um BLOCO que já
- * tem teto próprio — rodapé de cartão, coluna de formulário, painel de
- * detalhe: ali a largura cheia é o que faz a ação parecer o fim daquele
- * bloco, e não mais um item solto dentro dele. O caso oposto — ação que mora
- * numa coluna que CRESCE com o monitor — é `ACAO_NAO_ESTICA`, em
- * `lib/ui/superficies.ts`, e o porquê está escrito lá (um botão atravessando
- * 1265px não é ênfase, é layout de celular esticado); não vale repetir o
- * argumento aqui, vale ler o de lá antes de escolher.
- *
- * `justify-center`: numa pílula estreita o rótulo é a peça inteira, numa de
- * largura cheia ele boiaria à esquerda com um vazio à direita — que é o
- * desenho de uma linha de lista, não o de um botão.
- *
- * `TOQUE_AMPLO` e não `TOQUE`, pela régua escrita na definição dos dois: a
- * 390px esta pílula mede ~358px, e 3% de 358 são 11px — a tela inteira
- * tremendo. `BotaoEnviar` faz o mesmo na variante de largura cheia.
- *
- * A COR NÃO ENTRA. Este é o vestido de contorno, o mesmo de
- * `PILULA_ACAO_BLOCO`. A versão dourada de largura cheia já existe e não é
- * aqui: é `BotaoEnviar variante="principal" larguraCheia`
- * (`components/ui/botao-enviar.tsx`), que soma o aviso de envio — e ação
- * dourada de largura cheia, no app, é quase sempre o submit de um formulário.
+ * Ou seja: no Commander, ação de largura cheia é submit de formulário, e
+ * submit de formulário tem componente próprio há três ondas. Quem chegar aqui
+ * precisando de uma ação larga que NÃO envie formulário (um `<a>` de
+ * compartilhar fechando o rodapé de um cartão, por exemplo) tem o desenho
+ * pronto em `PILULA_ACAO_BLOCO` + `w-full` — e aí sim vale promover a
+ * constante, COM o consumidor no mesmo commit, que é a ordem que faltou da
+ * primeira vez.
  */
-export const PILULA_ACAO_LARGA =
-  `flex h-[var(--altura-controle)] w-full items-center justify-center gap-1.5 rounded-full border border-line bg-panel2 px-4 text-sm font-medium text-texto ${TOQUE_AMPLO}`

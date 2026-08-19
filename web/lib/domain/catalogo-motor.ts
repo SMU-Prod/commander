@@ -58,6 +58,13 @@ export const ROTULO_SEGMENTO: Record<SegmentoMotor, string> = {
   diesel_interno: "Diesel interno",
 }
 
+/** A porta de entrada do texto do banco neste vocabulário. `motor_fabricantes
+ *  .segmento` é `text`, e um `as SegmentoMotor` no `map` da consulta faria o
+ *  tipo prometer o que a coluna não garante. */
+export function ehSegmentoMotor(valor: string | null | undefined): valor is SegmentoMotor {
+  return (SEGMENTOS_MOTOR as readonly string[]).includes(valor ?? "")
+}
+
 // ---------------------------------------------------------------------------
 // As formas que o domínio recebe (o mínimo — nunca a linha inteira do banco)
 // ---------------------------------------------------------------------------
@@ -70,6 +77,18 @@ export interface ModeloCatalogo {
   anoFim: number | null
   familia: string
   fabricante: string
+  /**
+   * O segmento do FABRICANTE, que sobe pela família até aqui (a coluna mora em
+   * `motor_fabricantes`, migration 057).
+   *
+   * `null` NÃO é "sem segmento": é "o catálogo trouxe um valor que este
+   * vocabulário não conhece". A coluna é `not null` no banco e os três valores
+   * de hoje batem com `SEGMENTOS_MOTOR` — mas o dia em que alguém cadastrar um
+   * quarto segmento pelo SQL, o modelo tem que continuar aparecendo na busca
+   * em vez de ser empurrado para uma gaveta errada. Quem lê este `null` é
+   * `podeFiltrarPorSegmento`, que desliga o filtro inteiro nesse caso.
+   */
+  segmento: SegmentoMotor | null
 }
 
 export interface ComponenteCatalogo {
@@ -134,19 +153,28 @@ export function faixaDeAno(m: Pick<ModeloCatalogo, "anoInicio" | "anoFim">): str
 // ---------------------------------------------------------------------------
 
 /**
- * Qual part number a ficha do item mostra.
+ * `partNumberVigente` MORAVA AQUI, E SAIU NA VARREDURA DE 19/08/2026.
  *
- * Aqui o DONO ganha do catálogo, ao contrário da identidade do motor — e a
- * inversão é proposital: o catálogo sabe o código OEM, mas quem troca a peça
- * pode usar um equivalente de fornecedor, e o código que importa na hora de
- * comprar de novo é o que ele comprou. O catálogo entra como reserva.
+ * Ela escolhia entre o part number do item e o do componente do catálogo (o
+ * dono ganhava, o catálogo era reserva). A regra continua certa no papel; o
+ * que não existia era o caminho até ela. Medido antes de apagar:
+ *
+ *   · o único consumidor em todo o `web/` era o próprio `.test.ts` — a citação
+ *     em `lib/db/types.ts` era comentário, não chamada;
+ *   · `itens_monitorados.motor_componente_id`, que é o elo por onde o part
+ *     number do catálogo chegaria, NUNCA é gravado por nenhuma action nem
+ *     pedido por nenhum formulário. O segundo argumento da função não tinha
+ *     como ser diferente de `null`;
+ *   · e nenhuma tela exibe `itens_monitorados.part_number_oem` — os dois
+ *     formulários (`barco/itens/novo` e `barco/itens/[id]/editar`) COLETAM o
+ *     campo e nada o mostra de volta.
+ *
+ * Ou seja: uma função que dava a impressão de que o elo "peça → código OEM" do
+ * §16 estava fechado, num app onde ele não começou. Quando a ficha do item
+ * passar a exibir o part number — e quando algo popular `motor_componente_id`
+ * —, a regra do dono-ganha-do-catálogo volta junto com o consumidor, que é a
+ * ordem que esta rodada inteira aplicou.
  */
-export function partNumberVigente(
-  doItem: string | null,
-  doComponente: string | null,
-): string | null {
-  return doItem?.trim() || doComponente?.trim() || null
-}
 
 /**
  * O plano que o catálogo sugere quando um item é ligado a um componente.
@@ -161,6 +189,62 @@ export function planoSugerido(
 ): { intervaloHoras: number | null; intervaloMeses: number | null } | null {
   if (c.intervaloHoras == null && c.intervaloMeses == null) return null
   return { intervaloHoras: c.intervaloHoras, intervaloMeses: c.intervaloMeses }
+}
+
+// ---------------------------------------------------------------------------
+// O filtro por segmento (§20)
+// ---------------------------------------------------------------------------
+
+/**
+ * Quais segmentos ESTE catálogo realmente tem, na ordem de `SEGMENTOS_MOTOR`.
+ *
+ * Derivado dos modelos carregados e não da constante: a lista tem hoje um
+ * fabricante de centro-rabeta com UMA família e ZERO modelos, e um chip
+ * "Centro-rabeta" que abre numa lista vazia é uma promessa que o catálogo não
+ * cumpre. A ordem vem da constante porque é a ordem do §20 (do motor mais
+ * comum ao menos comum na frota que o Commander atende), não a alfabética nem
+ * a de chegada no banco.
+ */
+export function segmentosPresentes(modelos: readonly ModeloCatalogo[]): SegmentoMotor[] {
+  const achados = new Set(modelos.map((m) => m.segmento).filter(ehSegmentoMotor))
+  return SEGMENTOS_MOTOR.filter((s) => achados.has(s))
+}
+
+/**
+ * O FILTRO SÓ APARECE QUANDO ELE NÃO ESCONDE NADA EM SILÊNCIO.
+ *
+ * Esta é a régua que a auditoria de 19/08 cobrou caro, e ela vale tanto pra
+ * desenhar um dado quanto pra ESCONDER um: um chip de segmento tira modelos da
+ * lista, e modelo que some sem explicação é pior do que filtro nenhum — quem
+ * digita "D6" e não acha conclui que o catálogo não tem o motor dele.
+ *
+ * Duas condições, e as duas são sobre o dado, não sobre o desenho:
+ *
+ *   · NENHUM modelo com segmento desconhecido. Se um único vier fora do
+ *     vocabulário, ele não caberia em chip nenhum e sumiria ao primeiro
+ *     toque. Com o filtro desligado ele continua achável pela busca, que é o
+ *     comportamento que o app tinha antes e nunca mentiu.
+ *   · PELO MENOS DOIS segmentos presentes. Filtrar uma lista que é toda do
+ *     mesmo segmento é um controle que não faz nada — e controle que não faz
+ *     nada ensina a ignorar os que fazem.
+ *
+ * Medido no banco em 19/08/2026 antes de ligar: 12 fabricantes, 12 com
+ * segmento preenchido, 0 nulos, três valores distintos — todos os três dentro
+ * de `SEGMENTOS_MOTOR`. Dos três, dois têm modelo (popa 16, diesel interno 7);
+ * centro-rabeta tem 0 e por isso não vira chip.
+ */
+export function podeFiltrarPorSegmento(modelos: readonly ModeloCatalogo[]): boolean {
+  if (modelos.some((m) => m.segmento === null)) return false
+  return segmentosPresentes(modelos).length >= 2
+}
+
+/** O recorte em si. `null` é "Todos" — e é o padrão da tela, porque quem não
+ *  escolheu segmento nenhum quer ver o catálogo inteiro. */
+export function filtrarPorSegmento(
+  modelos: readonly ModeloCatalogo[],
+  segmento: SegmentoMotor | null,
+): ModeloCatalogo[] {
+  return segmento === null ? [...modelos] : modelos.filter((m) => m.segmento === segmento)
 }
 
 // ---------------------------------------------------------------------------

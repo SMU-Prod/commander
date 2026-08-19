@@ -274,17 +274,75 @@ async function diagnosticarAssinatura(
   return { resultado: "sem_efeito", detalhe: `já estava em ${atual.status} (pedido: ${novoStatus})`, linhasAfetadas: 0 }
 }
 
-/** Confirma o pagamento da avaliação Commander Gold e avança a solicitação
- *  direto pra `aguardando_agendamento` — pulando o estado intermediário
- *  `pago` num único hop, porque nada além do admin agendando lê esse estado
- *  isoladamente. Escrita direta via service role (bypassa RLS de propósito:
- *  o segredo do webhook já é o gate de autoridade aqui, igual à assinatura
- *  acima) — nunca passa pela RPC `gold_definir_estado`, que exigiria
- *  `auth.uid()` de uma sessão de usuário que este webhook não tem.
+/**
+ * ONDA 85 (achado A-12 da auditoria de 19/08/2026) — UMA MÁQUINA DE ESTADOS SÓ.
  *
- *  NÃO precisa do carimbo de ordem do A-06: cobrança avulsa não tem par de
- *  eventos opostos (ou o pagamento foi confirmado, ou não foi), e o
- *  `.neq("status","pago")` já torna a reentrega inofensiva. */
+ * Confirma o pagamento da avaliação Commander Gold e leva a solicitação de
+ * `aguardando_pagamento` até `aguardando_agendamento` — passando por `pago`,
+ * que é o degrau que a máquina de estados declara.
+ *
+ * ---------------------------------------------------------------------------
+ * O QUE ESTAVA ERRADO
+ * ---------------------------------------------------------------------------
+ * Este bloco fazia o salto num hop só (`.in("estado", ["aguardando_pagamento",
+ * "pago"])` → `aguardando_agendamento`), e funcionava: a chave de serviço passa
+ * por cima da RLS e não consulta `gold_transicao_valida`. O problema não era
+ * quebrar — era existirem DUAS definições da mesma máquina de estados, e a
+ * versão que o dinheiro segue não ser a que está escrita:
+ *
+ *   · `gold_transicao_valida` (banco, migration 033):
+ *       aguardando_pagamento → pago → aguardando_agendamento
+ *   · `TRANSICOES` (`lib/domain/gold.ts:100-101`, com teste em gold.test.ts:84):
+ *       idem
+ *   · este arquivo, até agora:
+ *       aguardando_pagamento → aguardando_agendamento
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE O WEBHOOK CEDEU, E NÃO A RPC
+ * ---------------------------------------------------------------------------
+ * O caminho oposto — declarar o salto em `gold_transicao_valida` — parecia mais
+ * barato (uma migration, uma linha). Foi descartado por três motivos:
+ *
+ *   1. Ele conserta UMA das duas definições e quebra a outra. `TRANSICOES` em
+ *      `lib/domain/gold.ts` diz a mesma coisa que o banco, e tem teste. Mudar o
+ *      banco obrigaria a mudar o TypeScript junto, e passariam a ser dois
+ *      lugares para manter em vez de dois lugares que concordam.
+ *   2. `pago` não é estado morto. A tela do cliente tem texto próprio para ele
+ *      (`DESCRICAO_ESTADO_SOLICITACAO.pago`) e o passo do trilho já o trata
+ *      (`barco/selos/gold/[id]/page.tsx:17`). Apagá-lo do caminho real seria
+ *      mudar a máquina de estados publicada para acomodar um atalho de
+ *      implementação.
+ *   3. Alargar `gold_transicao_valida` alarga para TODO MUNDO, inclusive o
+ *      Suporte chamando a RPC pela tela — e "avançar sem passar por pago"
+ *      viraria uma operação legítima do admin, que ninguém pediu.
+ *
+ * O webhook era a única das três vozes discordantes. É ela que muda.
+ *
+ * ---------------------------------------------------------------------------
+ * COMO OS DOIS PASSOS SE COMPORTAM
+ * ---------------------------------------------------------------------------
+ * Cada `update` carrega o estado de origem no `where` (`aguardando_pagamento`,
+ * depois `pago`). Isso mantém a transição atômica por passo — duas entregas
+ * concorrentes não se atropelam, porque quem perde a corrida não casa com o
+ * filtro e não escreve — e torna cada passo reentrante: já estar no destino
+ * simplesmente afeta 0 linhas.
+ *
+ * O risco novo, e o que se faz com ele: se o processo morrer ENTRE os dois
+ * passos, a solicitação fica em `pago` — estado válido, mas parado. Por isso o
+ * avanço passou a rodar mesmo quando o pagamento JÁ estava marcado `pago`
+ * (reentrega): o Asaas reentrega, e a reentrega termina o serviço em vez de
+ * sair pela porta de "já estava pago" e deixar o cliente preso. Antes desta
+ * mudança não existia esse meio-caminho, e por isso a reentrega podia sair
+ * cedo sem custo.
+ *
+ * Escrita direta via service role (bypassa RLS de propósito: o segredo do
+ * webhook já é o gate de autoridade aqui, igual à assinatura acima) — nunca
+ * passa pela RPC `gold_definir_estado`, que exigiria `auth.uid()` de uma sessão
+ * de usuário que este webhook não tem.
+ *
+ * NÃO precisa do carimbo de ordem do A-06: cobrança avulsa não tem par de
+ * eventos opostos (ou o pagamento foi confirmado, ou não foi).
+ */
 async function atualizarPagamentoGold(
   admin: SupabaseClient, corpo: CorpoAsaas, paymentId: string,
 ): Promise<Desfecho> {
@@ -293,9 +351,10 @@ async function atualizarPagamentoGold(
     return { resultado: "evento_ignorado", detalhe: evento }
   }
 
+  const agora = new Date().toISOString()
   const { data: pagamentos, error: erroPagamento } = await admin
     .from("gold_pagamentos")
-    .update({ status: "pago", pago_em: new Date().toISOString() })
+    .update({ status: "pago", pago_em: agora })
     .eq("asaas_payment_id", paymentId)
     .neq("status", "pago")
     .select("id, solicitacao_id")
@@ -304,11 +363,14 @@ async function atualizarPagamentoGold(
     return { resultado: "erro", detalhe: erroPagamento.message.slice(0, 300), http: 500 }
   }
 
-  if (!pagamentos?.length) {
-    // Mesma separação do A-07: "cobrança que o Commander não emitiu" é um
-    // problema; "já estava paga" é reentrega e não é problema nenhum.
+  let solicitacaoId = pagamentos?.[0]?.solicitacao_id as string | undefined
+  // `true` quando esta entrega não mudou nada em `gold_pagamentos` — ou é
+  // reentrega, ou é cobrança que o Commander não emitiu. São coisas muito
+  // diferentes, e a separação é a mesma do A-07.
+  const reentrega = !solicitacaoId
+  if (!solicitacaoId) {
     const { data: existente } = await admin
-      .from("gold_pagamentos").select("id, status").eq("asaas_payment_id", paymentId).maybeSingle()
+      .from("gold_pagamentos").select("id, solicitacao_id").eq("asaas_payment_id", paymentId).maybeSingle()
     if (!existente) {
       console.error(
         `[asaas] SEM CORRESPONDÊNCIA: cobrança ${paymentId} não existe em gold_pagamentos ` +
@@ -320,24 +382,42 @@ async function atualizarPagamentoGold(
         linhasAfetadas: 0,
       }
     }
-    return { resultado: "sem_efeito", detalhe: "pagamento já estava pago", linhasAfetadas: 0 }
+    solicitacaoId = existente.solicitacao_id as string
   }
 
-  const solicitacaoId = pagamentos[0].solicitacao_id as string
+  // Passo 1 — `aguardando_pagamento` → `pago`.
+  const { error: erroPago } = await admin
+    .from("gold_solicitacoes")
+    .update({ estado: "pago", atualizado_em: agora })
+    .eq("id", solicitacaoId)
+    .eq("estado", "aguardando_pagamento")
+    .select("id")
+  if (erroPago) {
+    console.error(`[asaas] falha ao marcar solicitação ${solicitacaoId} como paga:`, erroPago.message)
+    return { resultado: "erro", detalhe: erroPago.message.slice(0, 300), http: 500 }
+  }
+
+  // Passo 2 — `pago` → `aguardando_agendamento`.
   const { data: solicitacoes, error: erroSolicitacao } = await admin
     .from("gold_solicitacoes")
-    .update({ estado: "aguardando_agendamento", atualizado_em: new Date().toISOString() })
+    .update({ estado: "aguardando_agendamento", atualizado_em: agora })
     .eq("id", solicitacaoId)
-    .in("estado", ["aguardando_pagamento", "pago"])
+    .eq("estado", "pago")
     .select("id")
   if (erroSolicitacao) {
     console.error(`[asaas] falha ao avançar solicitação ${solicitacaoId}:`, erroSolicitacao.message)
     return { resultado: "erro", detalhe: erroSolicitacao.message.slice(0, 300), http: 500 }
   }
 
-  // Pagamento gravado e solicitação NÃO avançada é divergência de verdade: o
-  // dinheiro entrou e o processo não andou. Fica marcado, não some num 200.
   if (!solicitacoes?.length) {
+    // Reentrega de um evento já inteiramente aplicado: o pagamento já estava
+    // pago E a solicitação já tinha andado. Não é problema nenhum.
+    if (reentrega) {
+      return { resultado: "sem_efeito", detalhe: "pagamento já estava pago", linhasAfetadas: 0 }
+    }
+    // Pagamento gravado agora e solicitação NÃO avançada é divergência de
+    // verdade: o dinheiro entrou e o processo não andou. Fica marcado, não
+    // some num 200.
     console.error(
       `[asaas] pagamento ${paymentId} confirmado, mas a solicitação ${solicitacaoId} ` +
         "não estava em aguardando_pagamento/pago — conferir à mão.",
@@ -345,10 +425,14 @@ async function atualizarPagamentoGold(
     return {
       resultado: "sem_correspondencia",
       detalhe: `pagamento pago, solicitação ${solicitacaoId} não avançou`,
-      linhasAfetadas: pagamentos.length,
+      linhasAfetadas: pagamentos?.length ?? 0,
     }
   }
 
   console.log(`[asaas] ${evento} → gold_pagamentos pago, solicitacao ${solicitacaoId} aguardando_agendamento`)
-  return { resultado: "aplicado", detalhe: "gold: aguardando_agendamento", linhasAfetadas: pagamentos.length }
+  return {
+    resultado: "aplicado",
+    detalhe: "gold: pago → aguardando_agendamento",
+    linhasAfetadas: pagamentos?.length ?? 0,
+  }
 }

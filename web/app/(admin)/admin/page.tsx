@@ -4,7 +4,13 @@ import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { exigirAdmin } from "@/lib/admin"
 import { carregarFontesDashboard } from "@/lib/consultas-admin"
 import { grupoVazio, montarDashboard, type Metrica } from "@/lib/domain/admin-metricas"
-import { podeAcessar, resumoPapeis, type AreaAdmin, type PapelAdmin } from "@/lib/domain/admin-papeis"
+import {
+  podeAcessar,
+  resumoPapeis,
+  temPapelAdmin,
+  type AreaAdmin,
+  type PapelAdmin,
+} from "@/lib/domain/admin-papeis"
 
 /**
  * Admin Commander — porta de entrada (PRD §21) + Dashboard CEO (§21.1).
@@ -104,11 +110,35 @@ const ATALHOS: { area: AreaAdmin; href: string; titulo: string; apoio: string; i
   { area: "logs", href: "/admin/logs", titulo: "Logs administrativos", apoio: "Quem fez o quê e quando", icone: "documento" },
 ]
 
+/**
+ * ONDA 95 — AS DUAS TELAS QUE FECHAM TABELAS WRITE-ONLY (auditoria 19/08, A18).
+ *
+ * `connect_interesses` e `sondagens` recebiam escrita e ninguém lia. As telas
+ * novas entram no índice pelo MESMO motivo que as de cima: rota sem link é
+ * área que ninguém acha, e `lib/ui/menu-destinos.test.ts` reprova a rota
+ * ilhada — foi assim que `/parceiro` e `/consultor` sumiram do produto.
+ *
+ * POR QUE UMA LISTA SEPARADA, e não mais duas linhas em `ATALHOS`: aquela
+ * lista é indexada por `AreaAdmin`, o tipo que a matriz `ALCANCE` de
+ * `lib/domain/admin-papeis.ts` usa pra decidir acesso por ÁREA. Estas duas
+ * telas não são áreas novas do §21 — são leituras pontuais que se penduram em
+ * papéis existentes (o interesse é sinal comercial, a sondagem é operação), e
+ * cada página exige o mesmo papel com `exigirPapelAdmin`. Inventar duas áreas
+ * pra elas mudaria a matriz de permissão do produto inteiro pra encaixar duas
+ * telas — o rabo abanando o cachorro. Aqui a porta usa `temPapelAdmin`, que é
+ * exatamente o que a página checa, então menu e barreira não podem divergir.
+ */
+const ATALHOS_POR_PAPEL: { papel: PapelAdmin; href: string; titulo: string; apoio: string; icone: NomeIcone }[] = [
+  { papel: "comercial", href: "/admin/connect", titulo: "Interesse no Connect", apoio: "Fila de espera da triagem de compatibilidade", icone: "sinal" },
+  { papel: "suporte", href: "/admin/sondagens", titulo: "Sondagem colaborativa", apoio: "Volume e cobertura da coleta de profundidade", icone: "sonar" },
+]
+
 function Atalhos({ papeis }: { papeis: PapelAdmin[] }) {
   // O menu é montado a partir da MESMA matriz testada que barra a rota
   // (`podeAcessar`) — mostrar um atalho que leva a um redirect seria mentir
   // duas vezes: sobre o acesso e sobre a existência da área.
   const visiveis = ATALHOS.filter((a) => podeAcessar(papeis, a.area))
+  const porPapel = ATALHOS_POR_PAPEL.filter((a) => temPapelAdmin(papeis, a.papel))
   return (
     <div className="mt-5 space-y-2">
       {/* A porta de entrada do Admin era dez linhas de lista escritas à mão —
@@ -116,6 +146,16 @@ function Atalhos({ papeis }: { papeis: PapelAdmin[] }) {
           toque. `LinhaLista variant="cartao"` é a peça, e ela traz a
           confirmação junto. */}
       {visiveis.map((a) => (
+        <LinhaLista
+          key={a.href}
+          variant="cartao"
+          href={a.href}
+          leading={<Icone nome={a.icone} className="size-5 shrink-0 text-accent-forte" />}
+          titulo={a.titulo}
+          subtitulo={a.apoio}
+        />
+      ))}
+      {porPapel.map((a) => (
         <LinhaLista
           key={a.href}
           variant="cartao"

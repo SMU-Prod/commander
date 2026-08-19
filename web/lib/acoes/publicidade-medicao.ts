@@ -16,6 +16,22 @@ import { supabaseServer } from "@/lib/supabase/server"
  * não escreve contador, ele PEDE um incremento — e a função só atende se a
  * campanha estiver vigente.
  *
+ * O QUE ESTES NÚMEROS SIGNIFICAM (migration 080, auditoria de 19/08/2026)
+ * ----------------------------------------------------------------------
+ * Até a 080 o incremento era incondicional, e qualquer usuário logado levava
+ * a campanha de um parceiro a qualquer número chamando estas duas funções em
+ * laço. Agora a RPC guarda uma janela por pessoa + campanha (`publicidade_vistas`)
+ * e ignora a repetição dentro dela:
+ *
+ *   · impressão — no máximo 1 por pessoa/campanha a cada HORA;
+ *   · clique    — no máximo 1 por pessoa/campanha por DIA.
+ *
+ * Ou seja, `impressoes` conta pessoas-hora distintas e `cliques` conta pessoas
+ * distintas no dia — números menores e que sustentam uma conversa comercial.
+ * Chamar em excesso daqui não infla nada, mas também não custa nada: a
+ * segunda chamada da janela sai da função sem tocar no contador. Este arquivo
+ * segue chamando uma vez por render, como sempre.
+ *
  * Falha de medição NUNCA quebra a tela: um erro aqui viraria "não consegui
  * contar a impressão, então não mostro o anúncio", que é pior que um número
  * levemente subestimado. Mesma escolha de `lib/log-admin.ts`.

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { NextResponse, type NextRequest } from "next/server"
 import { destinoSeguro } from "@/lib/seguranca/destino"
+import { CODIGOS_ERRO, type CodigoErro } from "@/lib/seguranca/mensagens-auth"
 
 /**
  * O DESTINO DE TODO LINK QUE SAI POR E-MAIL (onda 83).
@@ -31,10 +32,16 @@ export async function GET(request: NextRequest) {
   // login: ele vem da URL de um e-mail, ou seja, de fora.
   const proximo = destinoSeguro(searchParams.get("proximo"), "/onboarding")
 
-  const paraLogin = (msg: string) =>
-    NextResponse.redirect(`${origin}/login?erro=${encodeURIComponent(msg)}&reenviar=1`)
+  // ONDA 86 (P2-11) — o que vai na URL é o CÓDIGO, e não mais a frase.
+  // Enquanto esta rota mandava texto pronto, qualquer pessoa podia montar
+  // `/login?erro=<o que quisesse>` e falar pela boca do produto. Quem escolhe
+  // a frase agora é `lib/seguranca/mensagens-auth.ts`, no servidor. Sem
+  // `encodeURIComponent`: os códigos são minúsculas e hífen, seguros na URL —
+  // e o tipo `CodigoErro` impede que uma frase solta volte a passar por aqui.
+  const paraLogin = (codigo: CodigoErro) =>
+    NextResponse.redirect(`${origin}/login?erro=${codigo}&reenviar=1`)
 
-  if (!code) return paraLogin("Link inválido. Peça um novo e-mail de confirmação abaixo.")
+  if (!code) return paraLogin(CODIGOS_ERRO.linkInvalido)
 
   const store = await cookies()
   const supabase = createServerClient(
@@ -55,7 +62,7 @@ export async function GET(request: NextRequest) {
     // cadastro — o *code verifier* do PKCE mora num cookie do navegador que
     // iniciou o fluxo, então cadastrar no notebook e clicar no celular falha
     // por desenho. A mensagem manda para o reenvio, que resolve os três.
-    return paraLogin("Esse link expirou ou já foi usado. Peça um novo e-mail abaixo.")
+    return paraLogin(CODIGOS_ERRO.linkExpirado)
   }
   return NextResponse.redirect(`${origin}${proximo}`)
 }

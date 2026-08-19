@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest"
 import {
   buscarModelos,
+  ehSegmentoMotor,
   faixaDeAno,
+  filtrarPorSegmento,
   identidadeDoMotor,
   nomeCompletoDoModelo,
-  partNumberVigente,
   planoSugerido,
+  podeFiltrarPorSegmento,
+  ROTULO_SEGMENTO,
   ROTULO_SISTEMA,
+  SEGMENTOS_MOTOR,
+  segmentosPresentes,
   SISTEMAS_MOTOR,
   type ModeloCatalogo,
 } from "./catalogo-motor"
@@ -19,6 +24,7 @@ const modelo = (over: Partial<ModeloCatalogo> = {}): ModeloCatalogo => ({
   anoFim: null,
   familia: "D6",
   fabricante: "Volvo Penta",
+  segmento: "diesel_interno",
   ...over,
 })
 
@@ -28,6 +34,23 @@ describe("catálogo de motor", () => {
       for (const s of SISTEMAS_MOTOR) {
         expect(ROTULO_SISTEMA[s], s).toBeTruthy()
       }
+    })
+
+    it("todo segmento tem rótulo", () => {
+      for (const s of SEGMENTOS_MOTOR) {
+        expect(ROTULO_SEGMENTO[s], s).toBeTruthy()
+      }
+    })
+
+    it("os três segmentos são os que o banco tem — conferido em 19/08/2026", () => {
+      // Guarda de regressão do §20: `motor_fabricantes.segmento` é `not null`
+      // e os valores distintos no banco remoto eram exatamente estes três (12
+      // fabricantes, 12 com segmento, 0 nulos). Se alguém cadastrar um quarto
+      // por SQL sem passar por aqui, `ehSegmentoMotor` o converte em `null` e
+      // `podeFiltrarPorSegmento` desliga o filtro — mas este teste é o lembrete
+      // de que o vocabulário e a coluna têm de andar juntos.
+      expect([...SEGMENTOS_MOTOR].sort())
+        .toEqual(["centro_rabeta", "diesel_interno", "popa"])
     })
   })
 
@@ -92,21 +115,100 @@ describe("catálogo de motor", () => {
     })
   })
 
-  describe("partNumberVigente", () => {
-    it("o do dono ganha do catálogo — ele pode usar equivalente de fornecedor", () => {
-      expect(partNumberVigente("WIX-51334", "3838852")).toBe("WIX-51334")
+  describe("segmento (§20)", () => {
+    const popa = modelo({ id: "f300", nome: "F300", fabricante: "Yamaha", segmento: "popa" })
+    const diesel = modelo({ id: "d6-440", segmento: "diesel_interno" })
+
+    describe("ehSegmentoMotor", () => {
+      it("aceita os três do vocabulário", () => {
+        for (const s of SEGMENTOS_MOTOR) expect(ehSegmentoMotor(s), s).toBe(true)
+      })
+
+      it("recusa o que não é do vocabulário, inclusive nulo e vazio", () => {
+        for (const v of ["jet", "POPA", "", null, undefined]) {
+          expect(ehSegmentoMotor(v), String(v)).toBe(false)
+        }
+      })
     })
 
-    it("sem o do dono, vale o OEM do catálogo", () => {
-      expect(partNumberVigente(null, "3838852")).toBe("3838852")
+    describe("segmentosPresentes", () => {
+      it("devolve na ordem do §20, não na de chegada", () => {
+        // `SEGMENTOS_MOTOR` é popa → centro_rabeta → diesel_interno.
+        expect(segmentosPresentes([diesel, popa])).toEqual(["popa", "diesel_interno"])
+      })
+
+      it("não repete e ignora o desconhecido", () => {
+        expect(segmentosPresentes([popa, popa, modelo({ id: "x", segmento: null })]))
+          .toEqual(["popa"])
+      })
+
+      it("catálogo vazio não tem segmento nenhum", () => {
+        expect(segmentosPresentes([])).toEqual([])
+      })
     })
 
-    it("string em branco no item não vence o catálogo", () => {
-      expect(partNumberVigente("   ", "3838852")).toBe("3838852")
+    describe("podeFiltrarPorSegmento", () => {
+      it("liga com dois segmentos presentes e nenhum desconhecido", () => {
+        expect(podeFiltrarPorSegmento([popa, diesel])).toBe(true)
+      })
+
+      it("UM ÚNICO segmento desconhecido desliga o filtro inteiro", () => {
+        // A régua que importa: o modelo sem segmento não caberia em chip
+        // nenhum e sumiria da lista ao primeiro toque. Com o filtro
+        // desligado ele continua achável pela busca.
+        expect(podeFiltrarPorSegmento([popa, diesel, modelo({ id: "x", segmento: null })]))
+          .toBe(false)
+      })
+
+      it("um segmento só não vira filtro — controle que não faz nada", () => {
+        expect(podeFiltrarPorSegmento([popa, modelo({ id: "f250", segmento: "popa" })]))
+          .toBe(false)
+      })
+
+      it("catálogo vazio não oferece filtro", () => {
+        expect(podeFiltrarPorSegmento([])).toBe(false)
+      })
     })
 
-    it("sem nenhum dos dois, null", () => {
-      expect(partNumberVigente(null, null)).toBeNull()
+    describe("filtrarPorSegmento", () => {
+      it("recorta pelo segmento pedido", () => {
+        expect(filtrarPorSegmento([popa, diesel], "popa").map((m) => m.id)).toEqual(["f300"])
+      })
+
+      it("null é Todos — o catálogo inteiro", () => {
+        expect(filtrarPorSegmento([popa, diesel], null)).toHaveLength(2)
+      })
+
+      it("modelo de segmento desconhecido não entra em recorte nenhum", () => {
+        const orfao = modelo({ id: "x", segmento: null })
+        for (const s of SEGMENTOS_MOTOR) {
+          expect(filtrarPorSegmento([orfao], s), s).toEqual([])
+        }
+        expect(filtrarPorSegmento([orfao], null)).toHaveLength(1)
+      })
+
+      it("não devolve o mesmo array que recebeu", () => {
+        // A tela guarda o resultado em `useMemo` e o passa adiante; devolver
+        // a referência de `modelos` convidaria a mutação a atravessar.
+        const entrada = [popa, diesel]
+        expect(filtrarPorSegmento(entrada, null)).not.toBe(entrada)
+      })
+    })
+
+    it("o recorte vem ANTES da busca, e é isso que salva o corte em 8", () => {
+      // O defeito que a ordem evita: `buscarModelos` corta em 8. Buscar
+      // primeiro e filtrar depois devolveria menos de 8 (às vezes zero) sem
+      // que nada tivesse acabado.
+      const catalogo = [
+        ...Array.from({ length: 8 }, (_, i) =>
+          modelo({ id: `popa-${i}`, nome: `Verado ${i}00`, familia: "Verado", segmento: "popa" })),
+        modelo({ id: "d6-440", nome: "Verado D6-440", segmento: "diesel_interno" }),
+      ]
+      // Filtrando antes: o único diesel aparece.
+      expect(buscarModelos("verado", filtrarPorSegmento(catalogo, "diesel_interno")).map((m) => m.id))
+        .toEqual(["d6-440"])
+      // Buscando antes: os 8 de popa ocupam o corte e o diesel some.
+      expect(filtrarPorSegmento(buscarModelos("verado", catalogo), "diesel_interno")).toEqual([])
     })
   })
 
