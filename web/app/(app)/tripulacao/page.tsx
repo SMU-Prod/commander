@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"
@@ -14,6 +14,7 @@ import { CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { ROTULO_MODO_APROVACAO } from "@/lib/domain/enterprise"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
 /**
@@ -57,7 +58,17 @@ export default async function TripulacaoPage({
 
   const supabase = await supabaseServer()
   const [{ data: vinculos }, { data: convites }, { data: perfis }, { data: saidas }] = await Promise.all([
-    supabase.from("vinculos").select("*").eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT"),
+    // ONDA 69b — era `.eq("papel", "CMDT")`, e isso virou um buraco no dia
+    // em que os cinco papéis Enterprise entraram (onda 69): um vínculo
+    // ADM/Operações/Mecânica/Cotista existia no banco e NÃO aparecia aqui,
+    // que é a única tela do app que lista quem tem acesso ao barco. Acesso
+    // que ninguém vê é acesso que ninguém revoga.
+    //
+    // `.neq("papel", "PROP")` no lugar: lista todo mundo que não é o dono,
+    // qualquer que seja o papel — inclusive papéis que ainda não existem.
+    // Filtro por lista fechada precisa ser lembrado a cada papel novo;
+    // filtro por exclusão do dono, não.
+    supabase.from("vinculos").select("*").eq("embarcacao_id", painel.embarcacao.id).neq("papel", "PROP"),
     supabase.from("convites").select("*").eq("embarcacao_id", painel.embarcacao.id)
       .is("usado_em", null).gt("expira_em", new Date().toISOString()).order("created_at", { ascending: false }),
     supabase.from("profiles").select("id, nome, avatar_path, telefone"),
@@ -139,8 +150,12 @@ export default async function TripulacaoPage({
         </p>
       </div>
 
+      {/* Onda 69b: era "Comandantes com acesso". A lista deixou de ser só de
+          comandantes quando os papéis Enterprise entraram — e um título que
+          diz "comandantes" sobre uma lista que tem Mecânica e Cotista é a
+          mesma mentira do chip "CMDT" cravado, agora no cabeçalho. */}
       <SecaoPagina>
-        Comandantes com acesso{listaVinculos.length > 0 ? ` — ${listaVinculos.length}` : ""}
+        Quem tem acesso{listaVinculos.length > 0 ? ` — ${listaVinculos.length}` : ""}
       </SecaoPagina>
       {listaVinculos.length === 0 && (
         <div className="rounded-[14px] border border-line bg-panel px-4">
@@ -168,9 +183,30 @@ export default async function TripulacaoPage({
                   <span className="min-w-0 flex-1">
                     <span className="titulo-card block truncate">{nome}</span>
                     {/* Credencial em chip mono (canvas): só o papel — a
-                        habilitação não existe no vínculo pra ser escrita. */}
-                    <span className="mt-1 inline-flex rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] tracking-[.06em] text-dim-chip">
-                      CMDT
+                        habilitação não existe no vínculo pra ser escrita.
+                        Onda 69b: era "CMDT" cravado no JSX, o que mentiria
+                        pra qualquer papel Enterprise. Agora sai do dado. */}
+                    <span className="mt-1 inline-flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] tracking-[.06em] text-dim-chip">
+                        {v.papel}
+                      </span>
+                      {/* A régua de aprovação (§3) só aparece quando NÃO é a
+                          padrão: "sem aprovação" é o normal e não merece
+                          chip — chip em todo mundo vira ruído e some com a
+                          exceção, que é justamente o que o ADM precisa ver. */}
+                      {v.modo_aprovacao !== "sem_aprovacao" && (
+                        <span className="inline-flex rounded-full border border-aten/40 px-2 py-0.5 text-[11px] text-warn">
+                          {ROTULO_MODO_APROVACAO[v.modo_aprovacao]}
+                        </span>
+                      )}
+                      {/* §13 — suspensão por inadimplência. Fica no lugar mais
+                          visível possível: quem está suspenso não aparece
+                          igual a quem tem acesso. */}
+                      {v.suspenso_em && (
+                        <span className="inline-flex rounded-full border border-crit/40 px-2 py-0.5 text-[11px] text-crit">
+                          Acesso suspenso
+                        </span>
+                      )}
                     </span>
                   </span>
                 </Link>
