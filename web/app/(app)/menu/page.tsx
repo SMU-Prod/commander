@@ -203,6 +203,62 @@ export default async function MenuPage({
           titulo="Comandantes"
           subtitulo="Disponíveis para contratar direto pelo WhatsApp"
         />
+        {/* Onda 78 — as portas do Enterprise. Cotistas é do dono (é ele quem
+            define cota e link); Atualizações serve os dois lados, com a tela
+            mudando de cara conforme o papel. */}
+        {painel?.papel === "PROP" && (
+          <LinhaLista
+            href="/cotistas"
+            titulo="Cotistas"
+            subtitulo="Vagas, link de convite e suspensão de acesso"
+          />
+        )}
+        <LinhaLista
+          href="/atualizacoes"
+          titulo="Atualizações"
+          subtitulo={painel?.papel === "PROP"
+            ? "O que os cotistas informaram, aguardando sua análise"
+            : "Informe a administradora sobre o uso da unidade"}
+        />
+      </PainelMenu>
+
+      {/* Onda 78 — Operação da frota (PRD Upgrade 3). Bloco próprio porque
+          são ferramentas de EMPRESA, não do dono de um barco só: estoque e
+          tanque pertencem à base e servem várias unidades. */}
+      <SecaoPagina icone="ferramenta">Operação</SecaoPagina>
+      <PainelMenu>
+        <LinhaLista
+          href="/patio"
+          titulo="Pátio"
+          subtitulo="Saída e retorno da unidade, com fotos e horímetro"
+        />
+        <LinhaLista
+          href="/mecanica"
+          titulo="Mecânica"
+          subtitulo="Diagnóstico, conserto, orçamento e votação dos cotistas"
+        />
+        <LinhaLista
+          href="/afazeres"
+          titulo="Afazeres"
+          subtitulo="O que a equipe combinou de fazer"
+        />
+        <LinhaLista
+          href="/estoque"
+          titulo="Estoque"
+          subtitulo="Peças, óleo e consumíveis da base"
+        />
+        <LinhaLista
+          href="/combustivel"
+          titulo="Combustível"
+          subtitulo="Tanque próprio, abastecimentos e balanço"
+        />
+        {podeVer(painel?.permissoes ?? null, "gastos") && (
+          <LinhaLista
+            href="/frota"
+            titulo="Custo da frota"
+            subtitulo="Quanto cada unidade custou para operar"
+          />
+        )}
       </PainelMenu>
 
       {/* Onda 39 — segundo caminho até as telas da rede profissional
