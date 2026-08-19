@@ -25,22 +25,23 @@ onda 82. Nada disso aparece aqui como pendente. O que aparece é o que ficou
 
 O Commander já tem o sistema do Haulix escrito — tokens, escala, instrumentos,
 anatomia de ficha — e o problema mudou de natureza: **deixou de ser ausência e
-virou alcance**. As peças finas existem e quase não estão ligadas em lugar
-nenhum: `CabecalhoCartao`, `MigalhaPao`, `FaixaKpi`, `GradeRotuloValor`,
-`BotaoFicha`, `BotaoCirculo` e `FaixaAlerta` têm **um importador cada, e os
-sete são o mesmo arquivo** (`app/(app)/barco/equipamento/[id]/page.tsx`);
-`ProgressoRota` e `GraficoArea` têm **zero**; `--raio-painel` e
-`.painel-lustro`, os dois refinos de material do §3 do spec, têm **zero
-consumidores fora do próprio `globals.css`**. Ou seja: existe exatamente **uma
-tela** no app inteiro que se parece com a referência, e ela não é nenhuma das
-que o dono abre todo dia. O que mais denuncia o app hoje, porém, não é isso —
-é o **movimento**: em 225 arquivos `.tsx` há **zero** ocorrências de `active:`,
-**zero** de `useTransition`/`isPending`/`useFormStatus`, **um** `@keyframes`, e
-**2 de 73** arquivos com formulário mostram qualquer sinal de "enviando". Waze
-e Navionics respondem ao dedo antes de responderem ao servidor; o Commander não
-responde ao dedo nunca. Um app que não pisca quando é tocado lê como página, não
-como instrumento — e isso custa mais na percepção de R$ 69,90/mês do que
-qualquer pixel de espaçamento.
+virou alcance**. O sistema está no `globals.css` e não chega ao JSX. As três
+medidas que provam isso: `.valor`, a voz de dado que a onda 80 criou para
+consertar *"não tem hierarquia, tá bem amador"*, tem **zero usos** em 225
+arquivos — quem ocupou o lugar dela são 222 `text-sm` sem peso, sem cor e sem
+tabular; dos 946 raios do app, **86% são escritos à mão** e os 4 tokens viraram
+**13 raios em uso**; e `CabecalhoCartao`, `MigalhaPao`, `FaixaKpi`,
+`GradeRotuloValor`, `BotaoFicha`, `BotaoCirculo` e `FaixaAlerta` têm **um
+importador cada, e os sete são o mesmo arquivo** — existe exatamente **uma
+tela** no app inteiro construída na anatomia da referência, e ela não é nenhuma
+das que o dono abre todo dia. O que mais denuncia o app, porém, não é nada
+disso: é o **movimento**. Em 225 arquivos `.tsx` há **zero** ocorrências de
+`active:`, **zero** de `useTransition`/`isPending`/`useFormStatus`, **um**
+`@keyframes`, e **2 de 73** arquivos com formulário mostram qualquer sinal de
+"enviando". Waze e Navionics respondem ao dedo antes de responderem ao servidor;
+o Commander não responde ao dedo nunca. Um app que não pisca quando é tocado lê
+como página, não como instrumento — e isso custa mais na percepção de R$
+69,90/mês do que qualquer pixel de espaçamento.
 
 ---
 
@@ -291,9 +292,14 @@ estado de envio, e os dois usam `useState` manual em componente de mapa
 
 Três casos concretos do que acontece hoje:
 
-- **Login** (`app/(auth)/login/page.tsx:83,103`) — botão sem `disabled`, sem
-  `type`, sem transição. Tocar em "Entrar" não muda um pixel; nada impede o
-  duplo-toque, que dispara a server action duas vezes.
+- **Login** (`app/(auth)/login/page.tsx:110,136` e o segundo formulário em
+  `:181,195` — conferido depois do commit `1564e79`, que reescreveu a tela) —
+  os **dois** botões saem sem `disabled`, sem `type`, sem `useFormStatus` e sem
+  transição. Tocar em "Entrar" não muda um pixel; nada impede o duplo-toque, que
+  dispara a server action duas vezes. De quebra, os dois têm alturas diferentes
+  — `h-12` (48px) e `h-11` (44px) — na mesma tela: é o achado 5.10 nascendo em
+  código novo, o que mostra que a régua de altura precisa virar token antes de
+  virar revisão.
 - **Editar barco** (`app/(app)/barco/editar/page.tsx:35,161`) — formulário de 15
   campos, zero retorno ao salvar.
 - **Novo lançamento** (`app/(app)/financeiro/novo/page.tsx:87,166`) —
@@ -516,25 +522,60 @@ toque abaixo da régua.
 **Correção:** `PILULA_ACAO_LARGA` entra em `acoes.ts` para o caso "ação que
 ocupa a linha" e as seis à mão passam a apontar para uma das quatro constantes.
 
-### 5.3 O número de instrumento tem seis tamanhos, e só um tem classe
+### 5.3 `.valor` — a voz que a onda 80 criou para o dado — tem ZERO usos
+
+Este é o achado mais caro do eixo, e ele desmente o que a onda 80 acredita ter
+entregue.
+
+`globals.css:372-378` declara `.valor`: 14px, peso 500, `color: var(--texto)`,
+`tabular-nums`. O comentário acima dela (`:369-371`) explica o porquê — *"A VOZ
+QUE NÃO EXISTIA: o dado em si. Branco, médio, tabular — é o que o olho procura
+primeiro num painel, e o que estava cinza igual ao rótulo."*
+
+**Medido: `.valor` aparece 0 vezes em `className` nos 225 arquivos `.tsx`.**
+
+O que ocupou o lugar dela é `text-sm` — **222 usos** — que dá o mesmo 14px e
+**não** traz peso, **não** traz cor e **não** traz `tabular-nums`. Ou seja: o
+par rótulo-cinza / valor-branco que a onda 80 identificou como a origem da
+hierarquia foi escrito no CSS e nunca chegou ao JSX. O diagnóstico do dono que
+abriu aquela onda — *"não tem hierarquia, tá bem amador"* — continua descrevendo
+o app renderizado, porque a correção parou no arquivo de tokens.
+
+A escala como um todo é usada, e bem: **1.271 usos das classes do repositório
+contra 451 tamanhos avulsos do Tailwind — razão de 2,82 : 1** (73,8% / 26,2%).
+O problema é onde a razão quebra:
+
+| tamanho | classe da escala (usos) | concorrente avulso (usos) |
+|---|---|---|
+| **14px** | `.corpo` 303 + **`.valor` 0** | **`text-sm` 222** |
+| 11px | `.rotulo` 198 + `.rotulo-dado` 9 | `text-[11px]` 77 + `text-[11.5px]` 1 |
+| 12px | `.apoio` 593 | `text-xs` 54 + `text-[12px]` 3 |
+| 15px | `.titulo-card` 102 | `text-[15px]` 5 |
+| 24px | `.titulo-pagina` 66 | `text-2xl` 4 |
+
+Os 77 `text-[11px]` são o segundo caso: 28% do gesto "micro-rótulo" não passa
+por `.rotulo`, e por isso não herda `letter-spacing: .16em`, `uppercase` nem a
+família mono.
+
+E o número de instrumento — a voz mais importante de um app que se comporta
+como instrumento — tem **sete tamanhos**, dos quais nenhum é `.valor`:
 
 | tamanho | onde |
 |---|---|
 | 12px | `PastilhaKpi` (`faixa-kpi.tsx:51`), chips do Diário (`diario/page.tsx:220`), pílula de SOG (`navegar-mapa.tsx:1598`) |
-| **14px** | `.valor` (`globals.css:372`) e `LinhaLista` (`linha-lista.tsx:72`) |
+| 14px | `LinhaLista` (`linha-lista.tsx:72`, via `text-sm`) |
 | 18px | `Mostrador tamanho="lg"` (`navegar-mapa.tsx:330`) |
 | 20px | `Kpi` (`kpi.tsx:33`, `text-[20px]`) |
 | 22px | nome do barco no herói (`card-embarcacao.tsx:133`, `text-[22px]`) |
 | 24px | `Mostrador variante="cartao"` (`navegar-mapa.tsx:321`, `text-2xl`) |
 | clamp 18–34px | número central do `Medidor` (`medidor.tsx:258`) |
 
-O app é um instrumento; o número é a voz mais importante que ele tem. Dela,
-exatamente **uma** medida (14px) está declarada na escala de `globals.css`.
-Todas as outras foram escolhidas dentro do componente que precisava delas.
-
-**Correção:** três degraus declarados — `.valor` (14, o de lista),
-`.valor-forte` (20, o de KPI) e `.valor-instrumento` (28, o de mostrador) — e os
-`text-[Npx]` viram uma das três. `text-[22px]` do herói vira `.titulo-pagina`.
+**Correção, em duas partes.** Primeiro: os `text-sm` que são **dado** (valor de
+`LinhaLista`, número de contagem, coluna de dinheiro) viram `.valor` — é o que
+faz a hierarquia aparecer, e é uma troca de classe. Segundo: três degraus
+declarados para o número — `.valor` (14, o de lista), `.valor-forte` (20, o de
+KPI) e `.valor-instrumento` (28, o de mostrador) — e os `text-[Npx]` apontam
+para um dos três. `text-[22px]` do herói vira `.titulo-pagina`.
 
 ### 5.4 A altura do gráfico tem cinco valores, e um deles contraria o próprio spec
 
@@ -596,15 +637,169 @@ nos dois lugares acima.
   continuar certo, mas a justificativa escrita não sustenta mais.
 - `web/components/mapa/navegar-mapa.tsx:296-298` — ver 4.1.
 
-### 5.9 O teto de cor literal está em 91, e o mapa é 43% dele
+### 5.9 O raio: 4 tokens declarados, 13 raios em uso, 86% escritos à mão
 
-**Onde:** `web/lib/ui/tokens.test.ts:37-62`. Somando o mapa por arquivo:
-`navegar-mapa` 11 + `mapa-nautico` 10 + `trilha-mapa` 7 + `planejar-viagem` 4 +
-`ver-viagem` 4 + `card-parceiro` 2 + `escolher-pino-parceiro` 1 = **39 de 91**.
+**Medido** sobre 946 usos de `rounded-*` em `.tsx`:
 
-A catraca funciona (o teto só desce), mas ela está travando um número cuja
-maior parte tem uma causa só, descrita em 4.1. Resolver a leitura de token no
-canvas derruba o teto quase pela metade de uma vez.
+| forma | px | usos | passa por token? |
+|---|---|---|---|
+| `rounded-[14px]` | 14 | **267** | não — é o valor de `--raio-cartao`, à mão |
+| `rounded-lg` | 8 | **202** | não — é o valor de `--raio-controle`, à mão |
+| `rounded-full` | ∞ | **151** | não |
+| **`rounded-xl`** | **12** | **129** | **não — 12px não é token nenhum** |
+| `rounded-[var(--raio-cartao)]` | 14 | 66 | sim |
+| `rounded-[var(--raio-controle)]` | 8 | 46 | sim |
+| `rounded-[10px]` | 10 | 32 | não |
+| `rounded-[var(--raio-pilula)]` | ∞ | 19 | sim |
+| `rounded-[12px]` | 12 | 15 | não |
+| `rounded-[16px]` | 16 | 5 | não — é o valor de `--raio-painel` |
+| outros (`rounded`, `rounded-md`, `rounded-t-[20px]`, `[18px]`, `[3px]`, `[26px]`, `[34px]`, `rounded-t-2xl`) | 3–34 | 13 | não |
+
+**131 de 946 usos (13,8%) passam por token. 815 (86,2%) são escritos à mão.**
+Os 4 tokens declarados viraram **13 raios distintos em uso real** — 3, 4, 6, 8,
+10, 12, 14, 16, 18, 20, 26, 34 e `full`.
+
+Dois fatos que doem mais que o percentual:
+
+- **`rounded-xl` (12px) tem 129 usos e não é token nenhum.** É o quinto raio de
+  facto do app, e sozinho quase empata com todos os 131 usos tokenizados
+  somados. O `docs/DESIGN.md` §5 diz *"quatro raios diferentes na mesma tela é
+  sintoma, não estilo"* — temos treze no app.
+- **`--raio-painel` tem 0 usos via token e 5 via `rounded-[16px]`.** Ou seja: o
+  valor até circula, mas não pelo caminho que faz o raio significar
+  profundidade (ver 2.3).
+
+**Correção:** `rounded-lg` → `rounded-[var(--raio-controle)]`, `rounded-[14px]`
+→ `rounded-[var(--raio-cartao)]`, `rounded-full` →
+`rounded-[var(--raio-pilula)]` são substituições mecânicas e seguras (mesmo
+valor). `rounded-xl` e `rounded-[10px]` (161 usos somados) exigem decisão: cada
+um é ou um controle (8) ou um cartão (14). Não há terceiro caso.
+
+### 5.10 O alvo de toque tem 9 alturas
+
+O `docs/DESIGN.md` §5 escreve **44px, sem exceção**. **Medido** em 869 elementos
+interativos (`button`, `a`, `Link`, `input`, `select`, `textarea`, `label`):
+
+- **152 (17,5%)** declaram altura; **717 (82,5%)** não declaram nenhuma — a
+  altura sai indiretamente de `py-*` mais `line-height`.
+- Entre os que declaram: `h-11`/`min-h-11` (44px) somam **129** — a régua está
+  ganhando. As exceções são **24, 32, 36, 40, 46, 48 e 88px**, em 20 pontos.
+
+| altura | onde (exemplos) |
+|---|---|
+| **24px** | `app/(app)/diario/page.tsx:275` (`<a min-h-6>`, "Abrir anexo"), `components/mapa/mapa-nautico.tsx:187` |
+| 32px | `components/ui/alternador-visao.tsx:37` |
+| 36px | `components/mapa/navegar-mapa.tsx:1672` (as abas do painel de instrumentos) |
+| 40px | `app/(app)/financeiro/relatorios/page.tsx:165`, `app/(app)/marketplace/[id]/page.tsx:330,338` |
+| 46px | `app/(app)/agenda/page.tsx:388` |
+| 48px | login `:103`, onboarding `:247,255`, `carteira/page.tsx:121`, `explorar/[id]` ×3, e mais 5 |
+| 88px | `components/campos-navegacao-evento.tsx:165` |
+
+**A nona altura é a que ninguém declarou:** `web/lib/ui/form.ts:7` define todo
+campo de formulário como `px-3 py-3 text-base`, **sem altura mínima**. Conta:
+16 × 1,5 + 12 + 12 + 2 de borda = **~50px**. São ~103 usos em 36 arquivos e 349
+instâncias de `Campo`/`CampoSelect`/`CampoTextarea`. O campo de formulário — o
+controle mais repetido do app — tem uma altura que não é 44 nem 48 e que nenhum
+arquivo escreve.
+
+**E não existe token de altura.** Não há `--altura-controle` em `globals.css`;
+os quatro tokens de forma cobrem raio, e a elevação cobre sombra. A altura, que
+é a medida que a régua de 44px protege, nunca virou token.
+
+**Correção:** `--altura-controle: 44px` e `--altura-campo: 48px` em
+`globals.css`, `form.ts` passa a declarar `h-[var(--altura-campo)]`, e os 20
+pontos fora do padrão viram um dos dois. `h-12` (48px) é defensável para a ação
+principal e pode virar o segundo degrau declarado — o que não é defensável é ter
+nove por acidente.
+
+### 5.11 O espaçamento tem 20 degraus onde a escala declara 7
+
+O `docs/DESIGN.md` §5 é literal: *"Só estes valores: 4, 8, 12, 16, 24, 32, 48.
+Nada de 13px, 18px, 27px. Se um espaçamento não está nessa lista, ele foi
+escolhido no olho."*
+
+**Medido** em 3.455 classes de espaçamento (`p*`, `m*`, `gap*`, `space-*`):
+
+| categoria | usos | % |
+|---|---|---|
+| na escala | 2.727 | 78,9% |
+| **fora — inteiros** (`-5`, `-7`, `-10`, `-14`, `-16`, `-20`, `-24`, `-36`) | **143** | 4,1% |
+| **fora — fracionários** (`.5` → 2, 6, 10, 14px) | **572** | 16,6% |
+| **total fora** | **715** | **20,7%** |
+
+Valores em uso: 0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 40, 48, 56, 64,
+80, 96, 144 — **20 degraus**.
+
+Os maiores infratores, e o que cada um é:
+
+- **`mt-5` (20px) × 61** — quase todos o mesmo gesto: a margem entre o cabeçalho
+  da tela e o primeiro bloco, em 61 telas. É um degrau inteiro que não existe na
+  escala, repetido o suficiente para virar convenção de facto.
+- **`gap-1.5` (6px) × 95** e **`mt-0.5` (2px) × 96** — a folga interna de chip e
+  a distância título/subtítulo. Defensáveis como micro-ajuste ótico, mas não
+  declarados em lugar nenhum.
+- **`py-3.5` (14px) × 53, `py-2.5` (10px) × 43, `py-1.5` (6px) × 30** — três
+  paddings verticais para o mesmo gesto (a caixa de um controle), todos fora da
+  escala. É a versão 2026 do "seis alturas para a mesma pílula".
+
+**Correção:** `mt-5` → `mt-6` (24px, na escala) é uma troca mecânica de 61
+pontos e fecha 8,5% da deriva sozinha. Os fracionários pedem decisão: ou a
+escala ganha 2 e 6 declarados como micro-degraus (defensável — eles fazem
+trabalho ótico real), ou eles somem. O que não pode continuar é os três
+`py-*.5` de controle: esses viram um.
+
+### 5.12 O `tracking` tem 11 valores para um gesto só
+
+**Medido:** 47 usos de `tracking-[...]` com **11 valores distintos** — `.1em`
+(11), `.12em` (9), `.14em` (9), `.06em` (5), `.08em` (3), `.16em` (2), `-0.02em`
+(2), `.09em` (2), `.2em` (2), `.05em`, `.28em`.
+
+Todos fazem a mesma coisa: rótulo em caixa alta, rastreado. O `.rotulo` de
+`globals.css:388` já declara `letter-spacing: .16em` — e `.16em` é o **sexto
+mais usado** da lista, com 2 ocorrências.
+
+Cada um desses 47 pontos é uma cópia à mão de `.rotulo` que derivou. É
+exatamente o mecanismo que o `docs/DESIGN.md` §5 descreve na história da pílula
+de filtro, um nível abaixo.
+
+**Correção:** os 47 viram `.rotulo` (ou `.rotulo-dado`, quando é legenda de
+valor em caixa de frase). Nenhum caso justifica `.28em`.
+
+### 5.13 O teto de cor literal está em 91 — e o número real é 106
+
+**Onde:** `web/lib/ui/tokens.test.ts:37-62`.
+
+A catraca funciona bem: teto **por arquivo** (não soma), 24 entradas, soma 91,
+contagem real 91, **folga zero**. Nenhum arquivo tem crédito sobrando.
+
+Três leituras:
+
+1. **O mapa é 43% do total.** `navegar-mapa` 11 + `mapa-nautico` 10 +
+   `trilha-mapa` 7 + `planejar-viagem` 4 + `ver-viagem` 4 + `card-parceiro` 2 +
+   `escolher-pino-parceiro` 1 = **39 de 91**. Resolver a leitura de token no
+   canvas (4.1) derruba o teto quase pela metade de uma vez.
+
+2. **Duas cores são 55 das 91.** `#0B1D2D`/`#0b1d2d` aparece **28** vezes e
+   `#D4AF37`/`#d4af37` **27**. E as duas estão escritas em **duas grafias cada**
+   (maiúscula e minúscula) — o mesmo vale para `#E9F1F8`/`#e9f1f8` e
+   `#ff5c5c`/`#FF5C5C`. Quatro cores, oito grafias.
+
+3. **O teto tem um buraco: `rgb()`.** O regex do teste (`:108`) conta só `#`.
+   Existem **15 ocorrências** de `rgb(`/`rgba(` em `.tsx`, e pelo menos **10
+   são as mesmas duas cores já tokenizadas** — `rgb(11 29 45)` é `#0b1d2d`
+   (`card-embarcacao.tsx:111,120,134`, `mock-telas.tsx:38`) e
+   `rgb(212_175_55/.10)` é `#d4af37` (`app/(auth)/login/page.tsx:51`). Mais três
+   em `components/farol.tsx:5-7` (`rgba(47,208,122)` = `#2fd07a`,
+   `rgba(255,176,32)` = `#ffb020`, `rgba(255,92,92)` = `#ff5c5c`).
+
+   **A contagem real de cor literal é 106, não 91.** E qualquer `#0b1d2d`
+   reescrito como `rgb(11 29 45)` passa nos três testes com o teto intacto — é a
+   porta que a catraca foi escrita para fechar, aberta por notação.
+
+**Correção do buraco (barata):** somar `rgba?\(` ao regex de `tokens.test.ts` e
+subir os 24 tetos para o número real medido. O teto sobe de 91 para 106 e a
+catraca volta a cobrir o que promete. Subir um teto para dizer a verdade não é
+afrouxar a régua — afrouxar seria continuar medindo metade.
 
 ---
 
@@ -677,7 +872,12 @@ transição é um salto.
 Ordenado por **percepção ganha por unidade de esforço**. As duas primeiras são
 de longe as de melhor razão.
 
-### Onda 83 — O app responde ao dedo
+*A numeração começa em 84 porque `master` já tem a 83 (`1564e79`, cadastro e
+autenticação) — commit que, aliás, aconteceu enquanto esta auditoria estava
+sendo escrita e reescreveu `app/(auth)/login/page.tsx`. Se outra onda entrar
+antes, é a ordem que vale, não o número.*
+
+### Onda 84 — O app responde ao dedo
 **Entra:** `active:scale-[.97] active:opacity-90 transition-transform
 duration-100` como constante única aplicada em `ALVO_ACAO`, `PILULA_ACAO`,
 `PILULA_ACAO_BLOCO`, `PILULA_ACAO_PRINCIPAL`, `Chip`, `LinhaLista` com `href`,
@@ -687,7 +887,7 @@ usos da Início migrados para `PILULA_ACAO` (achado 5.1).
 retorno imediato, e a Início deixa de ter oito links invisíveis. É a correção
 que muda a sensação do produto inteiro no menor número de linhas.
 
-### Onda 84 — Enviar mostra que está enviando
+### Onda 85 — Enviar mostra que está enviando
 **Entra:** componente `BotaoEnviar` com `useFormStatus` (rótulo + `disabled`
 enquanto pendente); aplicado nos formulários de maior atrito primeiro —
 login, `/barco/editar`, `/financeiro/novo` (upload), `/diario/novo`,
@@ -695,47 +895,64 @@ login, `/barco/editar`, `/financeiro/novo` (upload), `/diario/novo`,
 **Efeito visível:** o app para de parecer que ignorou o toque no caminho mais
 longo que ele tem, e o duplo-envio deixa de ser possível.
 
-### Onda 85 — O esqueleto certo por natureza de tela
+### Onda 86 — O esqueleto certo por natureza de tela
 **Entra:** componente `Esqueleto` com três formas (`lista`, `ficha`, `painel`)
 + `loading.tsx` por natureza usando a taxonomia do spec de arquitetura §2;
 raio via token; `role="status"` para quem pediu menos movimento (achado 3.5).
 **Efeito visível:** a espera passa a prometer o que vai chegar, e a chegada para
 de saltar. É o que separa "site" de "app".
 
-### Onda 86 — A ação e o número passam a ter um vestido só
-**Entra:** `PILULA_ACAO_LARGA` em `acoes.ts` e as seis ações à mão migradas
-(5.2); os três degraus de número declarados em `globals.css` e os `text-[Npx]`
-migrados (5.3); rótulo único "Ver tudo" como padrão do slot `acao` (6.1);
-`GraficoBarras` com `cor = "var(--dado)"` e `sm:h-[200px]` (5.4, 5.5); rótulo
-de eixo a 11px (5.6); contagem sempre dentro do chip (5.7); `p-3` nos três
-cartões (2.4).
-**Efeito visível:** telas irmãs param de parecer produtos diferentes. É a onda
-que o `docs/DESIGN.md` §6 regra 6 cobra desde que foi escrita.
+### Onda 87 — `.valor` sai do papel
+**Entra:** os `text-sm` que são **dado** viram `.valor` — começando por
+`LinhaLista:72`, `Kpi`, as contagens e as colunas de dinheiro (5.3). Mais os
+três degraus de número declarados (`.valor` 14 / `.valor-forte` 20 /
+`.valor-instrumento` 28) e os `text-[Npx]` apontando para um deles; e os 77
+`text-[11px]` virando `.rotulo`/`.rotulo-dado`.
+**Efeito visível:** a hierarquia rótulo-cinza / valor-branco que a onda 80
+descreveu passa a existir na tela. É a onda de melhor razão do eixo 5, porque é
+troca de classe — nenhum layout muda, e o app inteiro ganha a leitura de relance
+que hoje só o `Medidor` tem.
 
-### Onda 87 — O mapa fala a cor da marca
+### Onda 88 — Um vestido, um raio, uma altura
+**Entra:** `PILULA_ACAO_LARGA` em `acoes.ts` e as seis ações à mão migradas
+(5.2); substituição mecânica de raio — `rounded-lg`, `rounded-[14px]` e
+`rounded-full` para os tokens equivalentes, 620 pontos de mesmo valor (5.9);
+`rounded-xl` e `rounded-[10px]` decididos como controle (8) ou cartão (14);
+`--altura-controle`/`--altura-campo` em `globals.css` e os 20 alvos fora do
+padrão migrados, incluindo `form.ts:7` (5.10); `mt-5` → `mt-6` nos 61 pontos
+(5.11); os 47 `tracking-[...]` virando `.rotulo` (5.12); rótulo único "Ver tudo"
+(6.1); `GraficoBarras` com `cor = "var(--dado)"` e `sm:h-[200px]` (5.4, 5.5);
+rótulo de eixo a 11px (5.6); contagem sempre dentro do chip (5.7); `p-3` nos
+três cartões (2.4).
+**Efeito visível:** telas irmãs param de parecer produtos diferentes. É a onda
+que o `docs/DESIGN.md` §6 regra 6 cobra desde que foi escrita. A maior parte é
+substituição de valor idêntico — risco baixo, volume alto.
+
+### Onda 89 — O mapa fala a cor da marca
 **Entra:** helper que lê `--acao` do documento e alimenta as camadas do Mapbox
 (4.1), aplicado nos 4 arquivos; caixa de 44px nos controles nativos (4.2);
 escala do medidor a 11px (4.3); painel de camadas na coluna de flutuantes em vez
-de `top-44` (4.6); comentários divergentes corrigidos (5.8).
+de `top-44` (4.6); `rgba?\(` somado ao regex de `tokens.test.ts` e os tetos
+subidos para o número real (5.13); comentários divergentes corrigidos (5.8).
 **Efeito visível:** `/navegar` deixa de ter duas marcas na mesma tela, o teto de
-cor literal cai de 91 para ~55, e os três controles mais tocados do app entram
+cor literal cai de ~106 para ~60, e os três controles mais tocados do app entram
 na régua.
 
-### Onda 88 — O painel de rota vira instrumento
+### Onda 90 — O painel de rota vira instrumento
 **Entra:** `ProgressoRota` ligado ao `progressoNaRota` que já existe (4.4);
 `modoSoNavegacao` entrando por movimento sem exigir destino (4.5).
 **Efeito visível:** o painel de navegação passa a mostrar *onde estou no
 caminho* em vez de quatro números soltos, e sair da marina limpa a tela sozinho
 — que é o comportamento que Waze e Navionics têm.
 
-### Onda 89 — O cartão vira instrumento documentado
+### Onda 91 — O cartão vira instrumento documentado
 **Entra:** `subtitulo` em `Cartao` e `CabecalhoCartao` (2.1); `nivel` em
 `Cartao` ligando `--raio-painel` e `.painel-lustro` (2.3); slot `chips` em
 `LinhaLista` (1.2); densidade do cartão do Diário (1.1).
 **Efeito visível:** os cartões param de ser caixa com rótulo, o raio passa a
 significar profundidade, e o Diário cabe 1,6× mais informação na mesma tela.
 
-### Onda 90 — A anatomia da referência sai da tela única
+### Onda 92 — A anatomia da referência sai da tela única
 **Entra:** `MigalhaPao` + `FaixaKpi` + `BotaoFicha` nas fichas de saída,
 ocorrência, lançamento e compromisso (2.2); `Abas` em `/barco` para quebrar as 8
 seções (1.3).
@@ -778,6 +995,19 @@ seção, é ter 8 seções numa tela — resolve-se com `Abas`, não mexendo em 
 páginas públicas e desktop estão certas assim: celular não tem hover, e
 adicionar `hover:` em componente de app gastaria trabalho num estado que
 ninguém vê. O que falta é `active:` — outra coisa.
+
+**Não fazer a migração de raio e de espaçamento num commit só com o resto.** Os
+620 pontos de raio de valor idêntico (5.9) e os 61 `mt-5` (5.11) são
+substituição mecânica e devem entrar **sozinhos**, num commit que não muda um
+pixel de render. Misturados com `rounded-xl` (que muda de 12 para 8 ou 14) e com
+as trocas de altura, qualquer regressão visual vira caça ao commit. Separar o
+que é idêntico do que é decisão é o que torna essa onda barata.
+
+**Não baixar o teto de `tokens.test.ts` para 91 depois de somar `rgb()`.** O
+número real é 106; escrever 106 é o conserto. A catraca do arquivo diz que o
+teto *só desce* — a exceção é quando ele estava medindo errado, e nesse caso
+subir é dizer a verdade. Vale escrever isso no commit, senão a próxima pessoa lê
+a subida como afrouxamento.
 
 **Não mexer no "Voltar" dourado de `CabecalhoDetalhe`.** O `docs/DESIGN.md` §5
 já registra, letra por letra, que ele é a referência e fica. Ele vai aparecer em

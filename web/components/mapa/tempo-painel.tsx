@@ -277,6 +277,14 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
           }`}>
             {estado.boletim.selo.rotulo}
           </div>
+          {/* Mesma correção da Início (onda 84): o selo nomeia o nível, o
+              motivo nomeia a causa. Aqui pesa ainda mais — este painel abre
+              sobre a carta, na hora de decidir se sai. */}
+          {estado.boletim.selo.motivo && (
+            <p className={`mt-1 text-[11px] ${estado.boletim.selo.nivel === "crit" ? "text-crit" : "text-warn"}`}>
+              Por causa de {estado.boletim.selo.motivo}.
+            </p>
+          )}
 
           <GraficoMare serie={estado.boletim.serieNivelMar} proxima={estado.boletim.proximaMareEstimada} />
         </>

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { Icone } from "@/components/icone"
+import { TOQUE_AMPLO } from "@/lib/ui/acoes"
 
 /**
  * Linha clicável (ou não) de uma lista: ícone/avatar à esquerda, título +
@@ -78,14 +79,22 @@ export function LinhaLista({
   const base = variant === "cartao"
     ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
     : "border-b border-line py-3 last:border-0"
-  const cls = `flex items-center gap-3 ${base} ${className}`
+  // ONDA 84 — a confirmação de toque só entra onde o toque LEVA a algum
+  // lugar. Numa linha de exibição pura o `active:` seria mentira: ela
+  // afundaria e nada aconteceria. E com `trailing` a linha inteira também não
+  // vale — ali só o miolo é link (ver o `return` logo abaixo), então afundar
+  // a linha toda ao tocar no botão da direita apontaria para o alvo errado.
+  // `TOQUE_AMPLO` e não `TOQUE` porque 3% numa linha de 358px é a tela
+  // inteira tremendo (ver `lib/ui/acoes.ts`).
+  const linhaInteiraClicavel = !!href && trailing == null
+  const cls = `flex items-center gap-3 ${base} ${linhaInteiraClicavel ? TOQUE_AMPLO : ""} ${className}`
 
   if (href && trailing != null) {
     // trailing tem interação própria — link só no bloco título/subtítulo.
     return (
       <div className={cls}>
         {leading}
-        <Link href={href} className="min-w-0 flex-1">{meio}</Link>
+        <Link href={href} className={`min-w-0 flex-1 ${TOQUE_AMPLO}`}>{meio}</Link>
         {direita}
       </div>
     )

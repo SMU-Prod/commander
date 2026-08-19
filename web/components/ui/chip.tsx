@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { TOQUE } from "@/lib/ui/acoes"
 
 /**
  * Pílula de filtro de lista — a mesma em TODA tela que filtra alguma coisa.
@@ -64,7 +65,7 @@ export function Chip({
     <Link
       href={href}
       aria-current={ativo ? "true" : undefined}
-      className={`flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm ${estilo}`}
+      className={`flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm ${TOQUE} ${estilo}`}
     >
       {children}
       {contagem != null && (

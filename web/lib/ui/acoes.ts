@@ -36,8 +36,42 @@
  * CSS nenhum. Mesma razão do `TETO_PAINEL` em `superficies.ts`.
  */
 
+/**
+ * ONDA 84 — O APP RESPONDE AO DEDO.
+ *
+ * A auditoria de design de 19/08/2026 mediu o silêncio: `active:` aparecia
+ * **zero vezes em 225 arquivos**. Nenhum toque, em nenhuma tela, produzia
+ * retorno nenhum até a rota trocar. O caso que mais dói era a bottom-nav —
+ * tocada em toda tela, ela só trocava a cor do texto, sem transição.
+ *
+ * É isso que separa o app de Waze e Navionics ANTES de qualquer pixel: lá o
+ * botão afunda antes de o mapa mexer, e é esse meio-segundo que faz o
+ * aparelho parecer que ouviu. Um app que não confirma o toque parece travado
+ * mesmo quando está rápido — e o nosso é usado com a mão molhada, no sol, com
+ * o barco balançando, que é exatamente quando a dúvida "será que pegou?"
+ * custa um segundo toque.
+ *
+ * 100ms e 3% de escala são deliberadamente pequenos: o objetivo é CONFIRMAR,
+ * não animar. Acima disso vira enfeite, e enfeite em instrumento é ruído.
+ *
+ * `motion-reduce:` desliga os dois. A regra wildcard de `globals.css` já zera
+ * a duração de qualquer transição para quem pediu menos movimento, mas sem
+ * `active:scale-100` a escala continuaria acontecendo — só que instantânea,
+ * que é a pior versão das duas.
+ */
+export const TOQUE =
+  "transition-transform duration-100 active:scale-[.97] active:opacity-90 motion-reduce:transition-none motion-reduce:active:scale-100"
+
+/**
+ * A mesma confirmação para superfícies GRANDES — linha de lista, cartão
+ * inteiro, item da bottom-nav. 3% numa pílula de 100px é 3px e lê como
+ * afundar; numa linha de 358px é 11px e lê como a tela inteira tremendo.
+ */
+export const TOQUE_AMPLO =
+  "transition-transform duration-100 active:scale-[.99] active:opacity-95 motion-reduce:transition-none motion-reduce:active:scale-100"
+
 /** A caixa de 44px em volta do desenho — vai no `<Link>`/`<button>`. */
-export const ALVO_ACAO = "group -my-[7px] inline-flex min-h-11 shrink-0 items-center"
+export const ALVO_ACAO = `group -my-[7px] inline-flex min-h-11 shrink-0 items-center ${TOQUE}`
 
 /**
  * O desenho da pílula de contorno — vai num `<span>` DENTRO do alvo.
@@ -63,7 +97,7 @@ export const PILULA_ACAO =
  * ser uma decisão declarada em vez de dois valores que ninguém comparou.
  */
 export const PILULA_ACAO_BLOCO =
-  "inline-flex h-9 items-center whitespace-nowrap rounded-full border border-line bg-panel2 px-4 text-sm text-texto"
+  `inline-flex h-9 items-center whitespace-nowrap rounded-full border border-line bg-panel2 px-4 text-sm text-texto ${TOQUE}`
 
 /**
  * A ação PRINCIPAL de uma tela vazia — cheia, dourada.
@@ -74,4 +108,4 @@ export const PILULA_ACAO_BLOCO =
  * um barco novo — é quem usa `PILULA_ACAO_BLOCO`.
  */
 export const PILULA_ACAO_PRINCIPAL =
-  "inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+  `inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto ${TOQUE}`

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ContadorAvisos } from "./ui/contador-avisos"
 import { Icone, type NomeIcone } from "./icone"
+import { TOQUE } from "@/lib/ui/acoes"
 
 const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
   {
@@ -86,7 +87,13 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
                  ícone 21px stroke 1.7, rótulo 11px 500 uppercase, ativa
                  em `accent-forte` — que nos dois temas vale exatamente os
                  dois tons de dourado que o canvas pede. */
-              className={`flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${
+              /* ONDA 84 — a barra mais tocada do app não dava retorno nenhum:
+                 trocava a cor do texto e só, sem transição, sem `active:`. O
+                 toque ficava sem resposta até a rota trocar — e quando a rota
+                 demora, a pessoa toca de novo. `TOQUE` (e não `TOQUE_AMPLO`)
+                 porque cada aba tem ~78px de largura: aqui os 3% são o
+                 afundar certo, não um tremor. */
+              className={`flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${TOQUE} ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >

@@ -1,6 +1,24 @@
 export interface SeloMar {
   nivel: "ok" | "atencao" | "crit"
   rotulo: string
+  /**
+   * O QUE disparou o nível, em uma frase curta — "onda 1,2 m", "vento 18 kt",
+   * "onda 2,1 m e vento 25 kt". `null` quando não há nada a explicar (mar
+   * bom, ou sem dado nenhum).
+   *
+   * ONDA 84 — POR QUE ISTO PASSOU A EXISTIR. O dono abriu a Início e viu, na
+   * mesma linha: "ONDA 1 m · VENTO 4 kt · ÁGUA 22 °C" e o selo âmbar
+   * "ATENÇÃO NO MAR". Os números pareciam um dia calmo e o aviso dizia o
+   * contrário; a pergunta dele foi direta: "melhorar o que indica".
+   *
+   * O aviso estava CERTO e mesmo assim ilegível, por dois motivos somados:
+   * ele não dizia de que se tratava, e o número que o disparou aparecia
+   * arredondado exatamente no limiar (ver `avaliarMar`). Um alarme que a
+   * pessoa não consegue reconciliar com o que está na tela é um alarme que
+   * ela aprende a ignorar — e este é o alarme que decide se sai ou não sai
+   * de casa.
+   */
+  motivo: string | null
 }
 
 // Onda 20 (tempo no mar) — link único pra tábua oficial de marés do CHM
@@ -15,15 +33,73 @@ const ONDA_ATENCAO_M = 1.8
 const VENTO_OK_KT = 15
 const VENTO_ATENCAO_KT = 22
 
+/**
+ * ONDA 84 — O LIMIAR PASSA A COMPARAR O NÚMERO QUE A PESSOA VÊ.
+ *
+ * A tela mostra a onda com UMA casa (`maximumFractionDigits: 1`) e o vento
+ * ARREDONDADO pra inteiro. A avaliação comparava o valor cru. Resultado: uma
+ * onda de 1,02 m aparecia como "1 m" e disparava o limiar de "acima de 1,0",
+ * porque 1,02 > 1,0 — o número na tela e o alarme ao lado dele discordavam,
+ * e não havia como a pessoa descobrir por quê.
+ *
+ * Arredondar ANTES de comparar acaba com a classe inteira desse defeito: o
+ * que a pessoa lê é exatamente o que o alarme julgou. Não é afrouxar a régua
+ * — é fazer a régua e o mostrador falarem do mesmo número.
+ */
+function arredondar(v: number, casas: number): number {
+  const f = 10 ** casas
+  return Math.round(v * f) / f
+}
+
+/** "1,2 m" / "18 kt" — a mesma forma que a tela usa, pra frase do motivo
+ *  nunca discordar do número ao lado dela. */
+function medidaOnda(m: number): string {
+  return `onda ${m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m`
+}
+function medidaVento(kt: number): string {
+  return `vento ${kt} kt`
+}
+
+/** Junta os motivos presentes numa frase só ("onda 2,1 m e vento 25 kt"). */
+function frase(partes: string[]): string | null {
+  if (partes.length === 0) return null
+  return partes.join(" e ")
+}
+
 export function avaliarMar(ondaM: number | null, ventoKt: number | null): SeloMar {
-  if (ondaM === null && ventoKt === null) return { nivel: "atencao", rotulo: "Sem dados do mar" }
-  const ondaCrit = ondaM !== null && ondaM > ONDA_ATENCAO_M
-  const ventoCrit = ventoKt !== null && ventoKt > VENTO_ATENCAO_KT
-  if (ondaCrit || ventoCrit) return { nivel: "crit", rotulo: "Mar pesado" }
-  const ondaAtencao = ondaM !== null && ondaM > ONDA_OK_M
-  const ventoAtencao = ventoKt !== null && ventoKt > VENTO_OK_KT
-  if (ondaAtencao || ventoAtencao) return { nivel: "atencao", rotulo: "Atenção no mar" }
-  return { nivel: "ok", rotulo: "Bom pra sair" }
+  if (ondaM === null && ventoKt === null) {
+    return { nivel: "atencao", rotulo: "Sem dados do mar", motivo: null }
+  }
+  // A mesma precisão do mostrador — ver o comentário de `arredondar`.
+  const onda = ondaM === null ? null : arredondar(ondaM, 1)
+  const vento = ventoKt === null ? null : Math.round(ventoKt)
+
+  const ondaCrit = onda !== null && onda > ONDA_ATENCAO_M
+  const ventoCrit = vento !== null && vento > VENTO_ATENCAO_KT
+  if (ondaCrit || ventoCrit) {
+    return {
+      nivel: "crit",
+      rotulo: "Mar pesado",
+      motivo: frase([
+        ...(ondaCrit ? [medidaOnda(onda!)] : []),
+        ...(ventoCrit ? [medidaVento(vento!)] : []),
+      ]),
+    }
+  }
+
+  const ondaAtencao = onda !== null && onda > ONDA_OK_M
+  const ventoAtencao = vento !== null && vento > VENTO_OK_KT
+  if (ondaAtencao || ventoAtencao) {
+    return {
+      nivel: "atencao",
+      rotulo: "Atenção no mar",
+      motivo: frase([
+        ...(ondaAtencao ? [medidaOnda(onda!)] : []),
+        ...(ventoAtencao ? [medidaVento(vento!)] : []),
+      ]),
+    }
+  }
+  return { nivel: "ok", rotulo: "Bom pra sair", motivo: null }
 }
 
 // Onda 20 (tempo no mar) — rosa dos ventos de 8 rumos em PT-BR. "L" (Leste) e

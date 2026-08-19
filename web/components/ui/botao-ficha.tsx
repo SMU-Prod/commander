@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { TOQUE } from "@/lib/ui/acoes"
 
 /**
  * BOTÃO DE FICHA — a barra de ações do cabeçalho de detalhe da referência:
@@ -31,7 +32,10 @@ import { Icone, type NomeIcone } from "@/components/icone"
  */
 export type VarianteBotaoFicha = "contorno" | "preenchido"
 
-export const BASE_BOTAO_FICHA = "flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm font-medium"
+// `TOQUE` entra na BASE (onda 84) de propósito: o botão de excluir compõe a
+// partir dela, e a confirmação de toque tem que valer para ele também — é o
+// controle onde a dúvida "será que pegou?" custa mais caro.
+export const BASE_BOTAO_FICHA = `flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm font-medium ${TOQUE}`
 
 export function classesBotaoFicha(variante: VarianteBotaoFicha, className = ""): string {
   const cor = variante === "preenchido"

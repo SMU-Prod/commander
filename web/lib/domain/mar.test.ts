@@ -3,7 +3,7 @@ import { avaliarMar, calcularEscalaMare, extremosMare, pathNivelMar, pontoCardea
 
 describe("avaliarMar", () => {
   it("mar calmo e vento fraco liberam", () => {
-    expect(avaliarMar(0.8, 12)).toEqual({ nivel: "ok", rotulo: "Bom pra sair" })
+    expect(avaliarMar(0.8, 12)).toEqual({ nivel: "ok", rotulo: "Bom pra sair", motivo: null })
   })
   it("onda ou vento medianos pedem atenção", () => {
     expect(avaliarMar(1.5, 12).nivel).toBe("atencao")
@@ -11,15 +11,39 @@ describe("avaliarMar", () => {
     expect(avaliarMar(1.5, 20).rotulo).toBe("Atenção no mar")
   })
   it("mar pesado bloqueia", () => {
-    expect(avaliarMar(2.2, 12)).toEqual({ nivel: "crit", rotulo: "Mar pesado" })
+    expect(avaliarMar(2.2, 12)).toEqual({ nivel: "crit", rotulo: "Mar pesado", motivo: "onda 2,2 m" })
     expect(avaliarMar(1.0, 28).nivel).toBe("crit")
   })
   it("sem nenhum dado, informa", () => {
-    expect(avaliarMar(null, null)).toEqual({ nivel: "atencao", rotulo: "Sem dados do mar" })
+    expect(avaliarMar(null, null)).toEqual({ nivel: "atencao", rotulo: "Sem dados do mar", motivo: null })
   })
   it("dado parcial avalia com o que tem", () => {
     expect(avaliarMar(0.5, null).nivel).toBe("ok")
     expect(avaliarMar(null, 30).nivel).toBe("crit")
+  })
+
+  // ONDA 84 — o defeito que o dono viu na tela.
+  it("o limiar julga o número ARREDONDADO, o mesmo que a tela mostra", () => {
+    // Onda de 1,02 m aparece como "1 m" na Início. Antes disso ela disparava
+    // "Atenção no mar" (1,02 > 1,0) e a pessoa lia "1 m · atenção", sem ter
+    // como descobrir o porquê.
+    expect(avaliarMar(1.02, 4).nivel).toBe("ok")
+    // Vento de 15,4 kt aparece como "15 kt" — mesma regra.
+    expect(avaliarMar(0.5, 15.4).nivel).toBe("ok")
+    // E o arredondamento não afrouxa a régua: 1,06 vira 1,1 e continua
+    // acima do limiar, agora coerente com o "1,1 m" que a tela mostra.
+    expect(avaliarMar(1.06, 4).nivel).toBe("atencao")
+    expect(avaliarMar(0.5, 15.6).nivel).toBe("atencao")
+  })
+
+  it("o selo diz O QUE disparou, com a mesma medida que a tela mostra", () => {
+    expect(avaliarMar(1.4, 4).motivo).toBe("onda 1,4 m")
+    expect(avaliarMar(0.5, 18).motivo).toBe("vento 18 kt")
+    expect(avaliarMar(1.4, 18).motivo).toBe("onda 1,4 m e vento 18 kt")
+    // Só entra no motivo quem realmente cruzou o limiar: com onda crítica e
+    // vento fraco, a frase não pode acusar o vento.
+    expect(avaliarMar(2.5, 4).motivo).toBe("onda 2,5 m")
+    expect(avaliarMar(2.5, 30).motivo).toBe("onda 2,5 m e vento 30 kt")
   })
 })
 

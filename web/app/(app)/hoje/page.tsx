@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, type ReactNode } from "react"
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Farol } from "@/components/farol"
@@ -48,6 +48,7 @@ import type { Ocorrencia } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
 import { LINK_TABUA_MARE_CHM, pontoCardeal } from "@/lib/domain/mar"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 const ROTULO_MARE: Record<"preamar" | "baixa-mar", string> = { preamar: "Preamar", "baixa-mar": "Baixa-mar" }
 
@@ -76,6 +77,18 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
             "estado tem cor E palavra". */}
         <span className="ml-auto"><Selo estado={seloDoMar(boletim.selo.nivel)}>{boletim.selo.rotulo}</Selo></span>
       </div>
+      {/* ONDA 84 — O AVISO PASSA A DIZER DE QUÊ.
+          O dono viu "ONDA 1 m · VENTO 4 kt" ao lado de um selo âmbar
+          "ATENÇÃO NO MAR" e perguntou o que aquilo indicava. O selo estava
+          certo e ilegível: ele nomeia o NÍVEL e nunca nomeava a CAUSA, então
+          numa linha com três números não havia como saber qual deles pesou.
+          Agora a causa vem escrita, com a mesma medida que está acima —
+          "atenção no mar · onda 1,4 m" se lê de uma vez. */}
+      {boletim.selo.motivo && (
+        <p className={`apoio mt-1.5 ${boletim.selo.nivel === "crit" ? "text-crit" : "text-warn"}`}>
+          Por causa de {boletim.selo.motivo}.
+        </p>
+      )}
       {/* Maré (onda 20): sempre rotulada "estimativa" + link pra tábua oficial
           do CHM — nunca "tábua de marés" nem "preamar/baixa-mar oficial"
           (ressalva de honestidade obrigatória, ver CONTRIBUTING.md). Uma
@@ -99,11 +112,33 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
   )
 }
 
-/** Link secundário do cabeçalho de um cartão. Discreto por regra (docs/
- *  DESIGN.md §6, regra 2: uma ação principal por tela, a segunda é um link
- *  discreto) e com os 44px de alvo que o app exige de qualquer coisa que se
- *  toca — o `apoio` sozinho dá 17px de altura clicável. */
-const ACAO_CARTAO = "apoio inline-flex min-h-11 items-center text-dim"
+/**
+ * Ação secundária do cabeçalho de um cartão — usada 8 vezes nesta tela.
+ *
+ * ONDA 84 — ELA ERA TEXTO CINZA, E ESTA É A PRIMEIRA TELA DO APP.
+ *
+ * A onda 82 diagnosticou o problema e consertou `SecaoPagina`, `EstadoVazio`
+ * e três telas: "texto cinza é exatamente o que o app usa para rótulo e
+ * apoio, ou seja, para o que NÃO se toca". E deixou a Início de fora, com
+ * oito ocorrências — a varredura passou pelos componentes compartilhados e
+ * não pelas classes escritas à mão.
+ *
+ * O contraste ficava dentro do MESMO cartão: em "Gastos do mês", a ação do
+ * estado vazio é uma pílula de 36px e a do cabeçalho, dois centímetros
+ * acima, era texto cinza sem forma nenhuma. Mesmo cartão, mesmo gesto, dois
+ * vestidos.
+ *
+ * Continua discreta (docs/DESIGN.md §6, regra 2: a segunda ação da tela não
+ * disputa com a principal) — mas discreta agora quer dizer contorno, não
+ * ausência de forma.
+ */
+function AcaoCartao({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={ALVO_ACAO}>
+      <span className={PILULA_ACAO}>{children}</span>
+    </Link>
+  )
+}
 
 export default async function HojePage({
   searchParams,
@@ -434,7 +469,7 @@ export default async function HojePage({
             titulo="Precisa da sua atenção"
             className="order-4"
             acao={saude.fatores.length > pendencias.length
-              ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver tudo</Link>
+              ? <AcaoCartao href="/barco/saude">Ver tudo</AcaoCartao>
               : undefined}
           >
             {pendencias.length > 0 ? (
@@ -466,7 +501,7 @@ export default async function HojePage({
             titulo="Gastos do mês"
             className="order-7"
             acao={resumoMes.totalMesCentavos > 0
-              ? <Link href="/financeiro" className={ACAO_CARTAO}>Ver financeiro</Link>
+              ? <AcaoCartao href="/financeiro">Ver financeiro</AcaoCartao>
               : undefined}
           >
             {resumoMes.totalMesCentavos > 0 ? (
@@ -514,7 +549,7 @@ export default async function HojePage({
           titulo="Tripulação"
           className="order-9"
           acao={!sozinhoNoBarco && podeConvidar
-            ? <Link href="/tripulacao" className={ACAO_CARTAO}>Gerenciar</Link>
+            ? <AcaoCartao href="/tripulacao">Gerenciar</AcaoCartao>
             : undefined}
         >
           {sozinhoNoBarco ? (
@@ -553,7 +588,7 @@ export default async function HojePage({
             icone="pessoas"
             titulo="Comandantes disponíveis"
             className="order-11"
-            acao={<Link href="/comandantes" className={ACAO_CARTAO}>Ver todos</Link>}
+            acao={<AcaoCartao href="/comandantes">Ver todos</AcaoCartao>}
           >
             {(comandantes ?? []).map((c) => (
               <LinhaLista
@@ -579,8 +614,8 @@ export default async function HojePage({
           selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
           acao={
             estadoSaude != null
-              ? <Link href="/barco/saude" className={ACAO_CARTAO}>Ver detalhes</Link>
-              : <Link href="/barco" className={ACAO_CARTAO}>Completar</Link>
+              ? <AcaoCartao href="/barco/saude">Ver detalhes</AcaoCartao>
+              : <AcaoCartao href="/barco">Completar</AcaoCartao>
           }
         >
           {estadoSaude != null ? (
@@ -616,7 +651,7 @@ export default async function HojePage({
             icone="relatorio"
             titulo="Diário de Bordo"
             className="order-5"
-            acao={<Link href="/diario" className={ACAO_CARTAO}>Ver tudo</Link>}
+            acao={<AcaoCartao href="/diario">Ver tudo</AcaoCartao>}
           >
             <p className="corpo">{textoUltimaSaida(ultimaSaida, anoAtual)}</p>
             {totaisAno && (
@@ -660,7 +695,7 @@ export default async function HojePage({
           className="order-6"
           /* Vazio, quem convida é o próprio `EstadoVazio` — dois links pro
              mesmo assunto no mesmo cartão é ruído, não conveniência. */
-          acao={motores.length > 0 ? <Link href="/barco" className={ACAO_CARTAO}>Ver ficha</Link> : undefined}
+          acao={motores.length > 0 ? <AcaoCartao href="/barco">Ver ficha</AcaoCartao> : undefined}
         >
           {/* `enfase="discreta"` nos QUATRO estados vazios desta tela (aqui,
               Gastos, Mar agora e Tripulação). Num barco recém-cadastrado eles
