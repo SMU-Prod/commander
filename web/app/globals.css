@@ -42,8 +42,14 @@
      redesign parecer gerada: decoração distribuída em vez de sistema.
      Ver docs/DESIGN.md §5. */
   --raio-controle: 8px;   /* chip, campo, botão pequeno */
-  --raio-cartao: 14px;    /* cartão, painel, bloco */
+  --raio-cartao: 14px;    /* cartão ANINHADO — dentro de outro painel */
   --raio-pilula: 999px;   /* pílula, avatar, selo */
+  /* ONDA 79 (spec haulix-exato §3.2) — a referência usa ~16–20px no painel
+     de primeiro nível e 8–10 nos internos. Tínhamos um raio só, e raio
+     único achata a hierarquia: painel e sub-painel pareciam o mesmo nível.
+     Com dois, o RAIO passa a significar profundidade — quanto maior, mais
+     externo. Quem está dentro de outro cartão continua com `--raio-cartao`. */
+  --raio-painel: 16px;    /* painel de PRIMEIRO nível, direto no fundo */
 
   /* ELEVAÇÃO NÃO MORA AQUI — mora em `--sombra-1`/`--sombra-2`, mais abaixo,
      que é o que o app inteiro consome (`.sombra-1`, `.sombra-2`).
@@ -73,25 +79,83 @@
      abaixo foram clareados o suficiente pra render "cartão separa do
      fundo" (DESIGN.md §5) verdadeiro, mantendo o mesmo matiz e a mesma
      progressão relativa entre os três. */
-  --fundo: #0a0e12;
-  --superficie: #1c232c;
-  --superficie-2: #252e38;
-  --linha: #303a45;
-  --texto: #e9f1f8;
-  --texto-dim: #7c93ab;
-  --ok: #2fd07a;
-  --warn: #ffb020;
-  --crit: #ff5c5c;
-  --acao: #d4af37;
-  --acao-forte: #e5c55c;
-  --acao-texto: #0b1d2d;
-  --campo: #0a1521;
-  --meter: #060d16;
-  --meter-texto: #e9f1f8;
-  --meter-dim: #7c93ab;
-  --texto-dim-chip: #88a0b8;
-  /* Mesma teal, clareada pro fundo quase-preto (ver o bloco do tema claro). */
-  --dado: #3fa7b8;
+  /* ===================================================================
+     ONDA 79 — A PALETA MEDIDA DA REFERÊNCIA, NÃO MAIS APROXIMADA.
+     ===================================================================
+     Até aqui o escuro era navy: #0a0e12 de fundo, #1c232c de cartão. Isso
+     saiu de uma leitura A OLHO da referência do dono (painel Haulix) na
+     onda 57. Nesta onda as capturas foram AMOSTRADAS pixel a pixel
+     (`web/.varredura/paleta-haulix.mjs`, contra `public/imagens/*.png`), e
+     o resultado desmentiu a leitura:
+
+       as 16 superfícies mais frequentes da referência são CINZA PURO.
+       #020202 #101010 #121212 #141414 #161616 #181818 #1a1a1a #1c1c1c
+       #1e1e1e #222222 #242424 #282828 #2a2a2a #2c2c2c #2e2e2e #303030
+
+     Nenhuma tem tom. Zero. O nosso azulava tudo — e era isso, mais que
+     qualquer outra coisa, que fazia o app "não parecer com a referência"
+     mesmo depois de três ondas mexendo em componente.
+
+     Cor no escuro passa a existir SÓ no dado e no estado. O fundo é chão.
+
+     -------------------------------------------------------------------
+     O CONFLITO COM O NOSSO PRÓPRIO TESTE, E COMO ELE FOI RESOLVIDO
+     -------------------------------------------------------------------
+     `lib/ui/contraste.test.ts` exigia razão > 1,2 entre cartão e fundo. A
+     referência dá 1,105 (#1a1a1a sobre #101010) e reprovaria.
+
+     Baixar a régua seria trapaça. O que aconteceu foi outra coisa: a
+     referência separa cartão do fundo com BORDA, não com preenchimento —
+     e a borda dela (#2c2c2c sobre o cartão) dá 1,225, acima do mesmo 1,2.
+     Ou seja, a separação que o teste protege EXISTE; ele é que media um
+     jeito só de obtê-la. O teste passou a aceitar as duas formas e a
+     exigir a borda justamente quando o preenchimento não separa sozinho.
+     A regra ficou mais forte, não mais fraca. */
+  --fundo: #101010;
+  --superficie: #1a1a1a;
+  --superficie-2: #242424;
+  --linha: #2c2c2c;
+  --texto: #fcfcfc;
+  /* 4,97:1 sobre o cartão — passa AA com folga pequena e proposital: mais
+     claro que isto e o texto fraco deixa de parecer fraco. */
+  --texto-dim: #8a8a8a;
+  /* Medidos das capturas (`paleta-acento.mjs`): o âmbar do aviso de pausa
+     e da barra de combustível, o vermelho do alerta crítico, o ciano do
+     gráfico de utilização. O verde é o único de amostra pequena — ele só
+     aparece no arco do velocímetro. */
+  --ok: #96f48d;
+  --warn: #ffb447;
+  --crit: #ee6b67;
+  /* ------------------------------------------------------------------
+     O ÚNICO VALOR NÃO MEDIDO DESTE BLOCO.
+     ------------------------------------------------------------------
+     O verde-limão da referência aparece no botão de ação principal, no
+     logo e na linha da rota — e NENHUMA das seis capturas salvas em
+     public/imagens contém essas telas (a varredura achou 2 px isolados,
+     que são antialiasing do arco do velocímetro). Este hexadecimal é
+     leitura visual das imagens que o dono mostrou no chat, não medição.
+     Corrigir é trocar uma linha, se ele tiver o valor exato.
+
+     Vale registrar o que a troca significa: o dourado era a MARCA do
+     Commander (DESIGN.md §5, "pertencimento à marca"), não só um tema.
+     Trocar por limão é decisão de identidade e foi pedida pelo dono. */
+  --acao: #d6f24a;
+  --acao-forte: #e2f96f;
+  /* Preto e não navy: sobre limão claro, é o único que passa AA. */
+  --acao-texto: #101010;
+  --campo: #141414;
+  --meter: #020202;
+  --meter-texto: #fcfcfc;
+  --meter-dim: #8a8a8a;
+  --texto-dim-chip: #9a9a9a;
+  /* O ciano do gráfico de barras da referência, medido. */
+  --dado: #19b3d3;
+  /* A referência usa DUAS cores de dado, não uma: ciano no gráfico de
+     barras (utilização da frota) e roxo na área (pontualidade). Duas
+     séries lado a lado na mesma tela precisam se distinguir sem depender
+     de legenda — foi por isso que eles separaram, e é por isso que aqui
+     também. */
+  --dado-2: #5b4fd6;
 }
 
 /* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
@@ -223,6 +287,17 @@ body.fundo-tela-mapa {
      porque flutuar é outra coisa. */
   --sombra-1: none;
   --sombra-2: 0 6px 20px rgb(0 0 0 / .45);
+  /* ONDA 79 (spec haulix-exato §3.1) — "o painel não é chapado, é MATERIAL".
+     A onda 60 matou a sombra borrada, o que estava certo, e parou aí: o
+     cartão virou um retângulo de cor sólida. Na referência ele tem um
+     gradiente de 2–3% do topo pra base, e é isso que o faz parecer
+     superfície com luz em cima em vez de recorte de papel.
+     Fica em token pra ser um lugar só — e `none` no claro, onde superfície
+     branca com gradiente vira sujeira. */
+  --lustro-painel: linear-gradient(180deg, rgb(255 255 255 / .028), rgb(255 255 255 / 0) 42%);
+}
+:root {
+  --lustro-painel: none;
 }
 
 /* Na layer utilities para conviver com o Tailwind: a cor continua vindo dos
@@ -231,6 +306,14 @@ body.fundo-tela-mapa {
 @layer utilities {
   .sombra-1 { box-shadow: var(--sombra-1); }
   .sombra-2 { box-shadow: var(--sombra-2); }
+  /* O material do §3.1 do spec. `background-image` e não `background`:
+     assim ele se soma ao `bg-panel` que a tela já pôs, em vez de apagá-lo —
+     um cartão que perdesse a cor de fundo ao ganhar lustro seria uma
+     armadilha silenciosa em 80 telas. */
+  .painel-lustro { background-image: var(--lustro-painel); }
+  /* O raio de primeiro nível (§3.2). Existe como classe pra tela não
+     escrever `rounded-[16px]` na mão e o número virar 16 em 40 lugares. */
+  .raio-painel { border-radius: var(--raio-painel); }
 
   /* Onda 56 — fila que rola na horizontal (as pílulas de filtro do
      `ChipLinha`, ver components/ui/chip.tsx). Sem isto a fila era cortada em
