@@ -1,0 +1,121 @@
+{
+  "alturaPagina": 1025,
+  "alturaMain": 929.34375,
+  "telas": 1.21,
+  "qtdLinks": 14,
+  "links": [
+    {
+      "href": "/menu",
+      "texto": "Menu",
+      "alt": 44
+    },
+    {
+      "href": "/barco",
+      "texto": "Central técnicaMotores, casco, elétrica, hidráulica e os dem",
+      "alt": 81
+    },
+    {
+      "href": "/barco/mapa",
+      "texto": "Mapa da embarcaçãoO barco em corte, zona por zona",
+      "alt": 65
+    },
+    {
+      "href": "/barco/ocorrencias",
+      "texto": "OcorrênciasProblemas do barco, por setor",
+      "alt": 65
+    },
+    {
+      "href": "/financeiro",
+      "texto": "FinanceiroDespesas, entradas, recorrentes e relatórios",
+      "alt": 65
+    },
+    {
+      "href": "/carteira",
+      "texto": "Carteira da TripulaçãoRepasse, gasto e devolução — controle ",
+      "alt": 65
+    },
+    {
+      "href": "/tripulacao",
+      "texto": "TripulaçãoConvide comandantes e ajuste as permissões",
+      "alt": 65
+    },
+    {
+      "href": "/barco/historico",
+      "texto": "HistóricoTudo que já aconteceu com o barco, num lugar só",
+      "alt": 65
+    },
+    {
+      "href": "/barco/resumos",
+      "texto": "RelatóriosCusto e uso do período, em PDF",
+      "alt": 65
+    },
+    {
+      "href": "/barco/selos",
+      "texto": "SelosCommander Verified e a avaliação Gold",
+      "alt": 65
+    },
+    {
+      "href": "/barco/fotos",
+      "texto": "FotosOs álbuns do barco",
+      "alt": 65
+    },
+    {
+      "href": "/barco/documentos",
+      "texto": "DocumentosValidade e arquivo — avisamos antes de vencer",
+      "alt": 65
+    },
+    {
+      "href": "/barco/equipamentos",
+      "texto": "EquipamentosBote, guincho, ar-condicionado e afins",
+      "alt": 65
+    },
+    {
+      "href": "/barco/connect",
+      "texto": "Commander ConnectEm breve — conectividade NMEA 2000",
+      "alt": 64
+    }
+  ],
+  "suspeitos": [],
+  "porPalavra": [
+    {
+      "palavra": "Financeiro",
+      "achou": true,
+      "color": "rgb(244, 240, 232)",
+      "fontFamily": "Inter, \"Inter Fallback\", system-ui, -app",
+      "fontWeight": "600",
+      "fontSize": "16px",
+      "webkitFontSmoothing": "antialiased",
+      "textRendering": "auto",
+      "filhosElemento": 0,
+      "html": "Financeiro"
+    },
+    {
+      "palavra": "Carteira da Tripulação",
+      "achou": true,
+      "color": "rgb(244, 240, 232)",
+      "fontFamily": "Inter, \"Inter Fallback\", system-ui, -app",
+      "fontWeight": "600",
+      "fontSize": "16px",
+      "webkitFontSmoothing": "antialiased",
+      "textRendering": "auto",
+      "filhosElemento": 0,
+      "html": "Carteira da Tripulação"
+    },
+    {
+      "palavra": "Meu barco",
+      "achou": true,
+      "color": "rgb(244, 240, 232)",
+      "fontFamily": "Inter, \"Inter Fallback\", system-ui, -app",
+      "fontWeight": "650",
+      "fontSize": "24px",
+      "webkitFontSmoothing": "antialiased",
+      "textRendering": "auto",
+      "filhosElemento": 0,
+      "html": "Meu barco"
+    },
+    {
+      "palavra": "Serviços",
+      "achou": false
+    }
+  ]
+}

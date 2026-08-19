@@ -58,15 +58,26 @@ export function RedeNav({
             key={d.valor}
             href={d.href}
             aria-current={ativo ? "page" : undefined}
-            className={`flex h-[var(--altura-controle)] shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm font-medium ${
-              ativo
-                ? "border-accent bg-accent text-acao-texto"
-                : variant === "mapa"
-                  ? "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
-                  : "border-line bg-panel text-dim"
-            }`}
+            // ONDA 98 — MESMA ANATOMIA DO `Chip`: alvo de 44px no `<Link>`,
+            // desenho de 34 no `<span>` (HAULIX §21, controle médio 34–36 com
+            // padding 0 14). O dono nomeou "muitos filtros em formato de
+            // cápsula" olhando a fila de pílulas do app, e esta é uma delas —
+            // deixar só o `Chip` encolher daria duas anatomias de pílula em
+            // telas vizinhas, que é a deriva que estes componentes existem pra
+            // matar. A régua de toque não se move: quem a carrega é o link.
+            className="flex h-[var(--altura-controle)] shrink-0 items-center"
           >
-            {d.rotulo}
+            <span
+              className={`flex h-[34px] items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-3.5 text-sm font-medium ${
+                ativo
+                  ? "border-accent bg-accent text-acao-texto"
+                  : variant === "mapa"
+                    ? "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+                    : "border-line bg-panel text-dim"
+              }`}
+            >
+              {d.rotulo}
+            </span>
           </Link>
         )
       })}

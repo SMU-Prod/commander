@@ -9,6 +9,7 @@ import {
   FUNCAO_PAPEL,
   linhaDeAuditoria,
   MODOS_APROVACAO,
+  operaEmCotas,
   PAPEIS,
   PAPEIS_ENTERPRISE,
   podePublicarParaCotistas,
@@ -16,6 +17,8 @@ import {
   ROTULO_EVENTO,
   ROTULO_MODO_APROVACAO,
   ROTULO_PAPEL,
+  veHubDeAtualizacoes,
+  veOperacaoDaFrota,
   type ModoAprovacao,
 } from "./enterprise"
 import { ABAS } from "./permissoes"
@@ -194,6 +197,73 @@ describe("Enterprise", () => {
           if (!r.pode) expect(r.motivo, `${papel}/${modo}`).toBeTruthy()
         }
       }
+    })
+  })
+
+  // ONDA 102 — O RECORTE POR CONFIGURAÇÃO, E O CASO QUE O DONO ACHOU.
+  //
+  // Todo o resto deste arquivo testa recorte por PAPEL. Este bloco existe
+  // porque o dono navegou pelo app e encontrou o buraco entre os dois: um
+  // proprietário particular via Pátio, Mecânica, Estoque e Combustível numa
+  // embarcação que nem está configurada para cotas. Papel nenhum consertava
+  // isso — `PROP` tem, por contrato, permissão total.
+  //
+  // O primeiro teste é o defeito, escrito como teste pra não voltar.
+  describe("recorte por configuração da embarcação", () => {
+    it("o defeito 6: proprietário de barco particular NÃO vê a operação de frota", () => {
+      expect(veOperacaoDaFrota("PROP", 0)).toBe(false)
+    })
+
+    it("o mesmo proprietário vê a operação assim que a embarcação passa a operar em cotas", () => {
+      expect(veOperacaoDaFrota("PROP", 10)).toBe(true)
+    })
+
+    // Intenção declarada, não ocupação: o barco configurado para dez cotas e
+    // ainda sem nenhum cotista convidado JÁ precisa da operação. É por isso
+    // que o sinal é `cotas_total` e não a contagem de vínculos COTISTA.
+    it("uma cota basta — o sinal é a configuração, não quantos já entraram", () => {
+      expect(operaEmCotas(1)).toBe(true)
+      expect(operaEmCotas(0)).toBe(false)
+      expect(operaEmCotas(null)).toBe(false)
+      expect(operaEmCotas(undefined)).toBe(false)
+    })
+
+    it("os quatro papéis operacionais do Enterprise não dependem da configuração", () => {
+      for (const papel of ["ADM_GERAL", "ADM", "OPERACOES", "MECANICA"] as const) {
+        expect(veOperacaoDaFrota(papel, 0), papel).toBe(true)
+      }
+    })
+
+    // A prova de que os dois recortes são independentes, e não um o atalho do
+    // outro: o cotista está NUMA embarcação em cotas e mesmo assim não vê a
+    // operação (§13 — "visualiza a própria unidade; não administra a frota").
+    it("cotista opera em cotas e ainda assim não administra a frota", () => {
+      expect(veOperacaoDaFrota("COTISTA", 10)).toBe(false)
+    })
+
+    it("comandante de barco particular nunca vê a operação da base", () => {
+      expect(veOperacaoDaFrota("CMDT", 0)).toBe(false)
+      expect(veOperacaoDaFrota("CMDT", 10)).toBe(false)
+    })
+
+    // Atualizações é a tela de mão dupla: some pros DOIS lados quando não há
+    // cota, e aparece pros dois quando há — inclusive pro cotista, que é
+    // justamente quem a alimenta.
+    it("Atualizações acompanha a cota, e inclui o cotista que a alimenta", () => {
+      expect(veHubDeAtualizacoes("COTISTA", 10)).toBe(true)
+      expect(veHubDeAtualizacoes("PROP", 10)).toBe(true)
+      expect(veHubDeAtualizacoes("ADM", 0)).toBe(true)
+      expect(veHubDeAtualizacoes("PROP", 0)).toBe(false)
+      expect(veHubDeAtualizacoes("CMDT", 10)).toBe(false)
+    })
+
+    // A trava contra o vazamento por descuido: papel novo em `PAPEIS` não pode
+    // herdar acesso só por existir. O `switch` sem `default` já quebra a
+    // compilação; isto cobre o caso de alguém "consertar" o build com um
+    // `default: return true`.
+    it("falha fechado: sem cota, só quem é funcionário da operação enxerga", () => {
+      const veem = PAPEIS.filter((p) => veOperacaoDaFrota(p, 0))
+      expect(veem.sort()).toEqual(["ADM", "ADM_GERAL", "MECANICA", "OPERACOES"])
     })
   })
 

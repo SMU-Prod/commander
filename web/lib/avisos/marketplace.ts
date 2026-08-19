@@ -358,9 +358,16 @@ async function dispararPush(
             titulo: aviso.titulo,
             corpo: demanda.titulo,
             // Direto no pedido, e não em `/notificacoes` como os alertas do
-            // barco: o Partner e o Captain não têm embarcação, e a Central
-            // ainda é uma tela de dono de barco. O destino do toque tem de ser
-            // a tela onde a ação do aviso acontece.
+            // barco: o destino do toque é a tela onde a AÇÃO do aviso
+            // acontece — enviar a proposta —, não a caixa que a listaria.
+            //
+            // ONDA 101 — a razão escrita aqui até agora era outra ("a Central
+            // ainda é uma tela de dono de barco"), e ela deixou de ser verdade
+            // no mesmo commit que a escreveu: a onda 99 tirou o
+            // `redirect("/onboarding")` da Central justamente para o Partner e
+            // o Captain. O destino continua certo pelo motivo acima; o que
+            // muda é o comentário parar de justificar-se por um defeito que
+            // não existe mais.
             url: aviso.href,
           }),
         ),

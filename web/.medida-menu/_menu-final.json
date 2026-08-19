@@ -1,0 +1,73 @@
+{
+  "alturaPagina": 844,
+  "alturaMain": 500.53125,
+  "telas": 1,
+  "qtdLinks": 6,
+  "links": [
+    {
+      "href": "/hoje",
+      "texto": "InícioO estado do barco e o que pede atenção hoje",
+      "alt": 65
+    },
+    {
+      "href": "/meu-barco",
+      "texto": "Meu barcoCentral técnica, ocorrências, financeiro, tripulaçã",
+      "alt": 81
+    },
+    {
+      "href": "/diario",
+      "texto": "DiárioSaídas, horas de motor e o que foi feito",
+      "alt": 65
+    },
+    {
+      "href": "/agenda",
+      "texto": "AgendaSaídas e compromissos combinados com a tripulação",
+      "alt": 81
+    },
+    {
+      "href": "/servicos",
+      "texto": "ServiçosExplorar, Marketplace, prestadores, comandantes e me",
+      "alt": 81
+    },
+    {
+      "href": "/menu/ajustes",
+      "texto": "Minha contaAssinatura, aparência, avisos e seus outros acess",
+      "alt": 80
+    }
+  ],
+  "suspeitos": [],
+  "porPalavra": [
+    {
+      "palavra": "Financeiro",
+      "achou": false
+    },
+    {
+      "palavra": "Carteira da Tripulação",
+      "achou": false
+    },
+    {
+      "palavra": "Meu barco",
+      "achou": true,
+      "color": "rgb(244, 240, 232)",
+      "fontFamily": "Inter, \"Inter Fallback\", system-ui, -app",
+      "fontWeight": "600",
+      "fontSize": "16px",
+      "webkitFontSmoothing": "antialiased",
+      "textRendering": "auto",
+      "filhosElemento": 0,
+      "html": "Meu barco"
+    },
+    {
+      "palavra": "Serviços",
+      "achou": true,
+      "color": "rgb(244, 240, 232)",
+      "fontFamily": "Inter, \"Inter Fallback\", system-ui, -app",
+      "fontWeight": "600",
+      "fontSize": "16px",
+      "webkitFontSmoothing": "antialiased",
+      "textRendering": "auto",
+      "filhosElemento": 0,
+      "html": "Serviços"
+    }
+  ]
+}

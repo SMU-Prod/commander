@@ -60,18 +60,27 @@ export function Cartao({
    *
    *  DOIS GRAUS, E NÃO TRÊS. Os dois saem da escala declarada de
    *  `docs/DESIGN.md §5` — nenhum tamanho novo:
-   *    `secao`   (padrão) `.rotulo` + `text-dim` — 11px mono, caixa alta,
-   *              cinza. O cartão é UMA ÁREA da tela e o título dele é
-   *              etiqueta. É o que os 26 cartões de hoje já são, byte a byte,
-   *              e por isso nenhuma tela muda sozinha ao ganhar esta prop.
-   *    `assunto` `.titulo-card` — 15px/600 na cor do texto (a classe já
-   *              carrega `color: var(--texto)`, então o grau não escreve
-   *              utilitária de cor nenhuma). O cartão É o assunto da tela.
-   *  O degrau do meio que faltaria seria `.corpo` (14px), e o próprio
-   *  `globals.css` registra por que ele não serve: "com `.corpo` em 14 o
-   *  degrau de 1px não se via… um pixel não é degrau de hierarquia, é ruído".
-   *  Quem precisa de mais degrau usa o `valor` (28px), que é o terceiro nível
-   *  de verdade — 11 → 15 → 28 é escada; 11 → 14 → 15 é tremor.
+   *    `secao`   (padrão) `.titulo-card` — 16px/600 (H3 do HAULIX) na cor do
+   *              texto. O cartão é UMA ÁREA da tela.
+   *    `assunto` `.titulo-secao` — 20px/650 (H2). O cartão É o assunto da
+   *              tela.
+   *  As duas classes carregam `color: var(--texto)`, então nenhum dos graus
+   *  escreve utilitária de cor.
+   *
+   *  ONDA 98 — OS DOIS SUBIRAM UM DEGRAU, E É AÍ QUE ESTE COMENTÁRIO ESTAVA
+   *  DESCREVENDO O DEFEITO COMO SE FOSSE O DESENHO. Ele dizia que `secao`
+   *  entrega "`.rotulo` + `text-dim`, 11px mono caixa alta — o que os 26
+   *  cartões de hoje já são, byte a byte", e tratava isso como a virtude de
+   *  não mexer em tela nenhuma. Só que "os 26 cartões já são assim" É o
+   *  achado: com o título do cartão vestindo etiqueta de instrumento, a tela
+   *  inteira sai em 11px rastreado e o dono descreve o resultado como
+   *  "informação solta", "fontes pequenas e espaçadas demais" e "tudo com o
+   *  mesmo peso visual" — três frases para o mesmo pixel. Etiqueta de
+   *  instrumento continua existindo e continua sendo `.rotulo`: é o overline
+   *  de `SecaoPagina`, que não mudou.
+   *  A escada de verdade agora é 16 → 20 → 28 (com o `valor`), e os degraus
+   *  distam 4px e 8px. A anterior era 11 → 15 → 28, com o primeiro salto
+   *  fazendo o trabalho de dois.
    *
    *  A REGRA QUE O COMPONENTE NÃO CONSEGUE COBRAR: **um `assunto` por tela.**
    *  Não há contexto de tela aqui pra checar isso, e inventar um só pra
@@ -92,10 +101,15 @@ export function Cartao({
    *  padrão `aninhado` deixaria os dois tokens sem consumidor de novo, que é
    *  o vício que a onda 87 acabou de consertar em `.valor`.
    *
-   *  Quem está DENTRO de outro painel pede `aninhado` e volta aos 14px —
-   *  mesmo raciocínio de `plano`, que trata a sombra. São props separadas
-   *  porque as duas coisas não andam sempre juntas: um cartão de primeiro
-   *  nível pode ser chapado (é o tema escuro inteiro, ver `--sombra-1`). */
+   *  Quem está DENTRO de outro painel pede `aninhado` e desce para os 12px do
+   *  `--raio-cartao` — mesmo raciocínio de `plano`, que trata a sombra. São
+   *  props separadas porque as duas coisas não andam sempre juntas: um cartão
+   *  de primeiro nível pode ser chapado (é o tema escuro inteiro, ver
+   *  `--sombra-1`).
+   *
+   *  ONDA 98 — `aninhado` PASSA A MUDAR TAMBÉM A SUPERFÍCIE (`bg-panel2`, o
+   *  nível 2 do §22 do HAULIX), e não só o raio. Ver o comentário no corpo do
+   *  componente: era o degrau que declarava profundidade e desenhava plano. */
   nivel?: "painel" | "aninhado"
   plano?: boolean
   className?: string
@@ -106,20 +120,43 @@ export function Cartao({
   // com o gradiente escrito aqui: as duas classes existem em globals.css com
   // a justificativa medida da referência, e passar por elas é o que impede o
   // 16 e o gradiente de 2,8% de virarem número solto neste arquivo.
+  //
+  // ONDA 98 (HAULIX §22, hierarquia de superfície) — O NÍVEL PASSA A MUDAR A
+  // SUPERFÍCIE, E NÃO SÓ O RAIO. Era o buraco no meio desta camada: `nivel`
+  // nasceu na onda 91 trocando raio e lustro, e os dois níveis pintavam o
+  // MESMO `bg-panel`. Ou seja, o app declarava uma hierarquia de profundidade
+  // e desenhava um plano só — que é exatamente o "cards cinza quase
+  // idênticos" que o dono nomeou em 19/08. O §22 é literal: canvas → cartão →
+  // cartão aninhado → interativo, cada um um degrau ACIMA do anterior, e "a
+  // profundidade principal vem da diferença de superfície, não de sombra".
+  // Custo em telas: ZERO — `nivel="aninhado"` tem hoje zero consumidores em
+  // todo o `web/` (medido antes de mexer), então esta correção não muda um
+  // pixel de tela nenhuma. Ela conserta o degrau para quem for usá-lo.
   const forma = nivel === "painel"
-    ? "raio-painel painel-lustro"
-    : "rounded-[var(--raio-cartao)]"
-  // As duas vozes de título, e nada entre elas. `.titulo-card` traz a cor
-  // junto (ver `:where(...)` em globals.css) — por isso o grau de assunto NÃO
-  // escreve `text-texto`: escrever seria repetir na tela uma decisão que já
-  // mora na classe, que é o vício que a onda 87 fechou em `.valor`.
-  const vozDoTitulo = peso === "assunto" ? "titulo-card" : "rotulo text-dim"
+    ? "raio-painel painel-lustro bg-panel"
+    : "rounded-[var(--raio-cartao)] bg-panel2"
+  // ONDA 98 — AS DUAS VOZES SOBEM UM DEGRAU CADA, E É A CORREÇÃO DO DEFEITO
+  // QUE O DONO NOMEOU DUAS VEZES.
+  // Medido em 19/08 na Início: dos onze títulos de `Cartao` da tela, NOVE
+  // saíam em `.rotulo` — 11px, mono, caixa alta, rastreada — e exatamente um
+  // em `.titulo-card`. O diagnóstico do dono tem as duas metades disso:
+  // "fontes pequenas e espaçadas demais" (11px + rastreio) e "tudo com o
+  // mesmo peso visual" (nove iguais). Um título de cartão não é etiqueta de
+  // instrumento; etiqueta de instrumento é o overline de `SecaoPagina`, que
+  // continua em `.rotulo` e não muda.
+  //   `secao`   → `.titulo-card`  (16/600, H3 do HAULIX) — o cartão é uma ÁREA
+  //   `assunto` → `.titulo-secao` (20/650, H2)           — o cartão É o assunto
+  // Quatro pixels e meio degrau de peso entre os dois: é escada, e era o que
+  // faltava para "o assunto da tela" existir. As duas classes trazem a cor
+  // junto (ver `:where(...)` em globals.css), por isso nenhum dos dois graus
+  // escreve utilitária de cor.
+  const vozDoTitulo = peso === "assunto" ? "titulo-secao" : "titulo-card"
   return (
     <section
       // Acabamento Haulix (16/08): p-3 (12px, degrau da escala) no lugar de
       // p-4 — a referência é densa; padding folgado era metade da "cara de
       // template" que sobrava no escuro.
-      className={`${forma} border border-line bg-panel p-3 ${plano ? "" : "sombra-1"} ${className}`}
+      className={`${forma} border border-line p-3 ${plano ? "" : "sombra-1"} ${className}`}
     >
       {temCabecalho && (
         <header className="mb-3 flex items-center gap-2">

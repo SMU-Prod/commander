@@ -7,7 +7,10 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { sair } from "@/lib/acoes/auth"
+import { meusPapeisAdmin } from "@/lib/admin"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
+import { carregarMeuPerfilConsultor } from "@/lib/consultas-gold"
+import { ehAdminQualquer, resumoPapeis } from "@/lib/domain/admin-papeis"
 import { ehPago } from "@/lib/domain/plano-acesso"
 import { PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -36,7 +39,21 @@ export default async function AjustesPage() {
   // Pelo papel de verdade, não por suposição: o Menu antigo escrevia
   // "Proprietário" fixo e um comandante lia o rótulo errado na própria
   // conta. `carregarPainel` tem cache() — não custa segunda ida ao banco.
-  const painel = await carregarPainel()
+  //
+  // ONDA 102 — `meusPapeisAdmin` e `carregarMeuPerfilConsultor` MUDARAM DE
+  // TELA e chegam aqui EM PARALELO, não em fila. As duas perguntam sobre a
+  // pessoa e não sobre o barco: nenhuma lê um campo de `painel`, então
+  // esperá-lo seria pagar uma volta de rede (~150 ms) por nada — é o mesmo
+  // diagnóstico que `carregarPainel` tem escrito em `lib/consultas.ts`, e que
+  // o Menu aplicou na onda 101. Elas vinham de lá justamente porque o Menu é
+  // atravessado pelo app inteiro e Ajustes não: as portas de Admin e do
+  // consultor Gold descrevem um papel DA PESSOA, e agora só custam consulta
+  // quando alguém abre a própria conta.
+  const [painel, papeisAdmin, meuConsultor] = await Promise.all([
+    carregarPainel(),
+    meusPapeisAdmin(),
+    carregarMeuPerfilConsultor(),
+  ])
   const rotuloPapel = painel?.papel === "CMDT" ? "Comandante" : "Proprietário"
 
   // O nome de quem está logado (canvas: "Erick Monteiro") — do perfil, com o
@@ -54,7 +71,11 @@ export default async function AjustesPage() {
 
   return (
     <main className={TETO_FORMULARIO}>
-      <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Ajustes" />
+      {/* ONDA 102 — "Minha conta" e não "Ajustes": é o sexto item do §2.1, e a
+          tela deixou de ser só configuração quando recebeu os outros acessos
+          da pessoa. O endereço continua `/menu/ajustes` de propósito — link
+          salvo, conversa antiga e URL indexada não valem uma rota nova. */}
+      <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Minha conta" />
 
       <SecaoPagina icone="pessoas">Conta</SecaoPagina>
       {/* O cartão de perfil do canvas: avatar, nome, papel · embarcação. */}
@@ -105,6 +126,77 @@ export default async function AjustesPage() {
         titulo="Cadastrar outra embarcação"
         subtitulo="Troque entre elas pelo nome no topo da tela Início"
       />
+      {/* ONDA 102 — COTISTAS MUDOU DE CASA, E O MOTIVO É TÉCNICO ANTES DE SER
+          de arrumação. `/cotistas` é a tela que GRAVA `embarcacoes.cotas_total`
+          (`lib/acoes/cotistas.ts`) — e `cotas_total > 0` é exatamente o sinal
+          que acende a Operação da frota no Menu (`veOperacaoDaFrota`, em
+          `lib/domain/enterprise.ts`). Se esta linha morasse lá, atrás daquele
+          recorte, ela dependeria do sinal que ela própria liga: o dono nunca
+          conseguiria configurar a primeira cota. Porta que se tranca por
+          dentro.
+          Em Ajustes ela é o que de fato é — configuração da embarcação, ao
+          lado do cadastro de outra —, e de quebra some do menu do proprietário
+          particular, que é a primeira reclamação da spec ("um proprietário
+          comum vê Cotistas"). Só pro PROP: quem define quantas cotas a unidade
+          tem é o dono dela.
+          Moradia ÚNICA (o teste do gate cobra): por isso "Cotistas" NÃO
+          reaparece na Operação da frota do Menu, mesmo o §2.4 listando-a lá. */}
+      {painel?.papel === "PROP" && (
+        <LinhaLista
+          href="/cotistas"
+          variant="cartao"
+          className="mt-2"
+          titulo="Cotas da embarcação"
+          subtitulo={
+            painel.embarcacao.cotas_total > 0
+              ? `${painel.embarcacao.cotas_total} cotas · vagas, convite e suspensão de acesso`
+              : "Opere esta embarcação em cotas, com vagas e link de convite"
+          }
+        />
+      )}
+
+      {/* OS OUTROS ACESSOS DESTA PESSOA (spec 19/08, §2 — o quarto aplicativo
+          sai do menu normal).
+          As três linhas abaixo descrevem um PAPEL NA PLATAFORMA, não uma área
+          do barco: administrar o Commander, avaliar embarcações pelo Gold,
+          manter o perfil de um estabelecimento. Estavam no Menu, entre as
+          áreas do produto, e o dono leu isso como vazamento — *"um
+          proprietário comum vê... até Admin Commander. Isso não deveria
+          aparecer para ele."*
+          Aqui elas continuam descobríveis por quem TEM o papel, e some do
+          índice do produto pra quem não tem. A decisão de acesso continua
+          sendo do servidor (`exigirAdmin` no layout de `(admin)`, RLS por
+          papel); isto é só descoberta.
+          Admin e consultor só existem pra quem tem o papel — anunciar a porta
+          é meio caminho pra alguém tentar a maçaneta, e mostrar a todo mundo
+          levaria a maioria a uma tela de "não encontramos seu cadastro", que é
+          o beco que a onda 54 caçou. Parceiro fica visível pra todos porque
+          ali a ausência de cadastro é o começo do fluxo, não um beco. */}
+      <SecaoPagina icone="ancora">Outros acessos</SecaoPagina>
+      <LinhaLista
+        href="/parceiro"
+        variant="cartao"
+        titulo="Painel do parceiro"
+        subtitulo="É marina, posto, pousada, restaurante ou loja náutica? Apareça no mapa."
+      />
+      {meuConsultor !== null && (
+        <LinhaLista
+          href="/consultor"
+          variant="cartao"
+          className="mt-2"
+          titulo="Minha agenda de avaliações"
+          subtitulo="Commander Gold — visitas marcadas e o Protocolo de cada embarcação"
+        />
+      )}
+      {ehAdminQualquer(papeisAdmin) && (
+        <LinhaLista
+          href="/admin"
+          variant="cartao"
+          className="mt-2"
+          titulo="Admin Commander"
+          subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
+        />
+      )}
 
       <SecaoPagina icone="documento">Legal</SecaoPagina>
       <LinhaLista href="/termos" variant="cartao" titulo="Termos de Uso" />

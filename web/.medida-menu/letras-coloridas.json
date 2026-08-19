@@ -1,0 +1,364 @@
+[
+  {
+    "palavra": "Financeiro",
+    "recorte": [
+      296,
+      23
+    ],
+    "luzDoFundo": 33,
+    "pixelsDeTinta": 540,
+    "pixelsCromaticos": 529,
+    "porLetra": [
+      {
+        "letra": "F",
+        "pixels": 74,
+        "media": [
+          196,
+          204,
+          194
+        ],
+        "pixelsCromaticos": 68,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "i",
+        "pixels": 34,
+        "media": [
+          204,
+          208,
+          195
+        ],
+        "pixelsCromaticos": 34,
+        "maiorDeltaCanal": 107
+      },
+      {
+        "letra": "n",
+        "pixels": 54,
+        "media": [
+          207,
+          218,
+          208
+        ],
+        "pixelsCromaticos": 53,
+        "maiorDeltaCanal": 139
+      },
+      {
+        "letra": "a",
+        "pixels": 66,
+        "media": [
+          177,
+          200,
+          203
+        ],
+        "pixelsCromaticos": 64,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "n",
+        "pixels": 60,
+        "media": [
+          184,
+          202,
+          199
+        ],
+        "pixelsCromaticos": 60,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "c",
+        "pixels": 49,
+        "media": [
+          202,
+          205,
+          195
+        ],
+        "pixelsCromaticos": 48,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "e",
+        "pixels": 66,
+        "media": [
+          191,
+          192,
+          184
+        ],
+        "pixelsCromaticos": 65,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "i",
+        "pixels": 35,
+        "media": [
+          210,
+          197,
+          163
+        ],
+        "pixelsCromaticos": 35,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "r",
+        "pixels": 40,
+        "media": [
+          206,
+          185,
+          151
+        ],
+        "pixelsCromaticos": 40,
+        "maiorDeltaCanal": 137
+      },
+      {
+        "letra": "o",
+        "pixels": 62,
+        "media": [
+          199,
+          208,
+          201
+        ],
+        "pixelsCromaticos": 62,
+        "maiorDeltaCanal": 185
+      }
+    ]
+  },
+  {
+    "palavra": "Carteira da Tripulação",
+    "recorte": [
+      296,
+      23
+    ],
+    "luzDoFundo": 33,
+    "pixelsDeTinta": 1083,
+    "pixelsCromaticos": 1060,
+    "porLetra": [
+      {
+        "letra": "C",
+        "pixels": 71,
+        "media": [
+          196,
+          205,
+          198
+        ],
+        "pixelsCromaticos": 71,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "a",
+        "pixels": 61,
+        "media": [
+          199,
+          205,
+          200
+        ],
+        "pixelsCromaticos": 61,
+        "maiorDeltaCanal": 190
+      },
+      {
+        "letra": "r",
+        "pixels": 36,
+        "media": [
+          200,
+          211,
+          207
+        ],
+        "pixelsCromaticos": 36,
+        "maiorDeltaCanal": 107
+      },
+      {
+        "letra": "t",
+        "pixels": 42,
+        "media": [
+          210,
+          210,
+          195
+        ],
+        "pixelsCromaticos": 42,
+        "maiorDeltaCanal": 144
+      },
+      {
+        "letra": "e",
+        "pixels": 68,
+        "media": [
+          191,
+          191,
+          180
+        ],
+        "pixelsCromaticos": 67,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "i",
+        "pixels": 34,
+        "media": [
+          172,
+          198,
+          195
+        ],
+        "pixelsCromaticos": 34,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "r",
+        "pixels": 35,
+        "media": [
+          172,
+          198,
+          202
+        ],
+        "pixelsCromaticos": 35,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "a",
+        "pixels": 59,
+        "media": [
+          204,
+          212,
+          204
+        ],
+        "pixelsCromaticos": 57,
+        "maiorDeltaCanal": 157
+      },
+      {
+        "letra": " ",
+        "pixels": 0
+      },
+      {
+        "letra": "d",
+        "pixels": 73,
+        "media": [
+          207,
+          211,
+          199
+        ],
+        "pixelsCromaticos": 68,
+        "maiorDeltaCanal": 168
+      },
+      {
+        "letra": "a",
+        "pixels": 61,
+        "media": [
+          199,
+          205,
+          200
+        ],
+        "pixelsCromaticos": 61,
+        "maiorDeltaCanal": 190
+      },
+      {
+        "letra": " ",
+        "pixels": 0
+      },
+      {
+        "letra": "T",
+        "pixels": 54,
+        "media": [
+          196,
+          205,
+          200
+        ],
+        "pixelsCromaticos": 46,
+        "maiorDeltaCanal": 107
+      },
+      {
+        "letra": "r",
+        "pixels": 39,
+        "media": [
+          174,
+          198,
+          197
+        ],
+        "pixelsCromaticos": 38,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "i",
+        "pixels": 33,
+        "media": [
+          211,
+          200,
+          169
+        ],
+        "pixelsCromaticos": 33,
+        "maiorDeltaCanal": 137
+      },
+      {
+        "letra": "p",
+        "pixels": 72,
+        "media": [
+          210,
+          208,
+          189
+        ],
+        "pixelsCromaticos": 70,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "u",
+        "pixels": 61,
+        "media": [
+          193,
+          203,
+          192
+        ],
+        "pixelsCromaticos": 61,
+        "maiorDeltaCanal": 174
+      },
+      {
+        "letra": "l",
+        "pixels": 36,
+        "media": [
+          198,
+          210,
+          204
+        ],
+        "pixelsCromaticos": 35,
+        "maiorDeltaCanal": 107
+      },
+      {
+        "letra": "a",
+        "pixels": 61,
+        "media": [
+          199,
+          205,
+          200
+        ],
+        "pixelsCromaticos": 61,
+        "maiorDeltaCanal": 190
+      },
+      {
+        "letra": "ç",
+        "pixels": 59,
+        "media": [
+          197,
+          200,
+          190
+        ],
+        "pixelsCromaticos": 58,
+        "maiorDeltaCanal": 152
+      },
+      {
+        "letra": "ã",
+        "pixels": 70,
+        "media": [
+          200,
+          206,
+          199
+        ],
+        "pixelsCromaticos": 68,
+        "maiorDeltaCanal": 168
+      },
+      {
+        "letra": "o",
+        "pixels": 58,
+        "media": [
+          197,
+          207,
+          200
+        ],
+        "pixelsCromaticos": 58,
+        "maiorDeltaCanal": 185
+      }
+    ]
+  }
+]

@@ -282,6 +282,107 @@ export function podePublicarParaCotistas(
 }
 
 // ---------------------------------------------------------------------------
+// O SEGUNDO RECORTE — POR CONFIGURAÇÃO DA EMBARCAÇÃO
+// (spec `2026-08-19-arquitetura-quatro-apps.md`, §2.4 e defeito 6)
+// ---------------------------------------------------------------------------
+
+/**
+ * O DIAGNÓSTICO QUE ESTAS TRÊS FUNÇÕES FECHAM, na palavra do dono: *"Um
+ * proprietário comum vê Cotistas, Pátio, Mecânica, Estoque, Combustível, Custo
+ * da frota e até Admin Commander. Isso não deveria aparecer para ele."*
+ *
+ * O app já recortava por PAPEL (`podeVer`, `PRESET_ENTERPRISE`) e ainda assim
+ * o defeito existia — porque papel responde a pergunta errada. O dono de um
+ * barco particular é `PROP`, e `PROP` é o papel de mais alto privilégio que
+ * existe: `permissoes = null`, `podeVer` devolve `true` pra tudo. Recortar o
+ * Pátio por permissão não recortaria nada dele, e não DEVERIA — ele é dono da
+ * unidade; se ela fosse operada por uma administradora, o Pátio seria dele por
+ * direito. O que separa os dois casos não é quem a pessoa é: é **o que a
+ * embarcação é**. O §2.4 da spec chama isso de ambiente, e o defeito 6 dá o
+ * caso exato: *"funções Enterprise aparecem para uma embarcação que nem está
+ * configurada para cotas"*.
+ *
+ * O SINAL, e por que é este: `embarcacoes.cotas_total` (integer NOT NULL
+ * DEFAULT 0, conferido no banco remoto em 19/08 — não nos arquivos de
+ * migration, que divergem do remoto neste projeto). É o campo que
+ * `/cotistas` grava (`lib/acoes/cotistas.ts`) e o que `vagasDeCotista` e
+ * `/convite-cotista/[codigo]` já leem pra decidir se há vaga. Ou seja: não é
+ * coluna inventada pra esta onda, é a definição que o produto JÁ usa pra
+ * dizer "esta unidade é operada em cotas" — só nunca tinha sido consultada
+ * pela navegação.
+ *
+ * Os dois candidatos que foram descartados, porque a escolha importa:
+ *
+ *   · CONTAR VÍNCULOS `COTISTA` custa uma consulta por navegação e, pior,
+ *     erra o zero-a-um: a embarcação que o dono ACABOU de configurar pra dez
+ *     cotas e ainda não convidou ninguém contaria zero e ficaria sem a
+ *     operação que ela já precisa. Intenção declarada ganha de ocupação.
+ *   · `embarcacoes.tipo` é o enum de casco (lancha · veleiro · iate · bote ·
+ *     jet). Não diz nada sobre modelo de operação.
+ *
+ * E O QUE CUSTA: nada. `cotas_total` já vem no `select("*")` que
+ * `carregarPainel` faz da embarcação — o recorte lê `painel.embarcacao`, em
+ * memória, sem somar uma ida ao banco a um Menu que o app inteiro atravessa.
+ */
+export function operaEmCotas(cotasTotal: number | null | undefined): boolean {
+  return (cotasTotal ?? 0) > 0
+}
+
+/**
+ * Esta pessoa, NESTA embarcação, enxerga a operação de frota (Pátio, Mecânica,
+ * Estoque, Combustível, Custo da frota, Afazeres)?
+ *
+ * O `switch` é exaustivo de propósito — sem `default`. Papel novo em `PAPEIS`
+ * quebra a compilação aqui e obriga uma decisão escrita, que é o oposto de
+ * herdar acesso por descuido. É a mesma lição que `normalizarPermissoes` já
+ * aplica na matriz de áreas: o que ninguém decidiu vale `false`.
+ *
+ * FALHA FECHADO, e cada linha tem motivo:
+ *
+ *   · Os quatro papéis operacionais do Enterprise (ADM Geral, ADM, Operações,
+ *     Mecânica) são funcionários de uma administradora — a operação da frota é
+ *     literalmente o trabalho deles, e existir com esse papel já é a prova de
+ *     que existe uma empresa por trás. Não dependem de `cotas_total`.
+ *   · `PROP` depende da configuração, e é aqui que o defeito 6 morre.
+ *   · `CMDT` é o comandante de um barco particular — a operação de base
+ *     (estoque da empresa, tanque da empresa, custo da frota) nunca foi dele.
+ *   · `COTISTA` é o caso que o §13 do PRD Upgrade 3 já respondia e a
+ *     navegação ignorava: *"visualiza a própria unidade; não administra a
+ *     frota"*. Ele opera EM cotas e mesmo assim não vê a operação — prova de
+ *     que os dois recortes são de fato independentes, e não um o atalho do
+ *     outro.
+ */
+export function veOperacaoDaFrota(papel: Papel, cotasTotal: number | null | undefined): boolean {
+  switch (papel) {
+    case "ADM_GERAL":
+    case "ADM":
+    case "OPERACOES":
+    case "MECANICA":
+      return true
+    case "PROP":
+      return operaEmCotas(cotasTotal)
+    case "CMDT":
+    case "COTISTA":
+      return false
+  }
+}
+
+/**
+ * O hub de Atualizações (`/atualizacoes`) tem regra PRÓPRIA, e não é preguiça:
+ * ele é a única tela de mão dupla entre os dois lados da cota. O §15 do PRD
+ * Upgrade 3 desenha assim — o cotista INFORMA o uso da unidade, o ADM analisa
+ * e incorpora — e a própria tela troca de cara conforme o papel.
+ *
+ * Por isso ela não pode pendurar-se em `veOperacaoDaFrota`, que exclui o
+ * cotista de propósito: a metade dela que existe é justamente a dele. O que
+ * governa é a embarcação estar em cotas — sem cota não há o que informar nem
+ * quem analise, e a linha some pros dois lados.
+ */
+export function veHubDeAtualizacoes(papel: Papel, cotasTotal: number | null | undefined): boolean {
+  return papel === "COTISTA" ? true : veOperacaoDaFrota(papel, cotasTotal)
+}
+
+// ---------------------------------------------------------------------------
 // §22 — auditoria
 // ---------------------------------------------------------------------------
 

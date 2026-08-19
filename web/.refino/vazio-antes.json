@@ -1,0 +1,62 @@
+{
+  "alturaPagina": 1912,
+  "telas": 2.27,
+  "secoes": [
+    {
+      "titulo": "Comece por aqui",
+      "secao": 324,
+      "vazio": 49,
+      "vazioTexto": "Concluído:Cadastrar motor",
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Gastos do mês",
+      "secao": 244,
+      "vazio": 184,
+      "vazioTexto": "Nenhuma despesa paga este mêsVaga, combustível, manutenção —",
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Tripulação",
+      "secao": 228,
+      "vazio": 168,
+      "vazioTexto": "Só você tem acesso a este barcoConvide comandantes de confia",
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Saúde",
+      "secao": 100,
+      "vazio": null,
+      "vazioTexto": null,
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Diário de Bordo",
+      "secao": 144,
+      "vazio": null,
+      "vazioTexto": null,
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Motores",
+      "secao": 129,
+      "vazio": null,
+      "vazioTexto": null,
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Mar agora",
+      "secao": 210,
+      "vazio": null,
+      "vazioTexto": null,
+      "alvosPequenos": []
+    },
+    {
+      "titulo": "Acesso rápido",
+      "secao": 116,
+      "vazio": null,
+      "vazioTexto": null,
+      "alvosPequenos": []
+    }
+  ]
+}

@@ -7,6 +7,8 @@ import {
   idadeCompacta,
   linkDoFator,
   prazoCompacto,
+  precisaDoCaminhoInicial,
+  primeirosPassos,
   rotuloDaSaude,
   seloDaSaude,
   seloDoMar,
@@ -293,6 +295,119 @@ describe("linkDoFator", () => {
 
   it("ocorrência leva pra própria ocorrência, que é leitura", () => {
     expect(linkDoFator(fator({ tipo: "ocorrencia", id: "oc-3" }), false)).toBe("/barco/ocorrencias/oc-3")
+  })
+})
+
+// =====================================================================
+// O caminho do dia 1 — a sequência que o app nunca contou.
+// =====================================================================
+
+describe("primeirosPassos", () => {
+  const tudoLiberado = { podeEditarMotores: true, podeEditarDocumentos: true }
+  const passos = (over: Partial<Parameters<typeof primeirosPassos>[0]> = {}) =>
+    primeirosPassos({ motores: [], documentosComValidade: 0, ...tudoLiberado, ...over })
+
+  it("no dia 1 os três estão pendentes, na ordem em que se fazem", () => {
+    expect(passos().map((p) => [p.id, p.feito])).toEqual([
+      ["motor", false], ["horas", false], ["documentos", false],
+    ])
+  })
+
+  it("cada passo diz o que DESTRAVA, não só o que fazer", () => {
+    // É a diferença entre tarefa e motivo: "informe as horas" não move
+    // ninguém; "é o que faz o app avisar antes de a revisão vencer" move.
+    for (const p of passos()) expect(p.destrava).toMatch(/^É o que|^É ele que/)
+  })
+
+  it("leva direto ao formulário — um toque a partir de /hoje", () => {
+    // A régua da casa é 3 toques (docs/CONTRIBUTING.md); nenhum destes gasta
+    // mais de um, e nenhum deles cai num hub pra procurar o formulário lá
+    // dentro.
+    const [motor, , documentos] = passos()
+    expect(motor.href).toBe("/barco/equipamento/novo?tipo=motor")
+    expect(documentos.href).toBe("/barco/documentos#novo")
+  })
+
+  it("o passo das horas aponta pro motor que ainda NÃO foi lido", () => {
+    const [, horas] = passos({
+      motores: [{ id: "bb", horasAtuais: 120 }, { id: "be", horasAtuais: null }],
+    })
+    expect(horas.href).toBe("/barco/equipamento/be/editar")
+  })
+
+  it("sem motor, informar horas não é acionável — é a sequência aparecendo", () => {
+    // Não há motor pra ler: link nenhum, porque link que não leva a lugar
+    // nenhum é pior que a ausência dele (mesma régua de `linkDoFator`).
+    expect(passos().find((p) => p.id === "horas")?.href).toBeUndefined()
+  })
+
+  it("horímetro em zero é leitura informada, não passo pendente", () => {
+    // `null` nunca vira zero, e zero nunca vira `null` (lib/domain/patio.ts):
+    // motor recém-instalado marcando 0,0 h JÁ foi informado — cobrar de novo
+    // seria mandar a pessoa refazer o que ela fez.
+    const [, horas] = passos({ motores: [{ id: "central", horasAtuais: 0 }] })
+    expect(horas.feito).toBe(true)
+  })
+
+  it("um motor lido entre dois já acende o passo — o app tem o que contar", () => {
+    const [, horas] = passos({
+      motores: [{ id: "bb", horasAtuais: 300 }, { id: "be", horasAtuais: null }],
+    })
+    expect(horas.feito).toBe(true)
+  })
+
+  it("cadastrar o motor conta quando existe motor, com ou sem leitura", () => {
+    expect(passos({ motores: [{ id: "bb", horasAtuais: null }] })[0].feito).toBe(true)
+  })
+
+  it("documento só conta com validade informada à mão", () => {
+    // O onboarding cria itens com `ultimo_ciclo_data = hoje` sem ninguém ter
+    // digitado nada (lib/acoes/onboarding.ts) — por isso quem alimenta este
+    // número é `data_fixa`, e a contagem chega pronta da tela. Zero aqui é
+    // "ninguém informou", não "está tudo em dia".
+    expect(passos({ documentosComValidade: 0 })[2].feito).toBe(false)
+    expect(passos({ documentosComValidade: 2 })[2].feito).toBe(true)
+  })
+
+  it("sem permissão de edição, o passo não vira link pra uma tela que recusa", () => {
+    const semNada = passos({
+      motores: [{ id: "bb", horasAtuais: null }],
+      podeEditarMotores: false,
+      podeEditarDocumentos: false,
+    })
+    expect(semNada.map((p) => p.href)).toEqual([undefined, undefined, undefined])
+  })
+})
+
+describe("precisaDoCaminhoInicial", () => {
+  const passos = (over: Partial<Parameters<typeof primeirosPassos>[0]> = {}) =>
+    primeirosPassos({
+      motores: [], documentosComValidade: 0,
+      podeEditarMotores: true, podeEditarDocumentos: true, ...over,
+    })
+
+  it("aparece no dia 1", () => {
+    expect(precisaDoCaminhoInicial(passos())).toBe(true)
+  })
+
+  it("SOME sozinho quando o barco tem os três — nunca vira decoração fixa", () => {
+    const completo = passos({
+      motores: [{ id: "bb", horasAtuais: 412.5 }],
+      documentosComValidade: 1,
+    })
+    expect(precisaDoCaminhoInicial(completo)).toBe(false)
+  })
+
+  it("continua enquanto sobrar um passo — o motor entrou, faltam os documentos", () => {
+    const meio = passos({ motores: [{ id: "bb", horasAtuais: 412.5 }] })
+    expect(precisaDoCaminhoInicial(meio)).toBe(true)
+  })
+
+  it("não aparece pra quem não pode fazer nenhum dos passos", () => {
+    // Tripulante só de leitura: uma lista de coisas que ele não tem como
+    // fazer não é orientação, é cobrança.
+    const semPermissao = passos({ podeEditarMotores: false, podeEditarDocumentos: false })
+    expect(precisaDoCaminhoInicial(semPermissao)).toBe(false)
   })
 })
 

@@ -32,9 +32,18 @@ export default async function NovoEquipamentoPage({
 
   return (
     <main className={TETO_FORMULARIO}>
+      {/* ONDA 101 — A SAÍDA PASSA A APONTAR PRO HUB DA ÁREA, e não mais pra
+          porta. `abaDoEquipamento` já disse acima a que área este tipo
+          pertence (é a mesma régua que a RLS usa); usar essa resposta pro
+          "Voltar" fecha o ciclo — quem entrou pelo card "Motores" volta pro
+          hub Motores, não pra central técnica.
+          O caso "outro" era um defeito de verdade e não só falta de tela:
+          equipamento `tipo="outro"` pertence à área Equipamentos desde a onda
+          32, e o Voltar mandava pra Elétrica, que é justamente a área cuja
+          RLS recusaria salvá-lo. */}
       <CabecalhoDetalhe
-        voltarHref={tipoInicial === "motor" ? "/barco" : "/barco/eletrica"}
-        voltarRotulo={tipoInicial === "motor" ? "Embarcação" : "Elétrica"}
+        voltarHref={aba === "motores" ? "/barco/motores" : aba === "equipamentos" ? "/barco/equipamentos" : "/barco/eletrica"}
+        voltarRotulo={aba === "motores" ? "Motores" : aba === "equipamentos" ? "Equipamentos" : "Elétrica"}
         titulo="Novo equipamento"
         descricao="Gerador, baterias, motor — tudo que tem manutenção própria."
       />

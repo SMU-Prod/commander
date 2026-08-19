@@ -43,11 +43,27 @@ export function Selo({ estado, children }: { estado: EstadoSelo; children?: Reac
     // selo de estado é etiqueta, não frase (a ressalva do `Chip` sobre mono
     // virar soletração vale para rótulo corrido de filtro, de até 17
     // caracteres; aqui a palavra mais longa tem 9).
-    // `font-bold` fica fora da classe de propósito: `.rotulo` não declara
-    // peso, e este é o único rótulo do app que precisa segurar sozinho um
-    // estado crítico.
+    // ONDA 98 (HAULIX §25, "Status badge") — A PILL GANHA AS MEDIDAS DA RÉGUA.
+    // O documento é específico onde este componente era aproximado: "pill,
+    // altura 20–22, padding 0 7, fonte 10–11, peso 600". A casa entregava
+    // altura implícita (11px de fonte + `py-0.5`, ~19px, e variável conforme a
+    // entrelinha herdada do pai), padding 8 e peso 700.
+    //   · `h-[22px]` — altura FIXA, o topo da faixa. Fixa e não derivada de
+    //     padding porque era a entrelinha do contexto que fazia o mesmo selo
+    //     sair com alturas diferentes em telas vizinhas; um badge de estado
+    //     que muda de tamanho conforme o vizinho é a deriva que este
+    //     componente existe pra matar.
+    //   · `px-[7px]` — os 7 do documento. Não é degrau da escala base-8 da
+    //     casa, e é a única medida deste arquivo que não é: a escala governa
+    //     ESPAÇAMENTO entre blocos, não o padding interno de uma pill de
+    //     22px, onde 8 já encosta o texto na curva.
+    //   · `font-semibold` (600) no lugar de `font-bold` (700). O §11 reserva
+    //     700 a título maior e o §25 pede 600 no badge — e a régua "evitar
+    //     800/900" só faz sentido junto com não gastar 700 em pill de 11px.
+    // `.rotulo` continua trazendo tamanho (11px, dentro da faixa 10–11),
+    // família mono, caixa alta e o rastreio único da casa.
     <span
-      className={`rotulo inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 font-bold ${COR[estado]}`}
+      className={`rotulo inline-flex h-[22px] shrink-0 items-center rounded-[var(--raio-pilula)] border px-[7px] font-semibold ${COR[estado]}`}
     >
       {children ?? ROTULO[estado]}
     </span>

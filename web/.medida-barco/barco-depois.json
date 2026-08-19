@@ -1,0 +1,62 @@
+{
+  "alturaPagina": 1404,
+  "alturaMain": 1307.625,
+  "telas": 1.66,
+  "qtdCartoes": 10,
+  "cartoes": [
+    {
+      "texto": "Adicionar foto da embarcação",
+      "alt": 44
+    },
+    {
+      "texto": "Motores2 motores",
+      "alt": 120
+    },
+    {
+      "texto": "CascoNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ElétricaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "HidráulicaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "SegurançaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "EquipamentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "DocumentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ManutençõesNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "Históricotudo, num lugar sóRelatórioscusto",
+      "alt": 342
+    }
+  ],
+  "abas": null,
+  "titulos": [
+    "H1:Barco de Teste",
+    "H2:Motores",
+    "H2:Casco",
+    "H2:Elétrica",
+    "H2:Hidráulica",
+    "H2:Segurança",
+    "H2:Equipamentos",
+    "H2:Documentos",
+    "H2:Manutenções"
+  ],
+  "svgs": 23,
+  "links": 21
+}

@@ -39,7 +39,13 @@ export function BotaoCirculo({
 }) {
   const alvo = `group grid size-11 shrink-0 place-items-center rounded-[var(--raio-pilula)] -m-[7px] ${TOQUE} ${className}`
   const desenho = (
-    <span className="grid size-[30px] place-items-center rounded-[var(--raio-pilula)] border border-line bg-panel2 text-dim transition-colors group-hover:border-accent/40 group-hover:bg-panel group-hover:text-texto">
+    // ONDA 98 (HAULIX §49) — O HOVER SUBIA E DESCIA AO MESMO TEMPO. O
+    // documento define hover como "sobe UM nível de superfície"; o desenho em
+    // repouso é `bg-panel2` (nível 2) e o hover apontava para `bg-panel`
+    // (nível 1), ou seja, AFUNDAVA um degrau enquanto acendia a borda. Com o
+    // nível 3 existindo (`--superficie-3`, onda 98), o hover passa a ir para
+    // onde ele sempre quis ir.
+    <span className="grid size-[30px] place-items-center rounded-[var(--raio-pilula)] border border-line bg-panel2 text-dim transition-colors group-hover:border-accent/40 group-hover:bg-panel3 group-hover:text-texto">
       <Icone nome={icone} className="size-3.5" />
     </span>
   )

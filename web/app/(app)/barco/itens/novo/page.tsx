@@ -26,11 +26,22 @@ export default async function NovoItemPage({
   // já que aqui ainda não existe item.
   const equipamentoIdAlvo = alvo?.startsWith("eq:") ? alvo.slice(3) : null
   const categoriaAlvo = alvo?.startsWith("cat:") ? alvo.slice(4) : null
+  // ONDA 101 — TODA CATEGORIA TEM HUB AGORA, e o Voltar passa a conhecer os
+  // seis. Antes só Documentos tinha destino: quem adicionava um item de casco
+  // ou de hidráulica caía na /barco e tinha que reencontrar a área. Casco e
+  // Manutenções ganharam tela nesta onda, e as outras quatro já existiam — o
+  // que faltava era este mapa. Sem `alvo`, `/barco` continua sendo a resposta
+  // certa: é a central técnica, e a pessoa escolhe a área no próprio
+  // formulário.
+  const hubDaCategoria: Record<string, string> = {
+    documento: "/barco/documentos",
+    [CATEGORIA_SEGURANCA]: "/barco/seguranca",
+    ...Object.fromEntries(CATEGORIAS_CASCO.map((c) => [c, "/barco/casco"])),
+    ...Object.fromEntries(CATEGORIAS_HIDRAULICA.map((c) => [c, "/barco/hidraulica"])),
+  }
   const voltarPara = equipamentoIdAlvo
     ? `/barco/equipamento/${equipamentoIdAlvo}`
-    : categoriaAlvo === "documento"
-      ? "/barco/documentos"
-      : "/barco"
+    : (categoriaAlvo && hubDaCategoria[categoriaAlvo]) || "/barco"
 
   return (
     <main className={TETO_FORMULARIO}>

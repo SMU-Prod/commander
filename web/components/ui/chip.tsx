@@ -17,12 +17,14 @@ import { TOQUE } from "@/lib/ui/acoes"
  *
  * Duas decisões de acabamento embutidas aqui:
  *
- * 1. ALTURA `--altura-controle` (44px), a MESMA de `RedeNav`/`FinanceiroNav`.
- *    O app passa a ter uma única altura de pílula, ponto. Escolher 40px
- *    "porque passa na régua da varredura" só criaria um terceiro tamanho ao
- *    lado dos 44px que a navegação já usa. (Onda 91, achado 5.10: era `h-11`
- *    cravado; o número virou token em `globals.css`, porque cravar a régua em
- *    cada arquivo é como o app chegou a nove alturas de alvo.)
+ * 1. ALVO `--altura-controle` (44px), o MESMO de `RedeNav`/`FinanceiroNav`.
+ *    O app passa a ter uma única altura de ALVO, ponto. Escolher 40px "porque
+ *    passa na régua da varredura" só criaria um terceiro tamanho ao lado dos
+ *    44px que a navegação já usa. (Onda 91, achado 5.10: era `h-11` cravado;
+ *    o número virou token em `globals.css`, porque cravar a régua em cada
+ *    arquivo é como o app chegou a nove alturas de alvo.)
+ *    ONDA 98 — o alvo continua 44; o DESENHO desce para 34 (§21 do HAULIX).
+ *    Ver o comentário no corpo, logo acima do `return`.
  *
  * 2. TIPOGRAFIA `text-sm` sans, não `font-mono-instr ... tracking-wide`. A
  *    fonte mono é o mostrador de instrumento — serve pra NÚMERO (horímetro,
@@ -63,16 +65,39 @@ export function Chip({
       ? "border-line bg-panel text-dim"
       : "border-line text-dim-chip"
 
+  // ONDA 98 — O ALVO TEM 44px, O DESENHO TEM 34. É a régua que `lib/ui/acoes.ts`
+  // e `BotaoCirculo` já praticavam, aplicada ao controle que o dono nomeou.
+  // ---------------------------------------------------------------------
+  // Diagnóstico dele em 19/08, olhando o app rodando: *"muitos filtros em
+  // formato de cápsula"*. A causa não é a quantidade de filtros — é o PESO de
+  // cada um: a pílula desenhava os 44px inteiros do alvo de toque, então uma
+  // fila de cinco filtros ocupava mais tinta que o conteúdo que ela filtra. O
+  // §21 do HAULIX põe o controle médio em 34–36 de altura e 0 14 de padding;
+  // a régua da casa põe o alvo em 44px e não negocia (mão molhada, barco
+  // balançando). As duas convivem separando as coisas: o `<Link>` continua
+  // sendo a caixa de 44px — é ele que o dedo acerta e é ele que a varredura
+  // mede —, e o `<span>` de dentro é a cápsula que se vê.
+  //
+  // SEM MARGEM NEGATIVA, ao contrário de `ALVO_ACAO`. Lá os `-my-[7px]`
+  // existem para o cabeçalho de seção não engordar 14px em ~35 telas; aqui a
+  // fila já reserva a altura, e margem negativa dentro do `ChipLinha` seria
+  // defeito: `overflow-x: auto` promove o eixo Y a `auto` também, então os
+  // 5px que sobrassem de cada lado seriam RECORTADOS — junto com a área
+  // clicável. O alvo voltaria a 34px sem ninguém perceber.
   return (
     <Link
       href={href}
       aria-current={ativo ? "true" : undefined}
-      className={`flex h-[var(--altura-controle)] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm ${TOQUE} ${estilo}`}
+      className={`flex h-[var(--altura-controle)] shrink-0 items-center ${TOQUE}`}
     >
-      {children}
-      {contagem != null && (
-        <span className="font-mono-instr text-[11px] tabular-nums opacity-80">{contagem}</span>
-      )}
+      <span
+        className={`flex h-[34px] items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border px-3.5 text-sm ${estilo}`}
+      >
+        {children}
+        {contagem != null && (
+          <span className="font-mono-instr text-[11px] tabular-nums opacity-80">{contagem}</span>
+        )}
+      </span>
     </Link>
   )
 }

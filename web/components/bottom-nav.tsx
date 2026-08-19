@@ -45,6 +45,27 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
 ]
 
 /**
+ * ONDA 102 — COMO ESTAS CINCO SE ENCAIXAM NOS SEIS ITENS DO MENU PRINCIPAL.
+ *
+ * A spec de 19/08 (§2.1) fixa o menu do proprietário em seis: Início · Meu
+ * Barco · Diário · Agenda · Serviços · Minha Conta. A barra cabe cinco, por
+ * motivo físico (a conta está 30 linhas abaixo), então o encaixe é este:
+ *
+ *   · Início, Meu Barco e Diário têm vaga própria — são os três destinos que
+ *     a pessoa abre todo dia;
+ *   · Agenda, Serviços e Minha Conta moram no Menu, que é a quinta vaga e o
+ *     gate de descoberta (PRD §9);
+ *   · Avisos não é um dos seis e mesmo assim fica, pelo motivo escrito logo
+ *     abaixo: é a única superfície de alerta presente em TODA tela do celular.
+ *     Trocá-la por "Serviços" apagaria o aviso de seguro vencido de todo lugar
+ *     pra ganhar um atalho que o Menu já dá a um toque.
+ *
+ * O rótulo continua "Barco" e não "Meu barco" pela MESMA restrição que tirou
+ * "Comandantes" daqui na onda 57: a 375px cada coluna tem ~75px, e "MEU
+ * BARCO" em caixa alta não cabe sem truncar ou sem descer a fonte abaixo do
+ * piso de 11px da escala. O vocabulário completo do dono vive onde há largura
+ * pra ele — o Menu e a pastilha do trilho.
+ *
  * DECISÃO FECHADA (onda 46) — A AGENDA NÃO VIRA ABA AQUI.
  *
  * A onda 43 entregou a Agenda e deixou a pergunta em aberto: ela merece uma
@@ -93,10 +114,27 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
                  demora, a pessoa toca de novo. `TOQUE` (e não `TOQUE_AMPLO`)
                  porque cada aba tem ~78px de largura: aqui os 3% são o
                  afundar certo, não um tremor. */
-              className={`flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${TOQUE} ${
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${TOQUE} ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >
+              {/* ONDA 98 (HAULIX §24) — O SEGUNDO CANAL DA ABA ATIVA.
+                  Conferido antes de mexer, como pedido: a barra de baixo
+                  resolvia "você está aqui" com UM canal — a cor do texto e do
+                  ícone (`text-accent-forte`). Cor sozinha não basta pela régra
+                  3 do `docs/DESIGN.md` §6 ("estado é forma, não só cor"), e
+                  aqui ela é ainda mais frágil que no trilho: o alvo tem 78px
+                  de largura e o glifo 21px, então não há área para um fundo
+                  cheio como o do §16 sem a barra inteira virar um bloco de
+                  ouro — o que estouraria a contenção de 1–3%.
+                  O §24 dá a forma certa para este caso: indicador de 2px no
+                  eixo da aba, que é o mesmo gesto que `Abas` já usa dentro da
+                  tela. Fica no TOPO (e não embaixo) porque o rodapé do
+                  aparelho come a borda inferior na área segura do iPhone.
+                  `aria-hidden`: o estado já é anunciado por `aria-current`. */}
+              {ativa && (
+                <span aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5 bg-accent" />
+              )}
               <span className="relative">
                 <Icone nome={a.icone} className="size-[21px]" />
                 {/* Onda 57 (revisão) — o badge saiu daqui pra

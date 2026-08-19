@@ -1,0 +1,131 @@
+{
+  "alturaPagina": 2879,
+  "alturaMain": 2782.75,
+  "telas": 3.41,
+  "qtdCartoes": 26,
+  "cartoes": [
+    {
+      "texto": "Adicionar foto da embarcação",
+      "alt": 44
+    },
+    {
+      "texto": "Mapa da embarcaçãoO barco em corte — diga ",
+      "alt": 84
+    },
+    {
+      "texto": "Motor",
+      "alt": 30
+    },
+    {
+      "texto": "BB 612,0 h",
+      "alt": 71
+    },
+    {
+      "texto": "BE 608,0 h",
+      "alt": 71
+    },
+    {
+      "texto": "Cadastre gerador e bateriasManutenção do g",
+      "alt": 84
+    },
+    {
+      "texto": "EquipamentosBote, guincho, ar-condicionado",
+      "alt": 84
+    },
+    {
+      "texto": "HidráulicaÁgua doce, Grey Water e Black Wa",
+      "alt": 66
+    },
+    {
+      "texto": "SegurançaColetes, extintores, balsa — vali",
+      "alt": 84
+    },
+    {
+      "texto": "DeckAdicionarFibraAdicionarInoxAdicionarVi",
+      "alt": 331
+    },
+    {
+      "texto": "Nenhum documento com vencimento cadastrado",
+      "alt": 212
+    },
+    {
+      "texto": "Manutenção",
+      "alt": 30
+    },
+    {
+      "texto": "Nenhuma outra manutenção cadastrada ainda",
+      "alt": 103
+    },
+    {
+      "texto": "Documentosvalidade e arquivos",
+      "alt": 88
+    },
+    {
+      "texto": "Financeirodespesas, entradas e saldo",
+      "alt": 88
+    },
+    {
+      "texto": "Carteirarepasse à tripulação",
+      "alt": 88
+    },
+    {
+      "texto": "Diário de Bordoregistrar saídas e serviços",
+      "alt": 88
+    },
+    {
+      "texto": "Ocorrênciasabertas, em curso, resolvidas",
+      "alt": 88
+    },
+    {
+      "texto": "Históricotudo, num lugar só",
+      "alt": 88
+    },
+    {
+      "texto": "Relatórioscusto e uso do período, em PDF",
+      "alt": 88
+    },
+    {
+      "texto": "Fotosálbuns do barco",
+      "alt": 88
+    },
+    {
+      "texto": "Contatosquem cuida do barco",
+      "alt": 70
+    },
+    {
+      "texto": "Commander VerifiedAinda não conquistado1 d",
+      "alt": 155
+    },
+    {
+      "texto": "Commander ConnectEm breveConectividade NME",
+      "alt": 73
+    },
+    {
+      "texto": "Comprimento16,7 mBoca4,8 mCalado1,35 mCasc",
+      "alt": 228
+    },
+    {
+      "texto": "Posição da marina-22.9186, -43.1686",
+      "alt": 66
+    }
+  ],
+  "abas": {
+    "scrollWidth": 805,
+    "clientWidth": 358,
+    "itens": [
+      "Motores2",
+      "Elétrica0",
+      "Casco0",
+      "Documentos0",
+      "Manutenções0",
+      "Ferramentas",
+      "Selos",
+      "Dados gerais"
+    ]
+  },
+  "titulos": [
+    "H1:Barco de Teste"
+  ],
+  "svgs": 29,
+  "links": 40
+}

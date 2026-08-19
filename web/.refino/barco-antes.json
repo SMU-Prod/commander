@@ -1,0 +1,65 @@
+{
+  "alturaPagina": 1404,
+  "telas": 1.66,
+  "degraus": [
+    "11px×3",
+    "12px×15",
+    "14px×8",
+    "16px×13",
+    "22px×1"
+  ],
+  "elementosDeTexto": 40,
+  "dourados": [
+    "path \"\""
+  ],
+  "qtdDourados": 1,
+  "superficiesDeCartao": [
+    "rgba(233, 241, 248, 0.12)×1",
+    "rgb(14, 36, 56)×9"
+  ],
+  "qtdCartoes": 10,
+  "cartoes": [
+    {
+      "texto": "Adicionar foto da embarcação",
+      "alt": 44
+    },
+    {
+      "texto": "Motores2 motores",
+      "alt": 120
+    },
+    {
+      "texto": "CascoNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ElétricaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "HidráulicaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "SegurançaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "EquipamentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "DocumentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ManutençõesNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "Históricotudo, num lugar sóRelatórioscus",
+      "alt": 342
+    }
+  ],
+  "alvosAbaixoDe44": [],
+  "svgs": 23
+}

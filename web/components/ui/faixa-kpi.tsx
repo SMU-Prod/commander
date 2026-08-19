@@ -45,7 +45,16 @@ export function PastilhaKpi({
   valor: string
 }) {
   return (
-    <span className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3">
+    // ONDA 98 (HAULIX §19, "KPI pill") — a régua é "altura 24–28, padding 0 9,
+    // raio 999, fonte 11–12. São indicadores contextuais, NÃO cards". A casa
+    // entregava 32 de altura e 12 de padding: 4px acima do teto e 3 acima do
+    // lado, o suficiente para a fila de pastilhas ler como uma fila de
+    // botõezinhos em vez de uma faixa de leitura. `h-7` = 28, o topo da faixa
+    // (não o meio: o valor aqui é `.valor`, 14px, e 24 não o comporta com
+    // respiro). O `px-[9px]` é o número do documento — mesma justificativa do
+    // `px-[7px]` do `Selo`: padding interno de pill não é a escala base-8, que
+    // governa espaço ENTRE blocos.
+    <span className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-[9px]">
       <Icone nome={icone} className="size-3.5 shrink-0 text-dim" />
       {/* ONDA 95 (achado 5.7) — O DOIS-PONTOS CAI, E COM ELE A TERCEIRA FORMA.
           A auditoria de 19/08 mediu a contagem escrita de três jeitos: dentro

@@ -17,13 +17,68 @@
 
    O par de blocos não mudou de lugar nesta onda: só o texto que os apresenta
    passou a dizer a verdade. */
+/* ===================================================================
+   ONDA 98 — NAVY E OURO. A PALETA VOLTA A SER A DA MARCA.
+   ===================================================================
+   Veredito do dono em 19/08/2026, depois de navegar pelo app pronto
+   (`docs/superpowers/specs/2026-08-19-arquitetura-quatro-apps.md` §4, na
+   palavra dele): *"O aplicativo hoje parece um painel técnico/industrial, não
+   o Commander premium que definimos. Verde-limão em todo botão, fundo preto
+   absoluto, cards cinza quase idênticos… O verde-limão precisa sair."*
+
+   O que ele mandou, item por item, e é o que este bloco e o de baixo passam a
+   valer: **azul-marinho profundo** de chão · **dourado real** nos detalhes e
+   na ação principal, com moderação · **branco quente / cinza claro** para
+   leitura · **alerta só em vermelho, âmbar e verde**.
+
+   ISSO REVERTE A ONDA 79 NA COR, E SÓ NA COR. A onda 79 amostrou pixel a
+   pixel a paleta da referência HAULIX e trouxe cinza puro + limão; o
+   `docs/referencias/haulix-design-system.md` continua sendo a régua de
+   **densidade, tipografia, hierarquia de superfície, status compacto e
+   contenção** — que é o que ele tem de melhor e o que esta mesma onda está
+   aplicando logo abaixo. A PALETA dele não se aplica: o §07 do HAULIX manda
+   a cor de marca ficar em 1–3% da tela, e essa disciplina fica valendo — só
+   que para o OURO.
+
+   POR QUE O CHÃO NÃO É PRETO: o dono nomeou "fundo preto absoluto" como
+   defeito. O `#0F0F0F` do HAULIX §03 sai; a escada sobe a partir do navy da
+   marca (`#0B1D2D`).
+
+   ------------------------------------------------------------------
+   ESTE BLOCO É O TEMA CLARO, E ELE NÃO É O QUE ABRE.
+   ------------------------------------------------------------------
+   `app/layout.tsx` roda um script antes da pintura que põe
+   [data-theme="dark"] no <html> a menos que a pessoa tenha escolhido claro —
+   o ESCURO é o que abre, e o claro é preferência (Ajustes → Aparência; a
+   leitura sob sol na marina continua sendo o motivo dele existir). Quem
+   calibra uma cor nova por este bloco calibra contra o tema que a maioria NÃO
+   vê. O escuro mora em [data-theme="dark"], mais abaixo. */
 :root {
-  --fundo: #f5f7fa;
-  --superficie: #ffffff;
-  --superficie-2: #eef1f5;
-  --linha: #e2e7ed;
+  /* A ESCADA DE SUPERFÍCIE DO TEMA CLARO CORRE PARA BAIXO, e isso é regra
+     derivada, não descuido — ver `docs/DESIGN.md` §5. No escuro, profundidade
+     é LUZ: cada nível do §22 do HAULIX clareia (canvas → card → aninhado →
+     interativo). No claro o topo da escala já está ocupado pelo branco, então
+     a mesma progressão só cabe descendo: o card é a superfície mais clara e
+     cada nível a partir dele ESCUREce. É o que este tema já praticava sem
+     escrever (`--superficie-2` sempre foi mais escuro que o card).
+     Branco quente, não branco frio: o dono pediu "branco quente / cinza claro
+     para leitura", e o §04 do HAULIX proíbe `#FFFFFF` em qualquer papel — os
+     dois `#ffffff` que este bloco tinha (`--superficie` e `--campo`) eram a
+     violação mais visível do documento no app inteiro. */
+  --fundo: #f1eee7;
+  --superficie: #fbf9f4;
+  --superficie-2: #e8e4da;
+  /* ONDA 98 (HAULIX §22 nível 3, §49) — O DEGRAU INTERATIVO, QUE FALTAVA.
+     O §22 declara QUATRO níveis e a casa tinha três; sem o quarto, "hover sobe
+     um nível de superfície" (§49) não tinha para onde subir e o app resolvia
+     realce com sombra ou com tinta de acento. Consumidor no mesmo commit:
+     `bg-panel3` no hover de `Cartao`, `LinhaLista` e `TrilhoLateral`. */
+  --superficie-3: #dedacf;
+  --linha: #d5d0c3;
   --texto: #0b1d2d;
-  --texto-dim: #60717f;
+  /* Subiu de contraste junto com o chão: sobre a página nova (#f1eee7) o
+     `#60717f` de antes entregava 4,35:1 — abaixo do mínimo de leitura. */
+  --texto-dim: #5c6672;
   --ok: #15803d;
   --warn: #b45309;
   --crit: #d2373c;
@@ -55,30 +110,37 @@
      lê, e `--acao-forte` desceu mais um pra continuar significando "mais
      contraste que o acento", que é o que "forte" quer dizer num chão claro.
 
-     Medido depois, os três chões do app (cartão / página / --superficie-2):
-       --acao        #806312 → 5,66  5,27  4,99
-       --acao-forte  #665009 → 7,73  7,20  6,82
-       --acao-texto  #ffffff sobre --acao 5,66 e sobre --acao-forte 7,73
-     Antes, o par --acao-texto/--acao-forte dava 3,49:1 e ninguém tinha
-     medido — o `bg-accent-forte` do app reprovava em silêncio.
+     ONDA 98 — A ESCADA CONTINUA, O TOM VOLTA A SER O DA MARCA. O dourado do
+     tema claro nunca foi o problema que a onda 96 consertou; o problema era a
+     LUMINÂNCIA. Com o chão passando a branco quente, os valores da onda 96
+     deixaram de fechar a conta sobre a superfície de chip (`--acao` #806312
+     entregava 4,46:1 lá, abaixo do mínimo), então os dois desceram mais um
+     degrau, dentro da MESMA família.
+
+     Medido nos três chões do app (cartão / página / --superficie-2):
+       --acao        #6e5410 → 6,79  6,17  5,63
+       --acao-forte  #584309 → 8,98  8,16  7,44
+       --acao-texto  #fbf9f4 sobre --acao 6,79 e sobre --acao-forte 8,98
+     `--acao-texto` deixa de ser `#ffffff` porque o §04 do HAULIX é explícito
+     — "o branco nunca deve ser #FFFFFF" — e porque a regra da casa diz que
+     ele é da cor do CHÃO: o chão virou branco quente, ele acompanha.
 
      O QUE NÃO MUDOU, E POR QUÊ: o acento sobre o navy fixo dos instrumentos
      (/navegar) NÃO segue esta escada. Dourado escuro sobre navy dá 3,02:1;
      o instrumento tem chão próprio e por isso tem acento próprio, no bloco
      `.bg-meter, .bg-mapa-instrumento` mais abaixo — mesmo mecanismo que ok/
      warn/crit já usavam lá pelo mesmo motivo. */
-  --acao: #806312;
-  --acao-forte: #665009;
-  --acao-texto: #ffffff;
-  --campo: #ffffff;
+  --acao: #6e5410;
+  --acao-forte: #584309;
+  --acao-texto: #fbf9f4;
+  --campo: #fdfcf8;
   --meter: #0b1d2d;
   --meter-texto: #e9f1f8;
   --meter-dim: #7c93ab;
   /* texto-dim foi calibrado contra --superficie; sobre --superficie-2 (badges,
-     chips, pills recolhidos) o par reprova AA: 4.45:1 no light, 4.16:1 no
-     dark (mínimo é 4.5:1). Token dedicado pra essa combinação, medido ao
-     vivo via getComputedStyle: 5.00:1 aqui, 4.89:1 no dark abaixo. */
-  --texto-dim-chip: #596976;
+     chips, pills recolhidos) o par reprova AA. Token dedicado pra essa
+     combinação: 5,20:1 aqui, 6,06:1 no dark abaixo. */
+  --texto-dim-chip: #545e69;
 
   /* ONDA 63 — COR DE DADO, a categoria que faltava.
      O app tinha três famílias de cor (texto, semântico ok/warn/crít, e o
@@ -88,9 +150,70 @@
      que ele virava o objeto mais alto da Início, mais forte que a própria
      ação dourada. Verde/âmbar/vermelho também não servem — são estado do
      barco, e gasto de junho não é "atenção".
-     Teal-aço: distinta do dourado, distinta dos semânticos, e é o que a
-     referência (painel Haulix) usa nos gráficos pelo mesmo motivo. */
-  --dado: #0f6d7a;
+
+     ONDA 98 — DEIXA DE SER TEAL/CIANO E VIRA AZUL-AÇO DA FAMÍLIA NAVY.
+     O dono fechou a lista de cores de ALERTA em "vermelho, âmbar e verde" e
+     tirou o resto da paleta; o ciano era a única cor do app que não pertencia
+     nem à marca nem ao semáforo. Azul-aço continua cumprindo o requisito que
+     criou este token — ser distinto do ouro e dos três do semáforo — sem
+     abrir um matiz novo: é o próprio navy da marca, claro o bastante pra ler
+     como série de gráfico. Medido sobre o cartão: 7,15:1 aqui, 6,28:1 no
+     dark. */
+  --dado: #28587f;
+
+  /* ===================================================================
+     ONDA 102 — OS OITO TONS DE HUB, E A REGRA QUE IMPEDE O ARCO-ÍRIS.
+     ===================================================================
+     O dono pediu, no §3 do spec de 19/08, "cards com identidade visual por
+     hub" para a central técnica (`/barco`), e a mesma frase avisa o risco. A
+     proposta que estava escrita em `docs/DESIGN.md` §5 desde então — e que
+     estes oito tokens finalmente implementam — tem TRÊS travas, e nenhuma
+     delas é decorativa:
+
+     1. O ÍCONE É O CANAL PRINCIPAL. Cada hub já tem desenho próprio em
+        `components/icone.tsx`; a cor é reforço, não a informação. É o que faz
+        a identidade continuar funcionando para daltônico.
+     2. A COR DO HUB VIVE SÓ NO ÍCONE E NO CARTUCHO DELE — nunca no fundo do
+        card, nunca na borda do card, nunca no texto. Assim **a única cor que
+        aparece no CORPO do card continua sendo a de ESTADO** (o farol). Um
+        hub azul com farol vermelho tem que ler "vermelho" de longe.
+     3. SÃO DESSATURADOS DE PROPÓSITO. Medido: estes oito ficam em ~22% de
+        saturação; ouro (74/85%), verde (54/84%), âmbar (68/95%) e vermelho
+        (55/74%) ficam entre 54 e 95%. Um tom de hub saturado passaria a
+        parecer estado, que é o custo de errar isto.
+
+     O ARCO, E POR QUE ELE NÃO DÁ A VOLTA INTEIRA. Oito matizes igualmente
+     espaçados no círculo cairiam em cima do vermelho (0°), do âmbar (37°) e
+     do ouro (46°) — as três cores que nesta casa SIGNIFICAM alguma coisa. O
+     arco usado é 174°→328°, em oito passos de 22°, e a distância mínima até
+     qualquer semântico é 30° (hidráulica↔verde 31°, documentos↔vermelho 32°).
+     `--dado` (207°) fica a 11° de dois deles e isso é aceitável: ele é
+     preenchimento de barra de gráfico, e não existe gráfico em `/barco`.
+
+     A ORDEM DE ATRIBUIÇÃO NÃO É A ORDEM DO ARCO. Na grade de duas colunas do
+     celular, os vizinhos são quem se compara — então os matizes foram
+     embaralhados para que nenhum par lado a lado fique a menos de 66° e
+     nenhum par um-embaixo-do-outro a menos de 44°. Em ordem de leitura:
+     motores 196° · casco 262° · elétrica 284° · hidráulica 174° ·
+     segurança 240° · equipamentos 306° · documentos 328° · manutenções 218°.
+
+     MEDIDO (ícone sobre o cartucho, que é o tom a 14% sobre o cartão): o pior
+     par é hidráulica no tema claro, com 3,96:1 — acima do mínimo de 3:1 que
+     vale para elemento gráfico. Sobre o cartão liso os oito ficam entre
+     4,65:1 e 9,27:1 nos dois temas.
+
+     DÍVIDA DECLARADA: `lib/ui/contraste.test.ts` deveria ganhar uma linha por
+     tom (a régua do `docs/DESIGN.md` §7 é "token de cor novo sem linha nova
+     ali reabre o buraco"). Esta onda não pôde tocar naquele arquivo; os
+     valores acima foram medidos fora dele e estão no relatório. */
+  --hub-motores: #3d6a7b;
+  --hub-casco: #533d7b;
+  --hub-eletrica: #6a3d7b;
+  --hub-hidraulica: #3d7b75;
+  --hub-seguranca: #3d3d7b;
+  --hub-equipamentos: #7b3d75;
+  --hub-documentos: #7b3d5e;
+  --hub-manutencoes: #3d537b;
 
   /* Onda 57 — forma. Raio e elevação vêm de escala declarada, e nada fora
      disto. Raio inventado por bloco foi o que fez a proposta de redesign
@@ -109,7 +232,19 @@
      999. As elevações continuam três (--sombra-1, --sombra-2, e o plano que é
      a ausência das duas). */
   --raio-controle: 8px;   /* chip, campo, botão pequeno */
-  --raio-cartao: 14px;    /* cartão ANINHADO — dentro de outro painel */
+  /* ONDA 98 (HAULIX §13 + §22 + §61) — O CARTÃO ANINHADO DESCE DE 14 PARA 12,
+     E ISSO NÃO ABRE UM QUINTO DEGRAU: É O MESMO DEGRAU, NO VALOR DA RÉGUA.
+     O HAULIX declara duas faixas para "quem contém", não uma: `Cards 10–12` e
+     `Containers grandes 14–16` (§13), e o §61 põe "raio 12 em card, 8 em
+     controle" na lista P0 (fidelidade obrigatória). A escada de quatro raios
+     que esta casa escreveu na onda 79 já é exatamente essa ideia — o que ela
+     tinha era o número do meio fora da faixa: `--raio-cartao` a 14 caía na
+     faixa de CONTAINER GRANDE, ou seja, o cartão aninhado desenhava o raio do
+     painel de primeiro nível e os dois degraus liam como um só a 2px de
+     distância. Com 12 e 16 a distância vira 4px e o raio volta a significar
+     profundidade, que é o motivo declarado de existirem dois.
+     Nenhuma tela muda à mão: os ~60 consumidores pedem `var(--raio-cartao)`. */
+  --raio-cartao: 12px;    /* cartão ANINHADO — dentro de outro painel */
   --raio-pilula: 999px;   /* pílula, avatar, selo */
   /* ONDA 79 (spec haulix-exato §3.2) — a referência usa ~16–20px no painel
      de primeiro nível e 8–10 nos internos. Tínhamos um raio só, e raio
@@ -151,98 +286,108 @@
 }
 
 [data-theme="dark"] {
-  /* Onda 57 — o escuro fica mais fundo e mais neutro. O navy #0b1d2d como
-     GROUND deixava tudo azulado e cartão nenhum se separava do fundo; a
-     referência escolhida pelo dono (painel Haulix) usa quase-preto e
-     reserva a cor para o dado. O navy continua sendo a marca — só não é
-     mais o chão.
-
-     Correção sobre o plano original: os hex de --superficie/-2/--linha
-     abaixo NÃO são os do plano (#121820/#1a222c/#232d38) — aqueles reprovam
-     o próprio teste de contraste do plano (contraste.test.ts): mesmo com
-     --fundo em preto puro (#000000), #121820 contra ele dá 1.177:1, abaixo
-     do 1.2 mínimo — matematicamente impossível de corrigir só mexendo no
-     fundo. --fundo ficou como pedido (não escurecido); os três valores
-     abaixo foram clareados o suficiente pra render "cartão separa do
-     fundo" (DESIGN.md §5) verdadeiro, mantendo o mesmo matiz e a mesma
-     progressão relativa entre os três. */
   /* ===================================================================
-     ONDA 79 — A PALETA MEDIDA DA REFERÊNCIA, NÃO MAIS APROXIMADA.
+     ONDA 98 — O ESCURO VOLTA A SER NAVY, E É ESTE O TEMA QUE ABRE.
      ===================================================================
-     Até aqui o escuro era navy: #0a0e12 de fundo, #1c232c de cartão. Isso
-     saiu de uma leitura A OLHO da referência do dono (painel Haulix) na
-     onda 57. Nesta onda as capturas foram AMOSTRADAS pixel a pixel
-     (`web/.varredura/paleta-haulix.mjs`, contra `public/imagens/*.png`), e
-     o resultado desmentiu a leitura:
+     A onda 79 amostrou a referência HAULIX pixel a pixel e trocou o navy por
+     cinza puro (#101010 de chão, #1a1a1a de cartão) com o limão de acento. A
+     medição estava certa e a conclusão durou até o dono ver o resultado
+     rodando: *"fundo preto absoluto, cards cinza quase idênticos… o
+     verde-limão precisa sair"*. O que a amostragem não podia medir é que a
+     referência é de OUTRO produto — logística industrial —, e o Commander é
+     náutico e premium. A cor volta a ser navy e ouro; a DENSIDADE, a
+     tipografia, a hierarquia de superfície e o status compacto do HAULIX
+     ficam, e é o que esta onda está aplicando no resto do arquivo.
 
-       as 16 superfícies mais frequentes da referência são CINZA PURO.
-       #020202 #101010 #121212 #141414 #161616 #181818 #1a1a1a #1c1c1c
-       #1e1e1e #222222 #242424 #282828 #2a2a2a #2c2c2c #2e2e2e #303030
+     A ESCADA DE SUPERFÍCIE É A DO §22 DO HAULIX, EM NAVY (quatro níveis, cada
+     um um degrau acima do anterior):
+       nível 0  canvas          --fundo         #07182a
+       nível 1  cartão          --superficie    #0e2438
+       nível 2  cartão aninhado --superficie-2  #173248
+       nível 3  interativo      --superficie-3  #20415a
+     Cada passo dá 1,13 · 1,19 · 1,24 de razão — o mesmo grão da referência,
+     que trabalha em degraus de ~1,1. É esta escada que substitui sombra por
+     camada (§14: "a profundidade principal vem da diferença de superfície").
 
-     Nenhuma tem tom. Zero. O nosso azulava tudo — e era isso, mais que
-     qualquer outra coisa, que fazia o app "não parecer com a referência"
-     mesmo depois de três ondas mexendo em componente.
-
-     Cor no escuro passa a existir SÓ no dado e no estado. O fundo é chão.
-
-     -------------------------------------------------------------------
-     O CONFLITO COM O NOSSO PRÓPRIO TESTE, E COMO ELE FOI RESOLVIDO
-     -------------------------------------------------------------------
-     `lib/ui/contraste.test.ts` exigia razão > 1,2 entre cartão e fundo. A
-     referência dá 1,105 (#1a1a1a sobre #101010) e reprovaria.
-
-     Baixar a régua seria trapaça. O que aconteceu foi outra coisa: a
-     referência separa cartão do fundo com BORDA, não com preenchimento —
-     e a borda dela (#2c2c2c sobre o cartão) dá 1,225, acima do mesmo 1,2.
-     Ou seja, a separação que o teste protege EXISTE; ele é que media um
-     jeito só de obtê-la. O teste passou a aceitar as duas formas e a
-     exigir a borda justamente quando o preenchimento não separa sozinho.
-     A regra ficou mais forte, não mais fraca. */
-  --fundo: #101010;
-  --superficie: #1a1a1a;
-  --superficie-2: #242424;
-  --linha: #2c2c2c;
-  --texto: #fcfcfc;
-  /* 4,97:1 sobre o cartão — passa AA com folga pequena e proposital: mais
-     claro que isto e o texto fraco deixa de parecer fraco. */
-  --texto-dim: #8a8a8a;
-  /* Medidos das capturas (`paleta-acento.mjs`): o âmbar do aviso de pausa
-     e da barra de combustível, o vermelho do alerta crítico, o ciano do
-     gráfico de utilização. O verde é o único de amostra pequena — ele só
-     aparece no arco do velocímetro. */
-  --ok: #96f48d;
-  --warn: #ffb447;
-  --crit: #ee6b67;
+     O TESTE QUE MEDE ISTO, E POR QUE ELE CONTINUA VERDE. `contraste.test.ts`
+     exige separação > 1,2 entre cartão e fundo por preenchimento OU por
+     borda. O preenchimento dá 1,132 — abaixo — e a borda dá 1,562, acima. É
+     exatamente a situação que a onda 79 registrou ao aceitar os dois
+     caminhos: a separação existe, e aqui ela é feita pela BORDA. */
+  --fundo: #07182a;
+  --superficie: #0e2438;
+  --superficie-2: #173248;
+  /* O nível 3 do §22, que a casa não tinha. Ver o gêmeo no bloco claro. */
+  --superficie-3: #20415a;
+  --linha: #26445f;
+  /* BRANCO QUENTE, PEDIDO DO DONO — e não o #F4F4F2 frio do §04 do HAULIX
+     nem o #fcfcfc de antes. Sobre navy, um branco de matiz quente é o que
+     separa "premium" de "terminal": 13,91:1 sobre o cartão. */
+  --texto: #f4f0e8;
+  /* 6,51:1 sobre o cartão. Num chão navy o cinza neutro puxa para verde —
+     este cinza tem o mesmo matiz do chão, um degrau de saturação abaixo. */
+  --texto-dim: #9aa8b6;
+  /* ALERTA SÓ EM VERMELHO, ÂMBAR E VERDE (veredito do dono, §4 do spec).
+     O verde deixa de ser o #96f48d limão da referência — era a mesma família
+     que acabou de sair da ação, e verde-limão de estado ao lado de ouro de
+     ação é justamente o ruído que ele nomeou. */
+  --ok: #5fd08a;
+  --warn: #f0b24d;
+  --crit: #ef6b6b;
   /* ------------------------------------------------------------------
-     O ÚNICO VALOR NÃO MEDIDO DESTE BLOCO.
+     O DOURADO REAL — MARCA E AÇÃO PRINCIPAL, COM MODERAÇÃO.
      ------------------------------------------------------------------
-     O verde-limão da referência aparece no botão de ação principal, no
-     logo e na linha da rota — e NENHUMA das seis capturas salvas em
-     public/imagens contém essas telas (a varredura achou 2 px isolados,
-     que são antialiasing do arco do velocímetro). Este hexadecimal é
-     leitura visual das imagens que o dono mostrou no chat, não medição.
-     Corrigir é trocar uma linha, se ele tiver o valor exato.
-
-     Vale registrar o que a troca significa: o dourado era a MARCA do
-     Commander (DESIGN.md §5, "pertencimento à marca"), não só um tema.
-     Trocar por limão é decisão de identidade e foi pedida pelo dono. */
-  --acao: #d6f24a;
-  --acao-forte: #e2f96f;
-  /* Preto e não navy: sobre limão claro, é o único que passa AA. */
-  --acao-texto: #101010;
-  --campo: #141414;
-  --meter: #020202;
-  --meter-texto: #fcfcfc;
-  --meter-dim: #8a8a8a;
-  --texto-dim-chip: #9a9a9a;
-  /* O ciano do gráfico de barras da referência, medido. */
-  --dado: #19b3d3;
-  /* A referência usa DUAS cores de dado, não uma: ciano no gráfico de
-     barras (utilização da frota) e roxo na área (pontualidade). Duas
-     séries lado a lado na mesma tela precisam se distinguir sem depender
-     de legenda — foi por isso que eles separaram, e é por isso que aqui
-     também. */
-  --dado-2: #5b4fd6;
+     `#d4af37` é o dourado declarado da marca desde a fundação (é o do logo,
+     o do herói da embarcação, o do selo Gold). A disciplina que vem junto é a
+     do §07 do HAULIX, transposta do limão para o ouro: **1–3% da tela**, e o
+     orçamento de dois usos por tela do `docs/DESIGN.md` §5 continua sendo
+     como isso é cobrado em revisão. "Dourado em todo botão" é o mesmo defeito
+     que "limão em todo botão" — o dono nomeou o segundo, e o primeiro já
+     tinha sido nomeado na onda 63.
+     `--acao-forte` é MAIS CLARO num chão escuro, porque "forte" quer dizer
+     mais contraste: 9,58:1 contra os 7,52:1 do acento. */
+  --acao: #d4af37;
+  --acao-forte: #e6c766;
+  /* Navy e não preto — a regra da casa é que `--acao-texto` é da cor do CHÃO,
+     e o chão voltou a ser navy. Sobre o ouro dá 8,51:1. (Precisou ser preto
+     enquanto o acento era limão claro; com ouro, o navy passa com folga.) */
+  --acao-texto: #07182a;
+  --campo: #0b1e30;
+  /* O cartucho de instrumento é o navy mais fundo da escada, e não o #020202
+     de antes: preto absoluto foi nomeado como defeito, e o cartucho é
+     justamente onde o olho passa mais tempo (horímetro, sondagem). */
+  --meter: #051221;
+  --meter-texto: #f4f0e8;
+  --meter-dim: #9aa8b6;
+  --texto-dim-chip: #a4b1be;
+  /* Azul-aço: a série de gráfico dentro da família da marca. Ver o gêmeo no
+     bloco claro para o porquê de o ciano ter saído. */
+  --dado: #7fa8c9;
+  /* OS OITO TONS DE HUB — mesmos matizes do bloco claro, lidos do outro lado
+     do chão: L 70% aqui (para clarear sobre o navy) contra L 36% lá. A
+     saturação é a MESMA (~22% medida), porque é ela que garante que nenhum
+     deles seja confundido com estado — ver o comentário longo no tema claro,
+     que não se repete aqui de propósito. Medido sobre o cartucho (tom a 14%
+     sobre `--superficie`): 4,61:1 no pior par (segurança) e 6,15:1 no melhor;
+     sobre o cartão liso, 6,03:1 a 8,71:1. */
+  --hub-motores: #9cbdc9;
+  --hub-casco: #ac9cc9;
+  --hub-eletrica: #bd9cc9;
+  --hub-hidraulica: #9cc9c5;
+  --hub-seguranca: #9c9cc9;
+  --hub-equipamentos: #c99cc5;
+  --hub-documentos: #c99cb4;
+  --hub-manutencoes: #9cacc9;
+  /* `--dado-2` FOI APAGADO NESTA ONDA, e o motivo é a régua da casa, não a
+     paleta: ele nasceu na onda 79 para a segunda série da referência e ficou
+     desde então com ZERO consumidores em todo o `web/` — nem `@theme` ele
+     tinha, então nem utilitária `text-dado-2` existia para alguém pedir. É o
+     mesmo vício que esta casa passou as ondas 87–95 apagando (`.valor` sem
+     uso, `--raio-painel` sem uso, `PILULA_ACAO_LARGA` sem uso): token sem
+     consumidor não é neutro — ele responde "é assim que se faz" a quem
+     procura no grep, apontando um caminho que o app não anda. No dia em que
+     uma tela tiver DUAS séries no mesmo gráfico, ele volta com o consumidor
+     no mesmo commit e com uma linha no `contraste.test.ts`. */
 }
 
 /* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
@@ -260,12 +405,28 @@
    @theme referencia ELA. */
 :root {
   --pilha-mono-instr: var(--font-plex-mono), ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+  /* ONDA 102 (HAULIX §49) — A CURVA DE MOVIMENTO, QUE O APP NÃO TINHA.
+     O documento é literal: "motion 120–180ms, `cubic-bezier(.2,.8,.2,1)`". A
+     casa tinha a DURAÇÃO escrita à mão em dois lugares (`duration-100` nas
+     duas constantes de `lib/ui/acoes.ts`) e a CURVA em NENHUM — todo hover e
+     todo toque do app saíam na `ease` padrão do navegador, que é outra curva
+     e é justamente a que faz interface parecer genérica.
+     Mora FORA do `@theme` pelo mesmo motivo que `--pilha-mono-instr`: o
+     `@theme inline` não emite a variável no `:root`, só inlina o valor nas
+     utilitárias que ele gera — e quem precisa dela aqui é a classe
+     `.transicao-ui`, escrita à mão mais abaixo. */
+  --curva-ui: cubic-bezier(.2, .8, .2, 1);
 }
 
 @theme inline {
   --color-ink: var(--fundo);
   --color-panel: var(--superficie);
   --color-panel2: var(--superficie-2);
+  /* ONDA 98 — o nível 3 do §22 vira utilitária (`bg-panel3`), porque sem ela
+     "hover sobe um nível de superfície" (§49) teria de ser escrito com
+     `bg-[var(--superficie-3)]` em cada consumidor — que é como o app chegou a
+     seis alturas de pílula. */
+  --color-panel3: var(--superficie-3);
   --color-line: var(--linha);
   --color-texto: var(--texto);
   --color-dim: var(--texto-dim);
@@ -283,6 +444,19 @@
   --color-meter-dim: var(--meter-dim);
   --color-mapa-instrumento: var(--mapa-instrumento);
   --color-mapa-instrumento-borda: var(--mapa-instrumento-borda);
+  /* ONDA 102 — os oito tons viram utilitária para que o cartucho do hub seja
+     escrito com o modificador de opacidade do Tailwind (`bg-hub-casco/14`) em
+     vez de um `rgb(... / .14)` na tela: é assim que o véu do cartucho fica
+     amarrado ao token e troca de tema junto com ele. Consumidor no mesmo
+     commit: a grade dos oito cards em `app/(app)/barco/page.tsx`. */
+  --color-hub-motores: var(--hub-motores);
+  --color-hub-casco: var(--hub-casco);
+  --color-hub-eletrica: var(--hub-eletrica);
+  --color-hub-hidraulica: var(--hub-hidraulica);
+  --color-hub-seguranca: var(--hub-seguranca);
+  --color-hub-equipamentos: var(--hub-equipamentos);
+  --color-hub-documentos: var(--hub-documentos);
+  --color-hub-manutencoes: var(--hub-manutencoes);
   --font-mono-instr: var(--pilha-mono-instr);
 }
 
@@ -318,26 +492,25 @@
   --ok: #2fd07a;
   --warn: #ffb020;
   --crit: #ff5c5c;
-  /* ONDA 96 — O ACENTO ENTROU NESTA LISTA, E ELE SEMPRE DEVIA TER ESTADO.
-     O parágrafo acima descreve o defeito exato que o acento passou a ter
-     quando `--acao` do tema claro desceu pra ler sobre branco: aqui dentro o
-     chão é navy fixo, e dourado escuro sobre navy dá 3,02:1 — escuro sobre
-     escuro, o mesmo caso do --warn/--crit que este bloco já resolvia.
-     São 17 dos 30 usos de `text-accent` do app que vivem aqui dentro
-     (sondagem, tempo, trilha, os cartões flutuantes de /navegar): sem esta
-     linha, consertar o acento da página teria quebrado a maioria dos seus
-     consumidores reais.
-     O valor é o acento VIVO — o mesmo dos dois blocos de tema para o escuro.
-     Não é uma terceira cor: é a decisão que o comentário da onda 24 já
-     escreveu logo acima de --mapa-instrumento ("sempre a MESMA cor em cima
-     do mapa claro OU do satélite escuro, não segue o tema do APP") e que o
-     acento era o único a não cumprir — no claro ele saía dourado, no escuro
-     limão, na mesma casca navy. Medido sobre o navy do instrumento:
-     --acao 13,57:1, --acao-forte 14,67:1, e o texto quase-preto sobre o
-     acento cheio 15,09:1. */
-  --acao: #d6f24a;
-  --acao-forte: #e2f96f;
-  --acao-texto: #101010;
+  /* ONDA 98 — O ACENTO DAQUI VOLTA A SER O DOURADO DA MARCA, e o mecanismo
+     não mudou: o chão aqui é navy FIXO nos dois temas, então quem estiver
+     dentro não pode herdar o acento calibrado pra ler sobre branco. No tema
+     claro `--acao` é dourado ESCURO (6,79:1 sobre o card branco quente) e
+     sobre este navy ele daria 3,02:1 — escuro sobre escuro, o mesmo defeito
+     que ok/warn/crit já resolviam nesta lista. Medido sobre o cartucho:
+     --acao 8,13:1 · --acao-forte 10,36:1 · --acao-texto sobre o acento
+     8,13:1. `--acao-texto` é `#0b1d2d` e não o `--acao-texto` do tema porque
+     a regra da casa é "da cor do CHÃO", e o chão daqui é o navy da marca.
+
+     A ORIGEM DESTA LINHA (onda 96): são 17 dos 30 usos de `text-accent` do
+     app que vivem aqui dentro (sondagem, tempo, trilha, os cartões flutuantes
+     de /navegar) — sem ela, consertar o acento da página quebra a maioria dos
+     seus consumidores reais. E é a decisão que o comentário da onda 24 já
+     tinha escrito acima de `--mapa-instrumento`: "sempre a MESMA cor em cima
+     do mapa claro OU do satélite escuro, não segue o tema do APP". */
+  --acao: #d4af37;
+  --acao-forte: #e6c766;
+  --acao-texto: #0b1d2d;
 }
 
 body {
@@ -387,11 +560,28 @@ body.fundo-tela-mapa {
   --sombra-2: 0 4px 16px rgb(11 29 45 / .10), 0 2px 4px rgb(11 29 45 / .06);
 }
 [data-theme="dark"] {
-  /* Acabamento Haulix (16/08): no escuro o cartão é CHAPADO — a borda de
-     1px separa, sombra nenhuma. Sombra em fundo quase-preto não lê como
-     elevação, lê como borrão; a referência não tem uma sombra de cartão
-     sequer. `--sombra-2` (o que FLUTUA: menu, bottom sheet) continua,
-     porque flutuar é outra coisa. */
+  /* SUPERFÍCIE × SOMBRA — A REGRA RESULTANTE, ESCRITA UMA VEZ (onda 98).
+     ------------------------------------------------------------------
+     O HAULIX §14 declara três sombras e no mesmo parágrafo diz que "a
+     profundidade principal vem da diferença de SUPERFÍCIE, não de sombra"; a
+     casa tinha três elevações (`plano` · `--sombra-1` separa do fundo ·
+     `--sombra-2` isto flutua) e resolvia profundidade com a segunda. As duas
+     ideias não brigam — elas respondem a perguntas diferentes, e a régua que
+     sai daí (repetida em `docs/DESIGN.md` §5) é:
+
+       PROFUNDIDADE  (este bloco está dentro daquele?) → SUPERFÍCIE.
+         Os quatro níveis do §22: canvas → cartão → aninhado → interativo.
+         Nunca sombra.
+       FLUTUAÇÃO     (este bloco está POR CIMA, fora do fluxo?) → SOMBRA.
+         Só `--sombra-2`, e só para quem é `fixed`/`absolute` sobre conteúdo:
+         menu, bottom sheet, pastilha sobre o mapa, ação flutuante.
+
+     `--sombra-1` — "separa do fundo" — é o degrau que a régua nova torna
+     redundante: separar do fundo é trabalho da superfície e da borda, não de
+     um borrão. Ela já era `none` aqui desde 16/08 (sombra em chão escuro lê
+     como borrão, não como elevação) e continua existindo só porque o tema
+     CLARO ainda a usa e ~40 telas escrevem `sombra-1` à mão; apagá-la de vez
+     é passe de tela, não de token. */
   --sombra-1: none;
   --sombra-2: 0 6px 20px rgb(0 0 0 / .45);
   /* ONDA 79 (spec haulix-exato §3.1) — "o painel não é chapado, é MATERIAL".
@@ -419,6 +609,35 @@ body.fundo-tela-mapa {
      armadilha silenciosa em 80 telas.
      ONDA 91 — quem pede é `Cartao nivel="painel"`, o padrão do componente. */
   .painel-lustro { background-image: var(--lustro-painel); }
+  /* ONDA 102 (HAULIX §49) — A TRANSIÇÃO DA CASA, E POR QUE ELA PRECISOU SER
+     UMA CLASSE EM VEZ DE TRÊS UTILITÁRIAS DO TAILWIND.
+     ------------------------------------------------------------------
+     `transition-property` é UMA propriedade CSS. `TOQUE` e `TOQUE_AMPLO`
+     (`lib/ui/acoes.ts`, a confirmação de toque de toda peça clicável do app)
+     pedem `transition-transform` — então qualquer peça que também quisesse
+     animar COR ficava com um dos dois, nunca com os dois, e quem vencia era
+     decidido pela ordem em que o Tailwind emite as utilitárias, não por quem
+     escreveu a tela. Medido no bundle desta onda: `transition-property:
+     transform` sai no índice 65.273 e a versão com lista arbitrária
+     (`transition-[background-color,…]`) no 64.045 — ou seja, escrever a lista
+     à mão na tela PERDE, e o hover salta sem animar enquanto o `active:`
+     anima. Foi o que aconteceu na primeira tentativa desta onda.
+     Uma classe daqui vence as duas: este bloco é escrito DEPOIS das
+     utilitárias geradas (é o mesmo mecanismo que o `:where()` de `.valor`
+     existe pra contornar, alguns parágrafos abaixo).
+     As quatro propriedades são as que as peças desta casa de fato animam:
+     cor de texto, superfície, borda e a escala de 3% do toque. `will-change`
+     não entra — a régua do §49 é "sem animação decorativa", e promover camada
+     pra 150ms de cor é caro pelo que compra.
+     REDUÇÃO DE MOVIMENTO: a regra wildcard com `!important` no fim deste
+     arquivo já zera `transition-duration` de qualquer seletor, inclusive
+     desta classe. Nada a repetir aqui. */
+  .transicao-ui {
+    transition-property: color, background-color, border-color, transform;
+    transition-duration: 150ms;   /* dentro dos 120–180ms do §49 */
+    transition-timing-function: var(--curva-ui);
+  }
+
   /* O raio de primeiro nível (§3.2). Existe como classe pra tela não
      escrever `rounded-[var(--raio-painel)]` na mão e o número virar 16 em 40 lugares —
      mesmo consumidor do lustro acima, e pelo mesmo motivo: as duas peças do
@@ -459,21 +678,74 @@ body.fundo-tela-mapa {
      que cria a hierarquia, não o tamanho.
      Por isso `.rotulo-dado` e `.valor` passam a carregar a COR junto do
      tamanho: a dupla vira impossível de errar. */
+  /* ONDA 98 — A ESCALA INTEIRA DO HAULIX (§08–11), NOS NOMES QUE JÁ EXISTEM.
+     ---------------------------------------------------------------------
+     O defeito medido: a Início gasta DOIS degraus para OITO títulos, e o
+     documento oferece seis. A correção não é um sistema paralelo — é cada
+     classe da casa passar a valer o degrau do HAULIX que ela já representava:
+
+       HAULIX            classe da casa        antes          depois
+       Display L 28/700  .valor-instrumento    28 / 500        28 / 600  (número, §11)
+       H1  24/30/650     .titulo-pagina        24 / 600 / 1.15 24 / 650 / 1.25
+       H2  20/26/650     .titulo-secao (nova)  —               20 / 650 / 1.3
+       H2 (número)       .valor-forte          20 / 500        20 / 600  (§11)
+       H3  16/22/600     .titulo-card          15 / 600 / 1.35 16 / 600 / 1.375
+       Body 14/20/400    .corpo                14 / 1.5        14 / 400 / 1.43
+       Body (número)     .valor                14 / 500        14 / 600  (§11)
+       Label 12/16/500   .apoio                12 / — / 1.5    12 / 500 / 1.33
+       Caption 11/15/500 .rotulo               11 / —          11 / 500 / 1.36
+       Caption (metadata) .rotulo-dado         11 / — / 1.4    11 / 450 / 1.36
+
+     OS DOIS DEGRAUS DO DOCUMENTO QUE NÃO ENTRAM, E POR QUÊ. O HAULIX tem
+     `Body L 15` e `Body Small 13`; a casa fica sem os dois, pela régua que
+     este mesmo arquivo já escreveu ao recusar o 13 na onda 80 — "com `.corpo`
+     em 14 o degrau de 1px não se via… um pixel não é degrau de hierarquia, é
+     ruído". 15 ao lado de 14 e de 16 é a mesma coisa, e foi exatamente o que
+     produziu o defeito: `.titulo-card` a 15 e `.corpo` a 14 são a MESMA voz
+     para o olho, então o app tinha, de fato, uma voz de título só. Seis
+     degraus separados por no mínimo 2px — 11 · 12 · 14 · 16 · 20 · 24, mais o
+     28 do número que É o assunto — é uma escada; dez degraus com vizinhos de
+     1px é um borrão com dez nomes.
+
+     PESOS: 400 corpo · 450 metadata · 500 rótulo · 600 botão/cartão/NÚMERO ·
+     650 título · 700 título maior. 800/900 não entram (§11). A Inter é
+     variável (`app/layout.tsx`), então 450 e 650 são pesos de verdade e não
+     arredondam; a Plex Mono é estática (400/500/600/700), por isso nenhum
+     degrau MONO — `.rotulo`, `.valor*` — pede 450 nem 650. */
   .titulo-pagina {
-    font-size: 1.5rem;      /* 24px */
-    font-weight: 600;
+    font-size: 1.5rem;      /* 24px — H1 */
+    /* 650 e não 600: o §11 reserva 650 para título e 700 para título maior.
+       A Inter variável entrega o meio-degrau; era ele que faltava para o
+       título da página não vestir o mesmo peso do título do cartão. */
+    font-weight: 650;
     /* Inter (onda 80) precisa de tracking mais negativo que a Plex pra ler
        apertada como a referência — a grotesca tem aberturas menores e, no
        espaçamento padrão, título grande fica frouxo. */
     letter-spacing: -.022em;
-    line-height: 1.15;
+    /* 1.25 = os 30px que o §08–11 declara para o H1. O 1.15 de antes (27,6px)
+       era aperto escolhido no olho e só aparecia em título de duas linhas. */
+    line-height: 1.25;
     text-wrap: balance;
   }
+  /* O DEGRAU QUE FALTAVA, E É A CAUSA DIRETA DE "OITO TÍTULOS IGUAIS".
+     Entre o rótulo de 11px e o título de página de 24px o app tinha UM degrau
+     (15px), e ele servia ao mesmo tempo o título de linha de lista e "o
+     assunto da tela". Duas funções num degrau só é o mesmo que nenhum. O H2 do
+     §08–11 é essa voz: 20/26/650. Consumidor no mesmo commit —
+     `Cartao peso="assunto"` (components/ui/cartao.tsx), que é onde a régua da
+     casa já declara morar "o cartão que É o assunto da tela". */
+  .titulo-secao {
+    font-size: 1.25rem;     /* 20px — H2 */
+    font-weight: 650;
+    letter-spacing: -.016em;
+    line-height: 1.3;
+    color: var(--texto);
+  }
   .titulo-card {
-    font-size: .9375rem;    /* 15px */
+    font-size: 1rem;        /* 16px — H3 */
     font-weight: 600;
     letter-spacing: -.011em;
-    line-height: 1.35;
+    line-height: 1.375;
     color: var(--texto);
   }
   /* A VOZ QUE NÃO EXISTIA: o dado em si. Branco, médio, tabular — é o que
@@ -512,22 +784,35 @@ body.fundo-tela-mapa {
      liga os dois; se essa onda não vier, o certo é APAGAR esta classe, não
      deixá-la de enfeite: foi a `.valor` de enfeite, com zero usos por 7
      ondas, que fez a auditoria abrir o eixo 5.3. */
+  /* ONDA 98 (HAULIX §11, "Numérica") — `font-feature-settings: "tnum"` ENTRA
+     AO LADO de `font-variant-numeric`, e não no lugar dela. O documento pede
+     as duas, e a redundância é proposital: `font-variant-numeric` é a
+     propriedade de alto nível (é ela que o navegador moderno usa e que o
+     Tailwind escreve em `tabular-nums`), `font-feature-settings` liga a
+     feature OpenType direto — é o caminho que sobrevive quando a fonte chega
+     por fallback local em vez do arquivo do `next/font`, que é exatamente o
+     instante em que uma coluna de dinheiro desalinha na frente do dono. */
   .valor {
     font-size: .875rem;     /* 14px */
-    line-height: 1.35;
+    line-height: 1.43;
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
   .valor-forte {
     font-size: 1.25rem;     /* 20px */
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
   .valor-instrumento {
     font-size: 1.75rem;     /* 28px */
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
-  .corpo { font-size: .875rem; line-height: 1.5; }                            /* 14px */
-  /* 12px, não 13: com `.corpo` em 14 o degrau de 1px não se via. */
-  .apoio { font-size: .75rem; line-height: 1.5; }                             /* 12px */
+  .corpo { font-size: .875rem; font-weight: 400; line-height: 1.43; }         /* 14px — Body */
+  /* 12px, não 13: com `.corpo` em 14 o degrau de 1px não se via — é a mesma
+     razão pela qual o `Body Small 13` do HAULIX não entra na escala da casa.
+     Peso 500: o §11 chama este degrau de Label, e label é 500. */
+  .apoio { font-size: .75rem; font-weight: 500; line-height: 1.33; }          /* 12px — Label */
   /* ONDA 95 (achado 5.12) — ESTE `.16em` É O ÚNICO DEGRAU DE RASTREIO DO APP.
      A auditoria de 19/08 mediu ONZE valores de `tracking-[…]` escritos à mão
      para um gesto só ("palavra em caixa alta, rastreada"): .05, .06, .08, .09,
@@ -539,14 +824,35 @@ body.fundo-tela-mapa {
      dimensionado por quem chama (de `text-[11px]` a `text-lg`) com o símbolo
      ao lado medindo 1.6em do mesmo corpo — com a classe, a palavra congelaria
      e a marca sairia desalinhada. Lá se escreve `tracking-[.16em]` na mão: o
-     MESMO valor, nunca um novo. Ver docs/DESIGN.md §5, "Rastreio". */
+     MESMO valor, nunca um novo. Ver docs/DESIGN.md §5, "Rastreio".
+
+     ONDA 98 — O DEGRAU CONTINUA SENDO UM SÓ; O VALOR DELE É QUE ESTAVA
+     QUATRO VEZES ACIMA DA RÉGUA. O dono nomeou, olhando o app rodando,
+     *"fontes pequenas e espaçadas demais"*, e esta era a medida objetiva por
+     trás da segunda metade da frase: o §43 do HAULIX especifica o rótulo em
+     caixa alta com `letter-spacing: .04em`, e a casa escrevia `.16em`. Quatro
+     vezes. Em 11px, `.16em` abre ~1,8px entre letras — a palavra deixa de ser
+     palavra e vira uma fila de letras, que é literalmente o que "espaçada
+     demais" descreve.
+     `.06em` e não os `.04em` do documento, e a diferença tem motivo medido:
+     o §43 fala de uma GROTESCA (Inter), e o `.rotulo` da casa é MONO (IBM
+     Plex Mono, ver a família logo abaixo). Mono já tem avanço fixo — em caixa
+     alta, `.04em` fecha as hastes de "M"/"N" contra as vizinhas. `.06em` é o
+     mesmo gesto do documento com a compensação da família, e continua sendo
+     UM valor: quem precisar do rastreio pede esta classe, e os três lugares
+     que escrevem `tracking-[.16em]` à mão (logo, mock da landing, herói da
+     embarcação) estão FORA desta camada e vão no relatório. */
   .rotulo {
     /* var(--pilha-mono-instr), e NÃO var(--font-mono-instr): o token do
        @theme inline não existe como custom property no DOM — ver o comentário
        na definição da pilha, acima do @theme. */
     font-family: var(--pilha-mono-instr);
-    font-size: .6875rem;    /* 11px — piso */
-    letter-spacing: .16em;
+    font-size: .6875rem;    /* 11px — Caption, e o piso da escala */
+    /* 500: o §11 define Caption em 500, e a Plex Mono é estática com esse
+       peso disponível (400/500/600/700) — nada arredonda. */
+    font-weight: 500;
+    letter-spacing: .06em;
+    line-height: 1.36;
     text-transform: uppercase;
   }
 
@@ -577,7 +883,12 @@ body.fundo-tela-mapa {
      (grade rótulo/valor, faixa de KPI) e a ficha de equipamento pedem. */
   .rotulo-dado {
     font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
-    line-height: 1.4;
+    /* 450 — o peso que o §11 reserva a METADATA, e é exatamente o papel desta
+       classe (a legenda de um valor dentro do cartão). A Inter é variável
+       (`app/layout.tsx`), então 450 é um peso de verdade e não arredonda para
+       400; é o meio-degrau que separa a legenda do corpo sem gritar. */
+    font-weight: 450;
+    line-height: 1.36;
   }
 
   /* ONDA 80 (a intenção) + ONDA 87 (o mecanismo que faltava pra ela valer).
@@ -609,7 +920,15 @@ body.fundo-tela-mapa {
      primeira tela que escrevesse `text-sm` por hábito. */
   :where(.valor, .valor-forte, .valor-instrumento) {
     color: var(--texto);
-    font-weight: 500;
+    /* ONDA 98 (HAULIX §11) — 600, e não 500. O documento é literal sobre o
+       número operacional: "dados operacionais com `font-weight: 600`". Era o
+       peso que os consumidores já escreviam à mão por cima (`LinhaLista`,
+       `ChipDado`, `PastilhaKpi` e `Kpi` todos somam `font-semibold` à
+       classe) — ou seja, a classe entregava 500 e a tela corrigia para 600
+       em quatro lugares. Com o padrão certo, o `font-semibold` deles vira
+       redundância inofensiva em vez de conserto obrigatório, e quem esquecer
+       de escrevê-lo passa a receber o peso certo. */
+    font-weight: 600;
   }
   :where(.rotulo-dado) { color: var(--texto-dim); }
 }
@@ -805,10 +1124,20 @@ body.fundo-tela-mapa {
   html, body {
     background: #fff !important;
   }
+  /* ONDA 98 — O ÚNICO `#ffffff` QUE SOBREVIVE NO APP, E ELE TEM MOTIVO.
+     O §04 do HAULIX proíbe o branco puro, e a onda 98 tirou os dois que
+     existiam na tela (`--superficie` e `--campo` do tema claro). Aqui ele
+     FICA, porque este bloco não descreve uma tela: descreve PAPEL. Papel é
+     branco puro, e imprimir um branco quebrado gasta tinta desenhando um
+     fundo que a folha já tem. Pelo mesmo motivo a paleta de impressão não
+     acompanha o navy: contraste em papel é preto sobre branco. */
   :root {
     --fundo: #ffffff;
     --superficie: #ffffff;
     --superficie-2: #f5f7fa;
+    /* O nível 3 precisa existir aqui também: sem ele, um bloco com `bg-panel3`
+       herdaria o cinza do tema de TELA e sairia como uma mancha no papel. */
+    --superficie-3: #eaeef3;
     --linha: #d7dee6;
     --texto: #0b1d2d;
     --texto-dim: #46545f;

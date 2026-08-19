@@ -105,7 +105,13 @@ const ROTAS = [
   // Tripulação. `/menu/tripulacao` (agora só redirect) fica de fora — medi-lo
   // seria medir `/tripulacao` duas vezes; `/tripulacao/[id]` segue a regra
   // das dinâmicas lá de cima.
-  "/notificacoes", "/menu", "/menu/perfil", "/menu/assinatura", "/menu/ajustes",
+  // Onda 103: o gate de descoberta ganhou um segundo nível. `/meu-barco` e
+  // `/servicos` são os dois agrupadores do §2.1 da spec de 19/08 — telas
+  // novas, com treze e cinco destinos. Deixá-las fora da varredura seria não
+  // medir justamente o que a rodada acabou de construir. (`/servicos` já
+  // existia como alias e não estava aqui: alias sem tela não tem o que medir.)
+  "/notificacoes", "/menu", "/meu-barco", "/servicos",
+  "/menu/perfil", "/menu/assinatura", "/menu/ajustes",
   "/tripulacao",
   "/assinar", "/onboarding",
   "/admin", "/admin/administradores", "/admin/usuarios", "/admin/parceiros",

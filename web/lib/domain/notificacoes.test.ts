@@ -14,11 +14,15 @@ import {
   NIVEIS_NOTIFICACAO,
   NIVEL_AVISO_MARKETPLACE,
   notificacaoDeDemandaCompativel,
+  notificacaoDeMotorParado,
   ordenarNotificacoes,
+  pedeAcao,
+  PEDE_ACAO_POR_NIVEL,
   PUSH_POR_NIVEL,
   VAZIO_CATEGORIA_NOTIFICACAO,
   type Notificacao,
 } from "./notificacoes"
+import { lembreteMotorParado } from "./alertas"
 import { normalizarPermissoes } from "./permissoes"
 
 function n(parcial: Partial<Notificacao> & { id: string }): Notificacao {
@@ -187,8 +191,7 @@ describe("contadorSino", () => {
   // promete". Antes do spec, um "3" no sino podia ser três informativas; quem
   // abre e não acha nada pra fazer aprende a ignorar o número — e aí ele não
   // avisa mais nada quando importa. É a diferença entre número que se confia
-  // e número que se ignora. Mesmo critério de PUSH_POR_NIVEL: o que interrompe
-  // é o que conta.
+  // e número que se ignora.
   it("1 crítica + 1 importante + 3 informativas = 2 (spec §3.3)", () => {
     expect(
       contadorSino([
@@ -199,6 +202,136 @@ describe("contadorSino", () => {
         n({ id: "i3", nivel: "informativa" }),
       ]),
     ).toBe(2)
+  })
+
+  it("caixa vazia e caixa só de informativas dão o mesmo zero — o badge some", () => {
+    expect(contadorSino([])).toBe(0)
+    expect(contadorSino([n({ id: "i1", nivel: "informativa" }), n({ id: "i2", nivel: "informativa" })])).toBe(0)
+  })
+
+  // ONDA 101 — o sino conta FATOS, a tela desenha LINHAS, e isso é decisão.
+  // `agruparSemelhantes` é apresentação: cinco pedidos compatíveis viram um
+  // cartão com "+4 semelhantes". Se o sino contasse linhas agrupadas, ele diria
+  // "1" para cinco coisas esperando. A aritmética fecha à vista (1 linha + "+4"
+  // = 5) e é a mesma do chip "Todas" e da aba Pendentes, que também contam cru.
+  it("conta o fato, não o cartão: cinco semelhantes são 5 no sino e 1 linha na tela", () => {
+    const cinco = ["a", "b", "c", "d", "e"].map((id) =>
+      n({ id, nivel: "importante", grupo: "mesmo-grupo" }),
+    )
+    expect(contadorSino(cinco)).toBe(5)
+    expect(agruparSemelhantes(cinco)).toHaveLength(1)
+  })
+})
+
+describe("PEDE_ACAO_POR_NIVEL — a régua do número vermelho (spec §3.3)", () => {
+  it("crítica e importante pedem ação; informativa não", () => {
+    expect(PEDE_ACAO_POR_NIVEL.critica).toBe(true)
+    expect(PEDE_ACAO_POR_NIVEL.importante).toBe(true)
+    expect(PEDE_ACAO_POR_NIVEL.informativa).toBe(false)
+  })
+
+  it("todo nível tem resposta — nível novo sem régua não passa despercebido", () => {
+    for (const nivel of NIVEIS_NOTIFICACAO) {
+      expect(typeof PEDE_ACAO_POR_NIVEL[nivel]).toBe("boolean")
+    }
+  })
+
+  it("`pedeAcao` é a régua que `contadorSino` usa — não duas contas parecidas", () => {
+    const lista = NIVEIS_NOTIFICACAO.map((nivel) => n({ id: nivel, nivel }))
+    expect(contadorSino(lista)).toBe(lista.filter(pedeAcao).length)
+  })
+
+  // A trava que dá sentido à separação: as duas constantes são IGUAIS hoje, e
+  // isso é conferido de propósito. Elas respondem a perguntas diferentes —
+  // "vale acordar alguém no celular?" e "isto está esperando por mim?" — e
+  // `PUSH_POR_NIVEL` já não descreve o app (diz `true` para toda importante,
+  // mas Agenda e Financeiro nunca viram push). Quando alguém corrigir aquela
+  // constante, este teste falha e obriga a decisão a ser escrita, em vez de o
+  // sino perder metade da caixa como efeito colateral de outra correção.
+  it("hoje coincide com PUSH_POR_NIVEL — e o dia em que divergir tem de ser escolha", () => {
+    for (const nivel of NIVEIS_NOTIFICACAO) {
+      expect(
+        PEDE_ACAO_POR_NIVEL[nivel],
+        `Se o push de "${nivel}" mudou, decida explicitamente o que o SINO faz — ` +
+          "as duas réguas são separadas desde a onda 101 justamente para isto.",
+      ).toBe(PUSH_POR_NIVEL[nivel])
+    }
+  })
+})
+
+// --- onda 101: motor parado, a fonte que o push tinha e a caixa não --------
+
+describe("notificacaoDeMotorParado", () => {
+  const motor = { id: "eq1", nome: "Motor BE", ultimaLeitura: "2026-07-01" }
+
+  it("motor sem leitura há mais de 30 dias vira pendência", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")
+    expect(aviso).not.toBeNull()
+    expect(aviso!.titulo).toBe("Motor BE sem leitura de horas")
+  })
+
+  it("dentro dos 30 dias não há aviso — a régua é a MESMA do push", () => {
+    // `lembreteMotorParado` é quem decide, aqui e no cron. Se este teste e o de
+    // `alertas.test.ts` discordarem, é porque alguém escreveu uma segunda régua.
+    expect(notificacaoDeMotorParado({ ...motor, ultimaLeitura: "2026-07-20" }, "2026-08-08")).toBeNull()
+    expect(lembreteMotorParado("2026-07-20", "2026-08-08")).toBeNull()
+  })
+
+  it("motor que nunca teve leitura não vira aviso — sem carimbo não se inventa quantos dias faz", () => {
+    expect(notificacaoDeMotorParado({ ...motor, ultimaLeitura: null }, "2026-08-08")).toBeNull()
+  })
+
+  it("é importante: conta no sino e interrompe o celular, que é o que o cron já faz", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")!
+    expect(aviso.nivel).toBe("importante")
+    expect(contadorSino([aviso])).toBe(1)
+    expect(PUSH_POR_NIVEL[aviso.nivel]).toBe(true)
+  })
+
+  it("nunca é crítica — crítica no Commander é fato consumado do barco", () => {
+    // Um ano parado continua sendo recomendação preventiva, não fato consumado.
+    expect(notificacaoDeMotorParado({ ...motor, ultimaLeitura: "2025-08-08" }, "2026-08-08")!.nivel)
+      .not.toBe("critica")
+  })
+
+  it("pertence à área Motores — tripulante sem acesso a Motores não recebe", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")!
+    expect(aviso.aba).toBe("motores")
+    const semMotores = normalizarPermissoes({ diario: { ver: true } })
+    expect(filtrarPorPermissao([aviso], semMotores)).toHaveLength(0)
+  })
+
+  it("leva pra ficha do equipamento, com verbo que vale pra quem só pode ver", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")!
+    expect(aviso.href).toBe("/barco/equipamento/eq1")
+    expect(aviso.acao).toBe("Ver motor")
+  })
+
+  it("o detalhe é o MESMO corpo que vai no push — os dois canais dizem a frase igual", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")!
+    expect(aviso.detalhe).toBe(lembreteMotorParado("2026-07-01", "2026-08-08")!.corpo)
+  })
+
+  it("dois motores parados viram UMA linha com contador (§5.2)", () => {
+    const avisos = [
+      notificacaoDeMotorParado(motor, "2026-08-08")!,
+      notificacaoDeMotorParado({ id: "eq2", nome: "Motor BB", ultimaLeitura: "2026-07-01" }, "2026-08-08")!,
+    ]
+    expect(agruparSemelhantes(avisos)).toHaveLength(1)
+    expect(agruparSemelhantes(avisos)[0].quantidade).toBe(2)
+    // Mas o sino conta os dois motores: são dois fatos esperando.
+    expect(contadorSino(avisos)).toBe(2)
+  })
+
+  it("é estado atual (sem data), então vem antes de histórico do mesmo nível", () => {
+    const aviso = notificacaoDeMotorParado(motor, "2026-08-08")!
+    expect(aviso.quando).toBeNull()
+    const datado = n({ id: "x", nivel: "importante", quando: "2026-08-01T00:00:00Z" })
+    expect(ordenarNotificacoes([datado, aviso])[0].id).toBe(aviso.id)
+  })
+
+  it("o ícone é o do motor, derivado de categoria+aba como todo aviso", () => {
+    expect(iconeDoAviso(notificacaoDeMotorParado(motor, "2026-08-08")!)).toBe("motor")
   })
 })
 
@@ -370,6 +503,115 @@ describe("iconeDoAviso", () => {
   it("sem hub conhecido, cai no sino genérico — nunca inventa origem", () => {
     expect(iconeDoAviso({ categoria: "embarcacao", aba: null })).toBe("alerta")
     expect(iconeDoAviso({ categoria: "embarcacao", aba: "diario" })).toBe("alerta")
+  })
+})
+
+// --- onda 101: o sino diz o mesmo número em todo lugar ---------------------
+
+/**
+ * A PROVA DE QUE AS QUATRO SUPERFÍCIES CONCORDAM.
+ *
+ * O número aparece em quatro lugares — barra de baixo, trilho do desktop,
+ * faixa de topo e o sino da Início — e é calculado em dois
+ * (`app/(app)/layout.tsx` e `app/(app)/hoje/page.tsx`). Quatro superfícies e
+ * duas contas é exatamente a forma que a divergência tem quando nasce: foi
+ * assim que o trilho nasceu SEM número na onda 57, e assim que o layout zerou
+ * o sino de quem não tem barco até a onda 99.
+ *
+ * Testar isso com render não pega o defeito que importa — o defeito não é o
+ * componente desenhar errado, é alguém somar por conta própria em algum
+ * arquivo novo. Então a catraca é estática, no espírito de `lib/ui/tokens.test.ts`:
+ * lê os arquivos e cobra a FORMA de calcular. Enquanto todo número vier de
+ * `contadorSino` sobre `carregarNotificacoes`, os quatro concordam por
+ * construção — e não por coincidência conferida à mão.
+ */
+describe("a contagem do sino é uma só, nos quatro lugares que a mostram (spec §3.3)", () => {
+  async function ler(relativo: string): Promise<string> {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    return readFileSync(join(process.cwd(), relativo), "utf-8")
+  }
+
+  /**
+   * O CÓDIGO SEM OS COMENTÁRIOS, e a distinção é o teste inteiro.
+   *
+   * Este projeto documenta a régua no lugar onde ela é consumida: a
+   * `BottomNav` explica em prosa que o contador "já vem filtrado por permissão
+   * — ver `carregarNotificacoes`". Uma busca por texto cru lê essa frase como
+   * se a barra estivesse chamando a consulta, e a catraca reprovaria
+   * exatamente o comentário que existe pra manter a regra viva — ensinando a
+   * apagar documentação pra fazer teste passar, que é o pior incentivo que um
+   * teste pode criar. O que se mede aqui é CHAMADA, não menção.
+   */
+  function semComentarios(fonte: string): string {
+    return fonte.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ")
+  }
+
+  /** Quem CALCULA o número. Os dois têm de derivá-lo da mesma dupla. */
+  const ORIGENS = ["app/(app)/layout.tsx", "app/(app)/hoje/page.tsx"]
+
+  /** Quem MOSTRA o número. Nenhum deles pode calcular nada. */
+  const SUPERFICIES = [
+    "components/bottom-nav.tsx",
+    "components/trilho-lateral.tsx",
+    "components/faixa-topo.tsx",
+    "components/sino-notificacoes.tsx",
+    "components/ui/contador-avisos.tsx",
+  ]
+
+  it("as duas origens calculam com `contadorSino` sobre `carregarNotificacoes`", async () => {
+    for (const arquivo of ORIGENS) {
+      const codigo = semComentarios(await ler(arquivo))
+      expect(codigo, `${arquivo} deixou de chamar contadorSino`).toContain("contadorSino")
+      expect(codigo, `${arquivo} deixou de chamar carregarNotificacoes`).toContain("carregarNotificacoes")
+    }
+  })
+
+  it("nenhuma superfície de exibição conta por conta própria — o número entra por prop", async () => {
+    for (const arquivo of SUPERFICIES) {
+      const codigo = semComentarios(await ler(arquivo))
+      // Se qualquer um destes for CHAMADO aqui, existe uma segunda conta no
+      // app — e duas contas é a definição de dois números diferentes.
+      for (const proibido of ["contadorSino", "PEDE_ACAO_POR_NIVEL", "PUSH_POR_NIVEL", "pedeAcao", "carregarNotificacoes"]) {
+        expect(
+          codigo.includes(proibido),
+          `${arquivo} calcula a contagem por conta própria (${proibido}). ` +
+            "O número tem de chegar por prop, vindo do layout ou da Início.",
+        ).toBe(false)
+      }
+    }
+  })
+
+  it("as superfícies não conhecem o domínio de avisos — nem para 'só dar uma olhada'", async () => {
+    // Import é código, nunca comentário: é a prova mais limpa de que a
+    // superfície é burra por construção. Uma que importe a régua já pode
+    // recalcular amanhã sem ninguém notar.
+    for (const arquivo of SUPERFICIES) {
+      const codigo = semComentarios(await ler(arquivo))
+      expect(
+        /from\s+["']@\/lib\/(domain\/notificacoes|consultas)["']/.test(codigo),
+        `${arquivo} importa a régua de avisos — ele só pode receber o número pronto.`,
+      ).toBe(false)
+    }
+  })
+
+  it("ninguém compara nível à mão pra contar — a régua é PEDE_ACAO_POR_NIVEL", async () => {
+    // Sentinela de escopo: se um arquivo passar a somar avisos por conta
+    // própria, ele aparece aqui antes de virar o segundo número do app.
+    for (const arquivo of [...ORIGENS, ...SUPERFICIES, "lib/consultas.ts"]) {
+      const codigo = semComentarios(await ler(arquivo))
+      expect(
+        /nivel\s*===\s*["'](critica|importante)["']/.test(codigo),
+        `${arquivo} compara nível à mão — a régua do que pede ação mora no domínio.`,
+      ).toBe(false)
+    }
+  })
+
+  it("o badge some no zero nos dois desenhos — 0 nunca vira círculo vazio", async () => {
+    // `null` nunca vira zero desenhado (regra da casa, `lib/domain/patio.ts`).
+    // Os dois componentes que desenham o número têm de recusar o não-positivo.
+    expect(await ler("components/ui/contador-avisos.tsx")).toContain("avisos <= 0")
+    expect(await ler("components/sino-notificacoes.tsx")).toContain("contador > 0")
   })
 })
 

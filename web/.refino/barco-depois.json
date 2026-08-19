@@ -1,0 +1,73 @@
+{
+  "alturaHeroi": 153,
+  "nomeDoBarco": "24px/650 ls=1.44px",
+  "tonsDeCartucho": 8,
+  "cartuchos": [
+    "oklab(0.777944 -0.0293673 -0.026374 / 0.14)",
+    "oklab(0.722021 0.0343302 -0.0570537 / 0.14)",
+    "oklab(0.737329 0.0536042 -0.0500107 / 0.14)",
+    "oklab(0.802772 -0.0469812 -0.00785702 / 0.14)",
+    "oklab(0.708729 0.0165094 -0.0631919 / 0.14)",
+    "oklab(0.74737 0.0659918 -0.0391811 / 0.14)",
+    "oklab(0.741592 0.0601767 -0.0156119 / 0.14)",
+    "oklab(0.741759 -0.006046 -0.0452714 / 0.14)"
+  ],
+  "alturaPagina": 1381,
+  "telas": 1.64,
+  "degraus": [
+    "11px×3",
+    "12px×16",
+    "14px×8",
+    "16px×13",
+    "24px×1"
+  ],
+  "elementosDeTexto": 41,
+  "dourados": [
+    "path \"\""
+  ],
+  "qtdDourados": 1,
+  "superficiesDeCartao": [
+    "rgb(14, 36, 56)×9"
+  ],
+  "qtdCartoes": 9,
+  "cartoes": [
+    {
+      "texto": "Motores2 motores",
+      "alt": 120
+    },
+    {
+      "texto": "CascoNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ElétricaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "HidráulicaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "SegurançaNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "EquipamentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "DocumentosNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "ManutençõesNada cadastrado",
+      "alt": 120
+    },
+    {
+      "texto": "Históricotudo, num lugar sóRelatórioscus",
+      "alt": 342
+    }
+  ],
+  "alvosAbaixoDe44": [],
+  "svgs": 24
+}

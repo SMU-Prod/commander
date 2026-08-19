@@ -47,21 +47,35 @@ import type { AlertaEnviado } from "@/lib/db/types"
  *  do catálogo: o sinal é a borda, não um preenchimento (o `bg-crit/[0.06]`
  *  da onda 58 saiu — era o paliativo de quando a borda era igual nos três
  *  níveis). Informativa fica na `border-line` de todo cartão. Nada de
- *  dourado (`accent`): esse é do Commander Gold. */
+ *  dourado (`accent`): esse é do Commander Gold.
+ *
+ *  ONDA 101 (HAULIX §26) — O CHIP DE NÍVEL VIRA PILL PREENCHIDA.
+ *
+ *  A régua entregue pelo dono descreve status badge como "pill sobre o
+ *  respectivo `-soft`", e o app tinha DUAS formas de escrever severidade no
+ *  mesmo cartão: o ícone já era `bg-crit/12 text-crit` (pill preenchida) e o
+ *  chip ao lado era contorno (`border-crit/50`). Mesma cor, mesma informação,
+ *  dois vestidos a 30px um do outro. Agora os dois usam o tratamento que o
+ *  documento nomeia — e o cartão perde uma borda, que §04 pede discreta.
+ *
+ *  A informativa fica em `bg-line` e não em `bg-panel2` de propósito: o cartão
+ *  inteiro passa a `bg-panel2` no hover (§49, "sobe um nível de superfície"), e
+ *  um chip pintado da cor do hover desapareceria justo quando o dedo está em
+ *  cima dele. `line` é o degrau vizinho, e sobrevive aos dois fundos. */
 const ESTILO_NIVEL: Record<NivelNotificacao, { cartao: string; chip: string; icone: string }> = {
   critica: {
     cartao: "border-l-crit",
-    chip: "border-crit/50 text-crit",
+    chip: "bg-crit/12 text-crit",
     icone: "bg-crit/12 text-crit",
   },
   importante: {
     cartao: "border-l-warn",
-    chip: "border-warn/50 text-warn",
+    chip: "bg-warn/12 text-warn",
     icone: "bg-warn/12 text-warn",
   },
   informativa: {
     cartao: "",
-    chip: "border-line text-dim",
+    chip: "bg-line text-dim",
     icone: "bg-panel2 text-dim",
   },
 }
@@ -71,7 +85,15 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
   return (
     <Link
       href={n.href}
-      className={`sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-l-2 border-line bg-panel p-3 ${estilo.cartao}`}
+      /* ONDA 101 (HAULIX §49) — O HOVER QUE NÃO EXISTIA.
+         Cada item desta lista é um link, e a lista inteira não dava retorno
+         nenhum ao ponteiro: no desktop não havia como saber qual linha ia
+         receber o clique. A régua é literal — "hover sobe UM nível de
+         superfície" (`bg-panel` → `bg-panel2`), o mesmo degrau que o trilho e
+         a faixa de topo já usam. `transition-colors` fica na faixa de 120–180ms
+         que o §49 pede; nada de animação decorativa. No toque isto não custa
+         nada: `hover` não dispara em tela sensível. */
+      className={`sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-l-2 border-line bg-panel p-3 transition-colors hover:bg-panel2 ${estilo.cartao}`}
     >
       {/* O desenho da ÁREA de origem, não um sino repetido (canvas tela-1e):
           documento vencido mostra a folha, extintor o escudo, revisão o motor
@@ -99,8 +121,10 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
       </div>
       {/* 11px, não 10.5: o piso tipográfico do app (DESIGN §5) vale também
           pro chip de nível — o canvas (tela-1e) escreve o chip exatamente
-          no piso. */}
-      <span className={`rotulo shrink-0 rounded-[var(--raio-pilula)] border px-2 py-0.5 ${estilo.chip}`}>
+          no piso, e o HAULIX §26 pede 10–11 na pill de status. `px-2 py-0.5`
+          dá a altura de ~20px que o documento fixa; a borda saiu junto com o
+          contorno (ver `ESTILO_NIVEL`). */}
+      <span className={`rotulo shrink-0 rounded-[var(--raio-pilula)] px-2 py-0.5 font-semibold ${estilo.chip}`}>
         {ROTULO_NIVEL_NOTIFICACAO[n.nivel]}
       </span>
     </Link>
@@ -335,7 +359,7 @@ export default async function NotificacoesPage({
               <EstadoVazio
                 icone="escudo"
                 titulo="Nenhuma pendência"
-                descricao="Verificado agora. Vencimentos, alertas do mar e pedidos novos do Marketplace também chegam no aparelho — o resto aparece só aqui."
+                descricao="Verificado agora. Vencimentos, motor parado, alertas do mar e pedidos novos do Marketplace também chegam no aparelho — o resto aparece só aqui."
                 className="mt-6"
               />
             ) : (

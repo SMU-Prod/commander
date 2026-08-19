@@ -46,7 +46,15 @@ import { describe, expect, it } from "vitest"
  * commit, porque a linha vai ficar aqui até alguém apagá-la.
  */
 const TETO_POR_ARQUIVO: Record<string, number> = {
-  "components/card-embarcacao.tsx": 19,
+  // ONDA 102 — 19 → 17. O convite de foto do herói escrevia o véu translúcido
+  // em notação funcional (quatro aberturas de `rgb()` entre borda, fundo,
+  // hover e cartucho do ícone) com os canais do `--meter-texto` do tema claro
+  // — o token existia e a peça copiava o valor dele. Passou a pedir
+  // `bg-meter-texto/…`, e de quebra o véu deixou de ficar preso ao azulado do
+  // claro quando o app abre no escuro. Os 17 que sobram são as três luzes
+  // vivas do semáforo de instrumento, o dourado do burgee e os navys/véus do
+  // gradiente do herói — cada um com o porquê escrito no próprio arquivo.
+  "components/card-embarcacao.tsx": 17,
   "components/selos/selo-verified.tsx": 9,
   "app/(app)/barco/equipamento/[id]/page.tsx": 8,
   "components/explorar/cards-parceiros.tsx": 4,

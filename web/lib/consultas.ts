@@ -5,7 +5,8 @@ import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
   DIAS_AVISO_AGENDA, DIAS_AVISO_FINANCEIRO, filtrarPorPermissao, nivelDaOcorrencia,
   nivelDoCompromisso, nivelDoStatusItem, nivelDoVencimentoFinanceiro,
-  notificacaoDeDemandaCompativel, NIVEL_AVISO_MARKETPLACE, ordenarNotificacoes,
+  notificacaoDeDemandaCompativel, notificacaoDeMotorParado, NIVEL_AVISO_MARKETPLACE,
+  ordenarNotificacoes,
   type Notificacao,
 } from "@/lib/domain/notificacoes"
 import { carregarMapaTaxonomia, tituloDeDemanda } from "@/lib/consultas-marketplace"
@@ -695,6 +696,28 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
       grupo: `item:${aba}:${r.status}`,
     }))
 
+  // ONDA 101 — MOTOR PARADO, A FONTE QUE O PUSH TINHA E A CAIXA NÃO.
+  //
+  // O cron manda push de motor sem leitura há mais de 30 dias com
+  // `url: "/notificacoes"`, e esta função nunca produziu a linha correspondente:
+  // a pessoa era interrompida, tocava no aviso e chegava numa caixa que dizia
+  // "Nenhuma pendência". Quem decide o que é motor parado continua sendo
+  // `lembreteMotorParado` — a MESMA função do cron, chamada por
+  // `notificacaoDeMotorParado`, e não uma segunda régua de 30 dias escrita aqui.
+  //
+  // CUSTO ZERO DE BANCO: `equipamentos` já veio no painel, com `ultima_leitura`.
+  // Nenhuma consulta nova entra no layout por causa disto — que é a única razão
+  // de esta fonte poder existir aqui, e o motivo de o aviso de MAR continuar
+  // fora (ele exigiria a API de tempo em toda navegação; ver o comentário de
+  // `notificacaoDeMotorParado`).
+  const deMotoresParados = equipamentos
+    .filter((e) => e.tipo === "motor")
+    .map((e) => notificacaoDeMotorParado(
+      { id: e.id, nome: nomeDoEquipamento(e), ultimaLeitura: e.ultima_leitura },
+      hoje,
+    ))
+    .filter((n): n is Notificacao => n != null)
+
   const deOcorrencias: Notificacao[] = ((ocorrenciasBrutas ?? []) as OcorrenciaParaNotificacao[]).map((o) => ({
     id: `ocorrencia:${o.id}`,
     titulo: o.titulo,
@@ -709,7 +732,10 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   }))
 
   return ordenarNotificacoes(
-    filtrarPorPermissao([...deItens, ...deOcorrencias, ...deAgenda, ...deFinanceiro, ...deMarketplace], permissoes),
+    filtrarPorPermissao(
+      [...deItens, ...deMotoresParados, ...deOcorrencias, ...deAgenda, ...deFinanceiro, ...deMarketplace],
+      permissoes,
+    ),
   )
 })
 

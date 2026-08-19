@@ -102,6 +102,16 @@ export function LinhaLista({
   // três paddings (12, 14 e 16px) em três componentes, e 14px nem degrau da
   // escala base-8 é (docs/DESIGN.md §5). O valor que fica é o de `Cartao`,
   // que é o único dos três com a decisão escrita: "a referência é densa".
+  // ONDA 98 (HAULIX §27 + §49) — A LINHA CLICÁVEL GANHA O DEGRAU DE HOVER.
+  // O §27 descreve a linha de lista com um hover que, na escada do §22, é
+  // subir um nível de superfície a partir do chão em que a linha está. Era
+  // o retorno que faltava no desktop: `TOQUE_AMPLO` responde ao DEDO (onda
+  // 84) e não ao ponteiro, então no trilho/notebook a lista inteira era
+  // inerte até o clique. Só entra onde o toque LEVA a algum lugar — mesma
+  // condição do `TOQUE_AMPLO`, pelo mesmo motivo: numa linha de exibição pura
+  // o realce seria mentira.
+  const linhaInteiraClicavel = !!href && trailing == null
+  const hover = linhaInteiraClicavel ? "transition-colors hover:bg-panel2" : ""
   const base = variant === "cartao"
     ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
     : "border-b border-line py-3 last:border-0"
@@ -112,8 +122,7 @@ export function LinhaLista({
   // a linha toda ao tocar no botão da direita apontaria para o alvo errado.
   // `TOQUE_AMPLO` e não `TOQUE` porque 3% numa linha de 358px é a tela
   // inteira tremendo (ver `lib/ui/acoes.ts`).
-  const linhaInteiraClicavel = !!href && trailing == null
-  const cls = `flex items-center gap-3 ${base} ${linhaInteiraClicavel ? TOQUE_AMPLO : ""} ${className}`
+  const cls = `flex items-center gap-3 ${base} ${hover} ${linhaInteiraClicavel ? TOQUE_AMPLO : ""} ${className}`
 
   // ONDA 91 — O `chevron` ERA IGNORADO NO RAMO DE BAIXO, e isso era defeito,
   // não desenho: o `return` antecipado do caso `href` + `trailing` montava o

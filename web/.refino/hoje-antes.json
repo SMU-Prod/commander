@@ -1,0 +1,70 @@
+{
+  "alturaPagina": 1935,
+  "telas": 2.29,
+  "degraus": [
+    "11px×14",
+    "12px×18",
+    "14px×11",
+    "16px×14",
+    "20px×3",
+    "22px×1",
+    "28px×1"
+  ],
+  "elementosDeTexto": 62,
+  "dourados": [
+    "path \"\"",
+    "a \"Registrar saída\""
+  ],
+  "qtdDourados": 2,
+  "superficiesDeCartao": [
+    "rgb(14, 36, 56)×8",
+    "rgba(233, 241, 248, 0.12)×1",
+    "rgb(23, 50, 72)×3"
+  ],
+  "qtdCartoes": 9,
+  "cartoes": [
+    {
+      "texto": "Comece por aquiNesta ordem — é o que ace",
+      "alt": 324
+    },
+    {
+      "texto": "Adicionar foto da embarcação",
+      "alt": 44
+    },
+    {
+      "texto": "Gastos do mêsNenhuma despesa paga este m",
+      "alt": 244
+    },
+    {
+      "texto": "TripulaçãoSó você tem acesso a este barc",
+      "alt": 228
+    },
+    {
+      "texto": "SaúdeSem dadosCompletarCadastre horas de",
+      "alt": 100
+    },
+    {
+      "texto": "Diário de BordoVer tudoNenhuma saída reg",
+      "alt": 144
+    },
+    {
+      "texto": "MotoresVer tudoMotor BB612,0 hSem revisã",
+      "alt": 129
+    },
+    {
+      "texto": "Mar agoraOnda0,7 mVento6 kt SEÁgua24 °CB",
+      "alt": 210
+    },
+    {
+      "texto": "Acesso rápidoBarcoAgendaDocsDiárioContat",
+      "alt": 117
+    }
+  ],
+  "alvosAbaixoDe44": [
+    {
+      "t": "tábua oficial do CHM",
+      "h": 15
+    }
+  ],
+  "svgs": 24
+}

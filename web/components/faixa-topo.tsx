@@ -115,6 +115,7 @@ export function FaixaTopo({
   avisos,
   email,
   nome,
+  estadoDoBarco = true,
 }: {
   /** `painel.embarcacao` reduzida a id + nome — com um barco só, o nome é
    *  link pra ficha (`/barco`); o id existe pro seletor saber qual é a atual. */
@@ -140,6 +141,25 @@ export function FaixaTopo({
   /** Nome do perfil (`painel.perfil?.nome`) — é ELE que manda nas iniciais,
    *  pra faixa e saudação nunca mostrarem letras diferentes na mesma tela. */
   nome?: string | null
+  /**
+   * ONDA 102 (spec 19/08 §5) — MOSTRA O ESTADO DO BARCO NESTA ÁREA?
+   *
+   * `true` (o padrão) desenha a faixa inteira: nome/seletor da embarcação,
+   * pílulas de motor e a revisão mais apertada. `false` reduz a faixa ao que
+   * QUALQUER área precisa — sino e avatar — e é o que vale fora de Início e
+   * Meu Barco.
+   *
+   * O diagnóstico, na palavra do dono: *"parece que nunca conseguimos sair da
+   * manutenção do barco"*. Quem escolhe é `MolduraApp`, a única peça do app
+   * que conhece a rota; aqui só entra a consequência de desenho.
+   *
+   * O SELETOR DE EMBARCAÇÃO VAI JUNTO, e a decisão é consciente: ele veio pra
+   * cá na onda 60 pra que trocar de barco não fosse função exclusiva da
+   * Início. Trocar de barco é um gesto de CONTEXTO DO BARCO, então ele
+   * pertence às mesmas duas áreas — e as duas áreas onde ele desapareceu
+   * ficam a um clique pelo trilho, que está em toda tela.
+   */
+  estadoDoBarco?: boolean
 }) {
   const motores = equipamentos.filter((e) => e.tipo === "motor")
 
@@ -178,45 +198,55 @@ export function FaixaTopo({
           (`atual` + `opcoes`, ambas já em mãos do layout). É ele, e não um
           link, porque trocar de barco precisa existir no desktop em toda
           tela — e o caminho pra ficha continua a um clique, pelo trilho. */}
-      {embarcacoes.length > 1 ? (
-        /* `shrink-0`: o nome do barco atual não trunca — quem cede espaço é
-           a fileira de pílulas ao lado, que já tem `overflow-hidden`. */
-        <span className="shrink-0">
-          <SeletorEmbarcacao atual={{ id: embarcacao.id, nome: embarcacao.nome }} opcoes={embarcacoes} />
-        </span>
-      ) : (
-        <Link
-          href="/barco"
-          className="flex min-h-11 min-w-0 items-center text-sm font-semibold text-texto underline-offset-4 hover:underline"
-        >
-          <span className="truncate">{embarcacao.nome}</span>
-        </Link>
-      )}
+      {/* ONDA 102 — TUDO QUE FALA DO BARCO VIVE DENTRO DESTE `&&`, e nada
+          fora dele. Assim a faixa reduzida não é um segundo componente com um
+          segundo jeito de desenhar sino e avatar: é ESTA faixa sem a metade
+          esquerda. Um cabeçalho só, duas formas — que é o que impede as duas
+          de divergirem com o tempo, do mesmo jeito que `ContadorAvisos` impede
+          o trilho e a barra de baixo de divergirem. */}
+      {estadoDoBarco && (
+        <>
+          {embarcacoes.length > 1 ? (
+            /* `shrink-0`: o nome do barco atual não trunca — quem cede espaço é
+               a fileira de pílulas ao lado, que já tem `overflow-hidden`. */
+            <span className="shrink-0">
+              <SeletorEmbarcacao atual={{ id: embarcacao.id, nome: embarcacao.nome }} opcoes={embarcacoes} />
+            </span>
+          ) : (
+            <Link
+              href="/barco"
+              className="flex min-h-11 min-w-0 items-center text-sm font-semibold text-texto underline-offset-4 hover:underline"
+            >
+              <span className="truncate">{embarcacao.nome}</span>
+            </Link>
+          )}
 
-      {/* As pílulas da imagem 1: contorno, rótulo curto + número mono.
-          Não são alvos (nada clicável), então podem ter 32px de altura. */}
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-        {pilulasMotor.map((p) => (
-          <span
-            key={p.id}
-            className="flex shrink-0 items-center gap-2 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5"
-          >
-            <span className="rotulo text-dim">{p.rotulo}</span>
-            <span className="font-mono-instr text-xs font-semibold tabular-nums text-texto">{p.valor}</span>
-          </span>
-        ))}
-        {revisao && (
-          /* A frase inteira de `apoioDaRevisao`, sem rótulo "Próxima
-             revisão" ao lado: a frase já carrega o assunto ("Revisão em
-             37h"), e rótulo + frase diriam "revisão" duas vezes. Sem mono:
-             é frase, não número de instrumento (docs/DESIGN.md §5). */
-          <span
-            className={`shrink-0 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5 text-xs font-medium ${COR_REVISAO[revisao.status]}`}
-          >
-            {apoioDaRevisao(revisao)}
-          </span>
-        )}
-      </div>
+          {/* As pílulas da imagem 1: contorno, rótulo curto + número mono.
+              Não são alvos (nada clicável), então podem ter 32px de altura. */}
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+            {pilulasMotor.map((p) => (
+              <span
+                key={p.id}
+                className="flex shrink-0 items-center gap-2 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5"
+              >
+                <span className="rotulo text-dim">{p.rotulo}</span>
+                <span className="font-mono-instr text-xs font-semibold tabular-nums text-texto">{p.valor}</span>
+              </span>
+            ))}
+            {revisao && (
+              /* A frase inteira de `apoioDaRevisao`, sem rótulo "Próxima
+                 revisão" ao lado: a frase já carrega o assunto ("Revisão em
+                 37h"), e rótulo + frase diriam "revisão" duas vezes. Sem mono:
+                 é frase, não número de instrumento (docs/DESIGN.md §5). */
+              <span
+                className={`shrink-0 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5 text-xs font-medium ${COR_REVISAO[revisao.status]}`}
+              >
+                {apoioDaRevisao(revisao)}
+              </span>
+            )}
+          </div>
+        </>
+      )}
 
       <div className="ml-auto flex shrink-0 items-center gap-1">
         {/* O sino — mesma anatomia do trilho: alvo de 44px, badge ancorado

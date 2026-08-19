@@ -152,22 +152,37 @@ export function Esqueleto({
 function FormaLista({ itens }: { itens: number }) {
   return (
     <>
-      {/* `h-7` = os 27,6px reais de `.titulo-pagina` (24px × 1.15); a segunda
-          barra é a frase de apoio de 18px (`.apoio`, 12px × 1.5) com o mesmo
-          `mt-1` que /diario e /financeiro escrevem. */}
-      <div className={`h-7 w-1/2 ${TEXTO}`} />
-      <div className={`mt-1 h-[18px] w-4/5 ${TEXTO}`} />
+      {/* ONDA 98 — as duas barras acompanham a escala nova (HAULIX §08–11):
+          `.titulo-pagina` virou 24px × 1.25 = 30px (era 24 × 1.15 = 27,6, que
+          é de onde vinha o `h-7`), e `.apoio` virou 12px × 1.33 = 16px (era
+          12 × 1.5 = 18). Esqueleto que promete a altura antiga entrega o salto
+          de layout que ele existe pra evitar. */}
+      <div className={`h-[30px] w-1/2 ${TEXTO}`} />
+      <div className={`mt-1 h-4 w-4/5 ${TEXTO}`} />
 
       {/* Medidas de `BarraFerramentas`: no celular a ação fica ACIMA e alinhada
           à direita, a fila de chips usa a largura inteira, e a partir de `lg`
-          os dois trocam de lugar numa linha só. Chip é `--altura-controle`
-          (44px, a altura única do app) em `--raio-pilula`. */}
+          os dois trocam de lugar numa linha só.
+          ONDA 98 — a fila de chips passa a copiar a NOVA anatomia do `Chip`:
+          a caixa continua ocupando `--altura-controle` (o alvo de 44px, que é
+          o espaço que a fila reserva no layout) e a pastilha VISÍVEL desenha
+          34px centrada dentro dela. O esqueleto promete o que vai chegar — se
+          ele continuasse pintando 44px de pastilha, a troca pelo conteúdo real
+          produziria exatamente o salto de 10px que este componente existe pra
+          matar. A ação da direita fica em 44: ela é botão, não filtro, e o §21
+          põe botão large em 40–44. */}
       <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="h-[var(--altura-controle)] w-32 shrink-0 self-end rounded-[var(--raio-pilula)] bg-panel2 lg:order-2 lg:self-auto" />
         <div className="flex gap-1.5 pb-1 lg:order-1 lg:min-w-0 lg:flex-1">
-          <div className="h-[var(--altura-controle)] w-20 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
-          <div className="h-[var(--altura-controle)] w-28 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
-          <div className="h-[var(--altura-controle)] w-16 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
+          {/* Larguras LITERAIS e não interpoladas (`w-${n}`): o Tailwind varre
+              o código-fonte atrás da classe escrita, e uma classe montada em
+              tempo de execução não gera CSS nenhum — mesma armadilha que
+              `lib/ui/acoes.ts` e `superficies.ts` documentam. */}
+          {["w-20", "w-28", "w-16"].map((w) => (
+            <div key={w} className="flex h-[var(--altura-controle)] shrink-0 items-center">
+              <div className={`h-[34px] ${w} rounded-[var(--raio-pilula)] bg-panel2`} />
+            </div>
+          ))}
         </div>
       </div>
 

@@ -10,18 +10,23 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/hoje",
         "/barco",
+        // Onda 103 — o índice "Meu barco" (§2.1 da spec de 19/08). Entra pelo
+        // mesmo motivo de todas as outras: é tela de dentro do app, atrás de
+        // sessão, e não tem o que indexar.
+        "/meu-barco",
         "/agenda",
         "/diario",
         "/menu",
         "/rede",
         "/comandantes",
         "/prestadores",
-        // Onda 46: a ABA Serviços deixou de existir (PRD §10, §27.2) e
-        // "/servicos" virou só alias que redireciona pra /prestadores. Fica
-        // NA lista mesmo assim, pelo mesmo motivo de "/oportunidades" logo
-        // abaixo (o outro alias da mesma família): rota que só existe pra
-        // link velho não tem por que ser rastreada, e tirar daqui seria
-        // convidar o buscador a indexar um redirecionamento.
+        // "/servicos" foi alias da aba eliminada na onda 46 (PRD §10, §27.2) e
+        // voltou a ser destino na onda 103 — é o quinto item do menu do §2.1,
+        // o índice da rede náutica (o porquê está em
+        // `app/(app)/servicos/page.tsx`). Continua NA lista de qualquer forma:
+        // agora não por ser redirecionamento, mas por ser tela de dentro do
+        // app, como "/barco" e "/menu". O `?categoria=` que ele ainda
+        // redireciona é mais um motivo pra não convidar rastreador.
         "/servicos",
         "/oportunidades",
         "/marketplace",

@@ -24,9 +24,12 @@ import { describe, expect, it } from "vitest"
  * 1. SÓ `href` LITERAL (`href="/rota"`). Href dinâmico (template string,
  *    expressão, prop repassada) depende de dado que só existe em runtime —
  *    regex não resolve `${id}`, e fingir que resolve seria checar um caminho
- *    inventado. Hoje as duas telas só têm literais; se um dia entrar um
+ *    inventado. Hoje as telas do gate só têm literais; se um dia entrar um
  *    dinâmico, ele fica invisível pra ESTE teste e a varredura e2e é quem o
- *    cobre.
+ *    cobre. (O `\b` antes de `href` é o que faz `voltarHref="/menu"` NÃO
+ *    contar: o "Voltar" de uma tela filha é o caminho de trás, não um destino
+ *    do índice — contá-lo acusaria toda tela de índice de morar dentro de si
+ *    mesma.)
  *
  * 2. REDIRECT CONTA COMO ROTA VIVA. `menu/tripulacao/page.tsx` existe só pra
  *    redirecionar pra `/tripulacao` — e está certo que o teste o aceite: o
@@ -43,6 +46,38 @@ import { describe, expect, it } from "vitest"
  */
 
 /**
+ * ONDA 103 — O GATE PASSOU A TER DOIS NÍVEIS, E ESTE ARQUIVO PRECISOU
+ * ACOMPANHAR.
+ *
+ * Até a onda 102 o gate eram DUAS telas: Menu (índice) e Ajustes
+ * (configuração). O §2.1 da spec `2026-08-19-arquitetura-quatro-apps.md` pede
+ * um menu de seis itens em que **Meu Barco** e **Serviços** são agrupadores, e
+ * a onda 102 os entregou como SEÇÕES da mesma lista — o que deixou o defeito
+ * nº 5 do dono ("menu longo demais") de pé: 1788px de rolagem, 22 linhas.
+ *
+ * Agora os dois agrupadores são TELAS (`/meu-barco` e `/servicos`), e o gate
+ * são QUATRO arquivos. Se este teste continuasse olhando só dois, dezoito
+ * destinos sairiam da cobertura no mesmo commit que os moveu — exatamente o
+ * tipo de buraco que ele existe pra impedir.
+ *
+ * As três disciplinas que ele passa a cobrar, e o motivo de cada uma:
+ *
+ *   · **LINK MORTO** — como antes, agora nas quatro telas.
+ *   · **MORADIA ÚNICA** — nenhum destino aparece em duas telas do gate. Era
+ *     "o que mora em Ajustes não pode morar no Menu" (onda 59) e virou a regra
+ *     geral, porque com agrupadores ela ganhou um segundo trabalho: impedir
+ *     que o Menu principal REENGORDE. Se alguém devolver "Financeiro" para a
+ *     tela do Menu, a linha passa a existir em dois lugares e o teste reprova
+ *     — que é a forma verificável de dizer "seis linhas e nada mais".
+ *   · **OS SEIS SÃO SEIS** — a tela do Menu só pode conter os seis destinos do
+ *     §2.1 e o que estiver declarado em `FORA_DOS_SEIS` com motivo escrito.
+ *     Sem isto, a moradia única sozinha permitiria acrescentar ao Menu
+ *     qualquer destino que ainda não estivesse nos agrupadores, e a lista
+ *     voltaria a crescer por acúmulo — que é literalmente como ela chegou a 22
+ *     linhas.
+ */
+
+/**
  * ONDA 84 / AUDITORIA 19/08 — A VARREDURA NA OUTRA DIREÇÃO (achado C5).
  *
  * Tudo acima checa `hrefs ⊆ rotas`: nenhum link aponta pro vazio. A auditoria
@@ -54,9 +89,9 @@ import { describe, expect, it } from "vitest"
  * o teste não aprendeu nada com isso. Consertar o caso pontual de novo seria
  * marcar encontro com a terceira vez.
  *
- * Por isso a varredura de baixo NÃO olha só as duas telas do gate: ela lê
- * `app/`, `components/` e `lib/` inteiras. O gate é onde o destino DEVERIA
- * estar, mas navegação nasce em muitos lugares (`bottom-nav`, `trilho-lateral`,
+ * Por isso a varredura de baixo NÃO olha só as telas do gate: ela lê `app/`,
+ * `components/` e `lib/` inteiras. O gate é onde o destino DEVERIA estar, mas
+ * navegação nasce em muitos lugares (`bottom-nav`, `trilho-lateral`,
  * `rede-nav`, `financeiro-nav`, `faixa-topo`, `admin/page.tsx`,
  * `lib/domain/partner.ts`) e uma rota alcançável por qualquer um deles não é
  * órfã — é só uma rota que não mora no Menu.
@@ -80,13 +115,55 @@ import { describe, expect, it } from "vitest"
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
-/** As duas telas do gate de descoberta. Caminho relativo à raiz de `web/`. */
+/**
+ * AS QUATRO TELAS DO GATE DE DESCOBERTA, em dois níveis. Caminho relativo à
+ * raiz de `web/`.
+ *
+ * O Menu é o primeiro nível (os seis do §2.1); `/meu-barco` e `/servicos` são
+ * os dois agrupadores; `/menu/ajustes` é "Minha conta", que sempre foi uma
+ * tela filha do Menu e agora só ficou explícito que ela é o terceiro filho.
+ */
+const TELA_DO_MENU = "app/(app)/menu/page.tsx"
 const TELAS_DO_GATE = [
-  "app/(app)/menu/page.tsx",
+  TELA_DO_MENU,
+  "app/(app)/meu-barco/page.tsx",
+  "app/(app)/servicos/page.tsx",
   "app/(app)/menu/ajustes/page.tsx",
 ]
 
-/** `href="/..."` literal, aspas duplas — como o JSX das duas telas escreve. */
+/**
+ * OS SEIS ITENS DO §2.1, na ordem em que o dono os escreveu:
+ * *"Início · Meu Barco · Diário · Agenda · Serviços · Minha Conta"*.
+ *
+ * "Minha Conta" continua morando em `/menu/ajustes` — o endereço não mudou de
+ * propósito (link salvo, conversa antiga e URL indexada não valem uma rota
+ * nova); o que mudou na onda 102 foi o título da tela.
+ */
+const OS_SEIS = ["/hoje", "/meu-barco", "/diario", "/agenda", "/servicos", "/menu/ajustes"]
+
+/**
+ * O que o Menu carrega ALÉM dos seis, com o motivo escrito — mesma disciplina
+ * das listas de exceção lá embaixo: lista sem motivo vira depósito, e foi por
+ * acúmulo sem motivo que o Menu chegou a 22 linhas.
+ *
+ * Todas as linhas de hoje são do TERCEIRO aplicativo do §1 (a operação
+ * Enterprise) e nenhuma aparece para um proprietário comum: elas estão atrás
+ * de `veOperacaoDaFrota`/`veHubDeAtualizacoes` (`lib/domain/enterprise.ts`),
+ * que dependem de `embarcacoes.cotas_total`. O §2.4 pede pra elas um ambiente
+ * separado, com rota, trilho e barra próprios — enquanto esse ambiente não
+ * existe, elas ficam aqui, declaradas. Quando ele existir, esta lista esvazia.
+ */
+const FORA_DOS_SEIS: Record<string, string> = {
+  "/patio": "operação Enterprise (§2.4) — atrás de veOperacaoDaFrota, invisível pro proprietário comum",
+  "/mecanica": "operação Enterprise (§2.4) — atrás de veOperacaoDaFrota",
+  "/afazeres": "operação Enterprise (§2.4) — atrás de veOperacaoDaFrota",
+  "/estoque": "operação Enterprise (§2.4) — atrás de veOperacaoDaFrota",
+  "/combustivel": "operação Enterprise (§2.4) — atrás de veOperacaoDaFrota",
+  "/frota": "financeiro operacional (§2.4) — veOperacaoDaFrota E permissão de gastos",
+  "/atualizacoes": "hub de mão dupla da cota (§15) — atrás de veHubDeAtualizacoes",
+}
+
+/** `href="/..."` literal, aspas duplas — como o JSX das telas escreve. */
 const HREF_LITERAL = /\bhref="(\/[^"]*)"/g
 
 function extrairHrefs(arquivoRelativo: string): string[] {
@@ -147,7 +224,17 @@ const SEM_PORTA_POR_DECISAO: Record<string, string> = {
   "/oportunidades": "alias de compatibilidade — virou /marketplace",
   "/oportunidades/nova": "alias de compatibilidade — virou /marketplace",
   "/rede": "alias de compatibilidade",
-  "/servicos": "alias de compatibilidade",
+
+  // `/servicos` ESTAVA AQUI e saiu na onda 103 — ele deixou de ser alias e
+  // virou o quinto item do §2.1, com link no Menu. A metade compatível
+  // continua viva DENTRO da tela: `?categoria=` ainda redireciona pra
+  // `/prestadores?categoria=`, então nenhum link velho virou 404. O
+  // julgamento inteiro (inclusive a objeção do PRD §10, *"não existe aba
+  // Serviços"*) está escrito em `app/(app)/servicos/page.tsx`.
+  //
+  // A lição, que é a mesma da saída de `/consultor` de `SO_POR_ACAO`: exceção
+  // some quando o defeito some. Manter a linha aqui faria o teste de baixo
+  // reprovar a rota justamente por ela ter ganhado a porta que precisava.
 }
 
 /**
@@ -178,8 +265,8 @@ const SO_POR_ACAO: Record<string, string> = {
   // O achado C1 da auditoria de 19/08 registrou o defeito — a agenda do
   // consultor do Commander Gold, papel PAGO e externo, sem UM link no app
   // inteiro — e este teste nasceu justamente porque ele passou três ondas
-  // escondido. A porta foi construída em `app/(app)/menu/page.tsx`, no molde
-  // da de `/parceiro` e visível só para quem tem o papel, e por isso a
+  // escondido. A porta foi construída em `app/(app)/menu/ajustes/page.tsx`, no
+  // molde da de `/parceiro` e visível só para quem tem o papel, e por isso a
   // exceção deixou de existir em vez de virar mobília.
   //
   // A lição fica escrita porque é ela que se repete: exceção com prazo é
@@ -268,17 +355,17 @@ describe("menu-destinos", () => {
   const rotas = rotasExistentes(path.join(RAIZ, "app"))
 
   // Sanidade, pelo mesmo motivo do teste-irmão `tokens.test.ts`: se o regex
-  // apodrecer ou uma das telas mudar de lugar, extrair ZERO hrefs faria o
-  // teste de baixo passar por vazio — um gate de descoberta sem nenhuma porta
-  // passaria como "nenhuma porta falsa". Teste de disciplina que passa sem
-  // ler nada é decoração.
-  it("as duas telas do gate existem e têm destinos pra checar", () => {
+  // apodrecer ou uma das telas mudar de lugar, extrair ZERO hrefs faria os
+  // testes de baixo passarem por vazio — um gate de descoberta sem nenhuma
+  // porta passaria como "nenhuma porta falsa". Teste de disciplina que passa
+  // sem ler nada é decoração.
+  it("as quatro telas do gate existem e têm destinos pra checar", () => {
     for (const tela of TELAS_DO_GATE) {
       expect(extrairHrefs(tela).length, `${tela}: nenhum href literal encontrado`).toBeGreaterThan(0)
     }
   })
 
-  it("todo href literal do Menu e de Ajustes leva a uma rota com page.tsx", () => {
+  it("todo href literal das telas do gate leva a uma rota com page.tsx", () => {
     const mortos: string[] = []
     for (const tela of TELAS_DO_GATE) {
       for (const href of extrairHrefs(tela)) {
@@ -293,42 +380,87 @@ describe("menu-destinos", () => {
     ).toEqual([])
   })
 
-  // ONDA 59 — A OUTRA METADE DO TESTE QUE O SPEC PEDE.
+  // ONDA 103 — O TESTE QUE FAZ "SEIS LINHAS E NADA MAIS" SER VERIFICÁVEL.
   //
-  // O spec de arquitetura §6 pede DUAS coisas do Menu: "todo destino do Menu
-  // leva a uma rota que existe" (o teste acima, entregue na onda 58) "e nenhum
-  // ajuste sobrou entre os destinos" — esta aqui, que tinha ficado pra trás.
+  // O §2.1 nomeia seis itens. Sem este teste, "seis" é uma frase de spec: a
+  // próxima área nova encosta mais uma linha aqui, depois outra, e em três
+  // ondas o Menu está de volta às 22 que esta rodada mediu antes de começar.
+  // Foi assim que ele engordou da primeira vez — nenhuma linha isolada parecia
+  // demais.
   //
-  // A separação da onda 58 só funciona se for EXCLUSIVA: o Menu é o índice do
-  // produto, Ajustes é a casa única da configuração ("moram AQUI, e em nenhum
-  // outro lugar", diz o cabeçalho de `menu/ajustes/page.tsx`). Um destino que
-  // apareça nas DUAS telas desfaz a mudança em silêncio — foi exatamente o
-  // estado que o dono descreveu como "o menu mais parece configurações do que
-  // menu". Como "é ajuste" não é uma propriedade que dê pra deduzir do href,
-  // o critério verificável é o da moradia: o que mora em Ajustes não pode
-  // TAMBÉM morar no Menu.
+  // A ORDEM ENTRA NA CONFERÊNCIA porque ela é do dono e carrega significado:
+  // "Meu Barco" logo depois de "Início" é o que diz que o barco é o assunto do
+  // app; "Minha Conta" no fim é o que diz que conta não é área do produto.
+  it("a tela do Menu tem os seis do §2.1, nessa ordem, e nada além do declarado", () => {
+    const hrefs = extrairHrefs(TELA_DO_MENU)
+    const seisNaOrdem = hrefs.filter((h) => OS_SEIS.includes(h))
+    expect(
+      seisNaOrdem,
+      `Os seis itens do §2.1 mudaram de ordem ou sumiram do Menu.\n` +
+        `A ordem do dono é: ${OS_SEIS.join(" · ")}`,
+    ).toEqual(OS_SEIS)
+
+    const intrusos = hrefs.filter((h) => !OS_SEIS.includes(h) && !(h in FORA_DOS_SEIS))
+    expect(
+      intrusos,
+      `Destino novo na tela do Menu. O §2.1 fixa SEIS itens e o defeito nº 5 do ` +
+        `dono é "menu longo demais, exige muita rolagem".\n` +
+        `Se é área do barco, a casa é /meu-barco; se é rede náutica, /servicos; ` +
+        `se é da pessoa, /menu/ajustes. Se não for nenhuma das três, declare em ` +
+        `FORA_DOS_SEIS com o motivo:\n${intrusos.map((d) => `  ${d}`).join("\n")}`,
+    ).toEqual([])
+
+    const declaradosQueSumiram = Object.keys(FORA_DOS_SEIS).filter((d) => !hrefs.includes(d))
+    expect(
+      declaradosQueSumiram,
+      `Estas rotas estão declaradas em FORA_DOS_SEIS e não estão mais no Menu — ` +
+        `lista que mente deixa de proteger. Remova as linhas:\n` +
+        declaradosQueSumiram.map((d) => `  ${d}`).join("\n"),
+    ).toEqual([])
+  })
+
+  // ONDA 59, ESTENDIDA NA 103 — MORADIA ÚNICA ENTRE AS TELAS DO GATE.
   //
-  // A única exceção é `/menu/ajustes` em si: a linha "Ajustes" no fim do Menu
-  // é a porta pra casa da configuração — sem ela, Ajustes viraria área que
-  // ninguém acha (o mesmo critério do teste de link morto). Hoje esse href só
-  // existe do lado do Menu; o filtro guarda o caso futuro de Ajustes ganhar
-  // um link pra si mesmo sem transformar isso numa reprovação sem sentido.
+  // O spec de arquitetura §6 pedia DUAS coisas do Menu: "todo destino do Menu
+  // leva a uma rota que existe" (o teste acima) "e nenhum ajuste sobrou entre
+  // os destinos" — que na onda 59 virou "o que mora em Ajustes não pode
+  // TAMBÉM morar no Menu". Com os agrupadores da onda 103 a mesma regra passou
+  // a fazer um segundo trabalho, e o mais importante dos dois:
+  //
+  //   · o de sempre — Menu (índice) × Ajustes (configuração) não se misturam,
+  //     que foi o estado que o dono descreveu como "o menu mais parece
+  //     configurações do que menu";
+  //   · o novo — um destino que já tem casa em `/meu-barco` ou `/servicos` não
+  //     pode reaparecer no Menu principal. É a forma verificável de dizer que
+  //     o agrupamento aconteceu de verdade, e não que a lista longa ganhou uma
+  //     cópia resumida em cima.
+  //
+  // Como "é ajuste" ou "é área do barco" não são propriedades dedutíveis de um
+  // href, o critério verificável continua sendo o da moradia: cada destino
+  // aparece em UMA tela do gate.
   //
   // Contra o "passa por vazio": a sentinela lá de cima já reprova se qualquer
-  // uma das duas telas extrair zero hrefs — este teste herda a proteção por
+  // uma das quatro telas extrair zero hrefs — este teste herda a proteção por
   // usar os MESMOS helpers.
-  it("nenhum ajuste entre os destinos: o que mora em Ajustes não aparece no Menu", () => {
-    const [telaMenu, telaAjustes] = TELAS_DO_GATE
-    const noMenu = new Set(extrairHrefs(telaMenu))
-    const duplicados = extrairHrefs(telaAjustes)
-      .filter((href) => href !== "/menu/ajustes")
-      .filter((href) => noMenu.has(href))
+  it("moradia única: nenhum destino aparece em duas telas do gate", () => {
+    const casaDe = new Map<string, string>()
+    const duplicados: string[] = []
+    for (const tela of TELAS_DO_GATE) {
+      for (const href of new Set(extrairHrefs(tela))) {
+        const jaMora = casaDe.get(href)
+        if (jaMora != null) duplicados.push(`  ${href} — em ${jaMora} e em ${tela}`)
+        else casaDe.set(href, tela)
+      }
+    }
     expect(
       duplicados,
-      `Destino morando nas duas telas do gate — a separação Menu (índice) × ` +
-        `Ajustes (configuração) da onda 58 exige moradia única.\n` +
-        `Decida a casa e remova a linha da outra tela:\n` +
-        duplicados.map((d) => `  ${d}`).join("\n"),
+      `Destino morando em duas telas do gate. O índice tem dois níveis desde a ` +
+        `onda 103 e cada destino tem UMA casa:\n` +
+        `  · área do barco → /meu-barco\n` +
+        `  · rede náutica → /servicos\n` +
+        `  · configuração e papéis da pessoa → /menu/ajustes\n` +
+        `  · os seis do §2.1 → a tela do Menu\n` +
+        `Decida a casa e remova a linha da outra tela:\n${duplicados.join("\n")}`,
     ).toEqual([])
   })
 

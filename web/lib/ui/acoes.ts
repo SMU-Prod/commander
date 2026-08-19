@@ -95,9 +95,14 @@ export const ALVO_ACAO = `group -my-[7px] inline-flex min-h-[var(--altura-contro
  * um plano próprio para ler como controle; sobre um cartão (`bg-panel`) o
  * `panel2` avança um degrau, que é a mesma direção. O hover puxa o dourado só
  * na borda — o suficiente para confirmar o alvo sem gastar tinta.
+ *
+ * ONDA 98 (HAULIX §49) — o hover era `bg-panel`, um degrau ABAIXO do repouso:
+ * a pílula afundava ao ser apontada. O §49 diz "sobe um nível de superfície",
+ * e agora existe para onde subir (`bg-panel3`, o nível 3 do §22). Mesmo
+ * conserto de `BotaoCirculo`, que copiava daqui.
  */
 export const PILULA_ACAO =
-  "inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3 text-xs font-medium text-texto transition-colors group-hover:border-accent/40 group-hover:bg-panel"
+  "inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3 text-xs font-medium text-texto transition-colors group-hover:border-accent/40 group-hover:bg-panel3"
 
 /**
  * A MESMA FORMA, UM TAMANHO ACIMA — para a ação que é um BLOCO, não um

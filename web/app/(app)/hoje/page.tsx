@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Suspense, type ReactNode } from "react"
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
+import { CaminhoInicial } from "@/components/onboarding/caminho-inicial"
 import { Farol } from "@/components/farol"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
@@ -35,6 +36,8 @@ import {
   idadeCompacta,
   linkDoFator,
   prazoCompacto,
+  precisaDoCaminhoInicial,
+  primeirosPassos,
   rotuloDaSaude,
   seloDaSaude,
   seloDoMar,
@@ -48,7 +51,7 @@ import type { Ocorrencia } from "@/lib/db/types"
 import { boletimDoMar } from "@/lib/mar"
 import { LINK_TABUA_MARE_CHM, pontoCardeal } from "@/lib/domain/mar"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
+import { ALVO_ACAO, PILULA_ACAO, PILULA_ACAO_PRINCIPAL, TOQUE } from "@/lib/ui/acoes"
 
 const ROTULO_MARE: Record<"preamar" | "baixa-mar", string> = { preamar: "Preamar", "baixa-mar": "Baixa-mar" }
 
@@ -454,6 +457,44 @@ export default async function HojePage({
   const saude = calcularSaudeEmbarcacao(itensParaSaude, ocorrenciasParaSaude)
   const estadoSaude = estadoExibidoDaSaude(saude, temDadoReal)
   const pendencias = saude.fatores.slice(0, 3)
+  // A MESMA LINHA DE SEMPRE, SÓ QUE NA VOZ CERTA. "1 vencido · 2 na margem ·
+  // 1 ocorrência aberta" saía em 12px dentro do menor cartão da tela (86px,
+  // medidos) — a auditoria de 19/08 mediu isto e chamou pelo nome: o assunto
+  // mais crítico do produto e o atalho mais descartável vestiam a mesma
+  // roupa. Sai daqui pra `valor` do `Cartao` (28px). Nenhuma palavra e nenhum
+  // número mudam; muda de que tamanho eles são ditos.
+  const partesDaSaude = estadoSaude != null ? contagemDaSaude(saude, ocorrenciasAtivas.length) : null
+
+  // ONDA 96 — O CAMINHO DO DIA 1, E ELE NÃO CUSTA UMA IDA AO BANCO.
+  //
+  // Os três sinais saem de `equipamentos` e `itens`, que o `carregarPainel`
+  // da primeira linha já trouxe. Fazer o guia consultar por conta própria
+  // devolveria à fila justamente a espera que a onda 100 tirou desta tela
+  // (15 idas em sequência viraram 6, 2.945 ms viraram 1.159) — e por um dado
+  // que já está em memória.
+  //
+  // `data_fixa` e não `ultimo_ciclo_data`: o onboarding grava
+  // `ultimo_ciclo_data = hoje` sozinho (`lib/acoes/onboarding.ts`), então
+  // contar por ele marcaria como FEITO um passo que ninguém deu. É a mesma
+  // recusa que `temDadoReal`, vinte linhas acima, já faz pelo mesmo motivo.
+  const passosIniciais = primeirosPassos({
+    motores: motores.map((m) => ({ id: m.id, horasAtuais: m.horas_atuais })),
+    documentosComValidade: itens.filter((i) => i.categoria === "documento" && i.data_fixa != null).length,
+    podeEditarMotores: podeEditar(permissoes, "motores"),
+    podeEditarDocumentos: podeEditar(permissoes, "documentos"),
+  })
+
+  // UM ASSUNTO POR TELA, E A REGRA QUE DECIDE QUAL (docs/DESIGN.md §5).
+  //
+  // A Saúde é o assunto assim que ela TEM o que dizer — ela é o resumo de que
+  // "Precisa da sua atenção" é o detalhe (as duas leem a mesma lista de
+  // fatores), e promover o detalhe acima do resumo inverteria a hierarquia
+  // progressiva que o §2 do DESIGN copia do Navionics: contagem → item →
+  // detalhe. Enquanto ela diz "Sem dados", o assunto da tela é o caminho que
+  // faz ela existir. Os dois nunca são assunto ao mesmo tempo porque a mesma
+  // condição decide os dois — não é disciplina de quem edita a tela depois,
+  // é uma variável só.
+  const saudeEhAssunto = estadoSaude != null
 
   const entradasGastos = (despesasMes ?? [])
     .map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" }))
@@ -556,6 +597,23 @@ export default async function HojePage({
           voltam a ser filhos diretos da grade de uma coluna do celular,
           onde o `order-*` de cada um repõe a posição de sempre. */}
       <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
+        {/* ONDA 96 — O CAMINHO DO DIA 1 ABRE A TELA, E SÓ ENQUANTO EXISTE.
+            `order-1` é a única posição livre da escada que a onda 63 montou
+            (2 herói, 3 saúde, 4 atenção…), e é a certa: quem não sabe o que
+            fazer precisa ler isto ANTES de qualquer instrumento. Na coluna
+            larga do desktop pelo mesmo motivo — é lá que o olho cai, e foi
+            exatamente o que a auditoria mediu faltar.
+            Ele some por conta própria quando o barco tem os três dados, sem
+            botão de dispensar: some por ter sido FEITO, nunca por ter sido
+            escondido. */}
+        {precisaDoCaminhoInicial(passosIniciais) && (
+          <CaminhoInicial
+            className="order-1"
+            passos={passosIniciais}
+            peso={saudeEhAssunto ? "secao" : "assunto"}
+          />
+        )}
+
         {/* A foto do dono é o assunto da tela — a única emoção, e a decisão
             assumida do redesenho. Sem selo de status e sem grade de métricas
             por cima dela desde a onda 57: o estado tem cartão próprio logo ao
@@ -645,9 +703,21 @@ export default async function HojePage({
                 </div>
               </>
             ) : (
+              /* ONDA 103 — `densidade="denso"` nos QUATRO vazios desta tela.
+                 Medido a 390px antes de mexer: este cartão fechava em 244px e
+                 o de Tripulação em 228px — os dois maiores da Início depois
+                 do herói — sem UMA palavra a mais que os cartões de 100px ao
+                 lado. A diferença inteira era ar, e o dono chamou isso de
+                 "grandes áreas vazias". Aqui o vazio não é a tela: é uma
+                 linha dela, disputando espaço com outros nove cartões — que é
+                 exatamente a condição do grau denso (ver `estado-vazio.tsx`).
+                 Anda junto com o `enfase="discreta"` do parágrafo abaixo, mas
+                 é outra decisão: aquela trata o peso da AÇÃO, esta o respiro
+                 do BLOCO. */
               <EstadoVazio
                 variant="linha"
                 enfase="discreta"
+                densidade="denso"
                 icone="cifrao"
                 titulo="Nenhuma despesa paga este mês"
                 descricao="Vaga, combustível, manutenção — o que sai do bolso fica registrado aqui."
@@ -669,6 +739,7 @@ export default async function HojePage({
             <EstadoVazio
               variant="linha"
               enfase="discreta"
+              densidade="denso"
               icone="pessoas"
               titulo="Só você tem acesso a este barco"
               descricao={podeConvidar
@@ -724,32 +795,43 @@ export default async function HojePage({
           icone="escudo"
           titulo="Saúde"
           className="order-3"
+          /* ONDA 96 — O CARTÃO QUE ERA O MENOR DA TELA VIRA O ASSUNTO DELA.
+             A régua e o porquê estão em `saudeEhAssunto`, lá em cima. */
+          peso={saudeEhAssunto ? "assunto" : "secao"}
           selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
           acao={
             estadoSaude != null
               ? <AcaoCartao href="/barco/saude">Ver tudo</AcaoCartao>
               : <AcaoCartao href="/barco">Completar</AcaoCartao>
           }
+          /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
+             ocorrência aberta" — número em mono, palavra dim. A fonte de
+             instrumento é do NÚMERO, não da frase (revisão da onda 57):
+             `contagemDaSaude` devolve as partes e só o numeral leva a mono.
+             O que a onda 96 muda é o CORPO do numeral: 28px, a voz que o CSS
+             descreve como "o número que É o assunto da tela", com peso 600
+             tabular (HAULIX §11, dado operacional). A palavra e o separador
+             continuam em 12px de propósito — subir a frase inteira para 28px
+             quebraria em três linhas em 390px e trocaria hierarquia por
+             volume, que é o oposto do que esta onda faz. */
+          valor={partesDaSaude?.map((parte, i) => (
+            <span key={parte.rotulo}>
+              {i > 0 && <span className="apoio text-dim"> · </span>}
+              <span className="font-mono-instr font-semibold tabular-nums">{parte.numero}</span>
+              <span className="apoio text-dim"> {parte.rotulo}</span>
+            </span>
+          ))}
         >
-          {estadoSaude != null ? (
-            /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
-               ocorrência aberta" — número em mono CLARO (`text-texto`), palavra
-               dim. A fonte de instrumento é do NÚMERO, não da frase (revisão da
-               onda 57): `contagemDaSaude` devolve as partes e só o numeral leva
-               a mono, como o cartão da Tripulação logo abaixo já fazia. */
-            <p className="apoio text-dim">
-              {contagemDaSaude(saude, ocorrenciasAtivas.length)?.map((parte, i) => (
-                <span key={parte.rotulo}>
-                  {i > 0 && " · "}
-                  <span className="font-mono-instr tabular-nums text-texto">{parte.numero}</span> {parte.rotulo}
-                </span>
-              )) ?? "Nenhum item monitorado com data ou leitura."}
-            </p>
-          ) : (
+          {/* Com a contagem em `valor`, o corpo fica com o que NÃO é número —
+              e nas duas telas em que ela não existe, com a frase de sempre,
+              palavra por palavra. */}
+          {estadoSaude == null ? (
             <p className="apoio text-dim">
               Cadastre horas de motor ou vencimentos com data pra saber como está a embarcação.
             </p>
-          )}
+          ) : partesDaSaude == null ? (
+            <p className="apoio text-dim">Nenhum item monitorado com data ou leitura.</p>
+          ) : null}
         </Cartao>
 
         {/* O Diário é o coração do app (PRD §6) e era um ícone num grid de
@@ -790,13 +872,24 @@ export default async function HojePage({
                    tipos: `?tipo=navegacao` faz /diario/novo cair direto na
                    tela do canvas. */
                 href="/diario/novo?tipo=navegacao"
-                // Acabamento Haulix (16/08): a ação é uma pílula CONTIDA, não
-                // uma laje de largura inteira — na referência o acento é
-                // pequeno ("Activate Route"); o tamanho vinha gritando mais
-                // que o conteúdo.
-                className="mt-3 inline-flex min-h-11 items-center self-start rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
+                /* ONDA 102 — A AÇÃO PRINCIPAL DA TELA PASSA A VESTIR A FORMA
+                   DECLARADA DELA, em vez de uma escrita à mão aqui.
+                   Ela era `min-h-11` + `--raio-controle` + `bg-accent`: os
+                   mesmos três ingredientes de `PILULA_ACAO_PRINCIPAL`
+                   (`lib/ui/acoes.ts`), com dois valores diferentes — 44px de
+                   caixa em vez de 36 de desenho, e canto de 8px em vez de
+                   pílula. Ou seja, o gesto "ação principal, cheia, dourada"
+                   tinha dois vestidos: um aqui e outro nas ~49 telas que o
+                   recebem pelo `EstadoVazio`. Dois vestidos para o mesmo gesto
+                   é a definição de deriva do `docs/DESIGN.md` §6.6 — e o 44
+                   cravado era, além disso, o último `min-h-11` escrito à mão
+                   desta tela (a régua mora em `--altura-controle` desde a onda
+                   91). O alvo continua sendo 44px: ele vem do <Link>; a pílula
+                   de 36 é o desenho por dentro, a separação que o próprio
+                   `lib/ui/acoes.ts` documenta. */
+                className="mt-3 inline-flex min-h-[var(--altura-controle)] items-center self-start"
               >
-                Registrar saída
+                <span className={PILULA_ACAO_PRINCIPAL}>Registrar saída</span>
               </Link>
             )}
           </Cartao>
@@ -822,6 +915,7 @@ export default async function HojePage({
             <EstadoVazio
               variant="linha"
               enfase="discreta"
+              densidade="denso"
               icone="motor"
               titulo="Nenhum motor cadastrado"
               descricao="Cadastre pra ganhar horímetro e alerta de revisão automáticos."
@@ -858,6 +952,7 @@ export default async function HojePage({
             <EstadoVazio
               variant="linha"
               enfase="discreta"
+              densidade="denso"
               icone="mapa"
               titulo="Ligue o boletim do mar"
               descricao="Defina a posição da marina para ver onda, vento e água aqui."
@@ -923,10 +1018,28 @@ export default async function HojePage({
             )
               .filter((a) => !a.aba || podeVer(permissoes, a.aba))
               .map((a) => (
+                /* ONDA 102 — três acabamentos numa peça que se toca cinco
+                   vezes por tela:
+                   · `--altura-controle` no lugar do `min-h-11` cravado — a
+                     régua de toque tem token desde a onda 91, e este era um
+                     dos dois lugares desta tela que ainda escreviam o número;
+                   · `.apoio` (12px/500) no lugar de `text-[11px] font-medium`:
+                     11 é o PISO da escala, reservado a etiqueta de
+                     instrumento, e estes cinco são rótulos de navegação que se
+                     LEEM. Foi exatamente disto que o dono reclamou — "fontes
+                     pequenas". Medido a 390px: a coluna tem 54px úteis e o
+                     maior rótulo ("Contatos") mede ~51px em 12px, então cabe
+                     sem truncar;
+                   · hover sobe UM nível (§49) e o toque confirma (`TOQUE`) —
+                     a pastilha era inerte no ponteiro e no dedo. A transição
+                     vem de `.transicao-ui` e não de `transition-colors`
+                     porque `TOQUE` já pede `transition-transform`, e
+                     `transition-property` é uma só (o porquê medido está em
+                     `app/globals.css`, na definição da classe). */
                 <Link key={a.href} href={a.href}
-                  className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2">
+                  className={`transicao-ui flex min-h-[var(--altura-controle)] flex-col items-center justify-center gap-1 rounded-[var(--raio-controle)] bg-panel2 px-1 py-2 hover:bg-panel3 ${TOQUE}`}>
                   <Icone nome={a.icone} className="size-5 text-dim" />
-                  <span className="text-[11px] font-medium">{a.rotulo}</span>
+                  <span className="apoio">{a.rotulo}</span>
                 </Link>
               ))}
           </div>

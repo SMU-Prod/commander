@@ -62,6 +62,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       // e-mail da conta) e `avisos`. Zero consulta nova por página — é a
       // restrição que decidiu o que entra nela (ver
       // `components/faixa-topo.tsx`). Sem barco, sem faixa.
+      // ONDA 102 (spec 19/08 §5) — DUAS FORMAS DA MESMA FAIXA.
+      //
+      // O dono: *"o cabeçalho repete em absolutamente todas as telas... parece
+      // que nunca conseguimos 'sair' da manutenção do barco"*. A completa
+      // (nome/seletor + motores + revisão) vale em Início e Meu Barco; a
+      // reduzida (só sino e avatar) vale no resto. Quem escolhe é `MolduraApp`,
+      // que é a peça que conhece a rota — o layout é Server Component e não
+      // tem pathname.
+      //
+      // As duas montam a MESMA `FaixaTopo` com os MESMOS dados, que o layout
+      // já tem em mãos: zero consulta nova por página, que é a restrição que
+      // decidiu o que entra nesta faixa desde a onda 60.
       faixa={painel != null && (
         <FaixaTopo
           embarcacao={{ id: painel.embarcacao.id, nome: painel.embarcacao.nome }}
@@ -72,6 +84,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           avisos={avisos}
           email={painel.emailUsuario}
           nome={painel.perfil?.nome ?? null}
+        />
+      )}
+      faixaReduzida={painel != null && (
+        <FaixaTopo
+          embarcacao={{ id: painel.embarcacao.id, nome: painel.embarcacao.nome }}
+          embarcacoes={painel.embarcacoes}
+          equipamentos={painel.equipamentos}
+          itens={painel.itens}
+          hoje={hojeISO()}
+          avisos={avisos}
+          email={painel.emailUsuario}
+          nome={painel.perfil?.nome ?? null}
+          estadoDoBarco={false}
         />
       )}
     >

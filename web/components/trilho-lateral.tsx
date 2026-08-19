@@ -129,17 +129,35 @@ export function TrilhoLateral({
             // já respeita (a varredura de tela reprova abaixo disso). Alvo
             // quadrado só com ícone: é o que dispensa reservar largura para
             // texto. `group` é o gancho do hover/foco da pastilha.
-            className={`group relative flex size-11 items-center justify-center rounded-[var(--raio-cartao)] ${
+            className={`group relative flex size-11 items-center justify-center rounded-[var(--raio-cartao)] transition-colors ${
               // O estado ativo NÃO pode depender de hover — é a única pista
-              // de onde a pessoa está. Fundo tingido + cor do ícone: dois
-              // canais, nunca só cor (docs/DESIGN.md).
-              // ONDA 62 — o canvas do dono (tela-3n) marca o onde-estou com a
-              // TINTA dourada (fundo dourado a ~14% + ícone accent-forte), e
-              // é exatamente o que a regra da moldura já dizia: "o dourado de
-              // moldura é só o de navegação". A pastilha clara do acabamento
-              // Haulix (16/08) valeu até o canvas fixar o desenho final; o
-              // raio também sobe pro de cartão (14px), como lá.
-              ativo ? "bg-accent/15 text-accent-forte" : "text-dim hover:bg-panel2"
+              // de onde a pessoa está. Fundo + cor do ícone: dois canais,
+              // nunca só cor (docs/DESIGN.md).
+              //
+              // ONDA 98 (HAULIX §16) — O ITEM ATIVO DEIXA DE SER UMA LAVADA E
+              // VIRA UM BLOCO SÓLIDO. O documento especifica o trilho em três
+              // estados e comenta a razão em texto: default transparente,
+              // hover um degrau de superfície, e "o item ativo utiliza um
+              // tratamento MUITO mais forte que os demais" — fundo cheio com
+              // ícone escuro em cima, não uma tinta translúcida da cor de
+              // marca. `bg-accent/15` entregava um retângulo a 15% de opacidade
+              // com o ícone num tom vizinho: dois canais no papel, quase um só
+              // no olho — e "não sei onde estou no app" é metade da queixa do
+              // dono. Agora é o par cheio (`bg-accent` + `text-acao-texto`),
+              // que é o contraste máximo que a paleta tem: 8,51:1 no escuro
+              // (ouro com navy em cima) e 6,79:1 no claro (ouro escuro com
+              // branco quente em cima) — medido em `contraste.test.ts`, é o
+              // MESMO par do botão cheio.
+              //
+              // O OURO AQUI NÃO ESTOURA O ORÇAMENTO, e isso não é exceção
+              // nova: `docs/DESIGN.md` §5 já separa o acento de MOLDURA (o
+              // indicador de onde-a-pessoa-está: trilho, barra de baixo, aba
+              // ativa) do acento de CONTEÚDO, e só o segundo paga o orçamento
+              // de dois por tela. É um item aceso por vez, em toda tela.
+              //
+              // O hover sobe UM nível de superfície (§49), e é o `panel2` — o
+              // trilho é `bg-panel`, então subir é ir para o nível 2.
+              ativo ? "bg-accent text-acao-texto" : "text-dim hover:bg-panel2"
             }`}
           >
             {/* O CONTADOR DE AVISOS — o mesmo da barra de baixo.

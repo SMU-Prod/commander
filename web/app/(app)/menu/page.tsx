@@ -1,48 +1,105 @@
 import { Logo } from "@/components/logo"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { meusPapeisAdmin } from "@/lib/admin"
-import { carregarPainel } from "@/lib/consultas"
-import { carregarMeuPerfilConsultor } from "@/lib/consultas-gold"
+import { carregarPainel, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { contarConversasComNaoLidas } from "@/lib/consultas-mensagens"
-import { ehAdminQualquer, resumoPapeis } from "@/lib/domain/admin-papeis"
 import { podeVerAgenda } from "@/lib/domain/agenda"
 import { hojeISO } from "@/lib/domain/datas"
-import { abaDoEquipamento } from "@/lib/domain/diario"
-import { formatarReais, resumoGastos } from "@/lib/domain/gastos"
+import { veHubDeAtualizacoes, veOperacaoDaFrota } from "@/lib/domain/enterprise"
 import { podeVer } from "@/lib/domain/permissoes"
-import { supabaseServer } from "@/lib/supabase/server"
+import { calcularSemaforo } from "@/lib/domain/semaforo"
 import type { ReactNode } from "react"
 
 /**
- * MENU = O ÍNDICE DO PRODUTO (onda 58, spec de arquitetura §4).
+ * ONDA 103 — O MENU VIRA SEIS LINHAS DE VERDADE.
+ * ===========================================================================
+ * O §2.1 da spec `2026-08-19-arquitetura-quatro-apps.md` desenha o menu do
+ * proprietário assim, e são seis:
  *
- * O dono olhou esta tela e disse "o menu mais parece configurações do que
- * menu" — e leu certo: metade das linhas ERA configuração (Conta, Assinatura,
- * Aparência, avisos do aparelho, Legal, Sair). Tudo isso mudou de casa para
- * `/menu/ajustes`; o que fica aqui são só DESTINOS — áreas do produto,
- * agrupadas pela vida do barco (o barco · dinheiro · gente · rede), não por
- * tecnologia. O PRD §9 chama o Menu de *gate de descoberta*: é onde se
- * aprende que o app faz mais do que a barra de baixo mostra — por isso
- * Financeiro e Carteira aparecem aqui mesmo tendo caminho por /barco, e nada
- * pode depender de um link único (docs/CONTRIBUTING.md).
+ *     Início · Meu Barco · Diário · Agenda · Serviços · Minha Conta
  *
- * ONDA 62 (canvas tela-1j): a ANATOMIA das linhas alinhou à fatia — cada
- * seção é UM painel com linhas separadas por borda (não um cartão solto por
- * linha), e o número que orienta decisão fica à DIREITA, em mono, colado no
- * chevron ("Tripulação · 3 ›"). A fatia também desenha o cartão de perfil e
- * o bloco Gold DENTRO do Menu — aqui o spec da onda 58 ganha: Conta e
- * Assinatura são ajuste e moram em /menu/ajustes; o Menu segue índice puro.
+ * A onda 102 leu "Meu Barco" e "Serviços" como SEÇÕES desta lista. O
+ * resultado, medido a 390×844 antes de reescrever: **1788px de rolagem (2,1
+ * telas), 22 linhas**, com treze delas empilhadas debaixo do título "Meu
+ * barco". Ou seja: o defeito nº 5 da lista do dono — *"menu longo demais,
+ * exige muita rolagem"* — continuava de pé, porque seção não é um nível de
+ * navegação. Ela dá nome ao que já está na tela, e o problema era o que estava
+ * na tela.
  *
- * ÍNDICE SEM INFORMAÇÃO É SUMÁRIO (spec §4.2): cada destino diz o que tem lá
- * dentro quando existe um número que orienta decisão. As consultas são
- * baratas (um `count`/`head` por seção, nunca N por linha) e NÃO acontecem
- * para área que a pessoa não pode ver: contar o que está bloqueado vazaria
- * pelo subtítulo o número que a tela de destino recusa mostrar.
+ * Agora **Meu Barco e Serviços são TELAS**: `app/(app)/meu-barco/page.tsx` e
+ * `app/(app)/servicos/page.tsx`. Este arquivo mostra seis linhas e nada mais.
+ *
+ * ---------------------------------------------------------------------------
+ * UM NÍVEL A MAIS É UM TOQUE A MAIS — O QUE ELE COMPRA
+ * ---------------------------------------------------------------------------
+ * A régua da casa é caminho de `/hoje` em no máximo 3 toques
+ * (docs/CONTRIBUTING.md, "gate de descoberta"), e ela continua respeitada: as
+ * áreas de uso diário não passam por aqui. `/barco`, `/diario`, `/agenda`,
+ * `/barco/documentos`, `/financeiro` e `/tripulacao` são UM toque a partir da
+ * Início (barra de baixo, "Acesso rápido" e os "Ver tudo" dos cartões);
+ * `/barco/motores` e os outros hubs, dois. O toque a mais recai sobre o que se
+ * abre de vez em quando — Carteira, Selos, Relatórios, Comandantes —, e a
+ * troca é essa: 2,1 telas de rolagem TODA VEZ que alguém abre o Menu, contra
+ * um toque a mais quando alguém quer especificamente uma dessas áreas.
+ *
+ * ---------------------------------------------------------------------------
+ * A LINHA DIZ O QUE TEM DENTRO — E QUANDO NÃO SABE, FICA CALADA
+ * ---------------------------------------------------------------------------
+ * A regra da onda 101 vale inteira num índice de dois níveis: o número da
+ * porta é o número da sala. Por isso só duas das seis carregam número, e as
+ * duas são as únicas que o Menu consegue provar:
+ *
+ *   · **Meu barco** mostra a pendência de DOCUMENTO, calculada de graça a
+ *     partir de `painel.itens` com o mesmo `calcularSemaforo` de
+ *     `/barco/documentos` — e reexibida dígito por dígito na linha Documentos
+ *     de `/meu-barco`, um nível abaixo. É a única pendência do grupo que o
+ *     Menu lê sem pagar consulta, e é a que tem prazo legal: documento vencido
+ *     impede o barco de sair.
+ *   · **Serviços** mostra conversas por ler, que é a mesma
+ *     `contarConversasComNaoLidas` da linha Mensagens lá dentro.
+ *
+ * As outras quatro dizem o que têm dentro em PALAVRA — o subtítulo de "Meu
+ * barco" e o de "Serviços" enumeram os destinos do grupo, que é o que um
+ * agrupador deve à pessoa antes de ela gastar o toque. Inventar contagem para
+ * as demais custaria consulta nesta tela, que é a mais atravessada do app.
+ *
+ * ---------------------------------------------------------------------------
+ * O CUSTO — QUATRO CONSULTAS SAÍRAM DAQUI
+ * ---------------------------------------------------------------------------
+ * Ocorrências vivas, despesas do mês, pessoas com acesso e fotos do acervo
+ * desceram para `/meu-barco`, junto com as linhas que alimentavam. O Menu fica
+ * com UMA ida ao banco (a caixa de entrada, que a linha Serviços usa) —
+ * `carregarPainel` é `cache()` e o layout de `(app)` já a resolveu nesta
+ * mesma requisição, então ela não conta. A leitura obrigatória sobre o assunto
+ * segue sendo o comentário de `carregarPainel` em `lib/consultas.ts`: cada ida
+ * custa ~150 ms (função em Washington, banco em São Paulo).
+ *
+ * ---------------------------------------------------------------------------
+ * O RECORTE POR TIPO DE USUÁRIO NÃO FOI TOCADO
+ * ---------------------------------------------------------------------------
+ * `veOperacaoDaFrota` e `veHubDeAtualizacoes` (`lib/domain/enterprise.ts`)
+ * continuam decidindo quem vê o terceiro aplicativo, e o sinal continua sendo
+ * `embarcacoes.cotas_total`. Um proprietário comum não vê Pátio, Mecânica,
+ * Estoque, Combustível, Custo da frota, Cotistas nem Admin Commander — os três
+ * últimos moram em `/menu/ajustes` desde a onda 102, com o porquê escrito lá.
+ *
+ * POR QUE A OPERAÇÃO DA FROTA CONTINUA SENDO SEÇÃO E NÃO VIROU UMA SÉTIMA
+ * LINHA: o §2.1 descreve o menu **do proprietário**, e para ele esta tela tem
+ * exatamente seis linhas — a seção não existe, não fica vazia, não fica cinza.
+ * Quem a vê é funcionário de uma administradora, e para ele o §2.4 pede coisa
+ * maior que uma linha: um ambiente separado, com rota, trilho e barra
+ * próprios. Empacotar a operação num agrupador agora daria a impressão de que
+ * essa separação foi feita. Ela não foi, e continua registrada como pendente.
+ *
+ * FALHA FECHADO: na dúvida, a linha não aparece. Menu que esconde demais é
+ * reclamação de um cliente; menu que mostra Admin Commander para um cliente é
+ * vazamento — e o segundo não tem desfazer.
  */
 
 /** O painel de seção do canvas: uma borda pra lista inteira, linhas com
- *  `border-b` dentro (`LinhaLista` variant "grupo"). */
+ *  `border-b` dentro (`LinhaLista` variant "grupo"). Repetido em
+ *  `/meu-barco` e `/servicos` porque `components/ui/` está com outro agente
+ *  nesta rodada — é uma classe, não uma abstração perdida. */
 function PainelMenu({ children }: { children: ReactNode }) {
   return <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">{children}</div>
 }
@@ -53,71 +110,43 @@ export default async function MenuPage({
   searchParams: Promise<{ ok?: string; erro?: string }>
 }) {
   const { erro } = await searchParams
-  const painel = await carregarPainel()
-  // `cache()` no `meusPapeisAdmin` — a mesma consulta que o layout de (admin)
-  // faz; aqui não custa uma ida a mais ao banco.
-  // As duas descobertas por papel saem juntas: papel administrativo e papel
-  // de consultor do Gold. Uma consulta indexada cada, e as duas em paralelo
-  // porque nenhuma depende da outra.
-  // Mensagens entra na mesma leva: é `cache()` e não depende de embarcação
-  // (a conversa é da PESSOA, não do barco — um prestador sem barco nenhum
-  // tem caixa de entrada). Por isso ela sai daqui e não do bloco de `painel`
-  // logo abaixo, que só roda pra quem tem embarcação.
-  const [papeisAdmin, meuConsultor, conversasComNaoLidas] = await Promise.all([
-    meusPapeisAdmin(),
-    carregarMeuPerfilConsultor(),
+  const hoje = hojeISO()
+
+  // `carregarPainel` é `cache()` e o layout já a resolveu — o `Promise.all`
+  // existe pela outra: a caixa de entrada é da PESSOA, não do barco (um
+  // prestador sem embarcação nenhuma tem conversa), então esperar o painel
+  // pra só então pedi-la custaria uma volta de rede por ordem de escrita de
+  // variável. Foi o defeito das ondas 96 e 100.
+  const [painel, conversasComNaoLidas] = await Promise.all([
+    carregarPainel(),
     contarConversasComNaoLidas(),
   ])
-  const ehConsultor = meuConsultor !== null
 
-  // Equipamentos do hub (tipo "outro") já vêm inteiros em `painel.equipamentos`
-  // — contar de novo no banco seria pagar duas vezes pela mesma resposta. O
-  // filtro é o MESMO de /barco/equipamentos (`abaDoEquipamento`), senão o
-  // número da porta discordaria do que a sala mostra.
-  const equipamentosNoHub =
-    painel != null && podeVer(painel.permissoes, "equipamentos")
-      ? painel.equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "equipamentos").length
-      : 0
+  // O RECORTE POR CONFIGURAÇÃO DA EMBARCAÇÃO, EM DUAS LINHAS E ZERO CONSULTA.
+  //
+  // `painel.embarcacao` já está em memória — `carregarPainel` traz a linha
+  // inteira, `cotas_total` incluída. Sem barco nenhum (prestador, comandante
+  // recém-convidado), os dois são `false`: falhar fechado é a regra, e quem
+  // não tem embarcação certamente não tem uma operação de frota para
+  // administrar. O porquê do sinal está inteiro em `lib/domain/enterprise.ts`.
+  const veFrota = painel != null && veOperacaoDaFrota(painel.papel, painel.embarcacao.cotas_total)
+  const veAtualizacoes = painel != null && veHubDeAtualizacoes(painel.papel, painel.embarcacao.cotas_total)
 
-  let ocorrenciasAbertas = 0
-  let totalMesCentavos = 0
-  let comandantesComAcesso = 0
-  if (painel != null) {
-    const supabase = await supabaseServer()
-    const hoje = hojeISO()
-    const [{ count: abertas }, { data: despesasMes }, { count: comandantes }] = await Promise.all([
-      // Só `estado = 'aberta'`: o subtítulo diz "abertas", então "em
-      // acompanhamento" não entra — número e palavra têm que ser o mesmo fato.
-      supabase
-        .from("ocorrencias").select("id", { count: "exact", head: true })
-        .eq("embarcacao_id", painel.embarcacao.id).eq("estado", "aberta"),
-      // Mesmo recorte da Início (/hoje): despesas pagas de
-      // `lancamentos_financeiros` — e a soma é a MESMA `resumoGastos` de
-      // `lib/domain/gastos.ts`, nunca uma segunda fórmula. Aqui só o mês
-      // corrente, porque o subtítulo não compara com o anterior.
-      podeVer(painel.permissoes, "gastos")
-        ? supabase
-            .from("lancamentos_financeiros").select("data, valor_centavos")
-            .eq("embarcacao_id", painel.embarcacao.id)
-            .eq("tipo", "despesa").eq("status", "pago")
-            .gte("data", `${hoje.slice(0, 7)}-01`)
-        : Promise.resolve({ data: [] as { data: string; valor_centavos: number }[] }),
-      // O "Tripulação · 3" do canvas — a MESMA contagem da seção
-      // "Comandantes com acesso" de /tripulacao (vínculos CMDT), só que em
-      // `head` (o número, não as linhas). Só pro PROP, que é quem vê a porta.
-      painel.papel === "PROP"
-        ? supabase
-            .from("vinculos").select("id", { count: "exact", head: true })
-            .eq("embarcacao_id", painel.embarcacao.id).eq("papel", "CMDT")
-        : Promise.resolve({ count: 0 }),
-    ])
-    ocorrenciasAbertas = abertas ?? 0
-    comandantesComAcesso = comandantes ?? 0
-    totalMesCentavos = resumoGastos(
-      (despesasMes ?? []).map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" })),
-      hoje,
-    ).totalMesCentavos
-  }
+  // A PENDÊNCIA QUE A LINHA "MEU BARCO" CARREGA, de graça: `painel.itens` já
+  // está em memória e estas três linhas são as MESMAS de `/barco/documentos`
+  // — filtrar `categoria === "documento"`, converter com
+  // `itemMonitoradoToItemCalc` e pedir o status a `calcularSemaforo(calc,
+  // null, hoje)`. `null` de horas porque documento vence por data, nunca por
+  // horímetro. É o mesmo cálculo que `/meu-barco` faz para a própria linha
+  // Documentos: um cálculo escrito duas vezes, nunca duas réguas.
+  const semaforoDosDocumentos =
+    painel != null && podeVer(painel.permissoes, "documentos")
+      ? painel.itens
+          .filter((i) => i.categoria === "documento")
+          .map((i) => calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje).status)
+      : []
+  const documentosVencidos = semaforoDosDocumentos.filter((s) => s === "vencido").length
+  const documentosEmAtencao = semaforoDosDocumentos.filter((s) => s === "atencao").length
 
   return (
     <main>
@@ -128,255 +157,170 @@ export default async function MenuPage({
       {/* Outras telas redirecionam pra cá com ?erro= — o toast fica. */}
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      {/* Onda 56 — as linhas do Menu não têm ícone à ESQUERDA de propósito:
-          a coluna de títulos alinha, o chevron da direita é a única marca de
-          "isto navega", e o ícone significa uma coisa só: a seção. */}
-      <SecaoPagina icone="embarcacao">O barco</SecaoPagina>
-      <PainelMenu>
-        {/* Onda 61 — o Mapa da Embarcação abre a seção: é a visão nova do
-            barco físico ("ONDE fica?"), e o Menu é gate de descoberta (PRD
-            §9) — /barco também leva lá, mas nada depende de link único. */}
-        <LinhaLista
-          href="/barco/mapa"
-          titulo="Mapa da embarcação"
-          subtitulo="O barco em corte — equipamentos, manutenções e ocorrências por zona"
-        />
-        <LinhaLista
-          href="/barco/equipamentos"
-          titulo="Equipamentos"
-          subtitulo="Bote, guincho, ar-condicionado — o que você acompanha a bordo"
-          valor={equipamentosNoHub > 0 ? String(equipamentosNoHub) : undefined}
-        />
-        <LinhaLista href="/barco/fotos" titulo="Fotos" subtitulo="Os álbuns do barco" />
-        <LinhaLista
-          href="/barco/documentos"
-          titulo="Documentos"
-          subtitulo="Validade e arquivos — o semáforo avisa antes de vencer"
-        />
-        <LinhaLista
-          href="/barco/ocorrencias"
-          titulo="Ocorrências"
-          subtitulo="Problemas apontados no Diário ou registrados direto, por setor"
-          valor={ocorrenciasAbertas > 0 ? `${ocorrenciasAbertas} ${ocorrenciasAbertas === 1 ? "aberta" : "abertas"}` : undefined}
-        />
-        {/* Saiu de "Minhas embarcações" (seção que acabou: cadastrar outra
-            embarcação é ajuste e mora em /menu/ajustes): o Connect é área do
-            barco, não ajuste. */}
-        <LinhaLista
-          href="/barco/connect"
-          titulo="Commander Connect"
-          subtitulo="Em breve — conectividade NMEA 2000"
-        />
-      </PainelMenu>
-
-      {/* A porta segue a sala (onda 52, reafirmado no trilho da onda 57):
-          Financeiro e Carteira só aparecem pra quem entra — /financeiro
-          devolve o CMDT sem `gastos` com faixa de erro, e anunciar porta
-          que o backend fecha era exatamente o defeito que a revisão da
-          onda 58 apontou. `podeVer(null, ...)` é true — PROP vê tudo. */}
-      {painel != null &&
-        (podeVer(painel.permissoes, "gastos") ||
-          painel.papel === "PROP" ||
-          podeVer(painel.permissoes, "carteira")) && (
-          <>
-            <SecaoPagina icone="cifrao">Dinheiro</SecaoPagina>
-            <PainelMenu>
-              {podeVer(painel.permissoes, "gastos") && (
-                <LinhaLista
-                  href="/financeiro"
-                  titulo="Financeiro"
-                  subtitulo="Despesas, entradas, recorrentes e relatórios"
-                  valor={totalMesCentavos > 0 ? formatarReais(totalMesCentavos) : undefined}
-                  valorSecundario={totalMesCentavos > 0 ? "este mês" : undefined}
-                />
-              )}
-              {/* Mesmo gate da própria /carteira: PROP sempre; CMDT só com a área. */}
-              {(painel.papel === "PROP" || podeVer(painel.permissoes, "carteira")) && (
-                <LinhaLista
-                  href="/carteira"
-                  titulo="Carteira da Tripulação"
-                  subtitulo="Repasse, gasto e devolução — controle contábil, o app não movimenta dinheiro"
-                />
-              )}
-            </PainelMenu>
-          </>
-        )}
-
-      <SecaoPagina icone="pessoas">Gente</SecaoPagina>
-      <PainelMenu>
-        {painel?.papel === "PROP" && (
+      {/* OS SEIS ITENS DO §2.1, NA ORDEM DO DONO, NUM PAINEL SÓ.
+          Sem `SecaoPagina` nenhuma: um cabeçalho de seção custa 32px e serve
+          pra separar assuntos DENTRO de uma lista longa — numa lista de seis
+          linhas ele só devolveria a rolagem que esta onda veio tirar. A
+          hierarquia que sobrou é a única que importa aqui: quatro destinos
+          diretos e dois agrupadores, e o que distingue os dois é o subtítulo
+          dizer "o que tem dentro". */}
+      <div className="mt-4">
+        <PainelMenu>
           <LinhaLista
-            href="/tripulacao"
-            titulo="Tripulação"
-            subtitulo="Convide comandantes e ajuste as permissões"
-            valor={comandantesComAcesso > 0 ? String(comandantesComAcesso) : undefined}
+            href="/hoje"
+            titulo="Início"
+            subtitulo="O estado do barco e o que pede atenção hoje"
           />
-        )}
-        <LinhaLista
-          href="/comandantes"
-          titulo="Comandantes"
-          subtitulo="Disponíveis para contratar direto pelo WhatsApp"
-        />
-        {/* Onda 78 — as portas do Enterprise. Cotistas é do dono (é ele quem
-            define cota e link); Atualizações serve os dois lados, com a tela
-            mudando de cara conforme o papel. */}
-        {painel?.papel === "PROP" && (
+          {/* AGRUPADOR. O subtítulo enumera o começo da lista de dentro em vez
+              de descrever a ideia ("tudo sobre o barco") — antes de gastar um
+              toque a pessoa precisa saber se o que ela quer está ali, e nome de
+              área faz isso; adjetivo não. */}
           <LinhaLista
-            href="/cotistas"
-            titulo="Cotistas"
-            subtitulo="Vagas, link de convite e suspensão de acesso"
+            href="/meu-barco"
+            titulo="Meu barco"
+            subtitulo="Central técnica, ocorrências, financeiro, tripulação e documentos"
+            valor={
+              documentosVencidos > 0
+                ? String(documentosVencidos)
+                : documentosEmAtencao > 0
+                  ? String(documentosEmAtencao)
+                  : undefined
+            }
+            /* A palavra vem junto do número porque um "1" solto ao lado de "Meu
+               barco" não diz de quê. "documento vencido" é a frase inteira, e
+               é a mesma que a linha Documentos usa um nível abaixo. */
+            valorSecundario={
+              documentosVencidos > 0
+                ? documentosVencidos === 1 ? "documento vencido" : "documentos vencidos"
+                : documentosEmAtencao > 0
+                  ? documentosEmAtencao === 1 ? "documento vencendo" : "documentos vencendo"
+                  : undefined
+            }
+            valorClassName={documentosVencidos > 0 ? "text-crit" : documentosEmAtencao > 0 ? "text-warn" : ""}
           />
-        )}
-        <LinhaLista
-          href="/atualizacoes"
-          titulo="Atualizações"
-          subtitulo={painel?.papel === "PROP"
-            ? "O que os cotistas informaram, aguardando sua análise"
-            : "Informe a administradora sobre o uso da unidade"}
-        />
-      </PainelMenu>
-
-      {/* Onda 78 — Operação da frota (PRD Upgrade 3). Bloco próprio porque
-          são ferramentas de EMPRESA, não do dono de um barco só: estoque e
-          tanque pertencem à base e servem várias unidades. */}
-      <SecaoPagina icone="ferramenta">Operação</SecaoPagina>
-      <PainelMenu>
-        <LinhaLista
-          href="/patio"
-          titulo="Pátio"
-          subtitulo="Saída e retorno da unidade, com fotos e horímetro"
-        />
-        <LinhaLista
-          href="/mecanica"
-          titulo="Mecânica"
-          subtitulo="Diagnóstico, conserto, orçamento e votação dos cotistas"
-        />
-        <LinhaLista
-          href="/afazeres"
-          titulo="Afazeres"
-          subtitulo="O que a equipe combinou de fazer"
-        />
-        <LinhaLista
-          href="/estoque"
-          titulo="Estoque"
-          subtitulo="Peças, óleo e consumíveis da base"
-        />
-        <LinhaLista
-          href="/combustivel"
-          titulo="Combustível"
-          subtitulo="Tanque próprio, abastecimentos e balanço"
-        />
-        {podeVer(painel?.permissoes ?? null, "gastos") && (
           <LinhaLista
-            href="/frota"
-            titulo="Custo da frota"
-            subtitulo="Quanto cada unidade custou para operar"
+            href="/diario"
+            titulo="Diário"
+            subtitulo="Saídas, horas de motor e o que foi feito"
           />
-        )}
-      </PainelMenu>
-
-      {/* Onda 39 — segundo caminho até as telas da rede profissional
-          (RedeNav já cruza entre elas; gate de descoberta, ver
-          docs/CONTRIBUTING.md). Agenda (onda 43, PRD §8) continua só pra quem
-          pode ver: desde a onda 46 ela tem área PRÓPRIA na matriz
-          (`AREA_AGENDA` em lib/domain/agenda.ts). */}
-      <SecaoPagina icone="chat">Rede</SecaoPagina>
-      <PainelMenu>
-        {/* A PORTA DA CONVERSA MORA AQUI, E NÃO NA BARRA DE BAIXO.
-            A barra tem cinco posições por motivo FÍSICO (71px por coluna — ver
-            `components/bottom-nav.tsx`), e a decisão de 15/08 sobre a Agenda
-            fechou a regra: "uma sexta aba não encolhe o rótulo, encolhe todas
-            as seis até nenhuma ser legível". Trocar uma das cinco também não
-            serve — nenhuma delas é menos usada que uma conversa que só existe
-            depois de um pedido do Marketplace.
-            O Menu é o gate de descoberta (PRD §9), e Mensagens fica em Rede,
-            colada ao Marketplace, porque é de lá que toda conversa nasce: a
-            porta ao lado da sala que a produz. O segundo caminho — o que a
-            pessoa realmente vai usar no dia a dia — é a própria ficha do
-            pedido, e nada depende de link único (docs/CONTRIBUTING.md).
-            O número é de CONVERSAS com mensagem por ler, não de mensagens:
-            "3" quer dizer "três pessoas esperando você", que é o que decide
-            se vale abrir agora. Zero não desenha nada. */}
-        <LinhaLista
-          href="/mensagens"
-          titulo="Mensagens"
-          subtitulo="Suas conversas com quem publicou um pedido ou respondeu ao seu — o combinado fica registrado"
-          valor={conversasComNaoLidas > 0 ? String(conversasComNaoLidas) : undefined}
-          valorSecundario={conversasComNaoLidas > 0 ? "por ler" : undefined}
-        />
-        <LinhaLista href="/prestadores" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
-        <LinhaLista href="/marketplace" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
-        <LinhaLista href="/explorar" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
-        {painel != null && podeVerAgenda(painel.permissoes) && (
+          {/* A porta segue a sala: `/agenda` devolve quem não tem a área com
+              `redirect`, então quem não pode entrar não vê a linha. Com ela
+              escondida o Menu fica com cinco — e está certo assim: o §2.1
+              descreve o menu do proprietário, e é ele quem tem as seis. */}
+          {painel != null && podeVerAgenda(painel.permissoes) && (
+            <LinhaLista
+              href="/agenda"
+              titulo="Agenda"
+              subtitulo="Saídas e compromissos combinados com a tripulação"
+            />
+          )}
+          {/* AGRUPADOR. Nenhuma condição: este é o segundo dos quatro
+              aplicativos (a rede náutica) e é o único que não depende de
+              embarcação — um prestador ou um comandante sem barco vive aqui.
+              O endereço `/servicos` era um alias de compatibilidade e foi
+              promovido nesta onda; o julgamento inteiro, incluindo a objeção
+              do PRD §10, está escrito em `app/(app)/servicos/page.tsx`. */}
           <LinhaLista
-            href="/agenda"
-            titulo="Agenda"
-            subtitulo="Marque saídas e compromissos e compartilhe com a tripulação"
+            href="/servicos"
+            titulo="Serviços"
+            subtitulo="Explorar, Marketplace, prestadores, comandantes e mensagens"
+            valor={conversasComNaoLidas > 0 ? String(conversasComNaoLidas) : undefined}
+            valorSecundario={conversasComNaoLidas > 0 ? "por ler" : undefined}
           />
-        )}
-      </PainelMenu>
+          {/* O sexto. A única linha que não é área do produto: é a porta pra
+              tudo que é da PESSOA — conta, assinatura, aparência, avisos do
+              aparelho, cadastro e cotas da embarcação, e os outros acessos que
+              ela porventura tenha na plataforma (parceiro, consultor Gold,
+              Admin Commander). */}
+          <LinhaLista
+            href="/menu/ajustes"
+            titulo="Minha conta"
+            subtitulo="Assinatura, aparência, avisos e seus outros acessos"
+          />
+        </PainelMenu>
+      </div>
 
-      <SecaoPagina icone="ancora">Para estabelecimentos</SecaoPagina>
-      <PainelMenu>
-        <LinhaLista
-          href="/parceiro"
-          titulo="É marina, posto, pousada, restaurante ou loja náutica?"
-          subtitulo="Publique seu perfil e apareça no mapa de quem navega perto."
-        />
-      </PainelMenu>
+      {/* O TERCEIRO APLICATIVO — A OPERAÇÃO ENTERPRISE (§2.4).
+          *"Nada disso pode ficar misturado ao Commander de um proprietário
+          particular."*
 
-      {/* Admin Commander (§21). Só aparece pra quem tem papel — pra todo mundo
-          mais a seção nem existe, porque anunciar a porta é meio caminho pra
-          alguém tentar a maçaneta. A decisão de acesso continua sendo do
-          servidor (`exigirAdmin` no layout de `(admin)` + RLS por papel); isto
-          aqui é só descoberta. */}
-      {ehAdminQualquer(papeisAdmin) && (
+          Esta seção é a resposta direta ao defeito 6, e o `veFrota` acima é o
+          recorte inteiro: quem tem papel de funcionário da operação vê sempre;
+          o proprietário só vê se a embarcação estiver configurada para cotas;
+          comandante e cotista nunca veem. Para o dono de um barco particular a
+          seção não existe — não fica vazia, não fica cinza, não existe, e o
+          Menu dele tem as seis linhas do §2.1 e mais nada.
+
+          Ainda é uma SEÇÃO e não um ambiente com casca própria (rota, trilho e
+          barra separados, como o §2.4 pede por extenso). O recorte, que é o que
+          resolve o vazamento, está entregue desde a onda 102; a casca separada
+          é mudança de rota e segue registrada como pendente. */}
+      {veFrota && (
         <>
-          <SecaoPagina icone="escudo">Commander (interno)</SecaoPagina>
+          <SecaoPagina icone="ferramenta">Operação da frota</SecaoPagina>
           <PainelMenu>
             <LinhaLista
-              href="/admin"
-              titulo="Admin Commander"
-              subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
+              href="/patio"
+              titulo="Pátio"
+              subtitulo="Saída e retorno da unidade, com fotos e horímetro"
             />
+            <LinhaLista
+              href="/mecanica"
+              titulo="Mecânica"
+              subtitulo="Diagnóstico, conserto, orçamento e votação dos cotistas"
+            />
+            <LinhaLista
+              href="/afazeres"
+              titulo="Afazeres"
+              subtitulo="O que a equipe combinou de fazer"
+            />
+            <LinhaLista
+              href="/estoque"
+              titulo="Estoque"
+              subtitulo="Peças, óleo e consumíveis da base"
+            />
+            <LinhaLista
+              href="/combustivel"
+              titulo="Combustível"
+              subtitulo="Tanque próprio, abastecimentos e balanço"
+            />
+            {/* O "Financeiro operacional" do §2.4: quanto cada unidade custou
+                para operar. Segue atrás de `gastos` como sempre — o recorte
+                por configuração diz que a frota existe pra esta pessoa, o
+                recorte por papel diz se ela pode ver dinheiro. Os dois valem
+                juntos, nunca um no lugar do outro: o preset de Mecânica, por
+                exemplo, opera a frota e não vê um centavo dela (§7 — o módulo
+                não é ERP de oficina). */}
+            {podeVer(painel?.permissoes ?? null, "gastos") && (
+              <LinhaLista
+                href="/frota"
+                titulo="Custo da frota"
+                subtitulo="Quanto cada unidade custou para operar"
+              />
+            )}
           </PainelMenu>
         </>
       )}
 
-      {/* ONDA 88 / AUDITORIA 19/08 (achado C1) — A PORTA DO CONSULTOR.
-          `/consultor` é a agenda de trabalho de quem faz a avaliação do
-          Commander Gold: papel PAGO, externo, que precisa entrar todo dia — e
-          passou três ondas sem UM link no app inteiro, alcançável só digitando
-          a URL de cabeça. Os únicos apontamentos que existiam eram os
-          `redirect` pós-ação do próprio fluxo, ou seja, só quem já estava lá
-          dentro voltava pra lá.
-          Mesma regra do bloco de admin logo acima, e pelo mesmo motivo: a
-          seção só existe pra quem TEM o papel. Mostrar a todo mundo levaria a
-          maioria a uma tela de "não encontramos seu cadastro" — um beco, que é
-          justamente o que a onda 54 caçou. A decisão de acesso continua sendo
-          do servidor; isto aqui é só descoberta. */}
-      {ehConsultor && (
+      {/* Atualizações tem seção própria, e não é capricho de moldura: ela é a
+          única tela de mão dupla entre a administradora e o cotista (§15), e o
+          cotista — que é quem a alimenta — não vê a Operação da frota logo
+          acima. Pendurá-la naquele painel a esconderia justamente de metade de
+          quem a usa. O subtítulo troca de voz conforme o lado. */}
+      {veAtualizacoes && (
         <>
-          <SecaoPagina icone="pessoas">Commander Gold</SecaoPagina>
+          <SecaoPagina icone="relatorio">Cotas</SecaoPagina>
           <PainelMenu>
             <LinhaLista
-              href="/consultor"
-              titulo="Minha agenda de avaliações"
-              subtitulo="Visitas marcadas e o Protocolo de cada embarcação"
+              href="/atualizacoes"
+              titulo="Atualizações"
+              subtitulo={painel?.papel === "COTISTA"
+                ? "Informe a administradora sobre o uso da unidade"
+                : "O que os cotistas informaram, aguardando sua análise"}
             />
           </PainelMenu>
         </>
       )}
-
-      {/* A única linha que não é destino do produto — e por isso fica no fim,
-          fora de seção: é a porta pra TUDO que saiu daqui (spec §4.2). */}
-      <LinhaLista
-        href="/menu/ajustes"
-        variant="cartao"
-        className="mt-6"
-        titulo="Ajustes"
-        subtitulo="Conta, assinatura, aparência e avisos do aparelho"
-      />
     </main>
   )
 }

@@ -1,0 +1,176 @@
+{
+  "alturaPagina": 1932,
+  "totalElementosDeTexto": 60,
+  "distribuicao": [
+    {
+      "px": 11,
+      "n": 21
+    },
+    {
+      "px": 12,
+      "n": 18
+    },
+    {
+      "px": 14,
+      "n": 11
+    },
+    {
+      "px": 15,
+      "n": 6
+    },
+    {
+      "px": 20,
+      "n": 2
+    },
+    {
+      "px": 22,
+      "n": 1
+    },
+    {
+      "px": 28,
+      "n": 1
+    }
+  ],
+  "semGuia": {
+    "total": 51,
+    "distribuicao": [
+      {
+        "px": 11,
+        "n": 20
+      },
+      {
+        "px": 12,
+        "n": 15
+      },
+      {
+        "px": 14,
+        "n": 11
+      },
+      {
+        "px": 15,
+        "n": 2
+      },
+      {
+        "px": 20,
+        "n": 2
+      },
+      {
+        "px": 22,
+        "n": 1
+      }
+    ]
+  },
+  "doGuia": [
+    "15px/600 Comece por aqui",
+    "11px/400 Nesta ordem — é o que acende a Saúde e l",
+    "28px/600 1",
+    "12px/500 passo",
+    "15px/600 Cadastrar motor",
+    "15px/600 Informar horas do motor",
+    "12px/400 3",
+    "15px/600 Informar validade dos documentos",
+    "12px/400 É o que faz o aviso chegar antes de o do"
+  ],
+  "cabecalhos": [
+    {
+      "tag": "H2",
+      "texto": "Comece por aqui",
+      "px": 15,
+      "peso": "600",
+      "cor": "rgb(252, 252, 252)"
+    },
+    {
+      "tag": "H1",
+      "texto": "Barco de Teste",
+      "px": 22,
+      "peso": "600",
+      "cor": "rgb(252, 252, 252)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Gastos do mês",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Tripulação",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Saúde",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Diário de Bordo",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Motores",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Mar agora",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    },
+    {
+      "tag": "H2",
+      "texto": "Acesso rápido",
+      "px": 11,
+      "peso": "400",
+      "cor": "rgb(138, 138, 138)"
+    }
+  ],
+  "cartoes": [
+    {
+      "texto": "Comece por aquiNesta ordem — é o q",
+      "alt": 321
+    },
+    {
+      "texto": "Gastos do mêsNenhuma despesa paga ",
+      "alt": 244
+    },
+    {
+      "texto": "TripulaçãoSó você tem acesso a est",
+      "alt": 226
+    },
+    {
+      "texto": "SaúdeSem dadosCompletarCadastre ho",
+      "alt": 104
+    },
+    {
+      "texto": "Diário de BordoVer tudoNenhuma saí",
+      "alt": 145
+    },
+    {
+      "texto": "MotoresVer tudoMotor BB612,0 hSem ",
+      "alt": 133
+    },
+    {
+      "texto": "Mar agoraOnda0,7 mVento6 kt SEÁgua",
+      "alt": 207
+    },
+    {
+      "texto": "Acesso rápidoBarcoAgendaDocsDiário",
+      "alt": 111
+    }
+  ],
+  "acima22": [
+    "28px/600 1"
+  ]
+}

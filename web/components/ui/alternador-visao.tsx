@@ -46,8 +46,14 @@ export function AlternadorVisao({
             // Custou zero em revisão de tela porque o componente ainda não tem
             // consumidor (ver o cabeçalho) — a peça entra na régua ANTES de a
             // primeira tela herdar o defeito, que é a única hora barata.
+            // ONDA 98 (HAULIX §22/§14) — A OPÇÃO ATIVA SOBE DE SUPERFÍCIE EM
+            // VEZ DE GANHAR SOMBRA. Era `sombra-1 bg-panel`: um borrão MAIS um
+            // degrau para BAIXO (o trilho deste segmentado é `bg-panel2`,
+            // nível 2, e `bg-panel` é o nível 1). As duas metades erradas pela
+            // mesma régua — "a profundidade principal vem da diferença de
+            // superfície, não de sombra", e o realce sobe, não desce.
             className={`flex h-[var(--altura-controle)] items-center rounded-[var(--raio-pilula)] px-3 text-sm font-medium ${
-              ehAtiva ? "sombra-1 bg-panel text-texto" : "text-dim"
+              ehAtiva ? "bg-panel3 text-texto" : "text-dim"
             }`}
           >
             {o.rotulo}

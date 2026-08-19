@@ -1,3 +1,5 @@
+import { lembreteMotorParado } from "@/lib/domain/alertas"
+import { abaDoEquipamento } from "@/lib/domain/diario"
 import { rotuloDaResposta, type TipoDemanda } from "@/lib/domain/marketplace"
 import { podeVer, type Aba, type Permissoes } from "@/lib/domain/permissoes"
 import type { StatusFarol } from "@/lib/domain/semaforo"
@@ -26,6 +28,37 @@ import type { EstadoOcorrencia, Gravidade } from "@/lib/domain/ocorrencias"
  * fontes moram em `lib/consultas.ts` (`carregarNotificacoes`) e nada da
  * mecânica deste arquivo mudou — só os textos de vazio, que agora falam de
  * um módulo que existe.
+ */
+/**
+ * ONDA 101 — POR QUE "MENSAGENS" NÃO É A QUINTA CATEGORIA.
+ *
+ * A pergunta foi feita e respondida, e fica escrita aqui pra não ser refeita do
+ * zero: mensagem não lida (`contarConversasComNaoLidas`, onda 99) NÃO entra
+ * nesta Central. Três motivos, em ordem de peso:
+ *
+ * 1. O DADO NÃO CABE NO LAYOUT. `contarConversasComNaoLidas` se apoia em
+ *    `carregarCaixaDeEntrada`, que baixa os carimbos de TODAS as mensagens de
+ *    TODAS as conversas da pessoa, sem teto — o próprio arquivo confessa isso.
+ *    Hoje ela roda numa tela (o Menu). Entrar aqui é entrar em
+ *    `carregarNotificacoes`, que roda no LAYOUT de toda tela logada: seria
+ *    reintroduzir, por porta lateral, exatamente o custo que a onda 100 acabou
+ *    de arrancar daqui.
+ * 2. O NÍVEL NÃO TEM RESPOSTA HONESTA. Neste módulo o nível decide três coisas
+ *    de uma vez: sino, push e ordenação. Não existe push de mensagem — nenhum
+ *    canal, nem e-mail, nem Realtime (decisão escrita na migration 090).
+ *    `importante` criaria pendência que o sino conta e que nenhum canal
+ *    entrega; `informativa` não conta no sino, e aí não resolve nada.
+ * 3. UMA CAIXA DE ENTRADA NÃO MORA DENTRO DE OUTRA. O spec §3.2 exige que cada
+ *    item traga A AÇÃO e que a caixa possa ficar vazia. Mensagem se resolve
+ *    LENDO, em `/mensagens/[id]` — que já é uma caixa de entrada, com o próprio
+ *    zero e o próprio contador. O item daqui seria um espelho permanente da
+ *    outra caixa, e nenhuma das duas zeraria pela outra.
+ *
+ * O problema que motivaria a entrada é real e continua de pé: mensagem nova é
+ * hoje o evento mais silencioso do app. O conserto dele é dar a Mensagens um
+ * canal próprio (push no envio, com dedupe por conversa), não pendurá-la num
+ * sino que promete o que ela não tem. No dia em que esse push existir, esta
+ * decisão se reabre — e o que muda primeiro é o item 2.
  */
 export const CATEGORIAS_NOTIFICACAO = ["embarcacao", "agenda", "marketplace", "financeiro"] as const
 export type CategoriaNotificacao = (typeof CATEGORIAS_NOTIFICACAO)[number]
@@ -72,6 +105,20 @@ export const ROTULO_NIVEL_NOTIFICACAO: Record<NivelNotificacao, string> = {
   informativa: "Informativa",
 }
 
+/**
+ * ONDA 101 — ESTA CONSTANTE É DO PUSH, E SÓ DELE.
+ *
+ * Ela descreve o que o PRD §5.2 AUTORIZA a interromper no celular, e não o que
+ * o app de fato manda: hoje só o cron (itens monitorados, mar, motor parado) e
+ * o pedido novo do Marketplace viram push. Compromisso de agenda e conta
+ * vencendo são `importante` aqui e nunca tocam o celular de ninguém.
+ *
+ * Enquanto `contadorSino` lia daqui, corrigir essa distância — que é uma
+ * correção certa e vai acontecer — apagaria Agenda e Financeiro do badge de
+ * quebra. A régua do sino agora é `PEDE_ACAO_POR_NIVEL`, logo abaixo; as duas
+ * são iguais hoje e um teste confere isso, para que a divergência, quando
+ * vier, seja escrita e não herdada.
+ */
 export const PUSH_POR_NIVEL: Record<NivelNotificacao, boolean> = {
   critica: true,
   importante: true,
@@ -293,6 +340,83 @@ export function notificacaoDeDemandaCompativel(d: DemandaAvisada): Notificacao {
   }
 }
 
+// --- Motor parado (onda 101) -----------------------------------------------
+
+/**
+ * O AVISO QUE O APP MANDAVA E A CAIXA NÃO MOSTRAVA.
+ *
+ * O cron (`app/api/alertas/disparar/route.ts`) dispara três famílias de push, e
+ * TODAS levam a pessoa para `/notificacoes` (o `url` do payload). Duas delas
+ * não tinham linha nenhuma nesta Central:
+ *
+ *   · MOTOR PARADO — o que esta função conserta. O push saía, a pessoa tocava,
+ *     chegava na caixa de entrada e lia "Nenhuma pendência". Um aviso que
+ *     interrompe o celular e depois some ao ser procurado é pior que aviso
+ *     nenhum: ele ensina que o número vermelho não corresponde a nada;
+ *   · MAR RUIM — continua fora, e de propósito. Ele não é derivável aqui sem
+ *     chamar a API de tempo (`boletimDoMar`) dentro de `carregarNotificacoes`,
+ *     que roda no LAYOUT de toda tela logada — pagaria uma volta de rede
+ *     EXTERNA por navegação para um dado que a Início já busca. E, pela régua
+ *     desta caixa, ele nem é pendência: mar ruim não se resolve, passa. O
+ *     conserto dele é o push apontar para `/hoje`, onde o boletim mora — está
+ *     no relatório da onda, fora deste arquivo.
+ *
+ * NÍVEL: `importante`, e a régua decide sozinha. `informativa` está definida
+ * como "não interrompe ninguém" (ver `PUSH_POR_NIVEL`) — e este aviso
+ * interrompe, porque o cron já manda push dele hoje. Marcar informativa criaria
+ * a contradição de um aviso que não interrompe mandando push. `critica` também
+ * está fora por régua: crítica no Commander é fato consumado do barco
+ * (documento vencido, item de segurança vencido, ocorrência grave), e motor sem
+ * leitura é recomendação preventiva — o próprio `lembreteMotorParado` diz que
+ * "é recomendação, não diagnóstico".
+ *
+ * A régua dos 30 dias e o TEXTO vêm de `lembreteMotorParado`, não de uma cópia:
+ * é a mesma função que o push usa, então os dois canais dizem a mesma frase e
+ * mudam juntos. É o princípio do cabeçalho deste arquivo — a pior falha
+ * possível daqui é a tela mostrar uma coisa e o push mandar outra.
+ *
+ * Devolve `null` quando não há o que avisar (motor com leitura recente, ou
+ * nunca lido — sem carimbo o domínio não inventa quantos dias faz).
+ */
+export interface MotorParaAviso {
+  /** id do EQUIPAMENTO — o aviso leva pra ficha dele. */
+  id: string
+  /** "Motor BE", já resolvido por `nomeDoEquipamento` — o domínio de avisos
+   *  não conhece o formato de `Equipamento`, igual ao que se faz com o título
+   *  de demanda em `notificacaoDeDemandaCompativel`. */
+  nome: string
+  ultimaLeitura: string | null
+}
+
+export function notificacaoDeMotorParado(m: MotorParaAviso, hoje: string): Notificacao | null {
+  const aviso = lembreteMotorParado(m.ultimaLeitura, hoje)
+  if (!aviso) return null
+  return {
+    id: `motor-parado:${m.id}`,
+    titulo: `${m.nome} sem leitura de horas`,
+    // O corpo do MESMO aviso que vai no push, com o número de dias dentro.
+    detalhe: aviso.corpo,
+    categoria: "embarcacao",
+    nivel: "importante",
+    // A régua de área é `abaDoEquipamento`, que espelha `aba_do_equipamento`
+    // no banco — nunca a string "motores" escrita à mão aqui. Sem isto, um
+    // tripulante sem acesso a Motores veria o aviso (PRD §5.2).
+    aba: abaDoEquipamento("motor"),
+    href: `/barco/equipamento/${m.id}`,
+    // "Informar leitura" seria o verbo exato, mas o botão dele na ficha está
+    // atrás de `editavel` — prometer ação que metade das pessoas não encontra
+    // é o defeito que `hrefDoItem` já documenta ter evitado. Vale o nome da
+    // tela, como em "Ver recorrente".
+    acao: "Ver motor",
+    // Estado atual do barco, não evento datado — mesma escolha dos itens
+    // vencidos, e o que faz o aviso vir antes do histórico do mesmo nível.
+    quando: null,
+    // Um grupo para todos os motores: um barco com dois motores parados dá
+    // uma linha com "+1 semelhante", não duas linhas quase idênticas (§5.2).
+    grupo: "motor-parado",
+  }
+}
+
 // --- Permissão, filtro, ordenação e agrupamento ----------------------------
 
 /**
@@ -359,13 +483,62 @@ export function contarPorCategoria(
 }
 
 /**
- * O número dentro do sino. Conta críticas e importantes — nunca as
- * informativas: um badge vermelho que nunca zera porque tem três avisos
- * "pra saber" perde o significado, e aí ninguém olha quando importa.
- * Mesmo critério de `PUSH_POR_NIVEL`: o que interrompe é o que conta.
+ * PENDÊNCIA — a régua do número vermelho, e ela é SÓ DAQUI.
+ *
+ * O spec de arquitetura §3.3 pede uma coisa específica: "a contagem passa a
+ * ser de pendências que PEDEM AÇÃO — que é o que um número vermelho sobre um
+ * ícone promete". Um badge que soma as três gravidades pode marcar "3" com
+ * três informativas; quem abre e não acha nada pra fazer aprende a ignorar o
+ * número — e aí ele não avisa mais nada quando importa.
+ *
+ * POR QUE ESTA CONSTANTE EXISTE, SE ELA É IDÊNTICA A `PUSH_POR_NIVEL`.
+ *
+ * Porque são DUAS perguntas diferentes que hoje têm a mesma resposta, e a
+ * igualdade é coincidência de valor, não de significado:
+ *
+ *   `PUSH_POR_NIVEL`        "vale acordar alguém no celular por isto?"
+ *   `PEDE_ACAO_POR_NIVEL`   "isto está parado esperando por mim?"
+ *
+ * Enquanto `contadorSino` lia `PUSH_POR_NIVEL`, a régua do badge era refém de
+ * uma decisão de OUTRO canal — e desse canal em particular, que já não
+ * descreve o app: `PUSH_POR_NIVEL` diz `true` para toda importante, mas o cron
+ * (`app/api/alertas/disparar`) só varre itens monitorados, boletim de mar e
+ * motor parado, e `lib/avisos/marketplace.ts` só o pedido novo. Compromisso de
+ * agenda e conta vencendo são `importante` e NUNCA viram push. O dia em que
+ * alguém corrigir essa constante pra dizer a verdade sobre o push — que é uma
+ * correção certa, e vai acontecer — o sino perderia Agenda e Financeiro junto,
+ * sem que ninguém tivesse pedido isso: pendência não deixa de esperar por você
+ * só porque o celular não tocou.
+ *
+ * As duas continuam iguais por enquanto, e a igualdade é conferida por teste
+ * justamente pra que a divergência, quando vier, seja uma escolha escrita — e
+ * não um efeito colateral.
+ */
+export const PEDE_ACAO_POR_NIVEL: Record<NivelNotificacao, boolean> = {
+  critica: true,
+  importante: true,
+  informativa: false,
+}
+
+/** A pergunta em função, pra que consumidor nenhum precise conhecer níveis.
+ *  Quem quiser mudar a régua muda AQUI — e o sino, em todos os lugares onde
+ *  ele aparece, muda junto, porque nenhum deles conta por conta própria. */
+export function pedeAcao(n: Pick<Notificacao, "nivel">): boolean {
+  return PEDE_ACAO_POR_NIVEL[n.nivel]
+}
+
+/**
+ * O número dentro do sino — a barra de baixo, o trilho do desktop, a faixa de
+ * topo e o sino da Início mostram TODOS este mesmo valor, calculado por esta
+ * função e por nenhuma outra.
+ *
+ * Conta FATOS, não linhas desenhadas: três documentos vencidos são "3" aqui e
+ * um cartão só na tela ("+2 semelhantes"), porque `agruparSemelhantes` é
+ * apresentação. A aritmética fecha à vista — 1 linha + "+2" = 3 — e é a mesma
+ * do chip "Todas" e da aba Pendentes, que também contam cru.
  */
 export function contadorSino(notificacoes: readonly Notificacao[]): number {
-  return notificacoes.filter((n) => PUSH_POR_NIVEL[n.nivel]).length
+  return notificacoes.filter(pedeAcao).length
 }
 
 // --- Ícone do cartão (onda 62, canvas tela-1e) -----------------------------

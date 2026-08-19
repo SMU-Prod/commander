@@ -262,6 +262,137 @@ export function linkDoFator(fator: FatorSaude, podeEditarArea: boolean): string 
 }
 
 /**
+ * ONDA 96 — O CAMINHO DO DIA 1: A SEQUÊNCIA QUE O APP NUNCA CONTOU.
+ * ===========================================================================
+ * O dono, olhando o app pronto: *"está uma ZONA nosso app, não sei nem o que
+ * fazer, como cadastrar as coisas"*. A auditoria de produto de 19/08 achou a
+ * causa mecânica, e ela não é falta de tela: os cartões vazios da Início já
+ * têm título, motivo e ação — o que nenhum deles tem é a ORDEM. O app mostra
+ * dez portas ao mesmo tempo e deixa a pessoa adivinhar qual abrir primeiro,
+ * quando na verdade existe UM caminho e ele é encadeado:
+ *
+ *   cadastrar o motor  →  informar as horas  →  informar a validade dos docs
+ *
+ * Os três não são uma lista de tarefas: são o que ACENDE a Saúde e liga os
+ * avisos. Sem motor não há horímetro; sem horas o semáforo não tem contra o
+ * que contar; sem data de vencimento nenhum aviso de documento existe. É por
+ * isso que cada passo carrega o que ele DESTRAVA e não só o que fazer —
+ * "informe as horas" é tarefa, "é o que faz o app avisar antes de a revisão
+ * vencer" é motivo, e motivo é o que faz alguém sair do sofá.
+ *
+ * NÃO CUSTA UMA IDA AO BANCO. Os três sinais saem de `painel.equipamentos` e
+ * `painel.itens`, que `carregarPainel` já trouxe (~150 ms por volta de rede,
+ * e a Início acabou de sair de 15 esperas em fila para 6). Um passo que
+ * precisasse de consulta própria custaria mais que o problema que resolve.
+ *
+ * PROGRESSO NÃO SE INVENTA — e aqui isso tem um caso concreto, não é lema.
+ * `lib/acoes/onboarding.ts` cria os itens do motor com `ultimo_ciclo_data =
+ * hoje`, sem ninguém ter digitado nada. Medir "documento informado" por
+ * `ultimo_ciclo_data` marcaria como FEITO um passo que o app preencheu
+ * sozinho — a mesma mentira que `estadoExibidoDaSaude` (lá em cima) recusa no
+ * selo. Por isso só contam campos que **só existem se uma pessoa os
+ * informou**: `horas_atuais` e `data_fixa`.
+ *
+ * E `null` NUNCA VIRA ZERO (a régua de `lib/domain/patio.ts`): a checagem das
+ * horas é `!= null`, jamais `> 0`. Motor recém-instalado com horímetro em
+ * "0,0 h" é leitura informada — reprová-lo mandaria a pessoa preencher de novo
+ * o que ela já preencheu.
+ *
+ * POR QUE `horas_atuais` E NÃO `ultima_leitura`, QUE É O QUE A SAÚDE OLHA.
+ * São duas perguntas diferentes, e cada uma tem a sua coluna: este passo
+ * pergunta *"a pessoa informou as horas?"* e a resposta é `horas_atuais` — o
+ * mesmo número que o cartão "Motores" imprime em 20px logo abaixo. O
+ * `temDadoReal` da Início pergunta *"existe leitura DATADA?"*, porque ele
+ * decide se o app pode dizer "Saudável", e aí o carimbo importa. Pelo app as
+ * duas colunas andam juntas (`lib/acoes/equipamentos.ts` grava
+ * `ultima_leitura` junto sempre que há horas), então na prática a divergência
+ * só aparece em linha semeada direto no banco — foi exatamente o que a sonda
+ * de medição desta onda encontrou no barco de teste do e2e. Alinhar este
+ * passo a `ultima_leitura` faria o guia pedir horas que a tela ao lado já
+ * está mostrando, que é pior que a divergência.
+ */
+export type IdPassoInicial = "motor" | "horas" | "documentos"
+
+export interface PassoInicial {
+  id: IdPassoInicial
+  /** Verbo curto, do vocabulário que a tela já usa ("Cadastrar motor" é o
+   *  mesmo rótulo do estado vazio do cartão Motores, dois blocos abaixo). */
+  titulo: string
+  /** O que este passo LIGA no app. É o motivo, não a tarefa. */
+  destrava: string
+  /**
+   * Pra onde o toque leva — sempre o FORMULÁRIO, nunca o hub que tem o
+   * formulário dentro (a régua da casa é 3 toques a partir de `/hoje`, e este
+   * caminho gasta 1).
+   *
+   * `undefined` em dois casos, e os dois são honestidade e não descuido:
+   * quem não pode editar a área não recebe link pra uma tela que vai recusá-lo
+   * (mesma decisão de `linkDoFator`, acima); e o passo cuja PRÉ-CONDIÇÃO não
+   * existe também não recebe — não há motor pra informar horas antes de haver
+   * motor. É assim que a sequência aparece sem precisar dizer "faça na ordem".
+   */
+  href?: string
+  feito: boolean
+}
+
+export function primeirosPassos(dados: {
+  motores: readonly { id: string; horasAtuais: number | null }[]
+  /** Quantos vencimentos de documento têm data informada à mão (`data_fixa`). */
+  documentosComValidade: number
+  podeEditarMotores: boolean
+  podeEditarDocumentos: boolean
+}): PassoInicial[] {
+  const { motores, documentosComValidade, podeEditarMotores, podeEditarDocumentos } = dados
+  // `!= null` e nunca `> 0` — ver o docblock: horímetro zerado é leitura.
+  const temLeitura = motores.some((m) => m.horasAtuais != null)
+  // O primeiro SEM leitura é o alvo do toque: com dois motores e um só lido,
+  // mandar pro que já tem horas seria mandar refazer o que está feito.
+  const semLeitura = motores.find((m) => m.horasAtuais == null)
+  return [
+    {
+      id: "motor",
+      titulo: "Cadastrar motor",
+      destrava: "É ele que traz o horímetro e o plano de revisão do barco.",
+      href: podeEditarMotores ? "/barco/equipamento/novo?tipo=motor" : undefined,
+      feito: motores.length > 0,
+    },
+    {
+      id: "horas",
+      titulo: "Informar horas do motor",
+      destrava: "É o que faz o app avisar antes de a revisão vencer.",
+      href: podeEditarMotores && semLeitura != null
+        ? `/barco/equipamento/${semLeitura.id}/editar`
+        : undefined,
+      feito: temLeitura,
+    },
+    {
+      id: "documentos",
+      // A âncora `#novo` cai direto no formulário no fim de `/barco/documentos`
+      // — a mesma que o botão "Novo documento" daquela tela usa, e não uma rota
+      // inventada só pra este cartão.
+      titulo: "Informar validade dos documentos",
+      destrava: "É o que faz o aviso chegar antes de o documento vencer.",
+      href: podeEditarDocumentos ? "/barco/documentos#novo" : undefined,
+      feito: documentosComValidade > 0,
+    },
+  ]
+}
+
+/**
+ * O caminho aparece? Só enquanto ele tem o que fazer POR ESTA PESSOA.
+ *
+ * Duas condições, e as duas são de sumiço automático: some quando não sobra
+ * passo pendente (o barco tem dado, e o guia nunca vira decoração permanente)
+ * e some quando nenhum pendente é acionável — um tripulante só de leitura não
+ * recebe uma lista de coisas que ele não tem como fazer. Não há dispensar,
+ * não há "não mostrar de novo": o estado do barco é que decide, e por isso o
+ * guia volta sozinho se alguém apagar o motor.
+ */
+export function precisaDoCaminhoInicial(passos: readonly PassoInicial[]): boolean {
+  return passos.some((p) => !p.feito && p.href != null)
+}
+
+/**
  * A variação de gasto do mês, em palavras.
  *
  * Em palavras e não em seta verde/vermelha: no Commander verde/âmbar/
