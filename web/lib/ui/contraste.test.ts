@@ -73,11 +73,10 @@ function token(nome: string): string {
 
 const FUNDO = token("fundo")
 const SUPERFICIE = token("superficie")
-const LINHA = token("linha")
 const TEXTO = token("texto")
 const TEXTO_FRACO = token("texto-dim")
 /** Onda 79 — a borda entrou na conta: é ela que separa cartão de fundo na
- *  paleta medida da referência. Ver o último teste deste arquivo. */
+ *  paleta medida da referência. Ver os dois últimos testes deste arquivo. */
 const LINHA = token("linha")
 
 describe("contraste do tema escuro", () => {
