@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ehRotaPublica } from "./rotas-publicas"
+import { ehRotaPublica, temCookieDeSessao } from "./rotas-publicas"
 
 describe("ehRotaPublica", () => {
   it("libera a vitrine e as páginas que se lê antes de criar conta", () => {
@@ -32,5 +32,27 @@ describe("ehRotaPublica", () => {
   it("mantém o app atrás do gate", () => {
     expect(ehRotaPublica("/hoje")).toBe(false)
     expect(ehRotaPublica("/convite/abc")).toBe(false)
+  })
+})
+
+// ONDA 96 — o atalho que evita uma volta de rede por navegacao. Ele so pode
+// responder "certamente NAO ha sessao"; dizer que HA continua sendo trabalho
+// do servidor de autenticacao.
+describe("temCookieDeSessao", () => {
+  it("reconhece o cookie inteiro", () => {
+    expect(temCookieDeSessao([{ name: "sb-khgjtxvmduizyooqaoox-auth-token" }])).toBe(true)
+  })
+  it("reconhece o cookie FATIADO — token grande vira .0/.1", () => {
+    expect(temCookieDeSessao([
+      { name: "sb-khgjtxvmduizyooqaoox-auth-token.0" },
+      { name: "sb-khgjtxvmduizyooqaoox-auth-token.1" },
+    ])).toBe(true)
+  })
+  it("sem cookie nenhum e sem cookie de sessao devolve falso", () => {
+    expect(temCookieDeSessao([])).toBe(false)
+    expect(temCookieDeSessao([{ name: "tema" }, { name: "embarcacao_ativa" }])).toBe(false)
+  })
+  it("cookie do Supabase que NAO e de sessao nao conta", () => {
+    expect(temCookieDeSessao([{ name: "sb-khgjtxvmduizyooqaoox-provider-token" }])).toBe(false)
   })
 })

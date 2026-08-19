@@ -47,6 +47,31 @@ const ROTAS_PUBLICAS_EXATAS = new Set([
 // consertou.
 const ARVORE_AUTH = "/auth/"
 
+/**
+ * ONDA 96 — O ATALHO QUE TIRA UMA VOLTA DE REDE DE CADA NAVEGAÇÃO.
+ *
+ * O middleware valida a sessão com o Supabase, e isso custa uma ida à rede. Só
+ * que existe UM caso em que a resposta já é certa antes de perguntar: quando
+ * não há cookie de sessão nenhum. Sem token não existe sessão possível — e
+ * perguntar ao servidor de autenticação para ouvir "não tem ninguém" é pagar a
+ * volta de rede para saber o que o cookie ausente já disse.
+ *
+ * ISTO NÃO AFROUXA NADA, e a distinção importa: a função só responde
+ * "certamente NÃO há sessão". Ela nunca diz que há. Quem tem cookie continua
+ * sendo validado no servidor, então cookie forjado não entra — o que muda é só
+ * quantas vezes a validação precisa ser paga.
+ *
+ * O NOME DO COOKIE é `sb-<ref-do-projeto>-auth-token`, e ele pode vir FATIADO
+ * (`…auth-token.0`, `…auth-token.1`) quando o token passa do limite de 4 KB
+ * por cookie — o que acontece de verdade com JWT grande. Por isso a
+ * verificação é por prefixo e sufixo, e não por igualdade: casar o nome exato
+ * deixaria de reconhecer justamente a sessão dos tokens maiores, e o dono
+ * seria mandado para o login com sessão válida no bolso.
+ */
+export function temCookieDeSessao(cookies: readonly { name: string }[]): boolean {
+  return cookies.some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"))
+}
+
 /** Diz se `caminho` pode ser servido a um visitante sem sessão. */
 export function ehRotaPublica(caminho: string): boolean {
   // Alternativa descartada: uma varredura genérica de prefixos (ou um regex
