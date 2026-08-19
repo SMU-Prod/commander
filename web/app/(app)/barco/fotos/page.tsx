@@ -1,6 +1,7 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -162,20 +163,20 @@ export default async function FotosPage({
         </div>
       )}
 
-      {/* O cartão de cota do canvas — rótulo mono, número mono à direita,
-          barra fina. Fica DEPOIS da grade, como lá: primeiro o álbum, depois
+      {/* O cartão de cota, agora com o instrumento da referência (spec §2
+          item 3, "Weight capacity 28 700/44 000 lbs 65%") no lugar da barra
+          desenhada à mão — é o mesmo formato: usado, teto, chip de %, barra
+          por faixa. `cota.usado`/`cota.total` já vêm do domínio
+          (`cotaDoPlano`), na mesma unidade que `cota.valor` mostrava em
+          texto. Fica DEPOIS da grade, como antes: primeiro o álbum, depois
           o quanto ainda cabe. */}
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
-        <div className="flex items-baseline justify-between">
-          <p className="rotulo text-dim">Cota do plano</p>
-          <p className="font-mono-instr text-[13px] font-semibold tabular-nums">{cota.valor}</p>
-        </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-panel2">
-          <div
-            className={`h-full rounded-full ${cota.critico ? "bg-crit" : "bg-dim"}`}
-            style={{ width: `${Math.max(2, cota.percentual)}%` }}
-          />
-        </div>
+        <BarraCapacidade
+          usado={cota.usado}
+          total={cota.total}
+          unidade={cota.unidade}
+          rotulo="Cota do plano"
+        />
         <p className="apoio mt-2 text-dim">A foto marcada como capa é a que abre o seu Commander.</p>
       </div>
 

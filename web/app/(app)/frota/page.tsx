@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { GraficoBarras } from "@/components/ui/grafico-barras"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
@@ -94,16 +96,28 @@ export default async function FrotaPage({
 
       {origens.length > 0 && (
         <>
+          {/* Onda 79 (instrumentos) — a lista virou `GraficoBarras` (spec §2
+              item 5, "Fleet Utilization Trend"): a origem que mais pesou
+              entra em destaque (tooltip já aberto), igual à barra do dia
+              atual na referência — aqui não há "hoje", então o destaque vai
+              para quem mais custou, que é a pergunta que esta seção
+              responde. `cor="var(--dado)"` e não o dourado padrão do
+              componente: a onda 63 já corrigiu esse mesmo erro em
+              `GraficoMesesGastos` (dourado é ação/marca, não dado), e usar o
+              padrão aqui reabriria o mesmo defeito. */}
           <SecaoPagina icone="relatorio">Em quê</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
-            {origens.map((o) => (
-              <div key={o} className="flex items-center justify-between gap-2 border-b border-line py-3 last:border-0">
-                <span className="corpo min-w-0 truncate">{ROTULO_ORIGEM[o]}</span>
-                <span className="shrink-0 font-mono-instr text-sm tabular-nums">
-                  {formatarReais(r.porOrigem[o])}
-                </span>
-              </div>
-            ))}
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+            <GraficoBarras
+              pontos={origens.map((o) => ({
+                rotulo: ROTULO_ORIGEM[o],
+                valor: r.porOrigem[o] / 100,
+                apoio: `${Math.round((r.porOrigem[o] / r.totalCentavos) * 100)}% do total`,
+                destaque: o === origens[0],
+              }))}
+              cor="var(--dado)"
+              metrica="R$"
+              rotulo="Custo por origem"
+            />
           </div>
         </>
       )}
@@ -119,26 +133,33 @@ export default async function FrotaPage({
               href="/financeiro"
               className="sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="titulo-card min-w-0 truncate">{u.nome}</p>
-                <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
-                  {formatarReais(u.totalCentavos)}
-                </span>
-              </div>
-              {/* Barra proporcional: numa frota de 40, o olho pega a
-                  diferença antes de ler qualquer número. */}
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-panel2">
-                <div className="h-full rounded-full bg-dado" style={{ width: `${u.percentualDaFrota}%` }} />
-              </div>
-              <p className="apoio mt-1.5 text-dim">
-                {u.totalCentavos === 0
-                  // Zero é informação — costuma significar unidade parada,
-                  // que é o que o ADM quer notar (§12).
-                  ? "Nenhum custo no período"
-                  : `${u.percentualDaFrota}% do custo da frota · ${
-                      origensQuePesaram(u.porOrigem).slice(0, 2).map((o) => ROTULO_ORIGEM[o]).join(", ")
-                    }`}
-              </p>
+              <p className="titulo-card min-w-0 truncate">{u.nome}</p>
+              {/* Onda 79 (instrumentos) — a barra fina + texto separado virou
+                  `BarraCapacidade` (spec §2 item 3): o mesmo par número/barra
+                  da referência, agora com chip de % e cor por faixa. `total`
+                  é o custo da FROTA inteira, não um teto arbitrário — a
+                  pergunta que a barra responde continua sendo "que fatia do
+                  gasto total é desta unidade", a mesma da barra antiga.
+                  `unidadeAntes`: "R$" vem antes do número em português.
+                  Zero cai em `neutro` por conta própria (nunca "ok"), o que
+                  já é a leitura certa: unidade parada não é uma boa notícia,
+                  só não é uma leitura ruim ainda. */}
+              <BarraCapacidade
+                className="mt-2"
+                usado={u.totalCentavos / 100}
+                total={r.totalCentavos / 100}
+                unidade="R$"
+                unidadeAntes
+                rotulo={
+                  u.totalCentavos === 0
+                    // Zero é informação — costuma significar unidade parada,
+                    // que é o que o ADM quer notar (§12).
+                    ? "Nenhum custo no período"
+                    : `${u.percentualDaFrota}% do custo da frota · ${
+                        origensQuePesaram(u.porOrigem).slice(0, 2).map((o) => ROTULO_ORIGEM[o]).join(", ")
+                      }`
+                }
+              />
             </Link>
           ))}
         </div>

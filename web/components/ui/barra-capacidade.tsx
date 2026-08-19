@@ -22,6 +22,7 @@ export function BarraCapacidade({
   usado,
   total,
   unidade,
+  unidadeAntes = false,
   rotulo,
   icone,
   className = "",
@@ -30,6 +31,14 @@ export function BarraCapacidade({
   usado: number | null
   total: number
   unidade: string
+  /**
+   * Onda 79 (wiring) — a referência só tem unidade depois do número
+   * ("44 000 lbs"): nenhuma tela nossa até aqui precisava de outra ordem.
+   * `R$` em português vem ANTES ("R$ 9.876,54"), nunca depois — colar como
+   * sufixo leria como erro de digitação, não como dinheiro. Opcional e
+   * `false` por padrão para não mexer em nenhuma tela existente.
+   */
+  unidadeAntes?: boolean
   /** O rótulo miúdo embaixo da barra ("Weight capacity" na referência). */
   rotulo: string
   icone?: NomeIcone
@@ -40,9 +49,13 @@ export function BarraCapacidade({
   const pct = Math.min(100, Math.max(0, Math.round(bruto)))
   const tom = semLeitura ? "neutro" : tomPorUso(bruto)
 
-  const textoAcessivel = semLeitura
-    ? `${rotulo}: sem leitura, de ${formatarNumero(total)} ${unidade}`
-    : `${rotulo}: ${formatarNumero(usado)} de ${formatarNumero(total)} ${unidade}, ${pct}%`
+  const textoAcessivel = unidadeAntes
+    ? semLeitura
+      ? `${rotulo}: sem leitura, de ${unidade} ${formatarNumero(total)}`
+      : `${rotulo}: ${unidade} ${formatarNumero(usado)} de ${unidade} ${formatarNumero(total)}, ${pct}%`
+    : semLeitura
+      ? `${rotulo}: sem leitura, de ${formatarNumero(total)} ${unidade}`
+      : `${rotulo}: ${formatarNumero(usado)} de ${formatarNumero(total)} ${unidade}, ${pct}%`
 
   return (
     // `role="group"` + `aria-label`: as três partes (número, chip, barra) só
@@ -53,10 +66,12 @@ export function BarraCapacidade({
         {icone && <Icone nome={icone} className="size-4 shrink-0 text-dim" />}
         <p className="min-w-0 flex-1 truncate">
           <span className="font-mono-instr text-[17px] font-semibold tabular-nums text-texto">
+            {unidadeAntes && `${unidade} `}
             {semLeitura ? "—" : formatarNumero(usado)}
           </span>{" "}
           <span className="font-mono-instr text-[12px] tabular-nums text-dim">
-            / {formatarNumero(total)} {unidade}
+            / {formatarNumero(total)}
+            {!unidadeAntes && ` ${unidade}`}
           </span>
         </p>
         <span
