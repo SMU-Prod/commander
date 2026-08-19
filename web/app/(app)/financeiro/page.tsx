@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
-import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone } from "@/components/icone"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { GraficoBarras } from "@/components/ui/grafico-barras"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
@@ -155,8 +155,29 @@ export default async function FinanceiroPage({
         />
       )}
 
+      {/* Onda 79 (instrumentos) — `GraficoMesesGastos` refinado para
+          `GraficoBarras` (spec §2 item 5, que já nasceu com este exato
+          objetivo — ver o comentário do próprio componente). `cor="var(--dado)"`
+          de propósito, não o dourado padrão: é o mesmo bug que a onda 63 já
+          tinha corrigido no componente antigo (dourado é ação/marca, não
+          dado) — usar o padrão do componente novo reabriria o defeito.
+          `metrica="R$"` entra como rótulo do tooltip, e não como sufixo:
+          "R$" em português vem ANTES do número, e o `sufixo` do componente
+          só cola DEPOIS — ver o mesmo raciocínio no `unidadeAntes` novo de
+          `BarraCapacidade`. */}
       <SecaoPagina icone="grafico">Despesas dos últimos 6 meses</SecaoPagina>
-      <GraficoMesesGastos meses={seisMeses.meses} mesAtual={hoje.slice(0, 7)} />
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+        <GraficoBarras
+          pontos={seisMeses.meses.map((m) => ({
+            rotulo: m.rotulo,
+            valor: m.totalCentavos / 100,
+            destaque: m.mes === hoje.slice(0, 7),
+          }))}
+          cor="var(--dado)"
+          metrica="R$"
+          rotulo="Despesas dos últimos 6 meses"
+        />
+      </div>
 
       {r.porCategoria.length > 0 && (
         <>

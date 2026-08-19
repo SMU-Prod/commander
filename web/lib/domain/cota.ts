@@ -46,6 +46,22 @@ export interface CotaDoPlano {
   /** Teto alcançado (Free) ou acima de 90% do espaço (pago) — a barra troca
    *  pra cor crítica. */
   critico: boolean
+  /**
+   * Onda 79 (instrumentos, wiring) — os MESMOS dois números por trás de
+   * `valor`, crus, para quem desenha um instrumento (`BarraCapacidade`) em
+   * vez de montar a frase à mão. `valor` continua existindo porque
+   * `cota.test.ts` mede a frase pronta e ela é mais fácil de ler num teste.
+   *
+   * No plano pago, `usado`/`total` vêm em MB (não bytes) — o mesmo MB que
+   * `valor` já mostra, porque `total` (COTA_MB) nunca passa de 1024, sempre
+   * cabe em MB sem precisar da escala GB de `formatarBytes`. Só o `usado`
+   * de um barco que ultrapassou muito o teto perde a troca fina pra GB que
+   * `formatarBytes` faria — é a mesma trava de honestidade dos instrumentos:
+   * o número cru continua certo, só não troca de unidade sozinho.
+   */
+  usado: number
+  total: number
+  unidade: string
 }
 
 export function cotaDoPlano(nivel: NivelPlano, usoFotos: number, bytesUsados: number): CotaDoPlano {
@@ -59,6 +75,9 @@ export function cotaDoPlano(nivel: NivelPlano, usoFotos: number, bytesUsados: nu
       valor: `${uso} / ${limite}`,
       percentual: Math.min(100, Math.round((uso / limite) * 100)),
       critico: uso >= limite,
+      usado: uso,
+      total: limite,
+      unidade: "fotos",
     }
   }
   const uso = usoDaCota(bytesUsados)
@@ -66,6 +85,9 @@ export function cotaDoPlano(nivel: NivelPlano, usoFotos: number, bytesUsados: nu
     valor: `${formatarBytes(uso.usadoBytes)} / ${formatarBytes(uso.limiteBytes)}`,
     percentual: uso.percentual,
     critico: uso.percentual > 90,
+    usado: Math.round(uso.usadoBytes / MB),
+    total: Math.round(uso.limiteBytes / MB),
+    unidade: "MB",
   }
 }
 

@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
+import { DonutNivel } from "@/components/ui/donut-nivel"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { Selo } from "@/components/ui/selo"
 import { criarTanque, movimentarTanque } from "@/lib/acoes/enterprise"
 import { carregarPainel } from "@/lib/consultas"
 import {
@@ -82,21 +84,34 @@ export default async function CombustivelPage({
             <section key={t.id}>
               <SecaoPagina icone="oleo">{t.nome}</SecaoPagina>
 
-              <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
-                <div className="flex items-baseline justify-between">
-                  <p className="rotulo text-dim">Saldo teórico</p>
-                  <p className={`font-mono-instr text-[15px] font-semibold tabular-nums ${abaixoDoMinimo ? "text-warn" : ""}`}>
-                    {formatarLitros(teorico)}
-                  </p>
-                </div>
-                {t.capacidade_litros != null && (
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-panel2">
-                    <div
-                      className={`h-full rounded-full ${abaixoDoMinimo ? "bg-warn" : "bg-dado"}`}
-                      style={{ width: `${Math.max(0, Math.min(100, (teorico / Number(t.capacidade_litros)) * 100))}%` }}
-                    />
+              {/* Onda 79 (instrumentos) — troca da barra fina desenhada à mão
+                  pelo `DonutNivel` (spec §2 item 2, "Fuel level 3.61 gal" da
+                  referência): mesma leitura de tanque, agora com o líquido.
+                  `percentual` só existe quando o tanque tem capacidade
+                  cadastrada — sem capacidade não há teto pra medir contra, e
+                  o donut mostra o litro real sem inventar o anel (§7). O
+                  "abaixo do mínimo" continua como `Selo`, e não como cor do
+                  próprio donut: o líquido do donut é sempre dourado (é assim
+                  na referência, tanque não fica vermelho) — quem carrega o
+                  alarme operacional é o selo ao lado, igual ao chip de canto
+                  do velocímetro. */}
+              <div className="sombra-1 relative rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+                {abaixoDoMinimo && (
+                  <div className="absolute right-4 top-4 z-10">
+                    <Selo estado="atencao">Abaixo do mínimo</Selo>
                   </div>
                 )}
+                <DonutNivel
+                  valor={teorico}
+                  unidade="L"
+                  percentual={
+                    t.capacidade_litros != null
+                      ? Math.round((teorico / Number(t.capacidade_litros)) * 100)
+                      : null
+                  }
+                  apoio={t.minimo_litros != null ? `mín. ${formatarLitros(Number(t.minimo_litros))}` : undefined}
+                  rotulo={`Saldo teórico de ${t.nome}`}
+                />
                 <p className="apoio mt-2 text-dim">
                   Inicial <span className="font-mono-instr tabular-nums">{formatarLitros(Number(t.saldo_inicial_litros))}</span>
                   {" · entradas "}<span className="font-mono-instr tabular-nums text-ok">+{formatarLitros(entradas)}</span>

@@ -2,11 +2,11 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BotaoExportarPdf } from "@/components/botao-exportar-pdf"
 import { Farol } from "@/components/farol"
-import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone } from "@/components/icone"
 import { Abas } from "@/components/ui/abas"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { GraficoBarras } from "@/components/ui/grafico-barras"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -201,13 +201,23 @@ export default async function ResumosPage({
                 média mensal <span className="font-mono-instr tabular-nums">{formatarReais(mediaMensal)}</span>
               </p>
             )}
+            {/* Onda 79 (instrumentos) — mesma troca de `GraficoMesesGastos`
+                por `GraficoBarras`; 110px fixo (não responsivo) porque este
+                gráfico já vive dentro do cartão "Custo do período" acima,
+                que tem altura própria — mesmo raciocínio do mini-gráfico de
+                /hoje. */}
             {r.evolucaoMensal.length > 1 && (
               <div className="mt-4">
-                <GraficoMesesGastos
-                  comMoldura={false}
-                  altura={110}
-                  meses={r.evolucaoMensal.map((m) => ({ mes: m.mes, rotulo: m.rotulo.slice(0, 3).toLowerCase(), totalCentavos: m.gastosCentavos }))}
-                  mesAtual={hoje.slice(0, 7)}
+                <GraficoBarras
+                  pontos={r.evolucaoMensal.map((m) => ({
+                    rotulo: m.rotulo.slice(0, 3).toLowerCase(),
+                    valor: m.gastosCentavos / 100,
+                    destaque: m.mes === hoje.slice(0, 7),
+                  }))}
+                  cor="var(--dado)"
+                  metrica="R$"
+                  alturaClasse="h-[110px]"
+                  rotulo="Evolução mensal de gastos"
                 />
               </div>
             )}

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -102,6 +103,34 @@ export default async function EstoquePage({
         selo={repor.length > 0 ? <Selo estado="atencao">{`${repor.length} para repor`}</Selo> : undefined}
       />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+
+      {/* Onda 79 (instrumentos) — DECISÃO: `BarraCapacidade` NÃO entrou por
+          item (spec §2 item 3 sugeria isso), só no agregado abaixo.
+          Testado e descartado: o componente é "usado/teto", mais cheio é
+          pior (`tomPorUso`). Estoque é o OPOSTO — mais quantidade é melhor —
+          e não existe teto no domínio (`estoque-combustivel.ts` só guarda
+          `minimo`, um piso). Toda tentativa de encaixar item-a-item ou
+          inverte a cor (usado=quantidade, total=mínimo faria estoque cheio
+          virar "crítico" vermelho) ou mostra número errado (usado=mínimo,
+          total=quantidade acerta a cor por acidente mas lê como "usado 3 de
+          12", a leitura oposta da real) ou zera errado (zero em estoque é a
+          PIOR leitura, e `tomPorUso` trata zero como neutro/cinza — a regra
+          certa para "ninguém preencheu", errada para "acabou"). Nenhuma
+          dessas é a peça certa pro dado errado.
+          O que SOBROU do pedido, e cabe de verdade: quantos itens da
+          prateleira pedem reposição agora, sobre o total — isso É usado/teto
+          (mais itens pedindo reposição É pior), sem inventar limite nenhum. */}
+      {itens.length > 0 && (
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
+          <BarraCapacidade
+            usado={repor.length}
+            total={itens.length}
+            unidade="itens"
+            icone="alerta"
+            rotulo="Precisam de reposição"
+          />
+        </div>
+      )}
 
       {repor.length > 0 && (
         <>

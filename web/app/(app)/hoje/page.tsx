@@ -4,12 +4,12 @@ import { Suspense } from "react"
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Farol } from "@/components/farol"
-import { GraficoMesesGastos } from "@/components/grafico-meses-gastos"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
 import { SinoNotificacoes } from "@/components/sino-notificacoes"
 import { Cartao } from "@/components/ui/cartao"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { GraficoBarras } from "@/components/ui/grafico-barras"
 import { Kpi } from "@/components/ui/kpi"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { Selo } from "@/components/ui/selo"
@@ -476,8 +476,24 @@ export default async function HojePage({
                   valor={formatarReais(resumoMes.totalMesCentavos)}
                   apoio={variacaoDoMes(variacaoGastos)}
                 />
+                {/* Onda 79 (instrumentos) — mini-gráfico do cartão vira
+                    `GraficoBarras`; altura fixa de 72px (não responsiva),
+                    igual ao componente antigo — é um "spark-bar" ao lado do
+                    KPI dentro de um `Cartao` que já tem moldura própria,
+                    contexto compacto que a régua responsiva do §5 (140/200)
+                    não cobre. */}
                 <div className="mt-3">
-                  <GraficoMesesGastos meses={resumoMes.meses} mesAtual={hoje.slice(0, 7)} altura={72} comMoldura={false} />
+                  <GraficoBarras
+                    pontos={resumoMes.meses.map((m) => ({
+                      rotulo: m.rotulo,
+                      valor: m.totalCentavos / 100,
+                      destaque: m.mes === hoje.slice(0, 7),
+                    }))}
+                    cor="var(--dado)"
+                    metrica="R$"
+                    alturaClasse="h-[72px]"
+                    rotulo="Despesas dos últimos 6 meses"
+                  />
                 </div>
               </>
             ) : (
