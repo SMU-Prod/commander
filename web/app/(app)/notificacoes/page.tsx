@@ -148,12 +148,26 @@ export default async function NotificacoesPage({
   searchParams: Promise<{ categoria?: string; aba?: string }>
 }) {
   const { categoria: categoriaBruta, aba: abaBruta } = await searchParams
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login?volta=/notificacoes")
+  // ONDA 99 — ESTA TELA MANDAVA O PARTNER PARA O ONBOARDING DE EMBARCAÇÃO.
+  //
+  // O `redirect("/onboarding")` daqui pressupunha que caixa de entrada é coisa
+  // de dono de barco. Deixou de ser: desde esta onda o Marketplace avisa quem
+  // atende quando um pedido é publicado, e quem atende é justamente o Partner
+  // (marina, posto, loja) e o Captain — gente que NUNCA vai ter embarcação, e
+  // que era mandada para um cadastro de barco ao tocar no próprio aviso.
+  //
+  // Sem barco a lista existe e traz só o que não pertence a hub nenhum (é o
+  // que `carregarNotificacoes` devolve nesse caso), e o Histórico — que é
+  // histórico DE ALERTA DE EMBARCAÇÃO — some junto com a embarcação, em vez de
+  // mostrar aba vazia sem explicação.
   const painel = await carregarPainel()
-  if (!painel) redirect("/onboarding")
 
   // Só "historico" muda de aba; qualquer outro valor (inclusive lixo na URL)
   // cai em Pendentes — a caixa de entrada é o default e o fallback.
-  const aba = abaBruta === "historico" ? "historico" : "pendentes"
+  const aba = abaBruta === "historico" && painel != null ? "historico" : "pendentes"
 
   const categoria = (CATEGORIAS_NOTIFICACAO as readonly string[]).includes(categoriaBruta ?? "")
     ? (categoriaBruta as CategoriaNotificacao)
@@ -196,8 +210,7 @@ export default async function NotificacoesPage({
   // qualquer pessoa com vínculo lia o título de todo alerta, inclusive de
   // hubs que ela não pode ver.
   let enviados: Pick<AlertaEnviado, "id" | "titulo" | "janela" | "enviado_em">[] = []
-  if (aba === "historico") {
-    const supabase = await supabaseServer()
+  if (aba === "historico" && painel) {
     const { data } = await supabase
       .from("alertas_enviados")
       .select("id, titulo, janela, enviado_em")
@@ -231,7 +244,11 @@ export default async function NotificacoesPage({
           // propósito (só o que pede ação, spec §3.3): ele mede urgência,
           // a aba mede volume.
           { valor: "pendentes", rotulo: "Pendentes", href: "/notificacoes", contagem: todas.length },
-          { valor: "historico", rotulo: "Histórico", href: "/notificacoes?aba=historico" },
+          // Sem embarcação não há histórico de alerta de embarcação — e uma
+          // aba que abriria sempre vazia é pior que a ausência dela (§24).
+          ...(painel
+            ? [{ valor: "historico", rotulo: "Histórico", href: "/notificacoes?aba=historico" }]
+            : []),
         ]}
       />
 

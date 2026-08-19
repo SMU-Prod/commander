@@ -363,9 +363,24 @@ export function demandasCompativeis<T extends DemandaParaMatching>(
   return demandas.filter((d) => interesses.some((i) => interesseAtendeDemanda(i, d)))
 }
 
-/** O outro lado da mesma pergunta: quem deve ser avisado desta demanda.
- *  Ordenado por id pra ser determinístico entre execuções (§11.4 pede
- *  "distribuição simples e determinística" — inclusive na ordem). */
+/**
+ * O outro lado da mesma pergunta: quem deve ser avisado desta demanda.
+ * Ordenado por id pra ser determinístico entre execuções (§11.4 pede
+ * "distribuição simples e determinística" — inclusive na ordem).
+ *
+ * ONDA 99 — ELA GANHOU O CHAMADOR QUE FALTAVA. Ficou órfã da onda 45 à 98
+ * (auditoria 19/08, A20) e isso nunca foi código sobrando: era metade de um
+ * conserto. A outra metade — o disparo — mora em
+ * `lib/avisos/marketplace.ts`, chamado por `publicarDemanda`
+ * (`lib/acoes/marketplace.ts`) no instante em que o pedido nasce.
+ *
+ * Nada da regra mudou ao ganhar o chamador, e isso é o ponto: a irmã
+ * `demandasCompativeis` já rodava em produção sobre exatamente o mesmo
+ * `interesseAtendeDemanda`, então a vitrine ("Combinam com você") e o aviso
+ * respondem à mesma pergunta com a mesma função. Se um dia divergirem, o
+ * prestador recebe push de um pedido que a tela dele não lista — e é aí que
+ * ele para de confiar nos dois.
+ */
 export function usuariosCompativeis(
   demanda: DemandaParaMatching,
   interesses: readonly InteresseParaMatching[],
@@ -375,6 +390,72 @@ export function usuariosCompativeis(
     if (interesseAtendeDemanda(i, demanda)) ids.add(i.usuario_id)
   }
   return [...ids].sort()
+}
+
+/** O que `perfis_comandante` guarda e que interessa ao matching. Só isto —
+ *  o módulo continua sem conhecer a linha do banco. */
+export interface PerfilProfissionalParaMatching {
+  usuario_id: string
+  regiao_id: string | null
+  funcao_id: string | null
+  porte_max_pes: number | null
+  visivel: boolean
+}
+
+/**
+ * §11.1, coluna "Quem recebe" da demanda de TRIPULAÇÃO: "Comandantes e
+ * profissionais compatíveis com a função".
+ *
+ * Comandante e prestador não preenchem `/marketplace/interesses` para existir
+ * — eles preenchem o PERFIL PROFISSIONAL (`perfis_comandante`), onde já
+ * declaram função e região. Exigir que declarassem a mesma coisa duas vezes,
+ * em duas telas, para receber um aviso seria cobrar burocracia por algo que o
+ * app já sabe.
+ *
+ * ESTA FUNÇÃO NÃO É UMA SEGUNDA RÉGUA — é um TRADUTOR. Ela devolve o perfil
+ * vestido de `InteresseParaMatching`, e quem decide continua sendo
+ * `interesseAtendeDemanda`, o mesmo de sempre. Por isso a regra do campo
+ * vazio sai de graça e idêntica: função em branco significa "qualquer função"
+ * (o profissional que aceita qualquer vaga de tripulação na sua região não
+ * precisa marcar as doze), e porte em branco significa "qualquer porte" — não
+ * declarar nunca é declarar zero.
+ *
+ * Devolve `null` — e não um interesse que não casa com nada — nos dois casos
+ * em que avisar seria errado, cada um por um motivo diferente:
+ *
+ *  · SEM REGIÃO: não há para onde o pedido chegar. Região é o eixo que a
+ *    própria tela de publicar chama de "o que decide quem vai receber o
+ *    pedido"; um perfil sem ela não está declarando "todas as regiões do
+ *    Brasil", está incompleto.
+ *  · PERFIL OCULTO (`visivel = false`): a pessoa desligou o próprio perfil.
+ *    Continuar mandando oportunidade para quem se retirou da vitrine é ignorar
+ *    a única chave que ela tem para dizer "agora não" — e o app ainda não tem
+ *    um mudo por assunto.
+ *
+ * Só `tripulacao`: é o único tipo de demanda que o §11.1 endereça a esta
+ * gente, e é o único que o perfil sabe responder. A demanda de `profissional`
+ * casa por CATEGORIA DE SERVIÇO da taxonomia, e o que `perfis_comandante`
+ * guarda em `categoria` é texto livre (ver `lib/domain/prestadores.ts`) —
+ * casar texto livre com id de taxonomia seria adivinhação, e adivinhação em
+ * disparo vira push errado. O prestador que quer os pedidos de serviço declara
+ * isso onde a taxonomia existe: em `/marketplace/interesses` ou, se for
+ * Partner, no próprio `/parceiro/perfil`.
+ */
+export function interesseDoPerfilProfissional(
+  perfil: PerfilProfissionalParaMatching,
+): InteresseParaMatching | null {
+  if (!perfil.visivel) return null
+  if (perfil.regiao_id == null) return null
+  return {
+    usuario_id: perfil.usuario_id,
+    tipo_demanda: "tripulacao",
+    regiao_id: perfil.regiao_id,
+    categoria_id: null,
+    funcao_id: perfil.funcao_id,
+    combustivel_id: null,
+    porte_max_pes: perfil.porte_max_pes,
+    ativo: true,
+  }
 }
 
 // ===========================================================================

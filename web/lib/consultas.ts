@@ -5,9 +5,10 @@ import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
   DIAS_AVISO_AGENDA, DIAS_AVISO_FINANCEIRO, filtrarPorPermissao, nivelDaOcorrencia,
   nivelDoCompromisso, nivelDoStatusItem, nivelDoVencimentoFinanceiro,
-  NIVEL_AVISO_MARKETPLACE, ordenarNotificacoes,
+  notificacaoDeDemandaCompativel, NIVEL_AVISO_MARKETPLACE, ordenarNotificacoes,
   type Notificacao,
 } from "@/lib/domain/notificacoes"
+import { carregarMapaTaxonomia, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import {
   ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO, ROTULO_GRAVIDADE,
   type EstadoOcorrencia, type Gravidade,
@@ -17,7 +18,7 @@ import { normalizarPermissoes, podeEditar, type Aba, type Permissoes } from "@/l
 import { limiteEmbarcacoes, nivelPlano, type NivelPlano } from "@/lib/domain/plano-acesso"
 import { PLANOS, type PlanoId, type PromocaoId } from "@/lib/domain/planos"
 import {
-  avaliarCiclo, dividirEmbarcacoesPorPlano, TOLERANCIA_PADRAO_DIAS,
+  avaliarCiclo, dividirEmbarcacoesPorPlano, planoAposPerder, TOLERANCIA_PADRAO_DIAS,
   type CicloAvaliado, type DivisaoEmbarcacoes,
 } from "@/lib/domain/assinatura-ciclo"
 import {
@@ -28,7 +29,7 @@ import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import { ROTULO_FREQUENCIA, vencimentosNoIntervalo } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
 import type {
-  Assinatura, Embarcacao, Equipamento, ItemMonitorado, PapelDb, RecorrenciaFinanceira,
+  Assinatura, Demanda, Embarcacao, Equipamento, ItemMonitorado, PapelDb, RecorrenciaFinanceira,
   VerifiedEstado, Viagem,
 } from "@/lib/db/types"
 import { diasAteData, hojeISO } from "@/lib/domain/datas"
@@ -339,7 +340,21 @@ export const carregarAssinatura = cache(async (): Promise<{
   // quando o ciclo diz que não há mais acesso pago é que a assinatura para de
   // contar pro plano vigente.
   const planoDaAssinatura = assinatura != null && ciclo?.acessoPago ? assinatura.plano : null
-  const plano: PlanoId = planoDaAssinatura ?? concessao?.plano_concedido ?? "proprietario_free"
+  // AUDITORIA 19/08, A20 — O FREE DE QUEM CAIU NÃO É SEMPRE O DO PROPRIETÁRIO.
+  // §23: "falha persistente/cancelamento → conta volta ao NÍVEL FREE APLICÁVEL",
+  // e qual é o aplicável depende do perfil do plano que acabou.
+  // `planoAposPerder` diz isso desde a onda 47 e nunca foi chamada: a linha
+  // caía em `proprietario_free` fixo. Um comandante que pagava Captain Pro e
+  // teve o cartão recusado virava PROPRIETÁRIO Free — e a tela `/assinar`
+  // passava a marcar "Seu plano hoje" no plano de gerir barco, na aba errada,
+  // para alguém que nunca teve barco. Ele perdia o plano e o app perdia o
+  // perfil dele junto.
+  // A gestão de embarcação não muda com isto: `comoNivel` devolve `null` para
+  // `captain_free`, então `carregarNivelPlano` continua no degrau de sempre.
+  const plano: PlanoId =
+    planoDaAssinatura
+    ?? concessao?.plano_concedido
+    ?? (assinatura != null ? planoAposPerder(assinatura.plano) : "proprietario_free")
 
   return {
     assinatura,
@@ -549,12 +564,37 @@ function hrefDoItem(equipamentoId: string | null, aba: Aba): string {
 
 export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const painel = await carregarPainel()
-  if (!painel) return []
-  const { embarcacao, equipamentos, itens, permissoes } = painel
   const hoje = hojeISO()
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   const usuarioId = user?.id ?? ""
+
+  // ONDA 99 — QUEM NÃO TEM BARCO TAMBÉM RECEBE AVISO, E ISSO ERA UM BURACO.
+  //
+  // Esta função devolvia `[]` na ausência de painel, e "painel" quer dizer
+  // EMBARCAÇÃO. Só que o Marketplace não é do barco: o Partner (marina, posto,
+  // loja) e o Captain Pro vivem no app inteiro sem nunca terem uma — o próprio
+  // `notificacoesDoMarketplace` diz isso no comentário dele desde a onda 53.
+  // Enquanto os avisos do Marketplace eram todos consequência de uma ação da
+  // própria pessoa (ela mandou proposta, ela fechou negócio), o buraco não
+  // aparecia: ela estava na tela quando aconteceu. O aviso de PEDIDO NOVO é o
+  // primeiro que chega sem ela ter feito nada — e chegaria numa caixa de
+  // entrada que devolvia lista vazia justamente pra quem ele existe.
+  //
+  // As permissões entram como "nenhuma" (`normalizarPermissoes(null)`) e não
+  // como `null`: `null` significa PROP e liberaria TODA aba. Quem não tem
+  // vínculo com barco nenhum não pode ver hub nenhum — e o que passa por esse
+  // crivo é exatamente o que não pertence a hub algum (`aba: null`), que é o
+  // caso dos avisos de Marketplace. O crivo é o mesmo de sempre; o que muda é
+  // a resposta honesta pra quem não tem barco.
+  if (!painel) {
+    if (usuarioId === "") return []
+    return ordenarNotificacoes(
+      filtrarPorPermissao(await notificacoesDoMarketplace(usuarioId, hoje), normalizarPermissoes(null)),
+    )
+  }
+
+  const { embarcacao, equipamentos, itens, permissoes } = painel
 
   const { data: ocorrenciasBrutas } = await supabase
     .from("ocorrencias").select("id, titulo, aba, estado, gravidade, created_at")
@@ -609,7 +649,7 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const [deAgenda, deFinanceiro, deMarketplace] = await Promise.all([
     notificacoesDaAgenda(embarcacao.id, usuarioId, hoje),
     notificacoesDoFinanceiro(embarcacao.id, hoje),
-    notificacoesDoMarketplace(usuarioId),
+    notificacoesDoMarketplace(usuarioId, hoje),
   ])
 
   return ordenarNotificacoes(
@@ -767,7 +807,7 @@ async function notificacoesDoFinanceiro(embarcacaoId: string, hoje: string): Pro
  * demanda/proposta de quem é parte — por isso a consulta filtra por
  * `autor_id` e não confia só nela: as duas travas, como no resto da função.
  */
-async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao[]> {
+async function notificacoesDoMarketplace(usuarioId: string, hoje: string): Promise<Notificacao[]> {
   if (usuarioId === "") return []
   const supabase = await supabaseServer()
 
@@ -775,14 +815,20 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
     .from("demandas").select("id").eq("autor_id", usuarioId).in("status", ["aberta", "em_negociacao"])
   const idsMinhasDemandas = ((minhasDemandas ?? []) as { id: string }[]).map((d) => d.id)
 
-  const [{ data: recebidas }, { data: minhasPropostas }] = await Promise.all([
+  const [{ data: recebidas }, { data: todasMinhasPropostas }] = await Promise.all([
     idsMinhasDemandas.length > 0
       ? supabase.from("propostas").select("id, demanda_id, autor_nome, criado_em")
           .in("demanda_id", idsMinhasDemandas).eq("status", "enviada")
       : Promise.resolve({ data: [] }),
-    supabase.from("propostas").select("id, demanda_id, status, atualizado_em")
-      .eq("autor_id", usuarioId).in("status", ["aceita", "recusada"]),
+    // Todas as minhas respostas, não só as julgadas: as `aceita`/`recusada`
+    // viram aviso logo abaixo, e a lista COMPLETA serve pra outra coisa — é
+    // ela que apaga o aviso de "pedido novo" assim que eu respondo (ver
+    // `notificacoesDeDemandasCompativeis`). Uma consulta a menos que buscar as
+    // duas listas em separado.
+    supabase.from("propostas").select("id, demanda_id, status, atualizado_em").eq("autor_id", usuarioId),
   ])
+  const minhasPropostas = ((todasMinhasPropostas ?? []) as PropostaMinhaParaNotificacao[])
+    .filter((p) => p.status === "aceita" || p.status === "recusada")
 
   const avisos: Notificacao[] = ((recebidas ?? []) as PropostaRecebidaParaNotificacao[]).map((p) => ({
     id: `proposta-recebida:${p.id}`,
@@ -798,7 +844,7 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
     grupo: `marketplace:recebida:${p.demanda_id}`,
   }))
 
-  for (const p of (minhasPropostas ?? []) as PropostaMinhaParaNotificacao[]) {
+  for (const p of minhasPropostas) {
     const aceita = p.status === "aceita"
     avisos.push({
       id: `proposta-${p.status}:${p.id}`,
@@ -848,7 +894,94 @@ async function notificacoesDoMarketplace(usuarioId: string): Promise<Notificacao
     })
   }
 
+  avisos.push(
+    ...(await notificacoesDeDemandasCompativeis(
+      usuarioId,
+      hoje,
+      new Set(((todasMinhasPropostas ?? []) as { demanda_id: string }[]).map((p) => p.demanda_id)),
+    )),
+  )
+
   return avisos
+}
+
+/**
+ * "CHEGOU UM PEDIDO QUE COMBINA COM VOCÊ" (onda 99, §11.4 + §5.2).
+ *
+ * Este é o único aviso do app que NÃO é derivado de estado: ele é lido de
+ * `avisos_demanda`, gravada no instante da publicação por
+ * `lib/avisos/marketplace.ts`. E é assim de propósito — derivar aqui
+ * significaria recalcular a compatibilidade a cada abertura de tela, contra o
+ * cadastro de HOJE. Quem ampliasse a região amanhã veria aparecer avisos de
+ * pedidos de ontem, que já podem ter sido resolvidos; quem estreitasse veria
+ * sumir avisos que já recebeu no celular. O fato "você foi avisado disto" tem
+ * data e é imutável — logo, é linha.
+ *
+ * A linha existe pra sempre (a unique da 089 garante um aviso por pedido por
+ * pessoa), mas o AVISO desaparece por conta própria em três casos, que é o que
+ * permite esta caixa de entrada chegar a zero:
+ *
+ *  · o pedido morreu — a RLS de `demandas` (046) só devolve demanda viva, e o
+ *    filtro de status/prazo repete a condição em vez de confiar só nela, como
+ *    o resto desta função faz;
+ *  · você respondeu — proposta enviada é o aviso cumprido. Vale inclusive pra
+ *    proposta RETIRADA: você viu o pedido e decidiu sair, e ressuscitar o
+ *    aviso seria insistir com quem já disse não;
+ *  · o pedido virou seu de alguma forma — impossível hoje (o autor nunca se
+ *    avisa), e o filtro de autor abaixo é a segunda tranca disso.
+ *
+ * A taxonomia só é carregada quando existe aviso — sem isto, toda navegação de
+ * toda pessoa pagaria uma consulta de tradução por causa de uma lista vazia.
+ */
+async function notificacoesDeDemandasCompativeis(
+  usuarioId: string,
+  hoje: string,
+  demandasQueJaRespondi: ReadonlySet<string>,
+): Promise<Notificacao[]> {
+  const supabase = await supabaseServer()
+  const { data: brutos } = await supabase
+    .from("avisos_demanda").select("demanda_id, criado_em")
+    // A RLS da 089 já devolve só as minhas linhas; o `eq` é a segunda trava,
+    // como no resto desta função. O teto de 50 é o mesmo espírito do teto de
+    // 100 da vitrine: quem tem 50 pedidos novos esperando resposta não vai ler
+    // o quinquagésimo primeiro, e a caixa de entrada não pode virar consulta
+    // ilimitada em toda navegação.
+    .eq("usuario_id", usuarioId)
+    .order("criado_em", { ascending: false })
+    .limit(50)
+  const avisados = ((brutos ?? []) as { demanda_id: string; criado_em: string }[])
+    .filter((a) => !demandasQueJaRespondi.has(a.demanda_id))
+  if (avisados.length === 0) return []
+
+  const [mapa, { data: demandasBrutas }] = await Promise.all([
+    carregarMapaTaxonomia(),
+    supabase.from("demandas").select("*")
+      .in("id", avisados.map((a) => a.demanda_id))
+      .neq("autor_id", usuarioId)
+      .in("status", ["aberta", "em_negociacao"])
+      .gte("expira_em", hoje),
+  ])
+  const vivas = new Map(((demandasBrutas as Demanda[] | null) ?? []).map((d) => [d.id, d]))
+
+  const notificacoes: Notificacao[] = []
+  for (const a of avisados) {
+    const d = vivas.get(a.demanda_id)
+    if (!d) continue
+    notificacoes.push(
+      // O MESMO construtor que o push usou lá atrás — é o que garante que a
+      // linha da tela e a notificação do celular digam a mesma coisa, levem
+      // pro mesmo lugar e pesem o mesmo no sino.
+      notificacaoDeDemandaCompativel({
+        id: d.id,
+        tipo: d.tipo,
+        titulo: tituloDeDemanda(mapa, d),
+        // O carimbo do AVISO, não o da demanda: é a hora em que ela chegou
+        // pra esta pessoa, e é isso que a lista ordena.
+        criadoEm: a.criado_em,
+      }),
+    )
+  }
+  return notificacoes
 }
 
 /** "hoje", "amanhã", "em 4 dias", "há 3 dias" — a frase que o cartão do aviso

@@ -1,3 +1,4 @@
+import { rotuloDaResposta, type TipoDemanda } from "@/lib/domain/marketplace"
 import { podeVer, type Aba, type Permissoes } from "@/lib/domain/permissoes"
 import type { StatusFarol } from "@/lib/domain/semaforo"
 import type { EstadoOcorrencia, Gravidade } from "@/lib/domain/ocorrencias"
@@ -188,23 +189,108 @@ export function nivelDoVencimentoFinanceiro(diasAte: number): NivelNotificacao {
 }
 
 /**
- * Os avisos do Marketplace (PRD §11.5 e §11.6). §5.2 define `importante`
- * como "exigem ação ou envolvem outra pessoa" — e é literalmente o caso de
- * proposta recebida, proposta aceita e negócio esperando a sua confirmação:
- * tem alguém do outro lado parado esperando você. Recusa não: já acabou,
- * não há o que fazer, então é `informativa`.
+ * Os avisos do Marketplace (PRD §11.4, §11.5 e §11.6). §5.2 define
+ * `importante` como "exigem ação ou envolvem outra pessoa" — e é literalmente
+ * o caso de proposta recebida, proposta aceita e negócio esperando a sua
+ * confirmação: tem alguém do outro lado parado esperando você. Recusa não: já
+ * acabou, não há o que fazer, então é `informativa`.
+ *
+ * ONDA 99 — `demanda_compativel` ENTRA COMO IMPORTANTE, e a escolha custou
+ * uma leitura da régua inteira deste arquivo antes de ser feita.
+ *
+ * `importante` aqui significa três coisas de uma vez, porque neste módulo elas
+ * são a mesma decisão: entra no push (`PUSH_POR_NIVEL`), conta no sino
+ * (`contadorSino` conta exatamente o que o push interrompe) e sobe na
+ * ordenação (`PESO_NIVEL`). Marcar como `informativa` teria dado in-app sem
+ * push — e in-app sem push é o estado de HOJE, que é o problema que esta onda
+ * existe para resolver: o prestador não abre o Marketplace por conta própria.
+ *
+ * O teste do §5.2 é literal e passa nos dois braços: um pedido novo compatível
+ * "exige ação" (responder com preço e prazo, antes de o pedido expirar — a
+ * demanda tem `expira_em`, então a janela fecha sozinha) e "envolve outra
+ * pessoa" (o dono está do outro lado esperando resposta). É a mesma família de
+ * `proposta_recebida`, vista do outro lado do balcão.
+ *
+ * E `critica` está fora, também por régua e não por gosto: neste app crítica
+ * quer dizer que o BARCO tem um fato consumado — documento vencido, item de
+ * segurança vencido, ocorrência grave. Oportunidade comercial perdida não é
+ * dessa família, e misturar as duas ensina o dono a ignorar o vermelho (é o
+ * mesmo argumento escrito em `nivelDoCompromisso` e em
+ * `nivelDoVencimentoFinanceiro`).
+ *
+ * O que impede este aviso de virar o spam que o §5.2 proíbe não é o nível: é
+ * (a) o índice único `(demanda_id, usuario_id)` da migration 089, que dá UM
+ * aviso por pedido por pessoa para sempre, e (b) o `grupo` compartilhado, que
+ * dobra "5 pedidos novos combinam com você" numa linha só.
  */
 export type AvisoMarketplace =
+  | "demanda_compativel"
   | "proposta_recebida"
   | "proposta_aceita"
   | "proposta_recusada"
   | "negocio_aguardando"
 
 export const NIVEL_AVISO_MARKETPLACE: Record<AvisoMarketplace, NivelNotificacao> = {
+  demanda_compativel: "importante",
   proposta_recebida: "importante",
   proposta_aceita: "importante",
   proposta_recusada: "informativa",
   negocio_aguardando: "importante",
+}
+
+/** O pedido, na medida que o aviso precisa. O `titulo` já vem RESOLVIDO pela
+ *  taxonomia (`tituloDeDemanda`, em `lib/consultas-marketplace.ts`) — o
+ *  domínio não conhece uuid de categoria nem nome de região. */
+export interface DemandaAvisada {
+  id: string
+  tipo: TipoDemanda
+  titulo: string
+  /** ISO da publicação. `null` quando quem monta não tem o carimbo em mãos —
+   *  a lista trata `quando: null` como estado atual e o põe antes do histórico
+   *  do mesmo nível, que é exatamente o certo pra um pedido recém-nascido. */
+  criadoEm: string | null
+}
+
+/**
+ * O aviso "chegou um pedido que combina com você" — UM construtor, usado
+ * pelos DOIS canais.
+ *
+ * O cabeçalho deste arquivo diz que a pior falha possível daqui é a tela
+ * mostrar uma coisa e o push mandar outra. Este aviso é o mais exposto a
+ * isso, porque os dois canais nascem em lugares diferentes: o push sai de
+ * `lib/avisos/marketplace.ts` no instante da publicação, e a linha in-app sai
+ * de `carregarNotificacoes` (`lib/consultas.ts`) horas depois, relendo
+ * `avisos_demanda`. Fazer os dois chamarem esta função é o que garante que o
+ * nível (logo, o sino e o push), o destino e o verbo sejam os mesmos nos dois.
+ *
+ * `aba: null` porque Marketplace não pertence a hub nenhum — e não é um
+ * detalhe: é o que faz `filtrarPorPermissao` deixar o aviso passar pro
+ * Partner e pro Captain, que não têm embarcação e portanto não têm permissão
+ * de aba nenhuma. O disparo passa por essa MESMA função antes de mandar push,
+ * então no dia em que este aviso ganhar uma `aba`, os dois canais fecham
+ * juntos, sem ninguém precisar lembrar de ir lá.
+ *
+ * O verbo é o da tela de destino, por tipo: quem responde uma demanda de
+ * tripulação se CANDIDATA, quem responde as outras quatro faz PROPOSTA
+ * (§11.5, e é o rótulo que o botão de `/marketplace/[id]` já mostra).
+ */
+export function notificacaoDeDemandaCompativel(d: DemandaAvisada): Notificacao {
+  return {
+    id: `demanda-compativel:${d.id}`,
+    titulo: "Novo pedido combina com você",
+    detalhe: d.titulo,
+    categoria: "marketplace",
+    nivel: NIVEL_AVISO_MARKETPLACE.demanda_compativel,
+    aba: null,
+    href: `/marketplace/${d.id}`,
+    acao: `Enviar ${rotuloDaResposta(d.tipo)}`,
+    quando: d.criadoEm,
+    // Um grupo só pros pedidos todos: "Novo pedido combina com você · +4
+    // semelhantes" numa linha, em vez de cinco linhas idênticas de título.
+    // É o "oportunidades semelhantes devem ser agrupadas para evitar spam" do
+    // §5.2 no caso que lhe deu nome — oportunidade é literalmente isto.
+    grupo: "marketplace:demanda-compativel",
+  }
 }
 
 // --- Permissão, filtro, ordenação e agrupamento ----------------------------

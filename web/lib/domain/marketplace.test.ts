@@ -17,6 +17,7 @@ import {
   filtroTipoDemandaValido,
   formatarDiaCurto,
   interesseAtendeDemanda,
+  interesseDoPerfilProfissional,
   propostaTem,
   resumoDaProposta,
   rotuloDaResposta,
@@ -30,6 +31,7 @@ import {
   type ConfirmacaoNegocio,
   type DemandaParaMatching,
   type InteresseParaMatching,
+  type PerfilProfissionalParaMatching,
 } from "./marketplace"
 
 // ---------------------------------------------------------------------------
@@ -281,6 +283,91 @@ describe("demandasCompativeis / usuariosCompativeis", () => {
       interesse({ usuario_id: "bia", regiao_id: PARATY }),
     ]
     expect(usuariosCompativeis(demanda(), interesses)).toEqual(["ana", "zeca"])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// §11.1 — o perfil profissional vira interesse de tripulação (onda 99)
+// ---------------------------------------------------------------------------
+const perfil = (
+  over: Partial<PerfilProfissionalParaMatching> = {},
+): PerfilProfissionalParaMatching => ({
+  usuario_id: "capitao",
+  regiao_id: ANGRA,
+  funcao_id: MARINHEIRO,
+  porte_max_pes: null,
+  visivel: true,
+  ...over,
+})
+
+describe("interesseDoPerfilProfissional (§11.1 — quem recebe pedido de tripulação)", () => {
+  it("traduz função e região do perfil num interesse de tripulação", () => {
+    expect(interesseDoPerfilProfissional(perfil())).toEqual({
+      usuario_id: "capitao",
+      tipo_demanda: "tripulacao",
+      regiao_id: ANGRA,
+      categoria_id: null,
+      funcao_id: MARINHEIRO,
+      combustivel_id: null,
+      porte_max_pes: null,
+      ativo: true,
+    })
+  })
+
+  it("perfil sem região não vira interesse — não há para onde o pedido chegar", () => {
+    expect(interesseDoPerfilProfissional(perfil({ regiao_id: null }))).toBeNull()
+  })
+
+  it("perfil oculto não vira interesse — quem se retirou da vitrine disse 'agora não'", () => {
+    expect(interesseDoPerfilProfissional(perfil({ visivel: false }))).toBeNull()
+  })
+
+  it("julgado pela MESMA régua: o marinheiro de Angra recebe o pedido de Angra", () => {
+    const traduzido = interesseDoPerfilProfissional(perfil())
+    expect(traduzido).not.toBeNull()
+    expect(
+      usuariosCompativeis(
+        demanda({ tipo: "tripulacao", categoria_id: null, funcao_id: MARINHEIRO }),
+        [traduzido as InteresseParaMatching],
+      ),
+    ).toEqual(["capitao"])
+  })
+
+  it("função em branco recebe qualquer função da região — não declarar não é declarar zero", () => {
+    const traduzido = interesseDoPerfilProfissional(perfil({ funcao_id: null })) as InteresseParaMatching
+    for (const funcao of [MARINHEIRO, COMANDANTE]) {
+      expect(
+        usuariosCompativeis(
+          demanda({ tipo: "tripulacao", categoria_id: null, funcao_id: funcao }),
+          [traduzido],
+        ),
+      ).toEqual(["capitao"])
+    }
+  })
+
+  it("função declarada recebe só a declarada", () => {
+    const traduzido = interesseDoPerfilProfissional(perfil()) as InteresseParaMatching
+    expect(
+      usuariosCompativeis(
+        demanda({ tipo: "tripulacao", categoria_id: null, funcao_id: COMANDANTE }),
+        [traduzido],
+      ),
+    ).toEqual([])
+  })
+
+  it("porte é teto: o barco de 100 pés não chega em quem declarou 80", () => {
+    const traduzido = interesseDoPerfilProfissional(perfil({ porte_max_pes: 80 })) as InteresseParaMatching
+    const pedido = (portePes: number) =>
+      demanda({ tipo: "tripulacao", categoria_id: null, funcao_id: MARINHEIRO, porte_pes: portePes })
+    expect(usuariosCompativeis(pedido(60), [traduzido])).toEqual(["capitao"])
+    expect(usuariosCompativeis(pedido(100), [traduzido])).toEqual([])
+  })
+
+  it("nunca casa com pedido que não é de tripulação — perfil não fala de serviço nem de vaga", () => {
+    const traduzido = interesseDoPerfilProfissional(perfil()) as InteresseParaMatching
+    for (const tipo of TIPOS_DEMANDA.filter((t) => t !== "tripulacao")) {
+      expect(usuariosCompativeis(demanda({ tipo }), [traduzido])).toEqual([])
+    }
   })
 })
 

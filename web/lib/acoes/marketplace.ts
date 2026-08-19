@@ -7,6 +7,7 @@ import {
   FORMAS_ENTREGA,
   PERIODOS_VAGA,
   propostaTem,
+  tituloDaDemanda,
   TIPOS_DEMANDA,
   TIPOS_TAXONOMIA,
   TIPOS_TRABALHO,
@@ -20,7 +21,9 @@ import {
   type TipoTrabalho,
   type TipoVaga,
 } from "@/lib/domain/marketplace"
+import { avisarCompativeis } from "@/lib/avisos/marketplace"
 import { carregarAssinatura, carregarNivelPlano } from "@/lib/consultas"
+import { carregarMapaTaxonomia, nomeDe } from "@/lib/consultas-marketplace"
 import { carreiraLiberada, mensagemCarreiraBloqueada } from "@/lib/domain/captain"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
@@ -167,6 +170,7 @@ export async function publicarDemanda(formData: FormData) {
   const agora = new Date().toISOString()
   const autorNome = await nomeAutodeclarado(supabase, userId)
 
+  const marcaId = texto(formData, "marca_id")
   const { data: criada, error } = await supabase.from("demandas").insert({
     autor_id: userId,
     autor_nome: autorNome,
@@ -174,7 +178,7 @@ export async function publicarDemanda(formData: FormData) {
     regiao_id: regiaoId,
     categoria_id: categoriaId,
     funcao_id: funcaoId,
-    marca_id: texto(formData, "marca_id"),
+    marca_id: marcaId,
     combustivel_id: combustivelId,
     porte_pes: portePes,
     tipo_vaga: tipoVaga,
@@ -196,6 +200,47 @@ export async function publicarDemanda(formData: FormData) {
   if (telefone || email) {
     await supabase.from("demandas_contato").insert({ demanda_id: criada.id, telefone, email })
   }
+
+  // ONDA 99 — O PEDIDO PASSA A AVISAR QUEM ATENDE (§11.4 + §5.2).
+  //
+  // Era exatamente aqui que a onda 45 parou: inseria, revalidava, redirecionava
+  // — e ninguém ficava sabendo. A régua de quem avisar já existia e estava
+  // testada (`usuariosCompativeis`); o que faltava era esta linha.
+  //
+  // Depois do insert e nunca antes, por dois motivos: só existe o que avisar
+  // quando a demanda tem id, e o aviso não pode ser o que impede a publicação.
+  // `avisarCompativeis` nunca lança (ver o cabeçalho dela) — se o disparo
+  // falhar, o pedido continua publicado e visível na vitrine, que é o
+  // comportamento de antes desta onda.
+  //
+  // O título vai montado daqui porque é aqui que existe a sessão do usuário
+  // para ler `taxonomia` — o disparo roda com chave de serviço e não deve
+  // reabrir essa porta só para traduzir três uuid em nome.
+  const mapa = await carregarMapaTaxonomia()
+  await avisarCompativeis({
+    id: criada.id,
+    autor_id: userId,
+    tipo,
+    regiao_id: regiaoId,
+    categoria_id: categoriaId,
+    funcao_id: funcaoId,
+    combustivel_id: combustivelId,
+    tipo_vaga: tipoVaga,
+    porte_pes: portePes,
+    titulo: tituloDaDemanda({
+      tipo,
+      regiaoNome: mapa.get(regiaoId)?.nome ?? "sua região",
+      categoriaNome: nomeDe(mapa, categoriaId),
+      funcaoNome: nomeDe(mapa, funcaoId),
+      marcaNome: nomeDe(mapa, marcaId),
+      combustivelNome: nomeDe(mapa, combustivelId),
+      portePes,
+      tipoVaga,
+      quantidadeLitros,
+      dataDesejada,
+      dataFim,
+    }),
+  })
 
   revalidatePath("/marketplace")
   ok(`/marketplace/${criada.id}`, "Publicado")

@@ -6,6 +6,7 @@ import { SeloReputacao } from "@/components/avaliacoes/reputacao"
 import { Confirmar } from "@/components/confirmar"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { PortaConversa } from "@/components/mensagens/porta-conversa"
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
@@ -154,6 +155,20 @@ export default async function DemandaPage({
   // A reputação de quem propôs, ao lado do nome: é neste momento — escolher
   // entre três propostas — que a média do §14 vale alguma coisa.
   const reputacoes = await carregarReputacoes(propostas.map((p) => p.autor_id))
+
+  // ONDA 99 — QUANTA GENTE FOI AVISADA DESTE PEDIDO.
+  //
+  // Só faz sentido perguntar quando é o autor E ainda não há resposta: é o
+  // único momento em que a tela precisa explicar o silêncio. A função
+  // `avisos_da_demanda` (migration 089) devolve INTEIRO e nunca linha — quem
+  // publicou fica sabendo QUANTOS, jamais QUEM: a lista de prestadores de uma
+  // região é o ativo da plataforma, e "publicou um pedido" não é credencial
+  // pra baixá-la. Pra quem não é autor ela devolve `null`, e `null` aqui não
+  // vira zero desenhado (regra da casa) — vira a frase neutra de fallback.
+  const { data: avisadosBruto } = ehAutor && propostas.length === 0
+    ? await supabase.rpc("avisos_da_demanda", { p_demanda: id })
+    : { data: null }
+  const avisados = typeof avisadosBruto === "number" ? avisadosBruto : null
 
   const substantivo = rotuloDaResposta(demanda.tipo)
   const podePropor = !ehAutor && viva && minhaProposta == null
@@ -311,7 +326,26 @@ export default async function DemandaPage({
             <EstadoVazio
               icone="chat"
               titulo="Ninguém respondeu ainda"
-              descricao="Quem atende essa categoria na sua região já foi avisado. As respostas chegam aqui com o preço e o prazo de cada um — e você escolhe com quem falar."
+              /* ONDA 98 → 99 — A FRASE VOLTA A FALAR EM AVISO, E AGORA É VERDADE.
+                 A onda 98 teve de apagar daqui um "já foi avisado" que não
+                 acontecia: não havia push, e-mail nem notificação nenhuma na
+                 publicação de um pedido, e o prestador só descobria abrindo o
+                 Marketplace por conta própria. Era a pior classe de mentira de
+                 tela do app, porque mudava o COMPORTAMENTO de quem lia — o
+                 dono esperava em vez de ir atrás, e quanto mais esperava, mais
+                 o silêncio parecia resposta ("ninguém quis o serviço") em vez
+                 do que era ("ninguém ficou sabendo").
+                 A onda 99 construiu o disparo (`lib/avisos/marketplace.ts` +
+                 migration 089). Então a frase volta — mas com NÚMERO, não com
+                 promessa: ela diz quantas pessoas foram efetivamente avisadas,
+                 lido de `avisos_demanda`. Zero avisados também é uma resposta,
+                 e é a mais útil das três: o silêncio não é desinteresse, é
+                 ausência de cadastro — e aí o que o dono precisa fazer é
+                 outra coisa (chamar quem ele conhece), não esperar mais.
+                 Se a contagem não vier (`null`), a frase NÃO inventa número:
+                 volta a descrever só o que é certo, que é o pedido estar na
+                 vitrine. Ver `avisos_da_demanda`, migration 089. */
+              descricao={textoDeEspera(avisados)}
             />
           ) : (
             <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
@@ -362,6 +396,25 @@ export default async function DemandaPage({
                       <span className={PILULA_ACAO}>WhatsApp {p.telefone}</span>
                     </a>
                   )}
+                  {/* ONDA 99 — A CONVERSA NASCE NA PROPOSTA, NÃO NO PEDIDO.
+                      Um pedido com três respostas vira TRÊS conversas, uma com
+                      cada pessoa: uma sala por pedido colocaria concorrentes
+                      lendo o preço um do outro, e isso é vazamento por
+                      modelagem — policy nenhuma conserta depois.
+                      Fica ao lado do WhatsApp de propósito, e acima dele na
+                      ordem de leitura por quê: o WhatsApp tira a negociação do
+                      app e leva junto o registro do que foi combinado, que é
+                      exatamente o que o Commander vende. Os dois convivem
+                      porque tirar o WhatsApp hoje seria decidir pelo dono. */}
+                  <PortaConversa
+                    demandaId={demanda.id}
+                    propostaId={p.id}
+                    donoId={demanda.autor_id}
+                    parceiroId={p.autor_id}
+                    statusProposta={p.status}
+                    usuarioId={user.id}
+                    volta={`/marketplace/${demanda.id}`}
+                  />
                 </div>
               ))}
             </div>
@@ -374,6 +427,20 @@ export default async function DemandaPage({
           </p>
           <ResumoProposta tipo={demanda.tipo} proposta={minhaProposta} />
           {minhaProposta.observacao && <p className="corpo mt-1 text-dim">{minhaProposta.observacao}</p>}
+          {/* O outro lado da mesma porta. Aqui ela importa MAIS: quem propôs
+              não tem o telefone de ninguém — o contato de quem publicou só é
+              liberado pela RLS depois do aceite (migration 046). Antes disso,
+              este era o único lado sem nenhuma forma de perguntar "cabe no
+              fim de semana?", e a resposta era mandar uma proposta no escuro. */}
+          <PortaConversa
+            demandaId={demanda.id}
+            propostaId={minhaProposta.id}
+            donoId={demanda.autor_id}
+            parceiroId={minhaProposta.autor_id}
+            statusProposta={minhaProposta.status}
+            usuarioId={user.id}
+            volta={`/marketplace/${demanda.id}`}
+          />
           {minhaProposta.status === "enviada" && (
             <form action={retirarProposta} className="mt-3">
               <input type="hidden" name="demanda_id" value={demanda.id} />
@@ -390,6 +457,30 @@ export default async function DemandaPage({
       )}
     </main>
   )
+}
+
+/**
+ * O que a tela diz a quem publicou enquanto ninguém respondeu (onda 99).
+ *
+ * Três frases porque são três fatos diferentes, e cada um pede uma atitude
+ * diferente de quem lê:
+ *  · avisamos N   → esperar é razoável, a mensagem saiu;
+ *  · avisamos 0   → esperar é perder tempo: não há cadastro nessa
+ *                   categoria/região ainda, e o caminho é chamar quem se
+ *                   conhece. Dizer isto é o oposto do que a tela fazia até a
+ *                   onda 98 (afirmar aviso que não houve);
+ *  · `null`       → a contagem não veio (ambiente sem chave de serviço, por
+ *                   exemplo). Não se inventa número: fica só o que é certo.
+ */
+function textoDeEspera(avisados: number | null): string {
+  if (avisados == null) {
+    return "Seu pedido está publicado e aparece para quem atende essa categoria na sua região. As respostas chegam aqui com o preço e o prazo de cada um — e você escolhe com quem falar."
+  }
+  if (avisados === 0) {
+    return "Seu pedido está publicado, mas ninguém que atende essa categoria na sua região está cadastrado para receber avisos ainda. Ele continua no Marketplace e aparece assim que alguém se cadastrar — se for urgente, vale chamar quem você já conhece."
+  }
+  const gente = avisados === 1 ? "1 pessoa que atende" : `${avisados} pessoas que atendem`
+  return `Avisamos ${gente} essa categoria na sua região, no aplicativo e no celular. As respostas chegam aqui com o preço e o prazo de cada um — e você escolhe com quem falar.`
 }
 
 function Detalhe({ rotulo, valor }: { rotulo: string; valor: string | null }) {

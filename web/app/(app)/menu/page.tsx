@@ -4,7 +4,8 @@ import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { meusPapeisAdmin } from "@/lib/admin"
 import { carregarPainel } from "@/lib/consultas"
 import { carregarMeuPerfilConsultor } from "@/lib/consultas-gold"
-import { resumoPapeis } from "@/lib/domain/admin-papeis"
+import { contarConversasComNaoLidas } from "@/lib/consultas-mensagens"
+import { ehAdminQualquer, resumoPapeis } from "@/lib/domain/admin-papeis"
 import { podeVerAgenda } from "@/lib/domain/agenda"
 import { hojeISO } from "@/lib/domain/datas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
@@ -58,9 +59,14 @@ export default async function MenuPage({
   // As duas descobertas por papel saem juntas: papel administrativo e papel
   // de consultor do Gold. Uma consulta indexada cada, e as duas em paralelo
   // porque nenhuma depende da outra.
-  const [papeisAdmin, meuConsultor] = await Promise.all([
+  // Mensagens entra na mesma leva: é `cache()` e não depende de embarcação
+  // (a conversa é da PESSOA, não do barco — um prestador sem barco nenhum
+  // tem caixa de entrada). Por isso ela sai daqui e não do bloco de `painel`
+  // logo abaixo, que só roda pra quem tem embarcação.
+  const [papeisAdmin, meuConsultor, conversasComNaoLidas] = await Promise.all([
     meusPapeisAdmin(),
     carregarMeuPerfilConsultor(),
+    contarConversasComNaoLidas(),
   ])
   const ehConsultor = meuConsultor !== null
 
@@ -276,6 +282,28 @@ export default async function MenuPage({
           (`AREA_AGENDA` em lib/domain/agenda.ts). */}
       <SecaoPagina icone="chat">Rede</SecaoPagina>
       <PainelMenu>
+        {/* A PORTA DA CONVERSA MORA AQUI, E NÃO NA BARRA DE BAIXO.
+            A barra tem cinco posições por motivo FÍSICO (71px por coluna — ver
+            `components/bottom-nav.tsx`), e a decisão de 15/08 sobre a Agenda
+            fechou a regra: "uma sexta aba não encolhe o rótulo, encolhe todas
+            as seis até nenhuma ser legível". Trocar uma das cinco também não
+            serve — nenhuma delas é menos usada que uma conversa que só existe
+            depois de um pedido do Marketplace.
+            O Menu é o gate de descoberta (PRD §9), e Mensagens fica em Rede,
+            colada ao Marketplace, porque é de lá que toda conversa nasce: a
+            porta ao lado da sala que a produz. O segundo caminho — o que a
+            pessoa realmente vai usar no dia a dia — é a própria ficha do
+            pedido, e nada depende de link único (docs/CONTRIBUTING.md).
+            O número é de CONVERSAS com mensagem por ler, não de mensagens:
+            "3" quer dizer "três pessoas esperando você", que é o que decide
+            se vale abrir agora. Zero não desenha nada. */}
+        <LinhaLista
+          href="/mensagens"
+          titulo="Mensagens"
+          subtitulo="Suas conversas com quem publicou um pedido ou respondeu ao seu — o combinado fica registrado"
+          valor={conversasComNaoLidas > 0 ? String(conversasComNaoLidas) : undefined}
+          valorSecundario={conversasComNaoLidas > 0 ? "por ler" : undefined}
+        />
         <LinhaLista href="/prestadores" titulo="Prestadores" subtitulo="Encontre por especialidade quem resolve um problema no barco" />
         <LinhaLista href="/marketplace" titulo="Marketplace" subtitulo="Peça profissional, tripulação, peça, vaga ou caminhão — quem atende sua região responde" />
         <LinhaLista href="/explorar" titulo="Explorar" subtitulo="Mapa de marinas, postos, pousadas, restaurantes e lojas náuticas" />
@@ -302,7 +330,7 @@ export default async function MenuPage({
           alguém tentar a maçaneta. A decisão de acesso continua sendo do
           servidor (`exigirAdmin` no layout de `(admin)` + RLS por papel); isto
           aqui é só descoberta. */}
-      {papeisAdmin.length > 0 && (
+      {ehAdminQualquer(papeisAdmin) && (
         <>
           <SecaoPagina icone="escudo">Commander (interno)</SecaoPagina>
           <PainelMenu>
