@@ -50,6 +50,16 @@ export default async function NovoItemPage({
         <div className={linhaCampos}>
           <Campo label="Especificação" id="especificacao" name="especificacao" placeholder="Ex.: 15W40" />
           <Campo label="Quantidade" id="quantidade" name="quantidade" placeholder="Ex.: 4 L" />
+          {/* Onda 64 — o elo "Component → OEM Part Number" do PRD 3D §16, na
+              mão do dono. Mono porque é código, não prosa. */}
+          <Campo
+            label="Código da peça — opcional"
+            id="part_number_oem"
+            name="part_number_oem"
+            placeholder="Ex.: 3838852"
+            className="font-mono-instr"
+            dica="O código que você usa pra comprar de novo — OEM ou equivalente."
+          />
         </div>
         <CampoSelect label="Pertence a" id="alvo" name="alvo" defaultValue={alvo ?? "emb"}>
           <option value="emb">Embarcação (geral)</option>

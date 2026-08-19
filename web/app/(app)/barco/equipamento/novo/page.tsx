@@ -3,9 +3,12 @@ import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CamposTipoEquipamento } from "@/components/campos-tipo-equipamento"
 import { Campo } from "@/components/ui/campo"
+import { CampoArquivo } from "@/components/ui/campo-arquivo"
+import { SeletorModeloMotor } from "@/components/seletor-modelo-motor"
 import { linhaCampos } from "@/lib/ui/form"
 import { criarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
+import { carregarModelosDoCatalogo } from "@/lib/consultas-catalogo"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
@@ -23,6 +26,9 @@ export default async function NovoEquipamentoPage({
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite cadastrar este equipamento.")}`)
   }
+  // O catálogo só serve a motor (PRD 3D §16 é do módulo Motor). Nos outros
+  // tipos nem se consulta — não é filtro de tela, é consulta que não acontece.
+  const modelos = tipoInicial === "motor" ? await carregarModelosDoCatalogo() : []
 
   return (
     <main className={TETO_FORMULARIO}>
@@ -42,6 +48,12 @@ export default async function NovoEquipamentoPage({
         <GuardaFormulario chave="barco:equipamento-novo" />
         <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
           <CamposTipoEquipamento tipoInicial={tipoInicial} />
+          {/* Onda 64 — o catálogo vem ANTES de Marca/Modelo porque é o
+              caminho melhor quando existe: dá identidade ao motor e, na onda
+              67, é o que liga a peça ao hotspot 3D. Mas os dois campos
+              livres continuam logo abaixo, sem cadeado: quem tem motor fora
+              do catálogo cadastra como sempre cadastrou. */}
+          <SeletorModeloMotor modelos={modelos} />
           <div className={linhaCampos}>
             <Campo label="Marca" id="marca" name="marca" placeholder="Kohler" />
             <Campo label="Modelo" id="modelo" name="modelo" placeholder="9EFKOZD" />
@@ -69,13 +81,14 @@ export default async function NovoEquipamentoPage({
             </datalist>
           </Campo>
           <Campo label="Observações" id="observacoes" name="observacoes" placeholder="Ex.: revenda autorizada em Niterói" />
-          <Campo
+          {/* Onda 63 (auditoria visual §8) — o input de arquivo nativo
+              desenha o próprio botão em inglês. Esta tela tinha escapado da
+              troca feita em Fotos e Documentos. */}
+          <CampoArquivo
             label="Foto — opcional"
-            id="foto"
             name="foto"
-            type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="py-2.5 text-sm"
+            ajuda="JPG, PNG ou WebP"
           />
         </div>
         <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Criar equipamento</button>

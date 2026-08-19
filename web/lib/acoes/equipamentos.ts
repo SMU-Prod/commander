@@ -74,6 +74,37 @@ function camposDoForm(formData: FormData, falhar: (msg: string) => never) {
   }
 }
 
+/**
+ * O vínculo com o catálogo de motor (onda 64, PRD 3D §16).
+ *
+ * Assíncrono e separado de `camposDoForm` porque ele CONFERE no banco: um id
+ * inválido chegando pelo FormData bateria na foreign key e o erro genérico do
+ * insert diria "pode ser que o proprietário não liberou seu acesso", que é
+ * mentira. Melhor perguntar antes e falar a verdade.
+ *
+ * Duas regras, as duas com precedente no arquivo:
+ *
+ *   · Só motor tem modelo de motor. Se a pessoa escolheu um D6 e depois
+ *     trocou o tipo pra Gerador, o campo some da tela mas continua no
+ *     FormData — mesma armadilha do `tipo_bateria` logo acima, mesma cura.
+ *
+ *   · Vazio é `null` legítimo, não erro. Escolher do catálogo é opcional por
+ *     decisão de produto (ver `SeletorModeloMotor`): quem tem motor fora do
+ *     catálogo continua cadastrando por marca/modelo em texto livre.
+ */
+async function modeloDeMotorDoForm(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  formData: FormData,
+  tipo: string,
+  falhar: (msg: string) => never,
+): Promise<string | null> {
+  const id = String(formData.get("motor_modelo_id") ?? "").trim()
+  if (!id || tipo !== "motor") return null
+  const { data } = await supabase.from("motor_modelos").select("id").eq("id", id).maybeSingle()
+  if (!data) falhar("Esse motor saiu do catálogo. Escolha outro ou preencha Marca e Modelo.")
+  return data.id
+}
+
 /** Mesma validação de MIME do avatar (`lib/acoes/perfil.ts`) — sem arquivo, devolve null sem tocar no foto_path atual. */
 async function fotoDoForm(
   supabase: Awaited<ReturnType<typeof supabaseServer>>,
@@ -94,6 +125,7 @@ export async function criarEquipamento(formData: FormData) {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const dados = camposDoForm(formData, erroNovo)
+  const motorModeloId = await modeloDeMotorDoForm(supabase, formData, dados.tipo, erroNovo)
   const fotoPath = await fotoDoForm(supabase, painel.embarcacao.id, formData, erroNovo)
 
   const { data, error } = await supabase
@@ -101,6 +133,7 @@ export async function criarEquipamento(formData: FormData) {
     .insert({
       embarcacao_id: painel.embarcacao.id,
       ...dados,
+      motor_modelo_id: motorModeloId,
       ...(fotoPath ? { foto_path: fotoPath } : {}),
       ultima_leitura: dados.horas_atuais != null ? new Date().toISOString() : null,
     })
@@ -131,11 +164,12 @@ export async function salvarEquipamento(formData: FormData) {
   const atual = painel.equipamentos.find((e) => e.id === id)
   if (!atual) erroEditar(id, "Equipamento não encontrado.")
   const dados = camposDoForm(formData, (msg) => erroEditar(id, msg))
+  const motorModeloId = await modeloDeMotorDoForm(supabase, formData, dados.tipo, (msg) => erroEditar(id, msg))
   const fotoPath = await fotoDoForm(supabase, painel.embarcacao.id, formData, (msg) => erroEditar(id, msg))
 
   const { data, error } = await supabase
     .from("equipamentos")
-    .update({ ...dados, ...(fotoPath ? { foto_path: fotoPath } : {}) })
+    .update({ ...dados, motor_modelo_id: motorModeloId, ...(fotoPath ? { foto_path: fotoPath } : {}) })
     .eq("id", id).select("id").maybeSingle()
   if (error || !data) {
     if (fotoPath) await supabase.storage.from("acervo").remove([fotoPath])

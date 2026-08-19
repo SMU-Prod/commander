@@ -92,6 +92,10 @@ export async function criarItemMonitorado(formData: FormData) {
     nome,
     especificacao,
     quantidade,
+    // Onda 64 (PRD 3D §16) — o código da peça, texto livre de propósito:
+    // é o que o dono comprou, não necessariamente o OEM. Sem catálogo
+    // ainda funciona; é o elo "Component → OEM Part Number" na mão dele.
+    part_number_oem: texto("part_number_oem"),
     intervalo_horas: intervaloHoras,
     intervalo_meses: intervaloMeses,
     data_fixa: dataFixa,
@@ -157,6 +161,7 @@ export async function salvarItemMonitorado(formData: FormData) {
     nome,
     especificacao,
     quantidade,
+    part_number_oem: texto("part_number_oem"),
     intervalo_horas: intervaloHoras,
     intervalo_meses: intervaloMeses,
     data_fixa: dataFixa,

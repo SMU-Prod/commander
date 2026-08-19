@@ -3,8 +3,11 @@ import { Confirmar } from "@/components/confirmar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CamposTipoEquipamento } from "@/components/campos-tipo-equipamento"
 import { Campo } from "@/components/ui/campo"
+import { CampoArquivo } from "@/components/ui/campo-arquivo"
+import { SeletorModeloMotor } from "@/components/seletor-modelo-motor"
 import { excluirEquipamento, salvarEquipamento } from "@/lib/acoes/equipamentos"
 import { carregarPainel } from "@/lib/consultas"
+import { carregarModeloDoCatalogo, carregarModelosDoCatalogo } from "@/lib/consultas-catalogo"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { numeroParaCampoPtBr } from "@/lib/ui/form"
@@ -27,6 +30,10 @@ export default async function EditarEquipamentoPage({
   if (!podeEditar(painel.permissoes, aba)) {
     redirect(`/barco?erro=${encodeURIComponent("Seu acesso não permite editar este equipamento.")}`)
   }
+  // Só motor consulta o catálogo (PRD 3D §16 é do módulo Motor).
+  const [modelos, modeloAtual] = eq.tipo === "motor"
+    ? await Promise.all([carregarModelosDoCatalogo(), carregarModeloDoCatalogo(eq.motor_modelo_id)])
+    : [[], null]
   return (
     <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref={`/barco/equipamento/${id}`} titulo="Editar equipamento" />
@@ -41,6 +48,10 @@ export default async function EditarEquipamentoPage({
             tipoBateriaInicial={eq.tipo_bateria ?? ""}
             zonaInicial={eq.zona}
           />
+          {/* Onda 64 — mesmo desenho da tela de cadastro: catálogo primeiro
+              porque é o caminho melhor quando existe, texto livre logo
+              abaixo e sem cadeado porque nem todo motor está no catálogo. */}
+          <SeletorModeloMotor modelos={modelos} inicial={modeloAtual} />
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Marca" id="marca" name="marca" defaultValue={eq.marca ?? ""} />
             <Campo label="Modelo" id="modelo" name="modelo" defaultValue={eq.modelo ?? ""} />
@@ -66,13 +77,13 @@ export default async function EditarEquipamentoPage({
             />
           </div>
           <Campo label="Observações" id="observacoes" name="observacoes" defaultValue={eq.observacoes ?? ""} />
-          <Campo
+          {/* Onda 63 (auditoria visual §8) — o "Choose File · No file chosen"
+              do input nativo. Esta tela tinha escapado da troca. */}
+          <CampoArquivo
             label="Foto — opcional"
-            id="foto"
             name="foto"
-            type="file"
             accept="image/jpeg,image/png,image/webp"
-            className="py-2.5 text-sm"
+            ajuda="JPG, PNG ou WebP"
           />
         </div>
         <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar equipamento</button>

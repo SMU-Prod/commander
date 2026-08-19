@@ -14,6 +14,8 @@ import {
   temInformacaoSuficiente, vencimentoPorData,
 } from "@/lib/domain/semaforo"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarModeloDoCatalogo } from "@/lib/consultas-catalogo"
+import { faixaDeAno, identidadeDoMotor, nomeCompletoDoModelo } from "@/lib/domain/catalogo-motor"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 // (ROTULO_MOTOR saiu junto com a linha de regra escrita à mão — a frase agora
 // é `linhaDaRegra`, a mesma do canvas, com teste em semaforo.test.ts.)
@@ -38,6 +40,9 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
   const aba = abaDoEquipamento(equipamento.tipo)
   const editavel = podeEditar(painel.permissoes, aba)
   const hoje = hojeISO()
+
+  // Onda 64 — a identidade do catálogo (PRD 3D §16). Só motor consulta.
+  const modeloCatalogo = ehMotor ? await carregarModeloDoCatalogo(equipamento.motor_modelo_id) : null
 
   // `calc` e `temInfo` calculados uma vez por item: a lista usa os três —
   // o farol (`r`), a frase da regra (`linhaDaRegra(calc)`) e o estado
@@ -142,6 +147,13 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
           : "equipamento"
 
   const especificacoes: [string, string | null][] = [
+    // Onda 64 — a linha do catálogo só existe quando há vínculo. Sem
+    // vínculo ela não aparece como "—": um motor fora do catálogo não tem
+    // buraco na ficha, tem uma linha a menos.
+    ...(modeloCatalogo
+      ? ([["Catálogo", [nomeCompletoDoModelo(modeloCatalogo), faixaDeAno(modeloCatalogo)]
+          .filter(Boolean).join(" · ")]] as [string, string | null][])
+      : []),
     ["Nº de série", equipamento.numero_serie],
     ["Identificação", equipamento.identificacao_interna],
     ["Ano", equipamento.ano != null ? String(equipamento.ano) : null],
@@ -166,8 +178,11 @@ export default async function EquipamentoPage({ params }: { params: Promise<{ id
         titulo={nomeCurto(equipamento)}
         // Canvas tela-3c: marca/modelo E ano na mesma linha de apoio
         // ("Volvo Penta IPS 700 · 2019") — dados que a ficha já tem.
+        // Onda 64 — quem decide o nome é `identidadeDoMotor`: catálogo ganha
+        // do texto livre (é a identidade que ele existe pra dar), e sem
+        // nenhum dos dois a linha some em vez de virar "—".
         descricao={
-          [[equipamento.marca, equipamento.modelo].filter(Boolean).join(" "), equipamento.ano]
+          [identidadeDoMotor(equipamento, modeloCatalogo), equipamento.ano]
             .filter(Boolean).join(" · ") || undefined
         }
         selo={<Selo estado={seloDoFarol(statusFicha)}>{rotuloDoFarol(statusFicha)}</Selo>}

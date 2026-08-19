@@ -55,6 +55,16 @@ export default async function EditarItemPage({
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Especificação" id="especificacao" name="especificacao" defaultValue={item.especificacao ?? ""} placeholder="Ex.: 15W40" />
           <Campo label="Quantidade" id="quantidade" name="quantidade" defaultValue={item.quantidade ?? ""} placeholder="Ex.: 4 L" />
+          {/* Onda 64 — o elo "Component → OEM Part Number" do PRD 3D §16. */}
+          <Campo
+            label="Código da peça — opcional"
+            id="part_number_oem"
+            name="part_number_oem"
+            defaultValue={item.part_number_oem ?? ""}
+            placeholder="Ex.: 3838852"
+            className="font-mono-instr"
+            dica="O código que você usa pra comprar de novo — OEM ou equivalente."
+          />
         </div>
         <CampoSelect label="Pertence a" id="alvo" name="alvo" defaultValue={alvoAtual}>
           <option value="emb">Embarcação (geral)</option>
