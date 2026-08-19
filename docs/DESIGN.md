@@ -195,6 +195,15 @@ do `next/font` em `web/app/layout.tsx` (`--font-plex-sans` /
   cartão/seção, 11px, tracking .16em, uppercase) também é Mono — no canvas o
   rótulo é etiqueta de instrumento, não frase.
 
+  **Onda 79 — um segundo rótulo, `.rotulo-dado`.** A varredura pixel a pixel
+  da referência (anatomia de ficha de veículo) achou um rótulo que NÃO é
+  etiqueta de instrumento: a legenda de um valor dentro de um cartão
+  ("Client", "Weight capacity", "Risk score") — caixa de frase, sem tracking,
+  fonte de texto. `.rotulo` não mudou (o link "Voltar", o overline de
+  `SecaoPagina` e o logotipo "Commander" dependem do desenho antigo, e o
+  raio de ~140 usos era grande demais pra mudar sem revisar tela por tela);
+  `.rotulo-dado` é a forma nova, aditiva, em `app/globals.css`.
+
 ### Alvo de toque — 44px
 Mínimo, sem exceção, para qualquer coisa que se toca. Link no meio de
 parágrafo não conta como alvo isolado. A varredura de tela mede isso.

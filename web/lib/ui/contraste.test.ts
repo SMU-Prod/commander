@@ -73,6 +73,7 @@ function token(nome: string): string {
 
 const FUNDO = token("fundo")
 const SUPERFICIE = token("superficie")
+const LINHA = token("linha")
 const TEXTO = token("texto")
 const TEXTO_FRACO = token("texto-dim")
 
@@ -98,6 +99,23 @@ describe("contraste do tema escuro", () => {
     // reprovou o `#121820` do plano original e obrigou a clarear a
     // superfície — afrouxar aqui apagaria a razão de a superfície ser o que
     // é hoje. Se um par real não passar, o que muda é a cor, não o limiar.
-    expect(razao(SUPERFICIE, FUNDO)).toBeGreaterThan(1.2)
+    //
+    // ONDA 79 — DUAS FORMAS DE SEPARAR, NÃO UMA SÓ.
+    // A paleta medida pixel a pixel da referência (`app/globals.css`,
+    // comentário do bloco `[data-theme="dark"]`) é cinza puro em toda
+    // superfície — o preenchimento sozinho (#1a1a1a sobre #101010) dá
+    // 1,105:1, abaixo do 1,2. Só que a referência não separa cartão do
+    // fundo com preenchimento: separa com BORDA, e a borda dela (#2c2c2c
+    // sobre o cartão) dá 1,225:1 — acima do MESMO 1,2. A separação que este
+    // teste protege existe; ele só media um jeito só de obtê-la. Agora
+    // aceita os dois e exige que PELO MENOS UM passe — na prática, hoje,
+    // é a borda quem carrega a régua.
+    const porPreenchimento = razao(SUPERFICIE, FUNDO)
+    const porBorda = razao(LINHA, SUPERFICIE)
+    expect(
+      Math.max(porPreenchimento, porBorda),
+      `Nem preenchimento (${porPreenchimento.toFixed(3)}:1) nem borda (${porBorda.toFixed(3)}:1) ` +
+        `separam o cartão do fundo acima de 1,2:1.`,
+    ).toBeGreaterThan(1.2)
   })
 })

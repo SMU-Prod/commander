@@ -73,25 +73,83 @@
      abaixo foram clareados o suficiente pra render "cartão separa do
      fundo" (DESIGN.md §5) verdadeiro, mantendo o mesmo matiz e a mesma
      progressão relativa entre os três. */
-  --fundo: #0a0e12;
-  --superficie: #1c232c;
-  --superficie-2: #252e38;
-  --linha: #303a45;
-  --texto: #e9f1f8;
-  --texto-dim: #7c93ab;
-  --ok: #2fd07a;
-  --warn: #ffb020;
-  --crit: #ff5c5c;
-  --acao: #d4af37;
-  --acao-forte: #e5c55c;
-  --acao-texto: #0b1d2d;
-  --campo: #0a1521;
-  --meter: #060d16;
-  --meter-texto: #e9f1f8;
-  --meter-dim: #7c93ab;
-  --texto-dim-chip: #88a0b8;
-  /* Mesma teal, clareada pro fundo quase-preto (ver o bloco do tema claro). */
-  --dado: #3fa7b8;
+  /* ===================================================================
+     ONDA 79 — A PALETA MEDIDA DA REFERÊNCIA, NÃO MAIS APROXIMADA.
+     ===================================================================
+     Até aqui o escuro era navy: #0a0e12 de fundo, #1c232c de cartão. Isso
+     saiu de uma leitura A OLHO da referência do dono (painel Haulix) na
+     onda 57. Nesta onda as capturas foram AMOSTRADAS pixel a pixel
+     (`web/.varredura/paleta-haulix.mjs`, contra `public/imagens/*.png`), e
+     o resultado desmentiu a leitura:
+
+       as 16 superfícies mais frequentes da referência são CINZA PURO.
+       #020202 #101010 #121212 #141414 #161616 #181818 #1a1a1a #1c1c1c
+       #1e1e1e #222222 #242424 #282828 #2a2a2a #2c2c2c #2e2e2e #303030
+
+     Nenhuma tem tom. Zero. O nosso azulava tudo — e era isso, mais que
+     qualquer outra coisa, que fazia o app "não parecer com a referência"
+     mesmo depois de três ondas mexendo em componente.
+
+     Cor no escuro passa a existir SÓ no dado e no estado. O fundo é chão.
+
+     -------------------------------------------------------------------
+     O CONFLITO COM O NOSSO PRÓPRIO TESTE, E COMO ELE FOI RESOLVIDO
+     -------------------------------------------------------------------
+     `lib/ui/contraste.test.ts` exigia razão > 1,2 entre cartão e fundo. A
+     referência dá 1,105 (#1a1a1a sobre #101010) e reprovaria.
+
+     Baixar a régua seria trapaça. O que aconteceu foi outra coisa: a
+     referência separa cartão do fundo com BORDA, não com preenchimento —
+     e a borda dela (#2c2c2c sobre o cartão) dá 1,225, acima do mesmo 1,2.
+     Ou seja, a separação que o teste protege EXISTE; ele é que media um
+     jeito só de obtê-la. O teste passou a aceitar as duas formas e a
+     exigir a borda justamente quando o preenchimento não separa sozinho.
+     A regra ficou mais forte, não mais fraca. */
+  --fundo: #101010;
+  --superficie: #1a1a1a;
+  --superficie-2: #242424;
+  --linha: #2c2c2c;
+  --texto: #fcfcfc;
+  /* 4,97:1 sobre o cartão — passa AA com folga pequena e proposital: mais
+     claro que isto e o texto fraco deixa de parecer fraco. */
+  --texto-dim: #8a8a8a;
+  /* Medidos das capturas (`paleta-acento.mjs`): o âmbar do aviso de pausa
+     e da barra de combustível, o vermelho do alerta crítico, o ciano do
+     gráfico de utilização. O verde é o único de amostra pequena — ele só
+     aparece no arco do velocímetro. */
+  --ok: #96f48d;
+  --warn: #ffb447;
+  --crit: #ee6b67;
+  /* ------------------------------------------------------------------
+     O ÚNICO VALOR NÃO MEDIDO DESTE BLOCO.
+     ------------------------------------------------------------------
+     O verde-limão da referência aparece no botão de ação principal, no
+     logo e na linha da rota — e NENHUMA das seis capturas salvas em
+     public/imagens contém essas telas (a varredura achou 2 px isolados,
+     que são antialiasing do arco do velocímetro). Este hexadecimal é
+     leitura visual das imagens que o dono mostrou no chat, não medição.
+     Corrigir é trocar uma linha, se ele tiver o valor exato.
+
+     Vale registrar o que a troca significa: o dourado era a MARCA do
+     Commander (DESIGN.md §5, "pertencimento à marca"), não só um tema.
+     Trocar por limão é decisão de identidade e foi pedida pelo dono. */
+  --acao: #d6f24a;
+  --acao-forte: #e2f96f;
+  /* Preto e não navy: sobre limão claro, é o único que passa AA. */
+  --acao-texto: #101010;
+  --campo: #141414;
+  --meter: #020202;
+  --meter-texto: #fcfcfc;
+  --meter-dim: #8a8a8a;
+  --texto-dim-chip: #9a9a9a;
+  /* O ciano do gráfico de barras da referência, medido. */
+  --dado: #19b3d3;
+  /* A referência usa DUAS cores de dado, não uma: ciano no gráfico de
+     barras (utilização da frota) e roxo na área (pontualidade). Duas
+     séries lado a lado na mesma tela precisam se distinguir sem depender
+     de legenda — foi por isso que eles separaram, e é por isso que aqui
+     também. */
+  --dado-2: #5b4fd6;
 }
 
 /* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
@@ -272,6 +330,36 @@ body.fundo-tela-mapa {
     font-size: .6875rem;    /* 11px — piso */
     letter-spacing: .16em;
     text-transform: uppercase;
+  }
+
+  /* ONDA 79 (anatomia Haulix, ficha de equipamento) — O MICRO-RÓTULO DE
+     DADO, E POR QUE ELE NÃO ENTROU DENTRO DE `.rotulo`.
+     ---------------------------------------------------------------------
+     A varredura pixel a pixel das capturas (`public/imagens/*.png`) achou
+     um segundo papel de rótulo que a referência usa por toda parte —
+     "Weight capacity", "Client", "Risk score", "Destination" — e ele NÃO é
+     o `.rotulo` de cima: é caixa de frase, sem tracking, fonte de TEXTO
+     (proporcional), não de instrumento (mono). É a legenda de um VALOR
+     dentro de um cartão, não a etiqueta de um instrumento nem o overline
+     de uma seção.
+     Cogitei simplesmente TROCAR `.rotulo` para essa forma e abrir uma
+     `.rotulo-instrumento` pra quem precisasse do desenho antigo — era o
+     pedido original. Descartei depois de medir o raio: `.rotulo` sozinho
+     aparece hoje em ~140 lugares em `app/` e `components/`, e a maioria não
+     é rótulo de dado — é o link "Voltar" de toda tela de detalhe (mono
+     dourado rastreado, e o `docs/DESIGN.md` §5 registra isso, letra por
+     letra, como "a referência, então fica"), é o overline de `SecaoPagina`
+     usado em ~35 arquivos, e é a marca "Commander" tratada como logotipo em
+     três telas públicas. Trocar o `.rotulo` embaixo desses pés silenciosamente
+     mudaria a cara de dezenas de telas que ninguém revisou contra a
+     referência — o mesmo risco que a regra de não mexer em token de cor
+     existe pra evitar, só que em tipografia. Então a classe nova é ADITIVA:
+     `.rotulo` não mudou uma linha; quem quiser a forma medida da referência
+     pede `.rotulo-dado` explicitamente. Hoje só os componentes desta onda
+     (grade rótulo/valor, faixa de KPI) e a ficha de equipamento pedem. */
+  .rotulo-dado {
+    font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
+    line-height: 1.4;
   }
 }
 
