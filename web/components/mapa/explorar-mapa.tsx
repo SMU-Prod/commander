@@ -254,7 +254,12 @@ export function ExplorarMapa({
                   <Icone nome={ICONE_TIPO_PARTNER[p.categoria]} className="size-5 text-meter-dim" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="titulo-card block truncate text-meter-texto">{p.nome}</span>
+                  {/* !text-meter-texto (onda 80, achado tardio): `.titulo-card`
+                      ganhou `color: var(--texto)` fixo (ver app/globals.css) —
+                      sem o `!`, o override perde pra cor embutida na classe e
+                      o nome do parceiro some no tema claro (navy sobre navy,
+                      mesmo bug corrigido em navegar-mapa.tsx/sondagem-painel.tsx). */}
+                  <span className="titulo-card block truncate !text-meter-texto">{p.nome}</span>
                   <span className="apoio block text-meter-dim">{ROTULO_TIPO_PARTNER[p.categoria]}</span>
                 </span>
                 <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums text-meter-texto">
