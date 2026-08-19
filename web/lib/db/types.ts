@@ -1066,8 +1066,37 @@ export interface AssinaturaParametros {
   atualizado_em: string
 }
 
-/** Promoção vigente de uma pessoa (§2.1 migração, §2.2 entrada pelo Gold).
- *  O banco garante no máximo UMA vigente por usuário — não acumulam. */
+/**
+ * Promoção de uma pessoa (§2.1 migração, §2.2 entrada pelo Gold).
+ *
+ * CORRIGIDO EM 19/08/2026 — a frase que estava aqui dizia "o banco garante no
+ * máximo UMA vigente por usuário — não acumulam", e o banco NÃO garante isso.
+ * Medido no catálogo vivo: os únicos índices da tabela são o `pkey` em `id` e
+ * `idx_assinatura_promocoes_usuario` em `(usuario_id, valido_ate desc)`, que
+ * **não é único**; não há constraint de exclusão nem trigger. Nada impede duas
+ * linhas vigentes para a mesma pessoa.
+ *
+ * O que é verdade, e é outra coisa: **"não acumulam" é garantido pela LEITURA,
+ * não pelo banco.** `carregarAssinatura` (`lib/consultas.ts`) busca com
+ * `.gte("valido_ate", hoje).order("valido_ate", desc).limit(1)` — havendo
+ * duas, a de validade mais longa vence e a outra é ignorada. É determinístico,
+ * então não é bug; mas é escolha do leitor, e uma segunda linha vigente ficaria
+ * invisível em vez de dar erro.
+ *
+ * Por que não foi "consertado" com um índice único: a regra é sobre estar
+ * VIGENTE, que depende da data de hoje, e Postgres exige expressão IMMUTABLE
+ * em predicado de índice — `current_date` é STABLE (`now()` mede
+ * `provolatile = 's'`), então `... where valido_ate >= current_date` é
+ * recusado. E um índice único só em `usuario_id`, sem o predicado, seria
+ * ERRADO por outro motivo: proibiria para sempre uma segunda promoção, mesmo
+ * depois de a primeira expirar — justamente a sequência §2.1 → §2.2 que o PRD
+ * prevê. A ferramenta correta seria uma constraint de exclusão sobre o período
+ * de validade, que exige uma coluna `valido_de` que o produto nunca definiu.
+ * Ver a nota do QUARTO LOTE em `supabase/migrations/APLICAR-2026-08-19.md`.
+ *
+ * Nada no app escreve nesta tabela: `assinatura_promocoes` tem RLS ligada com
+ * uma única policy, de SELECT — as linhas nascem por SQL da operação.
+ */
 export interface AssinaturaPromocao {
   id: string
   usuario_id: string

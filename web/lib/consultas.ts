@@ -276,7 +276,33 @@ export const carregarAssinatura = cache(async (): Promise<{
   /** Plano vigente da pessoa: assinatura viva, concessão vigente, ou o Free. */
   plano: PlanoId
   ciclo: CicloAvaliado | null
-  /** Promoção vigente (§2.1/§2.2), no máximo uma — o banco garante. */
+  /**
+   * Promoção vigente (§2.1/§2.2) — a MAIS RECENTE, quando há mais de uma.
+   *
+   * ONDA 96 — A FRASE ANTERIOR DIZIA "no máximo uma, o banco garante", E O
+   * BANCO NÃO GARANTE. Medido: `assinatura_promocoes` tem só a chave primária
+   * e um índice NÃO único. A garantia era folclore, e comentário que promete
+   * invariante inexistente é pior que comentário nenhum — a próxima pessoa
+   * escreve código confiando nele.
+   *
+   * E NÃO DÁ PRA SIMPLESMENTE CRIAR O ÍNDICE, o que torna a correção ser a
+   * frase, não o esquema. Um índice único parcial precisaria de um predicado
+   * como `where valido_ate >= current_date`, e o Postgres recusa: predicado de
+   * índice exige expressão IMUTÁVEL, e `current_date` é apenas estável. Sem o
+   * predicado, o índice seria pior que o problema — proibiria a pessoa de ter
+   * uma segunda promoção PARA SEMPRE, quebrando a própria sequência que o
+   * §2.1→§2.2 descreve (uma promoção termina, outra começa).
+   *
+   * Garantir de verdade pediria coluna de início, `btree_gist` e restrição de
+   * exclusão por período. Não vale hoje: a tabela tem ZERO linhas e nenhum
+   * caminho de escrita — não existe policy de INSERT nela, então nenhum código
+   * autenticado grava ali (foi por isso que a onda 96 apagou as três funções
+   * de conceder promoção). Erguer a estrutura antes do primeiro caso real
+   * seria a mesma prateleira vazia que a migration 084 acabou de derrubar.
+   *
+   * Enquanto isso, a leitura abaixo ordena e pega a primeira — comportamento
+   * definido mesmo com várias linhas, em vez de depender de uma promessa.
+   */
   promocao: { promocao: PromocaoId; validoAte: string; valorCentavos: number; descontoGoldPercentual: number } | null
 }> => {
   const supabase = await supabaseServer()
