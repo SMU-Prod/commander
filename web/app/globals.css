@@ -27,9 +27,49 @@
   --ok: #15803d;
   --warn: #b45309;
   --crit: #d2373c;
-  --acao: #d4af37;
-  --acao-forte: #8a6d1c;
-  --acao-texto: #0b1d2d;
+  /* ONDA 96 (achado 5.1 da auditoria de 19/08) — O ACENTO DO TEMA CLARO ERA
+     ILEGÍVEL, E O TEMA CLARO É JUSTAMENTE O QUE EXISTE PRO SOL NA MARINA.
+     -------------------------------------------------------------------
+     Medido: `text-accent` (`--acao` = #d4af37) sobre cartão dava 2,10:1,
+     sobre a página 1,96:1 e sobre --superficie-2 1,86:1. O mínimo de leitura
+     é 4,5:1 — o claro entregava menos da metade na melhor das hipóteses. O
+     cabeçalho deste arquivo diz que o claro nasceu pra "leitura sob sol na
+     marina": era a única promessa do tema, e era a que ele quebrava.
+
+     POR QUE NÃO DAVA PRA SÓ "ESCURECER UM POUCO": OS DOIS SENTIDOS BRIGAM.
+     Num chão claro, para o acento LER COMO TEXTO ele precisa de luminância
+     relativa <= 0,156 (é o que 4,5:1 contra --superficie-2 exige). Para o
+     acento SERVIR DE FUNDO com texto escuro em cima (#0b1d2d, o
+     --acao-texto de antes) ele precisa de luminância >= 0,226. Os dois
+     intervalos não se tocam: NENHUM hexadecimal satisfaz os dois. A escolha
+     não é de tom, é de qual lado o token serve — e quem decide isso é o
+     par: o acento vira escuro e --acao-texto vira o claro que se apoia nele.
+     É exatamente a simetria que o tema escuro já pratica ao contrário
+     (acento claro, --acao-texto quase preto): o acento é sempre o oposto do
+     chão, e --acao-texto é sempre da cor do chão.
+
+     O TOM CONTINUA DOURADO DE PROPÓSITO. O claro já pintava 110 dos seus
+     ~140 usos de acento em texto com `--acao-forte` (#8a6d1c, dourado
+     escuro): manter a família é o que impede a tela de ganhar um matiz novo
+     junto com o conserto. Só a escada mudou — `--acao` desceu pro degrau que
+     lê, e `--acao-forte` desceu mais um pra continuar significando "mais
+     contraste que o acento", que é o que "forte" quer dizer num chão claro.
+
+     Medido depois, os três chões do app (cartão / página / --superficie-2):
+       --acao        #806312 → 5,66  5,27  4,99
+       --acao-forte  #665009 → 7,73  7,20  6,82
+       --acao-texto  #ffffff sobre --acao 5,66 e sobre --acao-forte 7,73
+     Antes, o par --acao-texto/--acao-forte dava 3,49:1 e ninguém tinha
+     medido — o `bg-accent-forte` do app reprovava em silêncio.
+
+     O QUE NÃO MUDOU, E POR QUÊ: o acento sobre o navy fixo dos instrumentos
+     (/navegar) NÃO segue esta escada. Dourado escuro sobre navy dá 3,02:1;
+     o instrumento tem chão próprio e por isso tem acento próprio, no bloco
+     `.bg-meter, .bg-mapa-instrumento` mais abaixo — mesmo mecanismo que ok/
+     warn/crit já usavam lá pelo mesmo motivo. */
+  --acao: #806312;
+  --acao-forte: #665009;
+  --acao-texto: #ffffff;
   --campo: #ffffff;
   --meter: #0b1d2d;
   --meter-texto: #e9f1f8;
@@ -278,6 +318,26 @@
   --ok: #2fd07a;
   --warn: #ffb020;
   --crit: #ff5c5c;
+  /* ONDA 96 — O ACENTO ENTROU NESTA LISTA, E ELE SEMPRE DEVIA TER ESTADO.
+     O parágrafo acima descreve o defeito exato que o acento passou a ter
+     quando `--acao` do tema claro desceu pra ler sobre branco: aqui dentro o
+     chão é navy fixo, e dourado escuro sobre navy dá 3,02:1 — escuro sobre
+     escuro, o mesmo caso do --warn/--crit que este bloco já resolvia.
+     São 17 dos 30 usos de `text-accent` do app que vivem aqui dentro
+     (sondagem, tempo, trilha, os cartões flutuantes de /navegar): sem esta
+     linha, consertar o acento da página teria quebrado a maioria dos seus
+     consumidores reais.
+     O valor é o acento VIVO — o mesmo dos dois blocos de tema para o escuro.
+     Não é uma terceira cor: é a decisão que o comentário da onda 24 já
+     escreveu logo acima de --mapa-instrumento ("sempre a MESMA cor em cima
+     do mapa claro OU do satélite escuro, não segue o tema do APP") e que o
+     acento era o único a não cumprir — no claro ele saía dourado, no escuro
+     limão, na mesma casca navy. Medido sobre o navy do instrumento:
+     --acao 13,57:1, --acao-forte 14,67:1, e o texto quase-preto sobre o
+     acento cheio 15,09:1. */
+  --acao: #d6f24a;
+  --acao-forte: #e2f96f;
+  --acao-texto: #101010;
 }
 
 body {

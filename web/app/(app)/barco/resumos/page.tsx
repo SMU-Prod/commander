@@ -95,13 +95,24 @@ export default async function ResumosPage({
 
   const supabase = await supabaseServer()
   const [{ data: eventos, error: erroEventos }, { data: ocorrencias, error: erroOcorrencias }, { data: eventosAno }] = await Promise.all([
-    supabase.from("eventos").select("*").eq("embarcacao_id", embarcacao.id)
+    // ONDA 100 — O `select("*")` DAQUI TRAZIA `trilha` E `checklist` JUNTO.
+    //
+    // Nenhuma das duas é lida por `montarResumoPeriodo`, que soma custo, horas
+    // e contagens: as colunas vinham só porque a consulta pedia tudo. No
+    // período anual de um barco ativo isso são dezenas de MB de traçado GPS
+    // para calcular um total em reais. As colunas abaixo são exatamente as que
+    // `resumoDoMes`/`montarResumoPeriodo` leem — trocar `*` por lista é a
+    // diferença entre pedir o que se usa e pedir o que existe.
+    supabase.from("eventos")
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, hora_saida, hora_retorno, created_at")
+      .eq("embarcacao_id", embarcacao.id)
       .gte("data", inicioJanela).lt("data", fimJanelaExclusivo),
     supabase.from("ocorrencias").select("estado, created_at, resolvida_em").eq("embarcacao_id", embarcacao.id),
     // "Ano no mar" — só quando a aba pede: as saídas do ano corrente, com a
-    // trilha (a distância só existe com trilha GPS de verdade, `resumoAno`).
+    // distância já gravada (a distância só existe com trilha GPS de verdade,
+    // `resumoAno`; sem ela a coluna é `null` e a saída fica fora da soma).
     aba === "ano"
-      ? supabase.from("eventos").select("tipo, data, hora_saida, hora_retorno, trilha")
+      ? supabase.from("eventos").select("tipo, data, hora_saida, hora_retorno, distancia_nm")
           .eq("embarcacao_id", embarcacao.id).eq("tipo", "navegacao").gte("data", `${anoAtual}-01-01`)
       : Promise.resolve({ data: [] as EventoParaResumoAno[] }),
   ])

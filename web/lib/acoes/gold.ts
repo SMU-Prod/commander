@@ -267,10 +267,19 @@ export async function iniciarPagamentoGold(formData: FormData) {
     }).select("id")
     if (error || !inserido?.length) erroDetalhe(solicitacaoId, "Não foi possível registrar o pagamento agora. Tente de novo.")
     revalidarGold(solicitacaoId)
+    // Achado 3.7 da auditoria de 19/08: "a equipe Commander entra em contato"
+    // é verbo de gatilho sobre um cálculo sem gatilho. O insert em
+    // `gold_pagamentos` acontece e o pedido aparece em `/admin/gold` — a FILA
+    // existe de verdade —, mas nenhum insert de notificação, nenhum push e
+    // nenhum e-mail avisam quem administra. A promessa dependia inteiramente
+    // de alguém abrir o painel por hábito. A frase passa a descrever a fila,
+    // que é o que existe, e aponta pra tela que mostra o andamento — em vez de
+    // prometer uma ligação que ninguém foi encarregado de fazer.
     okDetalhe(
       solicitacaoId,
-      "A contratação da avaliação Commander Gold abre em breve. Já registramos seu interesse — " +
-        "a equipe Commander entra em contato assim que o pagamento estiver disponível.",
+      "A contratação da avaliação Commander Gold abre em breve. Seu interesse ficou registrado e " +
+        "entra na fila que a equipe Commander acompanha. Nada é cobrado agora, e o andamento " +
+        "aparece nesta tela.",
     )
   }
 

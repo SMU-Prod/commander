@@ -156,6 +156,69 @@ function AcaoCartao({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
+/**
+ * TRIPULAÇÃO (onda 16) — vínculos reais do barco: dono (PROP) + comandantes
+ * com acesso (CMDT). Nunca uma fileira fantasma: sozinho no barco vira convite.
+ *
+ * ONDA 100 — ESTÁ NUMA FUNÇÃO PORQUE É A ÚNICA CADEIA DE VERDADE DA TELA, e o
+ * `Promise.all` da página precisa poder tratá-la como UM item. Os três degraus
+ * existem de fato: os vínculos dizem quem está a bordo, os perfis dizem o nome
+ * de quem os vínculos apontaram, e a URL assinada precisa do caminho do avatar
+ * que só o perfil conhece. Nenhum deles é fila falsa.
+ *
+ * O QUE FICOU DE FORA, E POR QUÊ: dá para transformar os dois primeiros
+ * degraus em um só, pedindo `vinculos` com `profiles` embutido (a chave
+ * estrangeira `vinculos_usuario_id_fkey` existe e o PostgREST sabe atravessá-la).
+ * Não foi feito porque isso troca a forma da consulta — e com ela a maneira
+ * como a RLS de `profiles` é aplicada — por UMA volta de rede num total de
+ * cinco, e não há sessão de teste contra este banco para provar que a lista
+ * sai idêntica. Ganho pequeno, verificação impossível hoje: fica escrito, não
+ * feito.
+ *
+ * O `createSignedUrl` continua um por avatar (teto de 5) em vez do
+ * `createSignedUrls` em lote: as cinco já saem juntas, então o relógio é o
+ * mesmo — o que se economizaria são conexões, não espera, e a versão em lote
+ * devolve erro por item, que é outra régua de falha para esta tela ter de
+ * aprender.
+ */
+async function carregarTripulacao(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  embarcacaoId: string,
+): Promise<{
+  tripulantes: { id: string; nome: string; avatarPath: string | null }[]
+  tripulantesVisiveis: { id: string; nome: string; avatarPath: string | null }[]
+  tripulantesExtras: number
+  urlsTripulacao: Map<string, string | null>
+}> {
+  const { data: vinculosCrew } = await supabase
+    .from("vinculos").select("usuario_id").eq("embarcacao_id", embarcacaoId)
+  const idsCrew = [...new Set((vinculosCrew ?? []).map((v) => v.usuario_id))]
+  const { data: perfisCrew } = idsCrew.length > 0
+    ? await supabase.from("profiles").select("id, nome, avatar_path").in("id", idsCrew)
+    : { data: [] as { id: string; nome: string; avatar_path: string | null }[] }
+  const tripulantes = idsCrew.map((id) => {
+    const p = (perfisCrew ?? []).find((pc) => pc.id === id)
+    return { id, nome: p?.nome?.trim() || "Comandante", avatarPath: p?.avatar_path ?? null }
+  })
+  const tripulantesVisiveis = tripulantes.slice(0, 5)
+  const urlsTripulacao = new Map(
+    await Promise.all(
+      tripulantesVisiveis
+        .filter((t): t is typeof t & { avatarPath: string } => t.avatarPath != null)
+        .map(async (t) => {
+          const { data } = await supabase.storage.from("acervo").createSignedUrl(t.avatarPath, 3600)
+          return [t.id, data?.signedUrl ?? null] as const
+        }),
+    ),
+  )
+  return {
+    tripulantes,
+    tripulantesVisiveis,
+    tripulantesExtras: Math.max(0, tripulantes.length - tripulantesVisiveis.length),
+    urlsTripulacao,
+  }
+}
+
 export default async function HojePage({
   searchParams,
 }: {
@@ -226,36 +289,140 @@ export default async function HojePage({
     itens.some((i) => i.data_fixa != null || i.ultimo_ciclo_horas != null)
 
   const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: perfil } = await supabase
-    .from("profiles").select("nome, avatar_path").eq("id", user?.id ?? "").maybeSingle()
-  const nomeUsuario = perfil?.nome?.trim() || "comandante"
-  const urlAvatar = perfil?.avatar_path
-    ? (await supabase.storage.from("acervo").createSignedUrl(perfil.avatar_path, 3600)).data?.signedUrl ?? null
-    : null
-  const { urlCapa, temFotos } = await carregarCapaDoHeroi()
-  const { data: comandantes } = await supabase
-    .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
-    .eq("tipo", "comandante").eq("visivel", true).limit(2)
+
+  // ONDA 100 — CATORZE ESPERAS EM FILA VIRARAM DUAS, E A FILA ERA QUASE TODA
+  // FALSA.
+  //
+  // Esta tela é a irmã do defeito que a onda 96 consertou uma camada abaixo,
+  // no `carregarPainel` — e o diagnóstico é literalmente o mesmo: as consultas
+  // "esperavam por causa de onde a variável foi lida, não por dependência de
+  // dado". Da saudação até a tripulação eram catorze `await` em sequência, cada
+  // um pagando uma volta de rede até São Paulo (~150 ms medidos, contra 0,5 a
+  // 1,3 ms de trabalho dentro do Postgres). 14 × 150 ms ≈ 2,1 s — que é
+  // exatamente o que o cronômetro mostrava com o banco praticamente vazio.
+  //
+  // O grafo real de dependência desta tela tem DOIS níveis:
+  //
+  //   1. tudo que só precisa de `user.id` e `embarcacao.id` — os dois já
+  //      conhecidos desde o `carregarPainel` da primeira linha;
+  //   2. só a tripulação, que é uma cadeia de verdade: os vínculos dizem QUEM
+  //      está a bordo, os perfis dizem o NOME de quem, e a URL assinada precisa
+  //      do caminho do avatar que veio no perfil. Três degraus reais.
+  //
+  // O QUE ISTO CUSTA, e por que é aceitável: consultas que antes só saíam sob
+  // condição (`podeVerDiario`, `podeVerGastos`) continuam sob condição — o
+  // ternário virou `Promise.resolve`, não uma consulta a mais para quem não
+  // pode ver. E uma falha isolada continua isolada: o cliente Supabase resolve
+  // com `{ data: null, error }` em vez de rejeitar, então o `Promise.all` não
+  // desmonta a tela inteira por causa de um cartão — cada bloco continua
+  // dizendo a verdade sobre o que conseguiu carregar, como antes.
+  //
+  // E A CONSULTA DE `profiles` SUMIU DAQUI. Ela era idêntica à que o
+  // `carregarPainel` já fazia (onda 63) e vinha junto com um `auth.getUser()`
+  // que é OUTRA ida à rede, não uma leitura de cookie. Duas voltas de rede para
+  // saber o que já estava em `painel.perfil`.
+  const nomeUsuario = painel.perfil?.nome?.trim() || "comandante"
+  const avatarPath = painel.perfil?.avatarPath ?? null
 
   // Seu ano no mar (onda 18, Pilar Strava do Mar) — totais pessoais a partir
   // das saídas já registradas no diário, sem coleta nova nenhuma.
   const podeVerDiario = podeVer(permissoes, "diario")
-  // A ORDEM É DA CONSULTA, NÃO DO ACASO. Até a onda 57 a saída mais recente
-  // saía de um `reduce` com `>` estrito sobre uma consulta SEM `order`: com
-  // duas saídas na mesma data, qual delas ditava a frase do cartão dependia
-  // da ordem que o Postgres devolveu naquela requisição — a mesma tela,
-  // recarregada, podia trocar de frase. Desempate por hora de saída, com
-  // `nullsFirst: false` pra que a saída COM horário ganhe da que não tem
-  // (ela é a única das duas que consegue dizer o tempo no mar).
-  const { data: eventosSaida } = podeVerDiario
-    ? await supabase
-        .from("eventos").select("tipo, data, hora_saida, hora_retorno, trilha")
-        .eq("embarcacao_id", embarcacao.id).eq("tipo", "navegacao")
-        .gte("data", `${anoAtual}-01-01`)
-        .order("data", { ascending: false })
-        .order("hora_saida", { ascending: false, nullsFirst: false })
-    : { data: [] as EventoParaResumoAno[] }
+  // Despesas do mês (onda 16; fonte trocada na onda 42) — mesma janela de 6
+  // meses e a mesma `lib/domain/gastos.ts` de sempre, mas lendo de
+  // `lancamentos_financeiros` em vez de `eventos.custo_centavos`. É a mesma
+  // decisão da migration 042: o Financeiro é a fonte do dinheiro, e somar as
+  // duas contaria o mesmo gasto duas vezes. Só `status = 'pago'` entra — uma
+  // conta a vencer não é dinheiro que saiu.
+  const podeVerGastos = podeVer(permissoes, "gastos")
+  const inicioJanelaGastos = `${Number(anoAtual) - 1}-01-01`
+
+  const [
+    urlAvatar,
+    { urlCapa, temFotos },
+    { data: comandantes },
+    { data: eventosSaida },
+    proximaViagem,
+    { data: ocorrenciasAtivasBrutas },
+    contadorAvisos,
+    { data: despesasMes },
+    tripulacao,
+  ] = await Promise.all([
+    avatarPath
+      ? supabase.storage.from("acervo").createSignedUrl(avatarPath, 3600).then((r) => r.data?.signedUrl ?? null)
+      : Promise.resolve(null),
+    carregarCapaDoHeroi(),
+    supabase
+      .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
+      .eq("tipo", "comandante").eq("visivel", true).limit(2),
+    // A ORDEM É DA CONSULTA, NÃO DO ACASO. Até a onda 57 a saída mais recente
+    // saía de um `reduce` com `>` estrito sobre uma consulta SEM `order`: com
+    // duas saídas na mesma data, qual delas ditava a frase do cartão dependia
+    // da ordem que o Postgres devolveu naquela requisição — a mesma tela,
+    // recarregada, podia trocar de frase. Desempate por hora de saída, com
+    // `nullsFirst: false` pra que a saída COM horário ganhe da que não tem
+    // (ela é a única das duas que consegue dizer o tempo no mar).
+    //
+    // ONDA 100 — `distancia_nm` NO LUGAR DE `trilha`. Esta consulta baixava a
+    // TRILHA GPS INTEIRA de todas as saídas do ano para somar um float por
+    // saída. Medido no próprio banco: uma trilha no teto (4.000 pontos) pesa
+    // 205,6 kB, e a linha desta consulta cai de 210.687 para 124 bytes. Um
+    // barco que sai 3×/semana chega a dezembro com 144 saídas — 28,9 MB
+    // baixados a cada abertura da tela inicial para exibir um número, contra
+    // 17,4 kB agora. A distância é gravada na hora de salvar a trilha (ver
+    // `lib/acoes/trilha.ts` e a migration 092), e a trilha crua só desce onde
+    // alguém de fato desenha o traçado.
+    //
+    // ORDEM OBRIGATÓRIA: a migration 092 tem de ser aplicada ANTES deste
+    // código subir. Sem a coluna, o PostgREST recusa a consulta inteira.
+    podeVerDiario
+      ? supabase
+          .from("eventos").select("tipo, data, hora_saida, hora_retorno, distancia_nm")
+          .eq("embarcacao_id", embarcacao.id).eq("tipo", "navegacao")
+          .gte("data", `${anoAtual}-01-01`)
+          .order("data", { ascending: false })
+          .order("hora_saida", { ascending: false, nullsFirst: false })
+      : Promise.resolve({ data: [] as EventoParaResumoAno[] }),
+    // Próximas paradas (onda 19, Pilar Strava do Mar) — a PRÓXIMA viagem
+    // planejada (data futura mais perto), com 2-3 paradas visíveis. Mesma
+    // checagem de `podeVerDiario` (viagem é conteúdo de navegação, igual
+    // "Seu ano no mar" acima) — sem ela, nem consulta o banco. Sem viagem
+    // planejada, o cartão simplesmente não aparece mais abaixo (regra de
+    // honestidade — nada de porta pra sala vazia).
+    podeVerDiario ? carregarProximaViagem() : Promise.resolve(null),
+    // Ocorrências abertas (onda 32) — gate de descoberta: precisa aparecer na
+    // Início, não só dentro de cada hub. Sem filtro de aba na query: a RLS já
+    // devolve só as ocorrências dos setores que esta pessoa pode ver, então
+    // "sozinho no barco" ou "acesso restrito" nunca vazam linha nenhuma. Busca
+    // TODAS as ativas (sem limite) porque a saúde (abaixo) precisa da lista
+    // inteira pra pontuar corretamente.
+    //
+    // Onda 44: o filtro é `ESTADOS_QUE_PESAM_NA_SAUDE` (aberta + em
+    // acompanhamento), não "tudo que não é resolvida" — ocorrência ANULADA
+    // (PRD §7) não é problema vivo e não pode entrar nesta lista, nem no
+    // cartão nem na conta da Saúde. Filtrar na origem mantém a fórmula e os
+    // pesos de `lib/domain/saude.ts` intocados.
+    //
+    // ONDA 57 — elas deixaram de ter cartão próprio na Início. Ocorrência
+    // aberta e manutenção vencida são a mesma pergunta ("o que precisa de
+    // mim?") e viviam em dois blocos separados, cada um com sua ordenação:
+    // agora as duas entram no MESMO cartão pela lista de fatores da Saúde,
+    // que o PRD §3.4 já manda ordenar por criticidade.
+    supabase
+      .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
+      .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false }),
+    // Contador do sino (onda 44) — mesma fonte da tela /notificacoes, via
+    // `cache()`: o badge e a lista nunca podem discordar. O layout já pediu
+    // esta mesma função nesta requisição, então aqui ela não custa consulta
+    // nenhuma; entra no `Promise.all` para o caso de a Início renderizar antes.
+    carregarNotificacoes().then(contadorSino),
+    podeVerGastos
+      ? supabase
+          .from("lancamentos_financeiros").select("data, valor_centavos").eq("embarcacao_id", embarcacao.id)
+          .eq("tipo", "despesa").eq("status", "pago").gte("data", inicioJanelaGastos)
+      : Promise.resolve({ data: [] as { data: string; valor_centavos: number }[] }),
+    carregarTripulacao(supabase, embarcacao.id),
+  ])
+
   const saidasDoAno = (eventosSaida ?? []) as EventoParaResumoAno[]
   const totaisAno = resumoAno(saidasDoAno, Number(anoAtual))
   // A saída mais recente sai da MESMA consulta do resumo do ano (nada de ida
@@ -265,35 +432,6 @@ export default async function HojePage({
   // seria falso pra quem navegou em dezembro passado.
   const ultimaSaida = saidasDoAno[0] ?? null
 
-  // Próximas paradas (onda 19, Pilar Strava do Mar) — a PRÓXIMA viagem
-  // planejada (data futura mais perto), com 2-3 paradas visíveis. Mesma
-  // checagem de `podeVerDiario` (viagem é conteúdo de navegação, igual
-  // "Seu ano no mar" acima) — sem ela, nem consulta o banco. Sem viagem
-  // planejada, o cartão simplesmente não aparece mais abaixo (regra de
-  // honestidade — nada de porta pra sala vazia).
-  const proximaViagem = podeVerDiario ? await carregarProximaViagem() : null
-
-  // Ocorrências abertas (onda 32) — gate de descoberta: precisa aparecer na
-  // Início, não só dentro de cada hub. Sem filtro de aba na query: a RLS já
-  // devolve só as ocorrências dos setores que esta pessoa pode ver, então
-  // "sozinho no barco" ou "acesso restrito" nunca vazam linha nenhuma. Busca
-  // TODAS as ativas (sem limite) porque a saúde (abaixo) precisa da lista
-  // inteira pra pontuar corretamente.
-  //
-  // Onda 44: o filtro é `ESTADOS_QUE_PESAM_NA_SAUDE` (aberta + em
-  // acompanhamento), não "tudo que não é resolvida" — ocorrência ANULADA
-  // (PRD §7) não é problema vivo e não pode entrar nesta lista, nem no
-  // cartão nem na conta da Saúde. Filtrar na origem mantém a fórmula e os
-  // pesos de `lib/domain/saude.ts` intocados.
-  //
-  // ONDA 57 — elas deixaram de ter cartão próprio na Início. Ocorrência
-  // aberta e manutenção vencida são a mesma pergunta ("o que precisa de
-  // mim?") e viviam em dois blocos separados, cada um com sua ordenação:
-  // agora as duas entram no MESMO cartão pela lista de fatores da Saúde,
-  // que o PRD §3.4 já manda ordenar por criticidade.
-  const { data: ocorrenciasAtivasBrutas } = await supabase
-    .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
-    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false })
   const ocorrenciasAtivas = (ocorrenciasAtivasBrutas ?? []) as Ocorrencia[]
 
   // Há quanto tempo cada ocorrência existe — a coluna mono do cartão de
@@ -317,52 +455,12 @@ export default async function HojePage({
   const estadoSaude = estadoExibidoDaSaude(saude, temDadoReal)
   const pendencias = saude.fatores.slice(0, 3)
 
-  // Contador do sino (onda 44) — mesma fonte da tela /notificacoes, via
-  // `cache()`: o badge e a lista nunca podem discordar.
-  const contadorAvisos = contadorSino(await carregarNotificacoes())
-
-  // Despesas do mês (onda 16; fonte trocada na onda 42) — mesma janela de 6
-  // meses e a mesma `lib/domain/gastos.ts` de sempre, mas lendo de
-  // `lancamentos_financeiros` em vez de `eventos.custo_centavos`. É a mesma
-  // decisão da migration 042: o Financeiro é a fonte do dinheiro, e somar as
-  // duas contaria o mesmo gasto duas vezes. Só `status = 'pago'` entra — uma
-  // conta a vencer não é dinheiro que saiu.
-  const podeVerGastos = podeVer(permissoes, "gastos")
-  const inicioJanelaGastos = `${Number(anoAtual) - 1}-01-01`
-  const { data: despesasMes } = podeVerGastos
-    ? await supabase
-        .from("lancamentos_financeiros").select("data, valor_centavos").eq("embarcacao_id", embarcacao.id)
-        .eq("tipo", "despesa").eq("status", "pago").gte("data", inicioJanelaGastos)
-    : { data: [] as { data: string; valor_centavos: number }[] }
   const entradasGastos = (despesasMes ?? [])
     .map((l) => ({ data: l.data, custoCentavos: l.valor_centavos, grupo: "" }))
   const resumoMes = resumoGastos(entradasGastos, hoje)
   const variacaoGastos = variacaoPercentual(resumoMes.meses[5].totalCentavos, resumoMes.meses[4].totalCentavos)
 
-  // Tripulação (onda 16) — vínculos reais do barco: dono (PROP) + comandantes
-  // com acesso (CMDT). Nunca uma fileira fantasma: sozinho no barco vira convite.
-  const { data: vinculosCrew } = await supabase
-    .from("vinculos").select("usuario_id").eq("embarcacao_id", embarcacao.id)
-  const idsCrew = [...new Set((vinculosCrew ?? []).map((v) => v.usuario_id))]
-  const { data: perfisCrew } = idsCrew.length > 0
-    ? await supabase.from("profiles").select("id, nome, avatar_path").in("id", idsCrew)
-    : { data: [] as { id: string; nome: string; avatar_path: string | null }[] }
-  const tripulantes = idsCrew.map((id) => {
-    const p = (perfisCrew ?? []).find((pc) => pc.id === id)
-    return { id, nome: p?.nome?.trim() || "Comandante", avatarPath: p?.avatar_path ?? null }
-  })
-  const tripulantesVisiveis = tripulantes.slice(0, 5)
-  const tripulantesExtras = Math.max(0, tripulantes.length - tripulantesVisiveis.length)
-  const urlsTripulacao = new Map(
-    await Promise.all(
-      tripulantesVisiveis
-        .filter((t): t is typeof t & { avatarPath: string } => t.avatarPath != null)
-        .map(async (t) => {
-          const { data } = await supabase.storage.from("acervo").createSignedUrl(t.avatarPath, 3600)
-          return [t.id, data?.signedUrl ?? null] as const
-        }),
-    ),
-  )
+  const { tripulantes, tripulantesVisiveis, tripulantesExtras, urlsTripulacao } = tripulacao
   const sozinhoNoBarco = tripulantes.length <= 1
   const podeConvidar = papel === "PROP"
 

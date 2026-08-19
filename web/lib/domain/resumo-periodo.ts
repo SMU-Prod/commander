@@ -1,9 +1,9 @@
 import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { abaDoItem, grupoDoEvento } from "@/lib/domain/diario"
 import type { Aba } from "@/lib/domain/permissoes"
-import { mesSeguinte, resumoDoMes } from "@/lib/domain/relatorio"
+import { mesSeguinte, resumoDoMes, type EventoParaResumo } from "@/lib/domain/relatorio"
 import { calcularSemaforo, temInformacaoSuficiente } from "@/lib/domain/semaforo"
-import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
+import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
 
 /**
  * RESUMOS (onda 37, PRD §28-29) — área de produto com períodos Mensal /
@@ -211,7 +211,9 @@ export function periodoSemAtividade(r: ResumoPeriodo): boolean {
 
 export function montarResumoPeriodo(
   dados: {
-    eventos: Evento[]
+    // Ver `EventoParaResumo` em `lib/domain/relatorio.ts`: seis campos, e é o
+    // que autoriza `/barco/resumos` a parar de pedir `select("*")`.
+    eventos: EventoParaResumo[]
     itens: ItemMonitorado[]
     equipamentos: Equipamento[]
     ocorrencias: OcorrenciaParaResumo[]

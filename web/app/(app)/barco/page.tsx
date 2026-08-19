@@ -37,7 +37,15 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, papel, permissoes } = painel
   const hoje = hojeISO()
-  const [verified, seloGold, acesso, patrocinios, mapa] = await Promise.all([
+  // ONDA 100 — A CAPA DO HERÓI ENTROU NESTA LEVA.
+  //
+  // `carregarCapaDoHeroi()` estava sozinha lá embaixo, depois de todo o cálculo
+  // de semáforo, esperando uma volta de rede inteira (~150 ms até São Paulo)
+  // por nada: ela precisa da embarcação, que já está em mãos desde a primeira
+  // linha, e nenhuma das cinco consultas abaixo olha o resultado dela. Estava
+  // em fila por causa de onde a variável foi lida — o mesmo diagnóstico da
+  // onda 96 no `carregarPainel`.
+  const [verified, seloGold, acesso, patrocinios, mapa, { urlCapa, temFotos }] = await Promise.all([
     carregarVerified(),
     carregarSeloGold(embarcacao.id),
     carregarAcessoEmbarcacoes(),
@@ -48,6 +56,7 @@ export default async function BarcoPage({
     // Mapa da Embarcação (onda 61) — o MESMO agregado da tela /barco/mapa,
     // pra porta nunca discordar da sala no número de zonas pedindo atenção.
     carregarMapaDaEmbarcacao(),
+    carregarCapaDoHeroi(),
   ])
   // Só avisa quando a embarcação ABERTA é uma das excedentes — um aviso
   // genérico em todo barco seria ruído pra quem está justamente no barco que
@@ -117,8 +126,6 @@ export default async function BarcoPage({
         return temInformacaoSuficiente(calc, horas) ? [calcularSemaforo(calc, horas, hoje).status] : []
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
-
-  const { urlCapa, temFotos } = await carregarCapaDoHeroi()
 
   return (
     <main>

@@ -9,7 +9,6 @@ import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, textoDuracao, tituloDaSaida, tituloDoRegistro } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, nomeDoEquipamento, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
 import { formatarReais } from "@/lib/domain/gastos"
-import { resumoTrilha } from "@/lib/domain/geo"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { formatarDataCurta } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
@@ -49,7 +48,15 @@ export default async function DiarioPage({
       // (tela-3a) põe a rota no título ("Angra dos Reis → Ilha Grande") e
       // conta quem estava a bordo — os dois campos já existiam na tabela
       // (PRD §23), só não eram lidos aqui.
-      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, trilha, hora_saida, hora_retorno, local_saida, destino, tripulacao, passageiros, mar_onda_m, mar_vento_kt, importado_do_plotter")
+      //
+      // ONDA 100 — `distancia_nm` NO LUGAR DE `trilha`. O feed pede 300
+      // registros e baixava a trilha GPS inteira de cada saída para desenhar
+      // um chip de uma linha. Com o teto de 4.000 pontos por trilha, 300
+      // saídas são ~66 MB numa tela que mostra "TRILHA 12,4 MN" — mais do que
+      // o `statement_timeout` de 8 s desta função aguenta transferir. A
+      // distância agora é gravada quando a saída é salva (migration 092); a
+      // trilha crua desce só em `/diario/[id]`, que de fato desenha o traçado.
+      .select("id, embarcacao_id, equipamento_id, item_monitorado_id, contato_id, tipo, categoria, data, horas_no_momento, descricao, custo_centavos, anexo_path, distancia_nm, hora_saida, hora_retorno, local_saida, destino, tripulacao, passageiros, mar_onda_m, mar_vento_kt, importado_do_plotter")
       .eq("embarcacao_id", painel.embarcacao.id)
       .order("data", { ascending: false }).order("created_at", { ascending: false }).limit(300),
     supabase.from("contatos").select("id, nome"),
@@ -70,26 +77,32 @@ export default async function DiarioPage({
   )
   const grupos = agruparPorMes(visiveis)
 
-  // Anexo (NF, foto do serviço) só era gravado — nunca reaparecia em lugar
-  // nenhum. Mesmo padrão de URL assinada já usado em Documentos.
-  const urlsAnexo = new Map(
-    await Promise.all(
+  // ONDA 100 — AS DUAS ÚLTIMAS ESPERAS DESTA TELA VIRARAM UMA.
+  //
+  // As URLs de anexo e os nomes da tripulação dependem os dois de `visiveis`, e
+  // de mais nada um do outro: estavam em fila só porque uma variável foi
+  // escrita antes da outra. Uma volta de rede a menos por abertura do Diário.
+  const [urlsAnexo, nomePerfil] = await Promise.all([
+    // Anexo (NF, foto do serviço) só era gravado — nunca reaparecia em lugar
+    // nenhum. Mesmo padrão de URL assinada já usado em Documentos.
+    Promise.all(
       visiveis
         .filter((e): e is Evento & { anexo_path: string } => e.anexo_path != null)
         .map(async (e) => {
           const { data } = await supabase.storage.from("acervo").createSignedUrl(e.anexo_path, 3600)
           return [e.id, data?.signedUrl ?? null] as const
         }),
-    ),
-  )
-
-  // Nomes da tripulacao a bordo (Livro de Bordo) — so busca perfis dos ids
-  // que realmente aparecem nos eventos visiveis.
-  const idsTripulacao = [...new Set(visiveis.flatMap((e) => e.tripulacao ?? []))]
-  const { data: perfisTripulacao } = idsTripulacao.length
-    ? await supabase.from("profiles").select("id, nome").in("id", idsTripulacao)
-    : { data: [] as { id: string; nome: string }[] }
-  const nomePerfil = new Map((perfisTripulacao ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+    ).then((pares) => new Map(pares)),
+    // Nomes da tripulacao a bordo (Livro de Bordo) — so busca perfis dos ids
+    // que realmente aparecem nos eventos visiveis.
+    (async () => {
+      const idsTripulacao = [...new Set(visiveis.flatMap((e) => e.tripulacao ?? []))]
+      const { data: perfisTripulacao } = idsTripulacao.length
+        ? await supabase.from("profiles").select("id, nome").in("id", idsTripulacao)
+        : { data: [] as { id: string; nome: string }[] }
+      return new Map((perfisTripulacao ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+    })(),
+  ])
 
   return (
     <main>
@@ -172,12 +185,20 @@ export default async function DiarioPage({
               // e "atividade".
               const ehSaida = e.tipo === "navegacao"
               const duracaoEvento = ehSaida ? duracaoHoras(e.hora_saida, e.hora_retorno) : null
-              // Trilha ja vem selecionada na query (poucas saidas por barco —
-              // custo aceitavel pra ter distancia real no feed sem outra ida
-              // ao banco); so soma quando tem pontos suficientes de verdade.
-              const trilhaResumo = ehSaida && Array.isArray(e.trilha) && e.trilha.length >= 2
-                ? resumoTrilha(e.trilha)
-                : null
+              // ONDA 100 — A DISTÂNCIA VEM GRAVADA, NÃO RECALCULADA.
+              //
+              // O comentário anterior dizia que trazer a trilha na consulta era
+              // "custo aceitavel" porque um barco tem poucas saídas. A conta
+              // estava errada por três ordens de grandeza: o teto é 300 saídas
+              // nesta tela e 4.000 pontos por trilha, ou seja ~66 MB no pior
+              // caso — para desenhar um chip. `distancia_nm` é o mesmo número,
+              // calculado pela mesma `resumoTrilha`, na hora de gravar.
+              //
+              // `null` continua sendo "sem GPS", nunca "0 MN": saída sem trilha
+              // não tem distância, e uma trilha que existe mas não saiu do
+              // lugar tem distância zero — são coisas diferentes e a tela
+              // continua distinguindo as duas.
+              const distanciaNm = ehSaida ? e.distancia_nm : null
               const tripNomes = (e.tripulacao ?? [])
                 .map((id) => nomePerfil.get(id))
                 .filter((n): n is string => Boolean(n))
@@ -241,8 +262,8 @@ export default async function DiarioPage({
                         <ChipDado rotulo="No mar">{textoDuracao(duracaoEvento)}</ChipDado>
                       )}
                       <ChipDado rotulo="Trilha">
-                        {trilhaResumo ? (
-                          `${trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN`
+                        {distanciaNm != null ? (
+                          `${distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN`
                         ) : (
                           // "sem GPS" no lugar de 0 MN — o diário não inventa
                           // distância (nota do próprio canvas). E ele veste

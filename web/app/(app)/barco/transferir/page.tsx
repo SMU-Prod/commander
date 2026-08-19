@@ -7,11 +7,8 @@ import { Campo } from "@/components/ui/campo"
 import { carregarPainel } from "@/lib/consultas"
 import { cancelarTransferencia, iniciarTransferencia } from "@/lib/acoes/transferencia"
 import { supabaseServer } from "@/lib/supabase/server"
+import { urlPublica } from "@/lib/url-publica"
 import type { Transferencia } from "@/lib/db/types"
-
-function linkTransferencia(codigo: string): string {
-  return `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"}/convite/${codigo}`
-}
 
 export default async function TransferirPage({
   searchParams,
@@ -36,6 +33,9 @@ export default async function TransferirPage({
     .gt("expira_em", new Date().toISOString())
     .maybeSingle()
   const transferencia = pendente as Transferencia | null
+  // O link só existe quando há transferência pendente; `urlPublica()` lê o
+  // pedido HTTP e não tem por que rodar quando não há link para montar.
+  const link = transferencia ? `${await urlPublica()}/convite/${transferencia.codigo}` : null
 
   return (
     <main>
@@ -57,6 +57,48 @@ export default async function TransferirPage({
         </ul>
       </div>
 
+      {/* O QUARTO MARCADOR QUE FALTAVA — auditoria de produto de 19/08/2026,
+          achado 1.1, o mais caro do app.
+          A caixa acima existia com três marcadores e todos falavam do que
+          CONTINUA. A RPC `aceitar_transferencia` (lida da definição viva do
+          banco, não do arquivo de migration) faz cinco escritas que nenhum dos
+          três menciona: `delete` em `lancamentos_financeiros`,
+          `recorrencias_financeiras`, `carteiras` e `contatos`, e um `update`
+          que zera `custo_centavos`, `passageiros` e `tripulacao` de TODA linha
+          de `eventos` daquele barco. O dono autorizava a destruição do próprio
+          histórico financeiro lendo uma tela que só falava do que sobrevive.
+          Bloco separado e em `crit`, não um quarto item na lista de cima, por
+          decisão: o que continua e o que é destruído não são a mesma classe de
+          consequência, e enfileirar os dois faz o segundo ser lido no ritmo do
+          primeiro.
+          Isto NÃO conserta o comportamento — conserta a mentira. A correção do
+          comportamento (preservar em vez de apagar, conforme o PRD §17, que
+          manda "não transferir" e nunca "apagar") está escrita e NÃO aplicada
+          em `supabase/migrations/091_transferencia_preserva_o_financeiro.sql`,
+          porque aplicar muda o que o produto promete e é decisão do dono. */}
+      <div className="mt-3 rounded-[var(--raio-cartao)] border border-crit/40 bg-crit/10 p-3">
+        <p className="corpo font-semibold">O que é apagado no aceite — e não volta</p>
+        <ul className="mt-2 space-y-1.5 corpo text-dim">
+          <li>· Todo o Financeiro deste barco: cada despesa e cada receita lançada.</li>
+          <li>· As contas recorrentes.</li>
+          <li>· As Carteiras da tripulação, com saldo e histórico.</li>
+          <li>· A agenda de contatos de confiança (mecânico, marina, fornecedores).</li>
+          <li>
+            · De cada saída do Diário: o custo, os passageiros e a tripulação. A saída em si
+            continua no histórico do barco; o dinheiro e as pessoas dela, não.
+          </li>
+        </ul>
+        <p className="corpo mt-2">
+          Isso não fica com você nem vai para o novo dono — some para os dois, no instante do
+          aceite. Se você precisa desse histórico (imposto de renda, provar o custo na
+          negociação),{" "}
+          <Link href="/barco/resumos" className="text-accent-forte">
+            exporte os Relatórios em PDF
+          </Link>{" "}
+          antes de gerar o link.
+        </p>
+      </div>
+
       {criado && transferencia && (
         <p className="mt-4 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2 corpo">
           Link de transferência criado — compartilhe com quem vai assumir o barco.
@@ -70,15 +112,23 @@ export default async function TransferirPage({
             Para <span className="text-texto">{transferencia.destinatario_email}</span> · expira em{" "}
             {new Date(transferencia.expira_em).toLocaleDateString("pt-BR")}
           </p>
+          {/* A janela em que ainda dá para voltar atrás, dita em voz alta. O
+              apagamento do financeiro acontece no aceite, não aqui — e quem
+              gerou o link sem ter lido a caixa vermelha precisa saber que
+              cancelar ainda resolve. */}
+          <p className="apoio mt-1 text-dim">
+            Nada foi apagado ainda. O Financeiro some no instante do aceite — até lá, cancelar
+            desfaz tudo.
+          </p>
           <p className="mt-3 break-all rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 font-mono-instr text-xs text-dim">
-            {linkTransferencia(transferencia.codigo)}
+            {link}
           </p>
           {/* A fileira do canvas (tela-4d): compartilhar em contorno ocupando a
               linha, cancelar em vermelho ao lado — e cancelar SEMPRE pede
               confirmação (fluxo sensível; o link para de funcionar na hora). */}
           <div className="mt-3 flex items-center gap-2">
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Você vai assumir a propriedade da ${painel.embarcacao.nome} no Commander: ${linkTransferencia(transferencia.codigo)}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(`Você vai assumir a propriedade da ${painel.embarcacao.nome} no Commander: ${link}`)}`}
               target="_blank" rel="noopener noreferrer"
               className="flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line text-sm font-medium"
             >
@@ -99,10 +149,18 @@ export default async function TransferirPage({
             type="email"
             required
             placeholder="novo.dono@email.com"
-            dica="Ele(a) confirma pelo próprio Commander — se ainda não tiver conta, cria na hora."
+            dica="O Commander não envia nada: você recebe um link pra mandar por WhatsApp ou como preferir. Só quem entrar com esse e-mail consegue aceitar — se ainda não tiver conta, cria na hora."
           />
+          {/* Achado 1.2 da auditoria de 19/08: o botão dizia "Enviar convite de
+              transferência" e `iniciarTransferencia` não envia e-mail, push nem
+              notificação — faz um `insert` em `transferencias` e redireciona. O
+              destinatário só descobre se o dono copiar o link na mão, que é o
+              que a tela oferece DEPOIS, quando a pessoa já foi embora achando
+              que enviou. `/tripulacao`, que é o mesmo mecanismo, já era honesta
+              ("Convidar comandante" → "Convite criado" → WhatsApp); esta era a
+              única tela do app que usava o verbo enviar sem enviar. */}
           <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">
-            Enviar convite de transferência
+            Gerar link de transferência
           </button>
         </form>
       )}

@@ -1,6 +1,32 @@
 import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { vencimentoPorData } from "@/lib/domain/semaforo"
-import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
+import type { CategoriaItem, Equipamento, ItemMonitorado, TipoEvento } from "@/lib/db/types"
+
+/**
+ * O QUE UM RESUMO PRECISA SABER DE UM EVENTO — seis campos, e nenhum a mais.
+ *
+ * ONDA 100 — ESTE TIPO EXISTE PORQUE A TELA PEDIA A TABELA INTEIRA.
+ *
+ * `resumoDoMes` e `montarResumoPeriodo` pediam `Evento[]` completo, e por isso
+ * `/barco/resumos` fazia `select("*")` — trazendo junto `trilha` (até 205,6 kB
+ * por saída, medido) e `checklist`, que nenhuma linha destas funções lê. O
+ * tipo largo não era descrição, era exigência: enquanto a assinatura pedisse o
+ * evento inteiro, a consulta não podia parar de buscá-lo.
+ *
+ * Estreitar o tipo é o que autoriza a consulta a estreitar junto — e é a mesma
+ * escolha que `OcorrenciaParaResumo`, `EventoParaFiltro` e `ItemParaSaude` já
+ * faziam neste mesmo módulo. `Evento` continua servindo aqui por
+ * compatibilidade estrutural: o cron mensal, que já tem a linha inteira em
+ * mãos, passa como sempre passou.
+ */
+export interface EventoParaResumo {
+  data: string
+  tipo: TipoEvento
+  categoria: CategoriaItem | null
+  custo_centavos: number | null
+  equipamento_id: string | null
+  horas_no_momento: number | null
+}
 
 export interface ResumoMes {
   horasMotor: number
@@ -27,7 +53,7 @@ export function mesAnteriorISO(hoje: string): string {
 
 /** Resumo fechado de um mes ("2026-08") para o e-mail mensal. Puro e testavel. */
 export function resumoDoMes(
-  dados: { eventos: Evento[]; itens: ItemMonitorado[]; equipamentos: Equipamento[] },
+  dados: { eventos: EventoParaResumo[]; itens: ItemMonitorado[]; equipamentos: Equipamento[] },
   mesISO: string,
 ): ResumoMes {
   const doMes = dados.eventos.filter((e) => e.data.startsWith(mesISO))

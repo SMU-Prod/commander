@@ -198,10 +198,16 @@ export function precoSobConsulta(preco: GoldPreco | null | undefined): boolean {
 }
 
 /** O que a tela diz quando a faixa está sob consulta — honesto sobre o que
- *  acontece a seguir, sem prometer prazo. */
+ *  acontece a seguir, sem prometer prazo.
+ *
+ *  Achado 3.7 da auditoria de 19/08: a versão anterior dizia "A equipe
+ *  Commander entra em contato para combinar", e nada avisa a equipe. A fila
+ *  (`gold_solicitacoes` → `/admin/gold`) existe e é visível, o que faz disto
+ *  gravidade 3 e não 1 — a diferença entre "não vai acontecer" e "pode
+ *  demorar". A frase passa a nomear a fila em vez do contato. */
 export const TEXTO_SOB_CONSULTA =
-  "O valor desta faixa é definido caso a caso. A equipe Commander entra em contato para combinar " +
-  "a avaliação e o valor — nenhuma cobrança é gerada automaticamente."
+  "O valor desta faixa é definido caso a caso: o pedido entra na fila que a equipe Commander " +
+  "acompanha, e o valor é combinado antes de qualquer cobrança — nada é cobrado automaticamente."
 
 /** `null` = "sob consulta" (faixa 81+ ou preço zerado pelo admin) — nunca
  *  formata como R$ 0,00, que pareceria grátis. */

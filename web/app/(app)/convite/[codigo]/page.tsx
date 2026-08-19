@@ -68,12 +68,25 @@ export default async function ConvitePage({
                   <li>· Você vira o proprietário — o dono anterior perde o acesso.</li>
                   <li>· A tripulação atual perde o acesso; você reconvida quem quiser.</li>
                   <li>· Motores, horas, manutenções, ocorrências, fotos e documentos continuam com o barco.</li>
+                  {/* Achado 1.1 da auditoria de 19/08. É ESTE clique que roda os
+                      quatro `delete` da RPC `aceitar_transferencia`. Quem aperta
+                      aqui não é quem perde o dado — é o dono anterior —, e por
+                      isso a frase precisa existir dos dois lados: do lado de lá
+                      para autorizar com consciência, e aqui porque quem assume
+                      um barco tem razão de esperar que o histórico de custo
+                      venha junto, e ele não vem. */}
+                  <li className="text-crit">
+                    · O Financeiro do barco é apagado neste momento: lançamentos, contas
+                    recorrentes, carteiras da tripulação, contatos e o custo de cada saída do
+                    Diário. Não passa para você — some. O barco chega com o histórico técnico,
+                    sem o histórico de dinheiro.
+                  </li>
                 </ul>
                 <form action={aceitarTransferencia} className="mt-4">
                   <input type="hidden" name="codigo" value={codigo} />
                   <Confirmar
                     rotulo="Aceitar e virar proprietário"
-                    mensagem="Confirma? Não dá pra desfazer depois."
+                    mensagem="Confirma? O Financeiro do barco é apagado agora, e não dá pra desfazer."
                     className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 text-center font-semibold text-acao-texto"
                   />
                 </form>

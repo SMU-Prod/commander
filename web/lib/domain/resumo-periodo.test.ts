@@ -22,7 +22,9 @@ const eq = (extra: Partial<Equipamento>): Equipamento => ({
 const ev = (extra: Partial<Evento>): Evento => ({
   id: "v1", embarcacao_id: "b1", equipamento_id: null, item_monitorado_id: null, contato_id: null,
   tipo: "manutencao", categoria: null, data: "2026-08-10", horas_no_momento: null, descricao: "t",
-  custo_centavos: null, anexo_path: null, trilha: null, tem_trilha: false, criado_por: "u1",
+  // `distancia_nm: null` é "sem trilha", não "andou zero" (onda 100,
+  // migration 092) — o auxiliar nasce sem GPS, como uma manutenção nasce.
+  custo_centavos: null, anexo_path: null, trilha: null, tem_trilha: false, distancia_nm: null, criado_por: "u1",
   hora_saida: null, hora_retorno: null, local_saida: null, destino: null, tripulacao: [], passageiros: [], mar_onda_m: null, mar_vento_kt: null,
   // checklist chegou na onda 40 (merge paralelo com esta onda 37) — null é o
   // valor honesto do auxiliar: "ninguém tocou o checklist nesta saída".

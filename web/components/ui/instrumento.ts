@@ -137,6 +137,40 @@ export function escalaTopo(bruto: number, divisoes = 4): number {
 }
 
 /**
+ * A RÉGUA DE CASA DECIMAL DE TODA COORDENADA QUE ENTRA NUM SVG — duas casas.
+ *
+ * Ela existia inline dentro de `pontoNoArco` desde que o primeiro instrumento
+ * foi escrito, e por isso passou por decoração de arredondamento. Não é: é o
+ * que impede ERRO DE HIDRATAÇÃO. `Math.cos`/`Math.sin` são as duas funções que
+ * o ECMAScript explicitamente NÃO exige serem bit-idênticas entre
+ * implementações — o Node que renderiza no servidor e o V8 do navegador podem
+ * divergir no último dígito do double. Serializado cru, o servidor manda
+ * `translate(63.674192626285084,…)` e o cliente calcula
+ * `63.67419262628509`: o React reclama e NÃO conserta ("This won't be patched
+ * up"). A varredura de 19/08 achou o erro em 17 das 73 rotas do app, e a causa
+ * era exatamente esta — os dois selos calculavam polar e devolviam o float
+ * cru. Arredondar MATA a divergência porque `Math.round` de dois valores que
+ * só diferem no 15º dígito devolve o mesmo inteiro, e a divisão por 100 que
+ * vem depois é operação básica de IEEE 754, ou seja, idêntica nos dois lados.
+ *
+ * DUAS CASAS, E NÃO TRÊS OU SEIS: os SVGs deste app desenham em viewBox de
+ * 100 unidades e são renderizados no máximo a 160px, então uma unidade vale
+ * 1,6px e o centésimo vale 0,016px — abaixo de qualquer subpixel que exista.
+ * Passar a régua pra mais casas não muda desenho nenhum e aproxima do dígito
+ * que diverge; passar pra menos começaria a achatar arco.
+ *
+ * Em rigor, só coordenada vinda de trigonometria PRECISA disto: ângulo
+ * derivado de soma, multiplicação e divisão é exatamente especificado pelo
+ * IEEE 754 e sai igual nos dois lados sem ajuda. Mesmo assim a régua vale pra
+ * todo número que vira atributo — a invariante que `selos-hidratacao.test.ts`
+ * cobra é do HTML inteiro, e uma regra sem exceção é a única que a próxima
+ * pessoa aplica certo sem ter lido este parágrafo.
+ */
+export function arredondarCoordenada(valor: number): number {
+  return Math.round(valor * 100) / 100
+}
+
+/**
  * Ponto na circunferência. Graus em convenção MATEMÁTICA (0° = leste, sentido
  * anti-horário) com o Y invertido do SVG — então grau DECRESCENTE anda no
  * sentido horário na tela, que é como um ponteiro de velocímetro anda.
@@ -144,8 +178,8 @@ export function escalaTopo(bruto: number, divisoes = 4): number {
 export function pontoNoArco(cx: number, cy: number, raio: number, grau: number): { x: number; y: number } {
   const rad = (grau * Math.PI) / 180
   return {
-    x: Math.round((cx + raio * Math.cos(rad)) * 100) / 100,
-    y: Math.round((cy - raio * Math.sin(rad)) * 100) / 100,
+    x: arredondarCoordenada(cx + raio * Math.cos(rad)),
+    y: arredondarCoordenada(cy - raio * Math.sin(rad)),
   }
 }
 

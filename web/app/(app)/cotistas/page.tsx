@@ -10,6 +10,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { acimaDaCota, estaSuspenso, MENSAGEM_SUSPENSO, vagasDeCotista } from "@/lib/domain/cotistas"
 import { linhaDeAuditoria, type EventoAuditado } from "@/lib/domain/enterprise"
 import { supabaseServer } from "@/lib/supabase/server"
+import { urlPublica } from "@/lib/url-publica"
 import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 import type { ConviteCotista, Vinculo } from "@/lib/db/types"
 
@@ -68,9 +69,11 @@ export default async function CotistasPage({
   // guardado. É o que faz "remover acesso libera vaga" acontecer sozinho e
   // "redefinir o link" não zerar nada.
   const vagas = vagasDeCotista(painel.embarcacao.cotas_total, lista.length)
-  const urlLink = link
-    ? `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"}/convite-cotista/${link.codigo}`
-    : null
+  // Achado 1.3 da auditoria de 19/08 — mesma correção das outras duas telas de
+  // link compartilhado. Este é o link que o ADM manda no grupo dos cotistas:
+  // sem `NEXT_PUBLIC_APP_URL` no ambiente ele saía apontando para localhost, e
+  // ninguém do grupo abriria nada. Ver `lib/url-publica.ts`.
+  const urlLink = link ? `${await urlPublica()}/convite-cotista/${link.codigo}` : null
 
   return (
     <main>

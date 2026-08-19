@@ -149,8 +149,28 @@ export default async function NotificacoesPage({
 }) {
   const { categoria: categoriaBruta, aba: abaBruta } = await searchParams
   const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login?volta=/notificacoes")
+
+  // ONDA 100 — TRÊS ESPERAS EM FILA PARA MONTAR UMA LISTA SÓ.
+  //
+  // A tela abria com `auth.getUser()` — que NÃO lê cookie, é uma ida à rede até
+  // o servidor de autenticação —, depois esperava o painel, depois os avisos. E
+  // as três respondem à mesma pergunta em ordens diferentes: o painel já sabe
+  // quem é a pessoa (`usuarioId`, onda 100) e `carregarNotificacoes` já espera
+  // o painel por dentro, pelo mesmo `cache()`. Pedir os dois juntos não duplica
+  // consulta nenhuma — a segunda chamada encontra a primeira em andamento.
+  //
+  // A GUARDA DE SESSÃO CONTINUA, e continua sendo do servidor: sem painel, aí
+  // sim se pergunta ao Supabase quem é (é o caso do Partner/Captain sem barco,
+  // para quem `carregarPainel` devolve `null` sem poder dizer o id). Quem tem
+  // painel tem vínculo, e vínculo é linha filtrada por `usuario_id` — ou seja,
+  // a sessão já está provada. O middleware, que valida antes de a página
+  // existir, é a primeira tranca; esta é a segunda, e ela só custa quando
+  // precisa custar.
+  const [painel, todas] = await Promise.all([carregarPainel(), carregarNotificacoes()])
+  if (!painel) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect("/login?volta=/notificacoes")
+  }
   // ONDA 99 — ESTA TELA MANDAVA O PARTNER PARA O ONBOARDING DE EMBARCAÇÃO.
   //
   // O `redirect("/onboarding")` daqui pressupunha que caixa de entrada é coisa
@@ -163,7 +183,6 @@ export default async function NotificacoesPage({
   // que `carregarNotificacoes` devolve nesse caso), e o Histórico — que é
   // histórico DE ALERTA DE EMBARCAÇÃO — some junto com a embarcação, em vez de
   // mostrar aba vazia sem explicação.
-  const painel = await carregarPainel()
 
   // Só "historico" muda de aba; qualquer outro valor (inclusive lixo na URL)
   // cai em Pendentes — a caixa de entrada é o default e o fallback.
@@ -173,7 +192,6 @@ export default async function NotificacoesPage({
     ? (categoriaBruta as CategoriaNotificacao)
     : "todas"
 
-  const todas = await carregarNotificacoes()
   const contagem = contarPorCategoria(todas)
   const visiveis = agruparSemelhantes(filtrarPorCategoria(todas, categoria))
 
@@ -302,10 +320,22 @@ export default async function NotificacoesPage({
                  "Verificado agora" é literal: a lista é calculada ao vivo
                  nesta requisição (`carregarNotificacoes`) — por isso a frase
                  dispensa carimbo de hora. */
+              /* Achado 3.5 da auditoria de 19/08. A frase dizia "Críticas e
+                 importantes chegam aqui E NO APARELHO", e o push não cobre nem
+                 metade disso: o cron (`app/api/alertas/disparar`) varre
+                 `itens_monitorados`, boletim de mar e motor parado, e a onda 99
+                 acrescentou o pedido novo do Marketplace
+                 (`lib/avisos/marketplace.ts`). Agenda, Financeiro e o resto do
+                 Marketplace são in-app puro — o próprio código já dizia isso em
+                 voz alta (`lib/consultas.ts:537`), só a tela é que não tinha
+                 sido atualizada. Nem ocorrência crítica aberta vira push,
+                 embora `nivelDaOcorrencia` a classifique como crítica. A frase
+                 agora lista o que de fato chega no celular, porque é isso que
+                 decide se a pessoa continua conferindo esta tela. */
               <EstadoVazio
                 icone="escudo"
                 titulo="Nenhuma pendência"
-                descricao="Verificado agora. Críticas e importantes chegam aqui e no aparelho."
+                descricao="Verificado agora. Vencimentos, alertas do mar e pedidos novos do Marketplace também chegam no aparelho — o resto aparece só aqui."
                 className="mt-6"
               />
             ) : (

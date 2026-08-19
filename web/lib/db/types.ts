@@ -247,6 +247,22 @@ export interface Evento {
    *  justamente o que autorizaria a próxima tela a escrever
    *  `tem_trilha ? "Com trilha" : "Sem trilha"` e afirmar o que não sabe. */
   tem_trilha: boolean | null
+  /**
+   * ONDA 100 — A DISTÂNCIA DA TRILHA, EM MILHAS NÁUTICAS, GRAVADA UMA VEZ.
+   *
+   * Calculada por `resumoTrilha` (`lib/domain/geo.ts`) no momento de salvar a
+   * saída — nunca recalculada na leitura. Foi ela que permitiu `/hoje`,
+   * `/diario` e `/barco/resumos` pararem de baixar a coluna `trilha` inteira
+   * (205,6 kB por trilha cheia, medidos) para exibir um número.
+   *
+   * `null` é "esta saída não tem trilha", e é DIFERENTE de `0`, que é "tem
+   * traçado e não saiu do lugar". A tela desenha "sem GPS" no primeiro caso e
+   * "0 MN" no segundo — a mesma régua de `lib/domain/patio.ts`. Por isso o tipo
+   * é anulável e nenhum consumidor pode usar `?? 0`.
+   *
+   * Migration 092 (escrita, não aplicada — ver o cabeçalho dela).
+   */
+  distancia_nm: number | null
   criado_por: string | null
   hora_saida: string | null
   hora_retorno: string | null

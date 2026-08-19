@@ -1,11 +1,20 @@
 "use client"
 import { useId } from "react"
 
+import { arredondarCoordenada } from "@/components/ui/instrumento"
+
 /** Pontos ao longo de um círculo, 0° = topo (12h), sentido horário — mesma
- *  convenção de `selo-verified.tsx`. */
+ *  convenção de `selo-verified.tsx`, e o mesmo arredondamento pelo mesmo
+ *  motivo: são 28 traços × 2 pontos × 2 eixos = 112 floats de `Math.cos`/
+ *  `Math.sin` serializados por selo, e bastava um deles divergir no último
+ *  dígito entre o Node do servidor e o V8 do navegador pra derrubar a
+ *  hidratação da rota inteira. Ver `arredondarCoordenada`. */
 function polarDoTopo(cx: number, cy: number, r: number, deg: number): { x: number; y: number } {
   const rad = ((deg - 90) * Math.PI) / 180
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+  return {
+    x: arredondarCoordenada(cx + r * Math.cos(rad)),
+    y: arredondarCoordenada(cy + r * Math.sin(rad)),
+  }
 }
 
 /** Textura de cordame no anel — pequenos traços radiais espaçados

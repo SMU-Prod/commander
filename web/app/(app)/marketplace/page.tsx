@@ -172,6 +172,23 @@ export default async function MarketplacePage({
             <Icone nome="pessoas" className="size-4" /> Profissionais disponíveis
           </span>
         </Link>
+        {/* Achado 5.2 da auditoria de 19/08 — a ÚNICA violação real da regra
+            dos 3 toques (`CONTRIBUTING.md:187`) sem exceção escrita:
+            `/marketplace/disponibilidades/nova` estava a 4 toques nos dois
+            cenários, melhor e pior caso, porque só se chegava lá passando pela
+            lista (`/hoje > /menu > /marketplace > .../disponibilidades >
+            .../nova`). Não é área interna nem alias: é a tela em que o
+            profissional PUBLICA a própria disponibilidade, ou seja, o ato que
+            faz a vitrine de comandantes existir. Com `perfis_comandante` = 0 no
+            banco vivo, era justamente a tela que precisava ser a mais fácil de
+            achar e era a mais difícil. Esta pílula a põe em 3.
+            Fica ao lado de "Profissionais disponíveis" de propósito: quem lê a
+            lista e pensa "eu também trabalho a bordo" tem o verbo do lado. */}
+        <Link href="/marketplace/disponibilidades/nova" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="mais" className="size-4" /> Estou disponível
+          </span>
+        </Link>
         {/* §14 — a avaliação nasce do negócio fechado aqui, então a porta de
             entrada dela é esta tela, não um item solto no menu. */}
         <Link href="/avaliacoes" className={ALVO_ACAO}>

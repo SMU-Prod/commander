@@ -160,6 +160,38 @@ Sombra não é decoração. Se o elemento não flutua, não tem sombra.
   significa estado.
 - **Cinza médio** — texto secundário e linha.
 
+**No tema claro o acento é ESCURO, e isso não é outra decisão — é a mesma,
+lida do outro lado (onda 96).** A auditoria de 19/08 (achado 5.1) mediu o
+acento do tema claro em **2,10:1** sobre cartão, **1,96:1** sobre a página e
+**1,86:1** sobre a superfície de chip. O mínimo de leitura é 4,5:1 — e o tema
+claro é justamente o que existe para o sol na marina, ou seja, ele quebrava a
+única promessa que tinha.
+
+Não dava para "escurecer um pouco", porque **os dois sentidos do acento
+brigam num chão claro**: para o acento ler como TEXTO ele precisa de
+luminância relativa ≤ 0,156; para ele servir de FUNDO com texto escuro em cima
+precisa de ≥ 0,226. Os intervalos não se tocam — nenhuma cor satisfaz os dois.
+A regra que sai daí, e que vale para qualquer tema novo:
+
+> **O acento é sempre o oposto do chão, e `--acao-texto` é sempre da cor do
+> chão.** No escuro, acento claro e texto quase preto em cima. No claro,
+> acento escuro e texto branco em cima.
+
+O tom continua **dourado** no claro: o tema já pintava 110 dos seus ~140 usos
+de acento em texto com `--acao-forte` (dourado escuro), então manter a família
+é o que impede a tela de ganhar matiz novo junto com o conserto. O que mudou
+foi a escada — `--acao` desceu para o degrau que lê (5,66 / 5,27 / 4,99 nos
+três chões) e `--acao-forte` desceu mais um (7,73 / 7,20 / 6,82), porque num
+chão claro "forte" quer dizer *mais* contraste. O tema escuro não mudou.
+
+**A exceção, e ela tem casa própria: o instrumento.** O cartucho do horímetro
+e os cartões flutuantes de `/navegar` são navy fixo **nos dois temas** — um
+acento escuro ali daria 3,02:1. Eles já tinham um bloco no CSS
+(`.bg-meter, .bg-mapa-instrumento`) que reimporta as luzes vivas do escuro
+para `ok`/`warn`/`crit` exatamente por esse motivo; o acento entrou na mesma
+lista. É o que finalmente cumpre o que a onda 24 escreveu e nunca valeu para o
+acento: **sobre o mapa é sempre a MESMA cor**, não a do tema do app.
+
 **A separação de cartão e fundo passou a ser feita por BORDA, não por
 preenchimento.** Na referência o cartão (`#1a1a1a`) sobre o fundo (`#101010`)
 dá 1,105:1 — abaixo do 1,2 que `lib/ui/contraste.test.ts` exige. A borda
@@ -259,6 +291,37 @@ São **duas famílias, com papéis separados**: **Inter** para tudo que é texto
   `SecaoPagina` e o logotipo "Commander" dependem do desenho antigo, e o
   raio de ~140 usos era grande demais pra mudar sem revisar tela por tela);
   `.rotulo-dado` é a forma nova, aditiva, em `app/globals.css`.
+
+**Onda 96 — o cartão passa a ter GRAU, e é ele que faltava para existir "o
+assunto da tela".** A auditoria de 19/08 mediu os **oito** `<h2>` da Início —
+de "PRECISA DA SUA ATENÇÃO" a "ACESSO RÁPIDO" — saindo com exatamente 11px,
+peso 400 e o mesmo cinza. Os oito. A causa não era deriva de tela: era a API
+de `components/ui/cartao.tsx`, que escrevia o título com classe fixa e não
+aceitava grau. Quando o assunto mais crítico e o atalho mais descartável
+vestem a mesma roupa, **não existe o assunto** — e "informação solta", que é
+como o dono descreve a Início, é o nome exato disso.
+
+`Cartao` ganhou a prop `peso`, com dois graus e **nenhum tamanho novo**:
+
+| `peso` | título | quando |
+|---|---|---|
+| `secao` (padrão) | `.rotulo` + `text-dim` — 11px mono, caixa alta, cinza | o cartão é **uma área** da tela; o título é etiqueta. É o que todos os cartões já eram, byte a byte |
+| `assunto` | `.titulo-card` — 15px/600 na cor do texto | o cartão **é o assunto** da tela |
+
+Junto veio a prop `valor`, que rende em **`.valor-instrumento` (28px)** — a
+classe que o próprio CSS descreve como "o número que É o assunto da tela" e
+que tinha **três** usos em todo o app, todos em Financeiro, com um aviso
+escrito ao lado: classe declarada sem consumidor deve ser apagada, não deixada
+de enfeite. Este é o consumidor que faltava.
+
+Dois graus, e não três: o degrau do meio seria `.corpo` (14px), e o
+`globals.css` já registra que um pixel de diferença para `.titulo-card` "não é
+degrau de hierarquia, é ruído". A escada de verdade é **11 → 15 → 28**.
+
+**A regra que o componente não consegue cobrar: um `assunto` por tela.** Não
+há contexto de tela para checar, e é da mesma natureza da regra dos dois
+dourados — vive em revisão humana. Dois assuntos na mesma tela é zero assunto,
+e aí a Início volta a ter oito iguais, só que em 15px.
 
 ### Rastreio — um degrau só: **.16em**
 
@@ -379,6 +442,17 @@ A regra "nenhuma cor literal nova" tem cobrança própria e barata:
 reprova se o número subir — e reprova também se ele **descer** sem que o teto
 desça junto, senão a folga vira crédito pra próxima cor. É Vitest, roda no
 `npm test`, então essa deriva morre antes do commit.
+
+O contraste tem cobrança própria em `web/lib/ui/contraste.test.ts`, e vale
+registrar como ela falhou, porque é a lição mais cara desta página: até a onda
+96 o teste media **quatro pares, e só no tema escuro** — e por isso ficou
+**verde** enquanto o acento do tema claro entregava 2,10:1. Um teste que
+escolhe os pares que mede não mede contraste; mede os pares que alguém lembrou
+de escrever. Hoje a mesma tabela roda nos **dois** temas e cobre o que a tela
+usa: texto, texto fraco, texto de chip, os quatro semânticos, o dado, o
+cartucho de instrumento e o acento **nos dois sentidos** (como texto sobre os
+três chões, e o texto do botão cheio sobre ele). **Token de cor novo sem linha
+nova aqui reabre o buraco.**
 
 O que eles **não** medem — hierarquia, densidade, se o dourado virou confete —
 é revisão humana, com esta página na mão.

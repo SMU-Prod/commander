@@ -187,7 +187,12 @@ export async function contestarAvaliacao(formData: FormData) {
   }
 
   revalidar(rota)
-  ok(rota, "Contestação enviada — a equipe Commander vai analisar")
+  // Achado 3.7 da auditoria de 19/08. "Enviada" e "vai analisar" descrevem um
+  // despacho que não existe: a linha entra em `avaliacao_contestacoes` e
+  // aparece em `/admin/avaliacoes` (`lib/consultas-avaliacoes.ts:107`), e
+  // ninguém do outro lado é avisado. A fila é real e visível; o gatilho não
+  // existe. A frase nomeia a fila e diz onde o resultado aparece.
+  ok(rota, "Contestação registrada — entra na fila de análise da equipe Commander, e o resultado aparece nesta avaliação")
 }
 
 // ---------------------------------------------------------------------------

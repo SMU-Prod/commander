@@ -42,9 +42,20 @@ export function PaginaLegal({
           <Icone nome={icone} className="size-5" />
         </span>
         <h1 className="titulo-pagina mt-4 text-3xl sm:text-4xl">{titulo}</h1>
+        {/* Achado 3.8 da auditoria de 19/08. A frase prometia "avisamos por
+            e-mail e/ou dentro do app antes da mudança valer" e não existe
+            nenhuma das duas pernas: sem versionamento de política, sem banner
+            de "termos atualizados", sem rotina, sem tabela — e o canal de
+            e-mail não sai de produção (achado 3.1). É a menor das promessas
+            quebradas em impacto diário e a mais delicada em natureza, porque
+            está num documento legal e é justamente a cláusula que sustentaria
+            a validade de uma mudança futura de termos. Uma cláusula de aviso
+            que não é cumprida vale menos que nenhuma. A frase passa a
+            descrever o que o app faz de verdade: a data no topo é o
+            versionamento. */}
         <p className="corpo mt-3 text-dim">
-          Vigência: {vigencia}. Se mudarmos este texto, avisamos por e-mail e/ou dentro do
-          app antes da mudança valer — a data acima sempre mostra a versão mais recente.
+          Vigência: {vigencia}. A versão vigente é sempre a desta página, e a data acima muda junto
+          com o texto. Não há aviso automático de alteração — nem por e-mail, nem dentro do app.
         </p>
         <p className="mt-2">
           <Link href={outraPagina.href} className="corpo inline-flex min-h-11 items-center text-accent-forte">

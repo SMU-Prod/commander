@@ -47,6 +47,21 @@ export const carregarPainel = cache(async (): Promise<{
    *  NUNCA falta; o nome abaixo pode estar vazio num cadastro incompleto. */
   emailUsuario: string | null
   /**
+   * ONDA 100 — O ID DA PESSOA, PELO MESMO MOTIVO DO E-MAIL: ELE JÁ ESTÁ AQUI.
+   *
+   * `auth.getUser()` NÃO lê cookie — é uma ida à rede até o servidor de
+   * autenticação (medido: ~90 ms). Esta função já paga essa ida uma vez por
+   * requisição, e ainda assim `carregarNotificacoes`, que roda no layout de
+   * TODA tela logada, pagava outra só pra descobrir o mesmo id.
+   *
+   * É `string` e não `string | null` porque quem chega até este `return` tem
+   * vínculo — e vínculo é uma linha filtrada por `usuario_id`, ou seja, prova
+   * de que a pessoa existe. O `?? ""` abaixo é o MESMO fallback que a consulta
+   * de vínculos usa dez linhas acima: nenhuma régua nova, só o valor deixando
+   * de ser jogado fora.
+   */
+  usuarioId: string
+  /**
    * ONDA 63 — O NOME DE VERDADE, PORQUE DUAS TELAS DISCORDAVAM SOBRE ELE.
    *
    * A faixa de topo derivava as iniciais do e-mail ("e2e-3f@…" → "E3") e a
@@ -56,8 +71,19 @@ export const carregarPainel = cache(async (): Promise<{
    * pagar consulta por navegação — mas a conta estava errada nos dois
    * sentidos: `/hoje` e `/menu/ajustes` JÁ pagavam essa consulta por conta
    * própria, então trazê-la pra cá (que é `cache()` por requisição) não
-   * soma consulta nenhuma — ELIMINA a repetida, e de quebra a faixa passa a
-   * poder mostrar a foto real em vez de iniciais.
+   * soma consulta nenhuma, e de quebra a faixa passa a poder mostrar a foto
+   * real em vez de iniciais.
+   *
+   * ONDA 100 — O PARÁGRAFO ACIMA DIZIA "ELIMINA A REPETIDA", E ELA CONTINUOU
+   * SENDO FEITA POR MAIS QUATRO ONDAS. A onda 63 trouxe o perfil pra cá e não
+   * apagou o consumidor: `app/(app)/hoje/page.tsx` desestruturava o painel sem
+   * `perfil` e buscava `profiles` de novo, logo abaixo, com a mesma cláusula.
+   * Duas consultas idênticas na mesma requisição, e um comentário aqui jurando
+   * que não — que é o defeito mais caro deste projeto, porque a próxima pessoa
+   * lê a promessa em vez de medir. A frase agora descreve o que ACONTECE: a
+   * consulta mora aqui, e quem precisa do perfil lê `painel.perfil`. Se um dia
+   * outra tela voltar a consultar `profiles` do próprio usuário, é esta linha
+   * que está errada — não este comentário.
    */
   perfil: { nome: string | null; avatarPath: string | null } | null
 } | null> => {
@@ -153,6 +179,7 @@ export const carregarPainel = cache(async (): Promise<{
     permissoes,
     embarcacoes: todas ?? [],
     emailUsuario: user?.email ?? null,
+    usuarioId: user?.id ?? "",
     perfil: perfilBruto
       ? { nome: perfilBruto.nome as string | null, avatarPath: perfilBruto.avatar_path as string | null }
       : null,
@@ -566,8 +593,24 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
   const painel = await carregarPainel()
   const hoje = hojeISO()
   const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  const usuarioId = user?.id ?? ""
+
+  // ONDA 100 — ESTA FUNÇÃO RODA NO LAYOUT, OU SEJA, EM TODA TELA LOGADA.
+  //
+  // E ela abria com um `getUser()`, que não lê cookie: é uma ida à rede até o
+  // servidor de autenticação (~90 ms medidos). Somada à do middleware e à do
+  // `carregarPainel`, davam TRÊS perguntas "quem é você?" por navegação, com a
+  // mesma resposta. Agora só quem NÃO tem painel paga a pergunta — e quem não
+  // tem painel é o Partner/Captain sem barco, para quem o `carregarPainel`
+  // devolve `null` sem ter como dizer o id.
+  //
+  // `?? ""` é o mesmo fallback de antes, byte a byte: string vazia significa
+  // "sem sessão", e as consultas abaixo já sabem devolver lista vazia nesse
+  // caso (`notificacoesDoMarketplace` sai na primeira linha).
+  let usuarioId = painel?.usuarioId ?? ""
+  if (!painel) {
+    const { data: { user } } = await supabase.auth.getUser()
+    usuarioId = user?.id ?? ""
+  }
 
   // ONDA 99 — QUEM NÃO TEM BARCO TAMBÉM RECEBE AVISO, E ISSO ERA UM BURACO.
   //
@@ -596,11 +639,30 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
 
   const { embarcacao, equipamentos, itens, permissoes } = painel
 
-  const { data: ocorrenciasBrutas } = await supabase
-    .from("ocorrencias").select("id, titulo, aba, estado, gravidade, created_at")
-    .eq("embarcacao_id", embarcacao.id)
-    .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE])
-    .order("created_at", { ascending: false })
+  // ONDA 100 — AS QUATRO FONTES DE AVISO ESPERAVAM EM FILA, E NENHUMA OLHA A
+  // RESPOSTA DA OUTRA.
+  //
+  // As ocorrências eram buscadas sozinhas, e só depois as outras três saíam
+  // juntas. O grafo real de dependência aqui é RASO: as quatro precisam apenas
+  // de `embarcacao.id` e `usuarioId`, conhecidos antes da primeira linha. A
+  // fila era da ordem em que as variáveis foram escritas — o mesmo diagnóstico
+  // da onda 96 no `carregarPainel`, uma camada acima.
+  //
+  // Falha de uma NÃO derruba as outras, e isso é de propósito: o cliente
+  // Supabase resolve com `{ data: null, error }` em vez de rejeitar, então uma
+  // consulta que a RLS barre vira lista vazia daquela categoria e o resto do
+  // sino continua verdadeiro. É exatamente o que acontecia antes; o que muda é
+  // quantas vezes se espera, não o que se mostra quando dá errado.
+  const [{ data: ocorrenciasBrutas }, deAgenda, deFinanceiro, deMarketplace] = await Promise.all([
+    supabase
+      .from("ocorrencias").select("id, titulo, aba, estado, gravidade, created_at")
+      .eq("embarcacao_id", embarcacao.id)
+      .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE])
+      .order("created_at", { ascending: false }),
+    notificacoesDaAgenda(embarcacao.id, usuarioId, hoje),
+    notificacoesDoFinanceiro(embarcacao.id, hoje),
+    notificacoesDoMarketplace(usuarioId, hoje),
+  ])
 
   const deItens: Notificacao[] = itens
     .map((i) => {
@@ -645,12 +707,6 @@ export const carregarNotificacoes = cache(async (): Promise<Notificacao[]> => {
     quando: o.created_at,
     grupo: `ocorrencia:${o.aba}`,
   }))
-
-  const [deAgenda, deFinanceiro, deMarketplace] = await Promise.all([
-    notificacoesDaAgenda(embarcacao.id, usuarioId, hoje),
-    notificacoesDoFinanceiro(embarcacao.id, hoje),
-    notificacoesDoMarketplace(usuarioId, hoje),
-  ])
 
   return ordenarNotificacoes(
     filtrarPorPermissao([...deItens, ...deOcorrencias, ...deAgenda, ...deFinanceiro, ...deMarketplace], permissoes),
@@ -811,22 +867,70 @@ async function notificacoesDoMarketplace(usuarioId: string, hoje: string): Promi
   if (usuarioId === "") return []
   const supabase = await supabaseServer()
 
-  const { data: minhasDemandas } = await supabase
-    .from("demandas").select("id").eq("autor_id", usuarioId).in("status", ["aberta", "em_negociacao"])
-  const idsMinhasDemandas = ((minhasDemandas ?? []) as { id: string }[]).map((d) => d.id)
-
-  const [{ data: recebidas }, { data: todasMinhasPropostas }] = await Promise.all([
-    idsMinhasDemandas.length > 0
-      ? supabase.from("propostas").select("id, demanda_id, autor_nome, criado_em")
-          .in("demanda_id", idsMinhasDemandas).eq("status", "enviada")
-      : Promise.resolve({ data: [] }),
+  // ONDA 100 — SEIS ESPERAS EM FILA VIRARAM DUAS, E ERA A FILA MAIS FUNDA DO
+  // APP.
+  //
+  // Esta função é chamada por `carregarNotificacoes`, que roda no LAYOUT: a
+  // profundidade dela era o piso de tempo de toda tela logada, inclusive as
+  // que não têm nada a ver com Marketplace. Ela encadeava demandas → propostas
+  // → negócios → confirmações → avisos → demandas vivas, seis voltas de rede a
+  // ~150 ms cada, e só DUAS dessas dependências existem de verdade.
+  //
+  // O grafo real tem dois níveis:
+  //
+  //   1. o que só precisa de QUEM SOU EU — as minhas demandas, as minhas
+  //      propostas, os meus negócios e os avisos endereçados a mim;
+  //   2. o que precisa de uma LISTA DE IDS vinda do nível 1 — as propostas
+  //      recebidas (ids das minhas demandas), as confirmações (ids dos meus
+  //      negócios) e as demandas ainda vivas (ids dos meus avisos).
+  //
+  // `negocios` e `avisos_demanda` estavam no fim da fila esperando resultado
+  // que nunca leram: as duas filtram por `usuario_id` e nada mais. Subiram.
+  const [
+    { data: minhasDemandas },
+    { data: todasMinhasPropostas },
+    { data: negocios },
+    { data: avisosBrutos },
+  ] = await Promise.all([
+    supabase.from("demandas").select("id").eq("autor_id", usuarioId).in("status", ["aberta", "em_negociacao"]),
     // Todas as minhas respostas, não só as julgadas: as `aceita`/`recusada`
     // viram aviso logo abaixo, e a lista COMPLETA serve pra outra coisa — é
     // ela que apaga o aviso de "pedido novo" assim que eu respondo (ver
     // `notificacoesDeDemandasCompativeis`). Uma consulta a menos que buscar as
     // duas listas em separado.
     supabase.from("propostas").select("id, demanda_id, status, atualizado_em").eq("autor_id", usuarioId),
+    supabase.from("negocios").select("id, demanda_id, cliente_id, fornecedor_id, criado_em")
+      .or(`cliente_id.eq.${usuarioId},fornecedor_id.eq.${usuarioId}`),
+    // A RLS da 089 já devolve só as minhas linhas; o `eq` é a segunda trava,
+    // como no resto desta função. O teto de 50 é o mesmo espírito do teto de
+    // 100 da vitrine: quem tem 50 pedidos novos esperando resposta não vai ler
+    // o quinquagésimo primeiro, e a caixa de entrada não pode virar consulta
+    // ilimitada em toda navegação.
+    supabase.from("avisos_demanda").select("demanda_id, criado_em")
+      .eq("usuario_id", usuarioId)
+      .order("criado_em", { ascending: false })
+      .limit(50),
   ])
+
+  const idsMinhasDemandas = ((minhasDemandas ?? []) as { id: string }[]).map((d) => d.id)
+  const idsNegocios = ((negocios ?? []) as NegocioParaNotificacao[]).map((n) => n.id)
+  const demandasQueJaRespondi = new Set(
+    ((todasMinhasPropostas ?? []) as { demanda_id: string }[]).map((p) => p.demanda_id),
+  )
+  const avisados = ((avisosBrutos ?? []) as { demanda_id: string; criado_em: string }[])
+    .filter((a) => !demandasQueJaRespondi.has(a.demanda_id))
+
+  const [{ data: recebidas }, { data: confirmacoes }, deDemandasCompativeis] = await Promise.all([
+    idsMinhasDemandas.length > 0
+      ? supabase.from("propostas").select("id, demanda_id, autor_nome, criado_em")
+          .in("demanda_id", idsMinhasDemandas).eq("status", "enviada")
+      : Promise.resolve({ data: [] }),
+    idsNegocios.length > 0
+      ? supabase.from("negocios_confirmacoes").select("negocio_id, usuario_id").in("negocio_id", idsNegocios)
+      : Promise.resolve({ data: [] }),
+    notificacoesDeDemandasCompativeis(hoje, usuarioId, avisados),
+  ])
+
   const minhasPropostas = ((todasMinhasPropostas ?? []) as PropostaMinhaParaNotificacao[])
     .filter((p) => p.status === "aceita" || p.status === "recusada")
 
@@ -865,13 +969,6 @@ async function notificacoesDoMarketplace(usuarioId: string, hoje: string): Promi
   // §11.6 — "um lado marca como realizado; o outro confirma ou nega". O aviso
   // é pro lado que ainda não se manifestou; quem já respondeu não é
   // lembrado de novo (seria o spam que o §5.2 proíbe).
-  const { data: negocios } = await supabase
-    .from("negocios").select("id, demanda_id, cliente_id, fornecedor_id, criado_em")
-    .or(`cliente_id.eq.${usuarioId},fornecedor_id.eq.${usuarioId}`)
-  const idsNegocios = ((negocios ?? []) as NegocioParaNotificacao[]).map((n) => n.id)
-  const { data: confirmacoes } = idsNegocios.length > 0
-    ? await supabase.from("negocios_confirmacoes").select("negocio_id, usuario_id").in("negocio_id", idsNegocios)
-    : { data: [] }
   const jaRespondi = new Set(
     ((confirmacoes ?? []) as { negocio_id: string; usuario_id: string }[])
       .filter((c) => c.usuario_id === usuarioId)
@@ -894,13 +991,7 @@ async function notificacoesDoMarketplace(usuarioId: string, hoje: string): Promi
     })
   }
 
-  avisos.push(
-    ...(await notificacoesDeDemandasCompativeis(
-      usuarioId,
-      hoje,
-      new Set(((todasMinhasPropostas ?? []) as { demanda_id: string }[]).map((p) => p.demanda_id)),
-    )),
-  )
+  avisos.push(...deDemandasCompativeis)
 
   return avisos
 }
@@ -932,26 +1023,21 @@ async function notificacoesDoMarketplace(usuarioId: string, hoje: string): Promi
  *
  * A taxonomia só é carregada quando existe aviso — sem isto, toda navegação de
  * toda pessoa pagaria uma consulta de tradução por causa de uma lista vazia.
+ *
+ * ONDA 100 — `avisados` CHEGA PRONTO, e a leitura de `avisos_demanda` subiu
+ * pro primeiro nível de `notificacoesDoMarketplace`. Ela só precisava do
+ * `usuario_id` e estava no fim de uma fila de cinco esperas, cobrando o preço
+ * de uma dependência que não tem. A regra de negócio não mudou de lugar: quem
+ * decide o que é aviso vivo continua sendo esta função, e a guarda da
+ * taxonomia (abaixo) continua valendo — lista vazia, nenhuma consulta.
  */
 async function notificacoesDeDemandasCompativeis(
-  usuarioId: string,
   hoje: string,
-  demandasQueJaRespondi: ReadonlySet<string>,
+  usuarioId: string,
+  avisados: readonly { demanda_id: string; criado_em: string }[],
 ): Promise<Notificacao[]> {
-  const supabase = await supabaseServer()
-  const { data: brutos } = await supabase
-    .from("avisos_demanda").select("demanda_id, criado_em")
-    // A RLS da 089 já devolve só as minhas linhas; o `eq` é a segunda trava,
-    // como no resto desta função. O teto de 50 é o mesmo espírito do teto de
-    // 100 da vitrine: quem tem 50 pedidos novos esperando resposta não vai ler
-    // o quinquagésimo primeiro, e a caixa de entrada não pode virar consulta
-    // ilimitada em toda navegação.
-    .eq("usuario_id", usuarioId)
-    .order("criado_em", { ascending: false })
-    .limit(50)
-  const avisados = ((brutos ?? []) as { demanda_id: string; criado_em: string }[])
-    .filter((a) => !demandasQueJaRespondi.has(a.demanda_id))
   if (avisados.length === 0) return []
+  const supabase = await supabaseServer()
 
   const [mapa, { data: demandasBrutas }] = await Promise.all([
     carregarMapaTaxonomia(),

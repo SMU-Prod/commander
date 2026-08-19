@@ -9,6 +9,7 @@ import { abaDoEquipamento, abaDoItem } from "@/lib/domain/diario"
 import { normalizarPermissoes, podeVer, type Aba, type Permissoes } from "@/lib/domain/permissoes"
 import { boletimDoMar } from "@/lib/mar"
 import { calcularSemaforo } from "@/lib/domain/semaforo"
+import { enviarEmail, remetenteDeEmail } from "@/lib/email"
 import { emLotes } from "@/lib/lotes"
 import { checarLimite, identificarIp } from "@/lib/seguranca/limitador"
 
@@ -49,6 +50,17 @@ export async function POST(req: NextRequest) {
       { erro: "configure SUPABASE_SERVICE_ROLE_KEY e as chaves VAPID no ambiente" },
       { status: 500 },
     )
+  }
+
+  // O e-mail é canal SECUNDÁRIO aqui (o push é o primário e roda todo dia,
+  // medido em `alertas_enviados`), então a ausência das duas variáveis não
+  // derruba a rota — ela só desliga o segundo canal, como já acontecia com a
+  // chave sozinha. A diferença é que agora as DUAS são exigidas: chave sem
+  // remetente próprio manda para uma pessoa só (ver `lib/email.ts`).
+  const chaveResend = process.env.RESEND_API_KEY
+  const remetente = remetenteDeEmail()
+  if (chaveResend && !remetente) {
+    console.warn("[alertas] RESEND_API_KEY existe e RESEND_FROM não — nenhum e-mail será enviado (o remetente de sandbox só entrega a uma caixa).")
   }
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chaveServico, {
@@ -167,29 +179,28 @@ export async function POST(req: NextRequest) {
           removidas++
         }
       }
-      if (process.env.RESEND_API_KEY) {
-        // best-effort: falha de e-mail em um usuário não pode abortar o lote
-        try {
-          const { data: dadosUsuario } = await admin.auth.admin.getUserById(u)
-          const email = dadosUsuario?.user?.email
-          if (email) {
-            const resposta = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              },
-              body: JSON.stringify({
-                from: "Commander <onboarding@resend.dev>",
-                to: email,
-                subject: titulo,
-                text: `${titulo}\n\n${corpo}\n\nAbra o Commander para ver os detalhes.`,
-              }),
-            })
-            if (resposta.ok) emails++
-          }
-        } catch {
-          // segue para o próximo usuário; push é o canal primário
+      // Achado 3.1 da auditoria de 19/08. Duas correções num bloco só:
+      // (a) o `from` era `onboarding@resend.dev`, o remetente de sandbox do
+      //     Resend — só entrega para o endereço verificado da própria conta.
+      //     Ligar a chave com ele faria o aviso chegar ao dono do Commander e a
+      //     mais ninguém, com o log contando isso como sucesso. Agora exige
+      //     `RESEND_FROM` (ver `lib/email.ts`);
+      // (b) o `catch {}` mudo engolia o motivo da recusa. Push continua sendo o
+      //     canal primário e uma falha aqui segue sem abortar o lote — o que
+      //     muda é que ela deixa de ser invisível.
+      if (chaveResend && remetente) {
+        const { data: dadosUsuario } = await admin.auth.admin.getUserById(u)
+        const email = dadosUsuario?.user?.email
+        if (email) {
+          const resultado = await enviarEmail({
+            chave: chaveResend,
+            remetente,
+            para: email,
+            assunto: titulo,
+            texto: `${titulo}\n\n${corpo}\n\nAbra o Commander para ver os detalhes.`,
+          })
+          if (resultado.ok) emails++
+          else console.error(`[alertas] e-mail recusado para ${u}: ${resultado.motivo}`)
         }
       }
     })

@@ -1,11 +1,23 @@
 "use client"
 import { useId } from "react"
 
+import { arredondarCoordenada } from "@/components/ui/instrumento"
+
 /** Pontos ao longo de um círculo, 0° = topo (12h), sentido horário — mesma
- *  convenção de relógio que o resto do app usa pra ângulo (ex.: rumo). */
+ *  convenção de relógio que o resto do app usa pra ângulo (ex.: rumo).
+ *
+ *  O arredondamento NÃO é acabamento: sem ele este selo era a causa medida do
+ *  erro de hidratação em 17 das 73 rotas (`/barco`, `/barco/selos*` e todo o
+ *  `/admin`). O porquê inteiro — e por que a régua é de duas casas — está em
+ *  `arredondarCoordenada`, que é a MESMA régua que `pontoNoArco` usa nos
+ *  instrumentos desde o primeiro deles. Duas réguas de arredondamento no mesmo
+ *  app seria a deriva de sempre, só que em número. */
 function polarDoTopo(cx: number, cy: number, r: number, deg: number): { x: number; y: number } {
   const rad = ((deg - 90) * Math.PI) / 180
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+  return {
+    x: arredondarCoordenada(cx + r * Math.cos(rad)),
+    y: arredondarCoordenada(cy + r * Math.sin(rad)),
+  }
 }
 
 /** Uma folha da coroa de louros ao longo do ramo direito — o ramo esquerdo é
@@ -19,7 +31,16 @@ const FOLHAS = Array.from({ length: N_FOLHAS }, (_, i) => {
   const deg = INICIO_DEG + t * (FIM_DEG - INICIO_DEG)
   const r = 40 - t * 3
   const p = polarDoTopo(50, 50, r, deg)
-  return { x: p.x, y: p.y, rot: deg + 90 }
+  // O ÂNGULO TAMBÉM PASSA PELA RÉGUA, e ele não precisaria: `deg` sai de
+  // divisão e multiplicação, que o IEEE 754 especifica exatamente, então sai
+  // igual no servidor e no navegador — diferente de `Math.cos`/`Math.sin`.
+  // Passa mesmo assim por dois motivos. Primeiro, a invariante que o teste
+  // cobra é do HTML ("nenhum número serializado tem mais de duas casas") e
+  // vale a pena ela ser simples de verificar em vez de ter uma exceção que
+  // alguém precise lembrar. Segundo, é barato: 0,005° de giro numa folha de
+  // 12,8×4,8px é menos que um subpixel — e no dia em que este ângulo vier de
+  // um `Math.atan2`, ele já está protegido.
+  return { x: p.x, y: p.y, rot: arredondarCoordenada(deg + 90) }
 })
 
 const CAMINHO_ESCUDO = "M50 10 C 40 10 30 14 22 18 L 22 46 C 22 68 34 84 50 92 C 66 84 78 68 78 46 L 78 18 C 70 14 60 10 50 10 Z"

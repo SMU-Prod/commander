@@ -116,7 +116,22 @@ export async function importarTrilhas(
       data = dataSP(validos[0].t)
     }
 
-    const r = t.semHorario ? null : resumoTrilha(validos)
+    // ONDA 100 — A DISTÂNCIA É CALCULADA SEMPRE; O RESTO DO RESUMO, NÃO.
+    //
+    // `r` continua `null` quando o GPX não tinha horário, porque duração e
+    // velocidade máxima seriam fabricadas a partir do índice sintético que
+    // `paraPontosArmazenaveis` usa no lugar do tempo — e é por isso que a
+    // frase da `descricao` continua omitindo as duas nesse caso.
+    //
+    // A DISTÂNCIA é a exceção, e o comentário de `paraPontosArmazenaveis` já
+    // dizia isso: ela é soma de haversine entre pontos consecutivos, não
+    // depende de `t`, e continua honesta sem horário nenhum. Era exatamente
+    // esse número que `/hoje` e `/diario` recalculavam a cada abertura, para
+    // TODAS as saídas — inclusive as importadas sem horário. Gravá-lo aqui
+    // preserva o que as telas mostram; deixá-lo `null` faria a saída importada
+    // de um plotter antigo perder as milhas que ela exibe hoje.
+    const resumo = resumoTrilha(validos)
+    const r = t.semHorario ? null : resumo
     const descricao = [
       r ? `${r.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} nm em ${r.duracaoH.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h` : null,
       r ? `máx ${r.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt` : null,
@@ -129,6 +144,7 @@ export async function importarTrilhas(
       data,
       descricao,
       trilha: validos,
+      distancia_nm: resumo.distanciaNm,
       criado_por: user.id,
       hora_saida: t.semHorario ? null : horaSP(validos[0].t),
       hora_retorno: t.semHorario ? null : horaSP(validos[validos.length - 1].t),

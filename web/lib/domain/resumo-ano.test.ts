@@ -7,7 +7,7 @@ function evento(parcial: Partial<EventoParaResumoAno>): EventoParaResumoAno {
     data: "2026-03-10",
     hora_saida: null,
     hora_retorno: null,
-    trilha: null,
+    distancia_nm: null,
     ...parcial,
   }
 }
@@ -36,18 +36,34 @@ describe("resumoAno", () => {
     expect(r?.saidas).toBe(2)
   })
 
-  it("milhas só somam quando existe trilha GPS — nunca estimadas", () => {
-    const trilha = [
-      { t: 0, la: 0, lo: 0 },
-      { t: 3600, la: 0.1, lo: 0 }, // 6 nm em 1h
-    ]
+  it("milhas só somam quando existe distância gravada — nunca estimadas", () => {
     const eventos = [
-      evento({ data: "2026-01-10", trilha, hora_saida: "08:00", hora_retorno: "09:00" }),
-      evento({ data: "2026-01-11", trilha: null, hora_saida: "08:00", hora_retorno: "10:00" }),
+      evento({ data: "2026-01-10", distancia_nm: 6, hora_saida: "08:00", hora_retorno: "09:00" }),
+      evento({ data: "2026-01-11", distancia_nm: null, hora_saida: "08:00", hora_retorno: "10:00" }),
     ]
     const r = resumoAno(eventos, 2026)
     expect(r?.saidas).toBe(2)
     expect(r?.milhasNm).toBeCloseTo(6, 1)
+  })
+
+  it("saída SEM trilha não vira zero na média: ela não entra na soma", () => {
+    // As duas saídas contam como saída; só uma tem distância. O total é o da
+    // que tem — a outra não empurra a soma pra baixo nem pra cima.
+    const eventos = [
+      evento({ data: "2026-01-10", distancia_nm: 12.4 }),
+      evento({ data: "2026-01-11" }),
+    ]
+    const r = resumoAno(eventos, 2026)
+    expect(r?.saidas).toBe(2)
+    expect(r?.milhasNm).toBeCloseTo(12.4, 5)
+  })
+
+  it("distância gravada como zero É um número: trilha que não saiu do lugar soma zero", () => {
+    // Diferente de `null`: aqui existe traçado, ele só não andou. A conta é a
+    // mesma de antes (a soma não muda), mas o significado é outro — e é o que
+    // permite a tela distinguir "sem GPS" de "0 MN".
+    const r = resumoAno([evento({ data: "2026-01-10", distancia_nm: 0 })], 2026)
+    expect(r?.milhasNm).toBe(0)
   })
 
   it("horas no mar somam a duração (saída→retorno) de cada saída do ano", () => {
@@ -59,13 +75,5 @@ describe("resumoAno", () => {
     const r = resumoAno(eventos, 2026)
     expect(r?.saidas).toBe(3)
     expect(r?.horasNoMar).toBeCloseTo(4.5, 5)
-  })
-
-  it("trilha de 1 ponto (ou menos) não conta como trilha válida", () => {
-    const eventos = [
-      evento({ data: "2026-01-10", trilha: [{ t: 0, la: 0, lo: 0 }], hora_saida: "08:00", hora_retorno: "09:00" }),
-    ]
-    const r = resumoAno(eventos, 2026)
-    expect(r?.milhasNm).toBe(0)
   })
 })

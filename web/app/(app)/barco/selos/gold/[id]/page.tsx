@@ -120,10 +120,16 @@ export default async function DetalheSolicitacaoGoldPage({
           ) : (
             <form action={iniciarPagamentoGold} className="mt-3 space-y-3">
               <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
+              {/* Achado 3.7 da auditoria de 19/08 — mesma correção de
+                  `lib/acoes/gold.ts`: a fila existe (`/admin/gold`), o gatilho
+                  que avisa quem administra não. A frase para de prometer
+                  contato e passa a dizer onde o pedido fica e onde o dono vê o
+                  andamento. */}
               {!chaveComAsaas && (
                 <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
-                  A contratação online ainda está sendo preparada — ao confirmar, registramos seu
-                  interesse e a equipe Commander entra em contato para o pagamento.
+                  A contratação online ainda está sendo preparada — ao confirmar, seu interesse fica
+                  registrado na fila que a equipe Commander acompanha. Nada é cobrado agora, e o
+                  andamento aparece nesta tela.
                 </p>
               )}
               <Campo

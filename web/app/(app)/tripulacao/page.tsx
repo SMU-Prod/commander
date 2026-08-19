@@ -5,6 +5,7 @@ import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib
 import { mensagemBloqueio, vagasTripulacao } from "@/lib/domain/plano-acesso"
 import { horasNoMarCurto, usoPorTripulante, type SaidaParaTripulante } from "@/lib/domain/tripulacao"
 import { supabaseServer } from "@/lib/supabase/server"
+import { urlPublica } from "@/lib/url-publica"
 import { Avatar } from "@/components/avatar"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
@@ -159,7 +160,14 @@ export default async function TripulacaoPage({
   const [nivel, uso] = await Promise.all([carregarNivelPlano(), carregarUsoTripulacao()])
   const vagas = vagasTripulacao(nivel, uso.vinculos, uso.convites)
 
-  const linkConvite = (codigo: string) => `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"}/convite/${codigo}`
+  // Achado 1.3 da auditoria de 19/08: aqui estava
+  // `process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010"`. Sem a
+  // variável no ambiente, o convite de comandante saía com o endereço da
+  // máquina de quem programou — em caixa, fonte de instrumento e com um botão
+  // de WhatsApp ao lado já empacotando a mensagem. Ver `lib/url-publica.ts`
+  // para por que a resposta é derivar do pedido em vez de explodir.
+  const base = await urlPublica()
+  const linkConvite = (codigo: string) => `${base}/convite/${codigo}`
 
   const listaVinculos = (vinculos ?? []) as Vinculo[]
   const listaConvites = (convites ?? []) as Convite[]

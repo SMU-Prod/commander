@@ -4,6 +4,7 @@ import type { Embarcacao, Equipamento, Evento, ItemMonitorado } from "@/lib/db/t
 import { hojeISO } from "@/lib/domain/datas"
 import { formatarReais } from "@/lib/domain/gastos"
 import { mesAnteriorISO, mesSeguinte, resumoDoMes, type ResumoMes } from "@/lib/domain/relatorio"
+import { enviarEmail, remetenteDeEmail } from "@/lib/email"
 import { emLotes } from "@/lib/lotes"
 
 export const maxDuration = 60
@@ -54,6 +55,18 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     )
   }
+  // Achado 3.1 da auditoria de 19/08: o `from` era `onboarding@resend.dev`,
+  // o remetente de sandbox do Resend, que só entrega para o endereço
+  // verificado da própria conta. A chave sozinha não basta — sem remetente
+  // próprio o relatório sairia para uma caixa de entrada e o log contaria isso
+  // como sucesso. Mesma recusa alta que a chave já tinha, pelo mesmo motivo.
+  const remetente = remetenteDeEmail()
+  if (!remetente) {
+    return NextResponse.json(
+      { erro: "configure RESEND_FROM com um endereço de domínio verificado — relatório enviado de remetente de sandbox só chega a uma pessoa" },
+      { status: 500 },
+    )
+  }
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chaveServico, {
     auth: { persistSession: false },
@@ -86,6 +99,12 @@ export async function POST(req: NextRequest) {
   let enviadas = 0
   let puladas = 0
   let falhas = 0
+  // Contador SEPARADO de `falhas` de propósito: `falhas` conta embarcação cujo
+  // resumo não fechou (defeito de cálculo, e o dono não recebe nada); esta
+  // conta e-mail recusado pelo Resend (defeito de entrega, e o resumo estava
+  // certo). Somar os dois num número só é exatamente o tipo de log que não
+  // responde "por que ninguém recebeu" — que é o achado 3.1.
+  let recusados = 0
 
   // 1º passo (síncrono, sem I/O): decide quem recebe e-mail e monta o corpo.
   // Fica separado do envio pra podermos paralelizar só a parte que tem
@@ -130,32 +149,34 @@ export async function POST(req: NextRequest) {
   // lenta do lote, não a soma de todas — poucos segundos pra essa mesma conta.
   const TAMANHO_LOTE = 10
   await emLotes(envios, TAMANHO_LOTE, async (envio) => {
-    try {
-      const { data: dadosUsuario } = await admin.auth.admin.getUserById(envio.usuarioId)
-      const email = dadosUsuario?.user?.email
-      if (!email) return
-      const resposta = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${resendKey}`,
-        },
-        body: JSON.stringify({
-          from: "Commander <onboarding@resend.dev>",
-          to: email,
-          subject: envio.assunto,
-          text: envio.corpo,
-        }),
-      })
-      if (resposta.ok) enviadas++
-    } catch {
-      // um PROP falhar nao pode travar os demais do lote
+    const { data: dadosUsuario } = await admin.auth.admin.getUserById(envio.usuarioId)
+    const email = dadosUsuario?.user?.email
+    if (!email) return
+    const resultado = await enviarEmail({
+      chave: resendKey,
+      remetente,
+      para: email,
+      assunto: envio.assunto,
+      texto: envio.corpo,
+    })
+    if (resultado.ok) {
+      enviadas++
+      return
     }
+    // Achado 3.1, segunda parte: aqui era `if (resposta.ok) enviadas++` e um
+    // `catch {}` mudo, e o log final reportava `enviadas: 0` sem dizer por
+    // quê — ninguém era avisado de que ninguém foi avisado. O motivo do Resend
+    // (domínio não verificado, destinatário fora do sandbox, chave inválida)
+    // é a informação que resolve o problema em uma linha, e ela estava sendo
+    // jogada fora. `enviarEmail` não lança, então um PROP falhar continua não
+    // travando os demais do lote.
+    recusados++
+    console.error(`[relatorio-mensal] e-mail recusado para ${envio.usuarioId}: ${resultado.motivo}`)
   })
 
   console.log(
-    `[relatorio-mensal] ${mesISO} · ${embarcacoesProcessadas} embarcações · ${enviadas} e-mails · ${puladas} puladas · ${falhas} falhas`,
+    `[relatorio-mensal] ${mesISO} · ${embarcacoesProcessadas} embarcações · ${enviadas} e-mails · ${puladas} puladas · ${falhas} falhas · ${recusados} recusados pelo provedor`,
   )
 
-  return NextResponse.json({ embarcacoes: embarcacoesProcessadas, enviadas, puladas, falhas })
+  return NextResponse.json({ embarcacoes: embarcacoesProcessadas, enviadas, puladas, falhas, recusados })
 }

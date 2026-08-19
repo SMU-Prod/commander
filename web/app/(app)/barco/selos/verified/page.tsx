@@ -104,10 +104,30 @@ export default async function VerifiedPage() {
             {DIAS_REGULARIZACAO_VERIFIED} dias só existe pra quem já conquistou e deixou algo cair.
           </p>
         )}
+        {/* Achado 1.4 da auditoria de 19/08. A frase era "você RECEBE O AVISO e
+            tem 15 dias pra regularizar" — e nenhum dos quatro canais do app
+            emite esse aviso: o cron (`app/api/alertas/disparar/route.ts`) não
+            conhece `verified_estado`, `CATEGORIAS_NOTIFICACAO` não tem
+            categoria de selo, o e-mail não existe em produção, e sobra a
+            própria tela. Enquanto isso o relógio dos 15 dias corre: o estado é
+            recalculado NA LEITURA (`carregarVerified`, `lib/consultas.ts:196`),
+            grava `pendencia_desde` e devolve `suspenso` passado o prazo.
+            O dono lia "recebo o aviso", parava de conferir — que é exatamente
+            o que a frase pedia que ele fizesse — e perdia o selo em silêncio.
+            FRASE CORRIGIDA em vez de gatilho construído, e o motivo está
+            medido: o gatilho barato seria a Central, mas ela é montada por
+            `carregarNotificacoes`, que roda no sino de TODA navegação;
+            `carregarVerified` custa duas consultas e uma escrita. Pagar isso
+            em cada página pra avisar de um selo que hoje ninguém tem
+            (`verified_estado` = 0 linhas no banco vivo) é o tipo de troca que
+            este app já pagou caro. O aviso de verdade — push, com dedupe
+            própria no cron — é meia onda e está no relatório. */}
         {selo.situacao === "ativo" && (
           <p className="corpo mt-2">
-            Os cinco pilares estão de pé. Se algum deixar de ser atendido, você recebe o aviso e tem{" "}
-            {DIAS_REGULARIZACAO_VERIFIED} dias pra regularizar antes de qualquer suspensão.
+            Os cinco pilares estão de pé. Se algum deixar de ser atendido, começa a contar um prazo
+            de {DIAS_REGULARIZACAO_VERIFIED} dias pra regularizar antes de qualquer suspensão — e
+            quem mostra isso é esta tela. O Commander ainda não avisa do selo no celular nem por
+            e-mail, então confira aqui de vez em quando.
           </p>
         )}
 

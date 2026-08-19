@@ -83,6 +83,26 @@ export async function salvarTrilha(
     data: hojeISO(),
     descricao,
     trilha: validos,
+    // ONDA 100 — O NÚMERO PARA DE SER JOGADO FORA.
+    //
+    // `resumoTrilha` já era chamado aqui (linha acima) e o resultado só virava
+    // a frase de `descricao`, que é texto para gente ler. A distância voltava a
+    // ser recalculada em toda abertura de `/hoje` e `/diario`, e para isso as
+    // duas telas baixavam a coluna `trilha` INTEIRA de todas as saídas — 227 kB
+    // por saída, 32 MB por abertura no barco que sai três vezes por semana.
+    //
+    // Gravar aqui é gravar na única hora em que a trilha existe na memória de
+    // quem tem o dono do cálculo em mãos. Não há caminho de UPDATE em
+    // `eventos.trilha` no app inteiro (conferido), então este número não tem
+    // como divergir do traçado depois.
+    //
+    // `duracao_h` NÃO entra junto, e é decisão, não esquecimento: as telas de
+    // lista leem tempo no mar de `hora_saida`/`hora_retorno`, que já são
+    // colunas e já são derivadas destes mesmos pontos logo abaixo. Uma coluna
+    // de duração nasceria sem nenhum leitor — exatamente o que `tem_trilha`
+    // foi por sete ondas, e o que a migration 084 derrubou como prateleira
+    // vazia.
+    distancia_nm: r.distanciaNm,
     criado_por: user.id,
     hora_saida: horaSaida,
     hora_retorno: horaRetorno,
