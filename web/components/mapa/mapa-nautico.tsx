@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useRef, useState } from "react"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { IControl, Map as MapaMapbox } from "mapbox-gl"
@@ -338,7 +338,6 @@ export function MapaNautico({
       // viraria buraco branco mudo sem isto.
       let mapa: MapaMapbox
       try {
-        // eslint-disable-next-line prefer-const
         mapa = new mapboxgl.Map({
         container: containerRef.current,
         style: ESTILO_URL[estiloInicial],
@@ -586,7 +585,6 @@ export function MapaNautico({
     // (visibilidade) e de baixo (estilo). Colocar `camadas` nas deps
     // recriaria o mapa inteiro a cada toggle. `tentativaMapa` e o unico
     // gatilho legitimo de recriacao: o botao "Tentar de novo" da falha.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tentativaMapa])
 
   // Troca de estilo do mapa (Náutico/Satélite/Relevo 3D) depois que o mapa já

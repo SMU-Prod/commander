@@ -134,7 +134,13 @@ Assets, Componentes, Hotspots. Mais as métricas do §29.
 
 O PRD já vem faseado em P0/P1/P2 (§24) e as ondas seguem essa fase.
 
-### Onda 69 — Conta empresarial, perfis e aprovação (P0, §3, §22)
+### Onda 69 — Conta empresarial, perfis e aprovação (P0, §3, §22) — **ENTREGUE 18/08/2026**
+
+Migration 059. `lib/domain/enterprise.ts` com 26 testes. Cinco papéis como
+presets da matriz que já existe, régua de aprovação por vínculo, trilha de
+auditoria append-only, e as cinco faixas de preço Enterprise no catálogo
+(travadas para venda).
+
 
 A onda que destrava todas as outras. Três coisas:
 
