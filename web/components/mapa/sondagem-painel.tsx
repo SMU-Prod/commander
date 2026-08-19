@@ -223,7 +223,7 @@ export function SondagemPainel({
   // (`.rotulo-dado`, ver app/globals.css), não mais uppercase rastreado: é
   // a mesma troca que o resto da tela fez, ver navegar-mapa.tsx.
   const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
-  const etiqueta = "rotulo-dado text-meter-dim"
+  const etiqueta = "rotulo-dado !text-meter-dim"
 
   return (
     <div>

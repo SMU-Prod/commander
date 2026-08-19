@@ -317,7 +317,7 @@ function Mostrador({
   if (variante === "cartao") {
     return (
       <div className="rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums">
-        <p className="rotulo-dado text-meter-dim">{rotulo}</p>
+        <p className="rotulo-dado !text-meter-dim">{rotulo}</p>
         <p className="text-2xl text-accent">
           {valor} {unidade && <span className="text-sm text-meter-dim">{unidade}</span>}
         </p>
@@ -326,7 +326,7 @@ function Mostrador({
   }
   return (
     <div className="text-center">
-      <p className="rotulo-dado text-meter-dim">{rotulo}</p>
+      <p className="rotulo-dado !text-meter-dim">{rotulo}</p>
       <p className={`font-mono-instr tabular-nums text-accent ${tamanho === "lg" ? "text-lg" : "text-sm"}`}>
         {valor}
         {unidade && <span className="text-xs text-meter-dim"> {unidade}</span>}
@@ -1576,7 +1576,7 @@ export function NavegarMapa({
                     improvisado com tracking): `titulo-card` sozinho já é
                     caixa de frase, a mesma troca que os mostradores abaixo
                     fizeram pra `.rotulo-dado`. */}
-                <span className="titulo-card truncate">
+                <span className="titulo-card truncate !text-meter-texto">
                   {estado === "gravando"
                     ? "Gravando trilha"
                     : estado === "parado"
@@ -1741,7 +1741,7 @@ export function NavegarMapa({
                 {estado !== "pronto" && (
                   <>
                     <div className="mt-3">
-                      <label htmlFor="obs" className="mb-1.5 block rotulo-dado text-meter-dim">
+                      <label htmlFor="obs" className="mb-1.5 block rotulo-dado !text-meter-dim">
                         Observação — opcional
                       </label>
                       <input
@@ -1846,7 +1846,14 @@ export function NavegarMapa({
                   já garante o verde vivo sobre navy). Cosmético apenas:
                   mesmos dados, nenhum efeito ou lógica de mapa tocada. */}
               <div className="flex items-center gap-2">
-                <span className="titulo-card flex min-w-0 flex-1 items-center gap-1.5">
+                {/* !text-meter-texto (onda 80, achado tardio): `.titulo-card`
+                    ganhou `color: var(--texto)` fixo no mesmo commit que
+                    trouxe a Inter (ver app/globals.css) — sem o override,
+                    este texto fica invisível no tema claro (navy sobre
+                    navy, a mesma cor de --mapa-instrumento). O `!` força a
+                    cor certa deste cartão (fixa, não segue o tema) a vencer
+                    a cor que a classe agora embute. */}
+                <span className="titulo-card flex min-w-0 flex-1 items-center gap-1.5 !text-meter-texto">
                   <Icone nome="embarcacao" className="size-3.5 shrink-0 text-accent" />
                   <span className="truncate">{destino.nome}</span>
                 </span>

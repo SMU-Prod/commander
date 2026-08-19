@@ -204,7 +204,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
   // Onda 80 — rótulo em CAIXA DE FRASE (`.rotulo-dado`, ver app/globals.css),
   // não mais uppercase rastreado: mesma troca que o resto da tela fez (ver
   // navegar-mapa.tsx, comentário do Mostrador).
-  const etiqueta = "rotulo-dado text-meter-dim"
+  const etiqueta = "rotulo-dado !text-meter-dim"
 
   return (
     <div>
