@@ -28,7 +28,7 @@ import { lerEmbarcacaoAtiva } from "@/lib/embarcacao-ativa"
 import { ROTULO_FREQUENCIA, vencimentosNoIntervalo } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
 import type {
-  Assinatura, Embarcacao, Equipamento, ItemMonitorado, RecorrenciaFinanceira,
+  Assinatura, Embarcacao, Equipamento, ItemMonitorado, PapelDb, RecorrenciaFinanceira,
   VerifiedEstado, Viagem,
 } from "@/lib/db/types"
 import { diasAteData, hojeISO } from "@/lib/domain/datas"
@@ -37,7 +37,8 @@ export const carregarPainel = cache(async (): Promise<{
   embarcacao: Embarcacao
   equipamentos: Equipamento[]
   itens: ItemMonitorado[]
-  papel: "PROP" | "CMDT"
+  /** Onda 69 — os cinco papéis Enterprise entraram ao lado de PROP/CMDT. */
+  papel: PapelDb
   permissoes: Permissoes | null
   embarcacoes: { id: string; nome: string }[]
   /** E-mail da conta logada — vem DE GRAÇA do `getUser()` que esta função
