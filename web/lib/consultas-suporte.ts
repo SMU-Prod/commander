@@ -1,8 +1,9 @@
-import { cache } from "react"
+﻿import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import type {
   Assinatura,
   Embarcacao,
+  PapelDb,
   Perfil,
   PremiumConcessao,
   Vinculo,
@@ -76,7 +77,7 @@ export async function buscarUsuarios(termo: string, limite = 30): Promise<Usuari
 export interface EmbarcacaoDoUsuario {
   id: string
   nome: string
-  papel: "PROP" | "CMDT"
+  papel: PapelDb
 }
 
 export interface FichaUsuario {
@@ -129,7 +130,7 @@ export const carregarFichaUsuario = cache(async (usuarioId: string): Promise<Fic
 export interface AcessoDaEmbarcacao {
   usuarioId: string
   nome: string
-  papel: "PROP" | "CMDT"
+  papel: PapelDb
   desde: string
 }
 

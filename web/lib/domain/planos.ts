@@ -48,7 +48,14 @@ export type PlanoId =
   | "partner_posto"
   | "partner_restaurante"
   | "partner_pousada"
-  | "commander_enterprise"
+  // As cinco faixas do §2 do PRD Upgrade 3 (onda 69). Substituem o
+  // `commander_enterprise` único que existia como reserva — ver o bloco
+  // ENTERPRISE em `PLANOS` pra saber por que cinco e não um.
+  | "commander_enterprise_5"
+  | "commander_enterprise_10"
+  | "commander_enterprise_20"
+  | "commander_enterprise_30"
+  | "commander_enterprise_40"
 
 /** `em_breve` = aparece no catálogo como reservado, sem botão de assinar.
  *  Hoje só o Enterprise (§2: "Exibir apenas como reservado/Em breve.
@@ -251,24 +258,79 @@ export const PLANOS: Record<PlanoId, Plano> = {
     limiteDiarios: null,
     gratuitoInicialmente: true,
   },
-  commander_enterprise: {
-    id: "commander_enterprise",
-    rotulo: "Commander Enterprise",
+  // -------------------------------------------------------------------------
+  // ENTERPRISE (onda 69 — PRD-UPGRADE-3-COTAS §2)
+  // -------------------------------------------------------------------------
+  // Até a onda 68 havia UM `commander_enterprise` com preço `null` e o
+  // comentário "Definição no Upgrade 3". A definição chegou: o §2 traz cinco
+  // faixas por número de unidades, e é por isso que um plano só não servia —
+  // o que muda entre elas é capacidade, não recurso.
+  //
+  // `disponibilidade: "em_breve"` CONTINUA nas cinco, de propósito. O §2 diz
+  // que são "faixas comerciais preliminares" e que "o preço final pode ser
+  // revisado após medir infraestrutura e suporte em clientes-piloto" — então
+  // o número entra no catálogo (a tela precisa dele pra conversar com o
+  // cliente) mas o plano não vira vendável até o dono destravar. `ehCobravel`
+  // já barra "em_breve", então nenhuma assinatura Enterprise é criada por
+  // acidente enquanto isso.
+  //
+  // `limiteAcessosPorEmbarcacao` é `null` nas cinco: no Enterprise quem
+  // limita acesso não é a embarcação, é a conta (viewers/cotistas por
+  // licença, §2) e a régua de vagas por unidade do §13 — reaproveitar o teto
+  // de tripulação aqui misturaria duas contagens diferentes.
+  commander_enterprise_5: enterprise("commander_enterprise_5", 5, 50, 19990),
+  commander_enterprise_10: enterprise("commander_enterprise_10", 10, 100, 29990),
+  commander_enterprise_20: enterprise("commander_enterprise_20", 20, 200, 54990),
+  commander_enterprise_30: enterprise("commander_enterprise_30", 30, 300, 79990),
+  commander_enterprise_40: enterprise("commander_enterprise_40", 40, 400, 99990),
+}
+
+/** Uma faixa Enterprise. Existe pra as cinco linhas acima não serem cinco
+ *  cópias do mesmo objeto — e pra "unidades" e "viewers" saírem do mesmo
+ *  lugar em que o §2 os escreveu. */
+function enterprise(
+  id: PlanoId,
+  unidades: number,
+  viewers: number,
+  valorCentavos: number,
+): Plano {
+  return {
+    id,
+    rotulo: `Commander Enterprise ${unidades}`,
     perfil: "proprietario",
-    // `null` de propósito: §2 diz "A definir" e §26 joga a definição
-    // funcional/comercial pro Upgrade 3. Inventar um número aqui seria
-    // prometer um produto que ainda não existe.
-    valorCentavos: null,
-    ciclo: null,
-    descricao: "Commander Enterprise — em definição",
-    regra: "Reservado. Definição no Upgrade 3.",
+    valorCentavos,
+    ciclo: "MONTHLY",
+    descricao: `Commander Enterprise — até ${unidades} unidades`,
+    regra: `Até ${unidades} unidades; até ${viewers} cotistas incluídos na licença.`,
     disponibilidade: "em_breve",
-    limiteEmbarcacoes: null,
+    limiteEmbarcacoes: unidades,
     limiteAcessosPorEmbarcacao: null,
     limiteDiarios: null,
     gratuitoInicialmente: false,
-  },
+  }
 }
+
+/** Quantos cotistas viewers a licença inclui (§2: "Cotistas viewers são
+ *  incluídos na licença da empresa; não são cobrados individualmente para o
+ *  acesso básico"). `null` = o plano não é Enterprise. */
+export function viewersIncluidos(id: PlanoId): number | null {
+  const limite = PLANOS[id].limiteEmbarcacoes
+  return ehPlanoEnterprise(id) && limite != null ? limite * 10 : null
+}
+
+export function ehPlanoEnterprise(id: PlanoId): boolean {
+  return id.startsWith("commander_enterprise")
+}
+
+/** §2, última linha da tabela: acima de 40 unidades é "personalizado / sob
+ *  consulta". A tela precisa dizer isso em vez de simplesmente não ter opção
+ *  — empresa com 60 Jets não pode achar que o Commander não serve pra ela. */
+export const ENTERPRISE_SOB_CONSULTA_ACIMA_DE = 40
+
+/** §14 — o plano pessoal do cotista, que NÃO substitui o acesso básico dado
+ *  pela administradora. O valor mora aqui junto com os outros preços; o
+ *  produto em si é a onda 75. */
+export const COTISTA_INDIVIDUAL_CENTAVOS = 2490
 
 /** Planos que geram assinatura no gateway — os únicos que a action `assinar`
  *  aceita e os únicos que a constraint de `assinaturas.plano` deixa entrar

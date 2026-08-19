@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import {
   economiaDaPromocao,
   ehCobravel,
+  ehPlanoEnterprise,
   escolherPromocao,
+  viewersIncluidos,
   formatarPreco,
   freeEquivalente,
   PLANOS,
@@ -43,12 +45,40 @@ describe("catalogo do PRD FINAL §2/§28", () => {
     expect(precoEmTexto("partner_marina")).toBe("Grátis")
   })
 
-  it("Enterprise nao tem preco e so aparece como 'em breve' (§2, §26)", () => {
-    expect(PLANOS.commander_enterprise.valorCentavos).toBeNull()
-    expect(PLANOS.commander_enterprise.disponibilidade).toBe("em_breve")
-    expect(precoEmTexto("commander_enterprise")).toBe("A definir")
-    expect(ehCobravel("commander_enterprise")).toBe(false)
-    expect(PLANOS_COBRAVEIS).not.toContain("commander_enterprise")
+  // Onda 69 — o Enterprise deixou de ser um plano reservado sem preço e virou
+  // as cinco faixas do §2 do PRD Upgrade 3. O que NÃO mudou: continua
+  // "em breve", porque o §2 chama os valores de "faixas comerciais
+  // preliminares, revisáveis após medir infraestrutura e suporte em
+  // clientes-piloto". Preço no catálogo pra tela conversar com o cliente;
+  // venda travada até o dono destravar.
+  it("as cinco faixas Enterprise têm preço, mas nenhuma é vendável ainda (§2)", () => {
+    const faixas = [
+      ["commander_enterprise_5", 5, 19990],
+      ["commander_enterprise_10", 10, 29990],
+      ["commander_enterprise_20", 20, 54990],
+      ["commander_enterprise_30", 30, 79990],
+      ["commander_enterprise_40", 40, 99990],
+    ] as const
+    for (const [id, unidades, centavos] of faixas) {
+      expect(PLANOS[id].valorCentavos, id).toBe(centavos)
+      expect(PLANOS[id].limiteEmbarcacoes, id).toBe(unidades)
+      expect(PLANOS[id].disponibilidade, id).toBe("em_breve")
+      expect(ehCobravel(id), id).toBe(false)
+      expect(PLANOS_COBRAVEIS, id).not.toContain(id)
+      expect(ehPlanoEnterprise(id), id).toBe(true)
+    }
+  })
+
+  it("viewers incluídos saem da capacidade, e só o Enterprise tem (§2)", () => {
+    expect(viewersIncluidos("commander_enterprise_5")).toBe(50)
+    expect(viewersIncluidos("commander_enterprise_40")).toBe(400)
+    expect(viewersIncluidos("commander_pro")).toBeNull()
+  })
+
+  it("o upgrade nunca leva ninguém pro Enterprise sozinho", () => {
+    // §2 manda exibir Enterprise como reservado, não vender. `proximoUpgrade`
+    // é o que a tela usa pra oferecer o próximo degrau.
+    expect(proximoUpgrade("commander_pro")).toBeNull()
   })
 
   it("capacidade: 1 embarcacao no Commander, 4 no Pro, 2 acessos nos dois (§28)", () => {
@@ -83,7 +113,15 @@ describe("catalogo do PRD FINAL §2/§28", () => {
 
   it("planosDoPerfil lista o gratuito antes do pago e o 'em breve' por ultimo", () => {
     const proprietario = planosDoPerfil("proprietario").map((p) => p.id)
-    expect(proprietario).toEqual(["proprietario_free", "commander", "commander_pro", "commander_enterprise"])
+    // Os vendáveis primeiro, em ordem de preço; as cinco faixas Enterprise
+    // ("em breve") depois, também em ordem de preço. A regra que este teste
+    // guarda não é a lista literal — é que nenhum "em breve" se infiltre no
+    // meio dos vendáveis, porque a tela de planos lista nesta ordem.
+    expect(proprietario.slice(0, 3)).toEqual(["proprietario_free", "commander", "commander_pro"])
+    expect(proprietario.slice(3)).toEqual([
+      "commander_enterprise_5", "commander_enterprise_10", "commander_enterprise_20",
+      "commander_enterprise_30", "commander_enterprise_40",
+    ])
   })
 })
 

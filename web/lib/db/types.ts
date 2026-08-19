@@ -430,11 +430,46 @@ export interface Vinculo {
   id: string
   usuario_id: string
   embarcacao_id: string
-  papel: "PROP" | "CMDT"
+  /** Onda 69 — os cinco papéis Enterprise entraram ao lado de PROP/CMDT
+   *  (migration 059). O vocabulário e os presets de permissão de cada um
+   *  vivem em `lib/domain/enterprise.ts`. */
+  papel: PapelDb
   nivel: string
   permissoes: Record<string, { ver?: boolean; editar?: boolean }> | null
+  /** §3 do PRD Upgrade 3 — a régua de confiança, POR VÍNCULO e não por
+   *  perfil: dois membros de Operações na mesma empresa podem ter réguas
+   *  diferentes ("funcionário novo exige conferência 1 a 1"). */
+  modo_aprovacao: ModoAprovacaoDb
   created_at: string
 }
+
+export type PapelDb =
+  | "PROP" | "CMDT"
+  | "ADM_GERAL" | "ADM" | "OPERACOES" | "MECANICA" | "COTISTA"
+
+export type ModoAprovacaoDb = "sem_aprovacao" | "somente_criticos" | "tudo"
+
+/** §22 — a trilha de auditoria (migration 059). Append-only por construção:
+ *  a tabela não tem policy de update nem de delete. */
+export interface Auditoria {
+  id: string
+  embarcacao_id: string
+  /** `null` quando a pessoa saiu da plataforma — some o nome, não o fato. */
+  autor_id: string | null
+  evento: EventoAuditadoDb
+  entidade: string
+  entidade_id: string | null
+  alvo: string | null
+  antes: Record<string, unknown> | null
+  depois: Record<string, unknown> | null
+  motivo: string | null
+  criado_em: string
+}
+
+export type EventoAuditadoDb =
+  | "criou" | "alterou" | "excluiu" | "aprovou" | "recusou"
+  | "publicou_para_cotistas" | "bloqueou_cotista" | "desbloqueou_cotista"
+  | "ajustou_com_divergencia"
 
 export interface Convite {
   id: string
