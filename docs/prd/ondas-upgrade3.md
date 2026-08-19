@@ -184,7 +184,7 @@ estado que o ADM marca.
 Relatório oficial do §16: gerado **uma vez** pelo ADM e consultado por todos
 os cotistas — não é cada viewer gerando o seu.
 
-### Onda 72 — Mecânica, orçamentos e votação (P1, §7, §9)
+### Onda 72 — Mecânica, orçamentos e votação (P1, §7, §9) — **ENTREGUE 18/08/2026 (domínio + banco, sem tela)**
 
 Módulo de mecânica sem virar ERP de oficina (o §7 avisa). Orçamentos com
 fornecedor, peças, valor, validade e anexo. Votação do §9: aprovar / não
@@ -193,7 +193,7 @@ aprovar, sem comentário no voto, com auditoria de quem votou e quando.
 Trava do §9 que precisa estar visível no produto: o Commander **não executa
 pagamento** e **não determina juridicamente o quórum** da empresa.
 
-### Onda 73 — Estoque e Combustível (P1, §10, §11)
+### Onda 73 — Estoque e Combustível (P1, §10, §11) — **ENTREGUE 18/08/2026 (domínio + banco, sem tela)**
 
 Estoque com mínimo, múltiplas bases, movimentação com autor, e baixa
 automática quando a peça é usada numa manutenção.
@@ -202,7 +202,7 @@ Tanque próprio com entrada, saída com destino obrigatório, e o balanço do
 §11: saldo inicial + entradas − saídas = teórico, comparado com a medição
 física, e divergência exigindo justificativa com autor e data/hora.
 
-### Onda 74 — Financeiro Enterprise (P1, §12)
+### Onda 74 — Financeiro Enterprise (P1, §12) — **ENTREGUE 18/08/2026 (domínio + banco, sem tela)**
 
 Escopo fechado por decisão do PRD: **só operação**. Nada de cobrança de
 cotista, venda de cota, receita comercial ou contabilidade societária.
@@ -211,7 +211,7 @@ O que entra sozinho: combustível, mecânica confirmada, estoque consumido,
 avaria, documentação. Com a regra anti-duplicidade do §12 — ao registrar o
 serviço, perguntar se as peças já estão no valor.
 
-### Onda 75 — Plano individual do cotista (P1, §14, §15)
+### Onda 75 — Plano individual do cotista (P1, §14, §15) — **ENTREGUE 18/08/2026 (domínio + banco, sem tela)**
 
 R$ 24,90/mês. Meu Uso, fotos de recebimento/entrega, histórico com
 procedência, diário pessoal, relatórios pessoais, envio estruturado ao ADM.
@@ -232,7 +232,7 @@ metadados e referência, não o arquivo pesado. O §18 chama isso de "requisito
 fundamental" e manda constar como requisito do Upgrade 3, não como ideia
 futura. Vídeo de check-in/out é o caso que justifica.
 
-### Onda 77 — Afazeres e importação de frota (§20, §21)
+### Onda 77 — Afazeres e importação de frota (§20, §21) — **ENTREGUE 18/08/2026 (domínio + banco, sem tela)**
 
 Afazeres é **construção nova**, não adaptação (o PRD supõe que existe). Com
 a regra do §20: não gerar tarefa automática pra cada alerta.
