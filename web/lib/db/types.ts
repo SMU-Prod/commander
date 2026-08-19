@@ -49,6 +49,12 @@ export interface Embarcacao {
    *  escolher: ninguém deduz região a partir de lat/lon. */
   regiao_id: string | null
   foto_capa_path: string | null
+  /** §13 do PRD Upgrade 3 — quantas vagas de cotista esta unidade tem
+   *  (migration 061). `0` = não é unidade de cotas. A OCUPAÇÃO não fica
+   *  aqui: é derivada da contagem de vínculos com papel COTISTA, pra
+   *  "redefinir o link" não zerar a conta e "remover acesso" liberar vaga
+   *  sozinho. */
+  cotas_total: number
   created_at: string
 }
 
@@ -440,7 +446,25 @@ export interface Vinculo {
    *  perfil: dois membros de Operações na mesma empresa podem ter réguas
    *  diferentes ("funcionário novo exige conferência 1 a 1"). */
   modo_aprovacao: ModoAprovacaoDb
+  /** §13 — suspensão por inadimplência (migration 061). Suspender NÃO apaga
+   *  o vínculo: reativar devolve o acesso sem refazer convite, e a vaga
+   *  continua ocupada (a pessoa não perde o lugar por estar em atraso —
+   *  quem decide tirar é o ADM, com o botão de remover). */
+  suspenso_em: string | null
+  suspenso_por: string | null
   created_at: string
+}
+
+/** §13 — o link de convite do cotista (migration 061). Só uma porta: as
+ *  vagas moram em `embarcacoes.cotas_total` e a ocupação é derivada dos
+ *  vínculos, pra "redefinir o link" não zerar a contagem. */
+export interface ConviteCotista {
+  id: string
+  embarcacao_id: string
+  codigo: string
+  ativo: boolean
+  criado_por: string | null
+  criado_em: string
 }
 
 export type PapelDb =
