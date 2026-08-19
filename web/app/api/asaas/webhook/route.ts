@@ -25,6 +25,35 @@ const STATUS_POR_EVENTO: Record<string, StatusAssinatura> = {
   PAYMENT_CONFIRMED: "ativa",
   PAYMENT_RECEIVED: "ativa",
   PAYMENT_OVERDUE: "problema_pagamento",
+
+  // ONDA 83 (achado A-05 da auditoria de 19/08/2026) — ESTORNO E CONTESTAÇÃO
+  // ENTRAM NO MAPA.
+  //
+  // Até aqui esses três eventos caíam no `ignorado` e devolviam 200 sem
+  // efeito nenhum. O buraco: a pessoa paga, ganha acesso, pede estorno ou
+  // abre contestação no cartão — e continua com acesso pago até um
+  // `PAYMENT_OVERDUE` de algum ciclo futuro. Dinheiro volta, acesso não.
+  //
+  // Mais constrangedor ainda: a tela de faturas de `/menu/assinatura` já
+  // TRADUZ esses status para o assinante. Ou seja, o app mostrava o
+  // chargeback e não agia sobre ele.
+  //
+  // Vão para `problema_pagamento`, e não direto para `cancelada`, por dois
+  // motivos. Primeiro: é o mesmo estado do `OVERDUE`, e ele já tem toda a
+  // maquinaria pronta — o trigger carimba `problema_desde` e `avaliarCiclo`
+  // conta a tolerância sozinho, sem job nenhum. Segundo, e mais importante:
+  // contestação é uma ACUSAÇÃO, não uma sentença — o titular pode ter
+  // contestado por engano, ou a operadora pode decidir a favor do lojista, e
+  // nesse caso um `PAYMENT_CONFIRMED` posterior devolve tudo ao lugar. De
+  // `cancelada`, que é terminal por desenho, não haveria volta.
+  PAYMENT_REFUNDED: "problema_pagamento",
+  PAYMENT_REFUND_IN_PROGRESS: "problema_pagamento",
+  PAYMENT_CHARGEBACK_REQUESTED: "problema_pagamento",
+  PAYMENT_CHARGEBACK_DISPUTE: "problema_pagamento",
+  PAYMENT_AWAITING_CHARGEBACK_REVERSAL: "problema_pagamento",
+  // Cobrança apagada no painel do Asaas: não há mais o que pagar naquele
+  // ciclo, então o acesso deixa de estar sustentado por pagamento.
+  PAYMENT_DELETED: "problema_pagamento",
 }
 
 /** Eventos que confirmam pagamento recebido — únicos que avançam a avaliação

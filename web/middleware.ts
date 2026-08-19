@@ -30,11 +30,18 @@ export async function middleware(request: NextRequest) {
   // continua atrás do gate normal).
   // /termos e /privacidade (onda 30) precisam ser lidas por qualquer
   // visitante ANTES de criar conta — sem login, como /parceiros.
+  // /auth/* (onda 83) é o destino dos links que saem por e-mail —
+  // confirmação de conta e recuperação de senha. Ela PRECISA rodar
+  // deslogada: a sessão é justamente o que ela vai criar, trocando o código
+  // PKCE por cookie. Sem esta linha o middleware olharia o `user` nulo,
+  // mandaria pro /login e mataria o código — e o defeito seria idêntico ao
+  // que a onda 83 está consertando, só que com a rota já existindo.
   const rotaPublica =
     caminho === "/" ||
     caminho === "/parceiros" ||
     caminho === "/termos" ||
     caminho === "/privacidade" ||
+    caminho.startsWith("/auth/") ||
     caminho.startsWith("/login")
   if (!user && !rotaPublica) {
     const destino = new URL("/login", request.url)

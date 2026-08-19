@@ -101,6 +101,14 @@ export async function assinar(formData: FormData) {
   } catch (e) {
     // recusa de validacao (ex.: CPF invalido) e corrigivel pelo usuario — mostra o motivo
     if (e instanceof AsaasRecusa) erroAssinar(`O sistema de pagamento recusou os dados: ${e.message}`)
+    // ONDA 83 (achado A-08 da auditoria de 19/08/2026) — ISTO PRECISA DEIXAR
+    // RASTRO. Até aqui o `catch` engolia a falha sem um `console.error`
+    // sequer: gente tentava assinar, apanhava, e o dono não tinha como saber
+    // que existiu a tentativa. Foi assim que o A-02 (checkout aberto sem
+    // chave configurada) sobreviveu invisível — cada frustração sumia.
+    // `console.error` num server component vai pro log da função na Vercel,
+    // que é onde o dono procura quando alguém reclama.
+    console.error("[assinar] falha ao criar cliente/assinatura no Asaas", e)
     erroAssinar("Não foi possível falar com o sistema de pagamento. Tente de novo em instantes.")
   }
 

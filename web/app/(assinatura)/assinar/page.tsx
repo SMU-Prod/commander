@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { assinar } from "@/lib/acoes/assinatura"
+import { asaasConfigurado } from "@/lib/asaas"
 import { carregarAssinatura } from "@/lib/consultas"
 import { carregarTrilha } from "@/lib/consultas-captain"
 import { O_QUE_O_CAPTAIN_FREE_FAZ, O_QUE_O_CAPTAIN_PRO_LIBERA } from "@/lib/domain/captain"
@@ -90,9 +91,30 @@ export default async function AssinarPage({
   const promo = promocao ? { promocao: promocao.promocao, validoAte: promocao.validoAte } : null
 
   const planos = planosDoPerfil(perfil)
-  const primeiroContratavel = planos.find(
+  // ONDA 83 — `asaasConfigurado()` entra na conta, e essa é a correção do
+  // achado A-02 da auditoria de 19/08/2026.
+  //
+  // Até aqui esta tela decidia mostrar o checkout olhando SÓ o catálogo: se
+  // existisse plano cobrável, ela desenhava os campos de nome e CPF e o botão
+  // "Continuar para o pagamento". Só que em produção não existe
+  // `ASAAS_API_KEY` — a chamada morre na primeira linha de `lib/asaas.ts`, e a
+  // pessoa recebia "Não foi possível falar com o sistema de pagamento. Tente
+  // de novo em instantes."
+  //
+  // Aquela frase MENTE: ela promete que a próxima tentativa pode dar certo, e
+  // nenhuma vai. Pior que um botão desligado é um botão que culpa a rede por
+  // uma decisão nossa. O fluxo do Commander Gold já fazia certo desde a
+  // Correção 08 (`lib/acoes/gold.ts`), avisando honestamente que a contratação
+  // abre em breve; esta tela passa a fazer o mesmo.
+  //
+  // A flag é a MESMA que governa o Gold — a presença da chave, não uma
+  // variável nova. Ligar a chave acende as duas telas de uma vez, sem
+  // ninguém precisar lembrar de virar mais um interruptor.
+  const cobrancaLigada = asaasConfigurado()
+  const planoCobravel = planos.find(
     (p) => p.disponibilidade === "disponivel" && p.valorCentavos != null && p.valorCentavos > 0,
   )
+  const primeiroContratavel = cobrancaLigada ? planoCobravel : undefined
 
   return (
     <main>
@@ -286,6 +308,19 @@ export default async function AssinarPage({
               Você pode cancelar quando quiser — o que já foi registrado continua guardado, nada é apagado.
             </p>
           </>
+        )}
+
+        {/* O aviso honesto: existe plano cobrável no catálogo, mas a cobrança
+            ainda não está ligada. Sem isto, a tela seria um checkout que
+            fracassa sempre — ver o comentário em `primeiroContratavel`. */}
+        {!cobrancaLigada && planoCobravel && (
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+            <p className="titulo-card">A contratação abre em breve</p>
+            <p className="apoio mt-1 text-dim">
+              Os planos acima já estão definidos, mas o pagamento ainda não está aberto. Enquanto
+              isso, seu acesso atual continua exatamente como está — nada muda e nada é cobrado.
+            </p>
+          </div>
         )}
       </form>
 
