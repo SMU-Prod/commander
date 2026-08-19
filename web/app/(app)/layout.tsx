@@ -105,7 +105,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Toast />
       </Suspense>
       {children}
-      <BottomNav avisos={avisos} />
+      {/* ONDA 7 — sem `avisos`: o contador acompanha o sino, e o sino subiu
+          para o cabeçalho de toda tela (`components/faixa-topo.tsx`). É o que
+          liberou a quinta vaga da barra para "Serviços" (spec §2.1). O número
+          continua saindo daqui, uma vez por requisição — só o destino mudou. */}
+      <BottomNav />
     </MolduraApp>
   )
 }

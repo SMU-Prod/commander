@@ -55,92 +55,72 @@
    vê. O escuro mora em [data-theme="dark"], mais abaixo. */
 :root {
   /* A ESCADA DE SUPERFÍCIE DO TEMA CLARO CORRE PARA BAIXO, e isso é regra
-     derivada, não descuido — ver `docs/DESIGN.md` §5. No escuro, profundidade
-     é LUZ: cada nível do §22 do HAULIX clareia (canvas → card → aninhado →
-     interativo). No claro o topo da escala já está ocupado pelo branco, então
-     a mesma progressão só cabe descendo: o card é a superfície mais clara e
-     cada nível a partir dele ESCUREce. É o que este tema já praticava sem
-     escrever (`--superficie-2` sempre foi mais escuro que o card).
-     Branco quente, não branco frio: o dono pediu "branco quente / cinza claro
-     para leitura", e o §04 do HAULIX proíbe `#FFFFFF` em qualquer papel — os
-     dois `#ffffff` que este bloco tinha (`--superficie` e `--campo`) eram a
-     violação mais visível do documento no app inteiro. */
-  --fundo: #f1eee7;
-  --superficie: #fbf9f4;
-  --superficie-2: #e8e4da;
-  /* ONDA 98 (HAULIX §22 nível 3, §49) — O DEGRAU INTERATIVO, QUE FALTAVA.
-     O §22 declara QUATRO níveis e a casa tinha três; sem o quarto, "hover sobe
-     um nível de superfície" (§49) não tinha para onde subir e o app resolvia
-     realce com sombra ou com tinta de acento. Consumidor no mesmo commit:
-     `bg-panel3` no hover de `Cartao`, `LinhaLista` e `TrilhoLateral`. */
-  --superficie-3: #dedacf;
-  --linha: #d5d0c3;
-  --texto: #0b1d2d;
-  /* Subiu de contraste junto com o chão: sobre a página nova (#f1eee7) o
-     `#60717f` de antes entregava 4,35:1 — abaixo do mínimo de leitura. */
-  --texto-dim: #5c6672;
+     derivada, não descuido. No escuro, profundidade é LUZ: cada nível da
+     escada do §5 do Guia clareia (canvas → cartão → aninhado → interativo).
+     No claro o topo da escala já está ocupado pelo branco, então a mesma
+     progressão só cabe descendo: o cartão é a superfície mais clara e cada
+     nível a partir dele ESCURECE. */
+  /* ONDA 104 — O CLARO PASSA A SER O ESCURO REFLETIDO, E NÃO UMA PALETA IRMÃ.
+     O §4 do Guia declara DOIS chãos (#07111C e #0B1926) e nada sobre tema
+     claro: ele é um sistema escuro. O claro sobrevive porque é preferência de
+     produto (Ajustes → Aparência; leitura sob sol na marina), e a regra que o
+     mantém honesto é: MESMO MATIZ, luminância do outro lado do chão. O bege
+     quente de antes (#f1eee7) era da paleta anterior — mantê-lo faria o app
+     trocar de FAMÍLIA ao trocar de tema, que é a definição de dois designs. */
+  --fundo: #eef2f6;
+  --superficie: #f8fafc;
+  --superficie-2: #e4eaf1;
+  /* O quarto nível (interativo) do §5: hover sobe um degrau de superfície em
+     vez de ganhar sombra ou tinta de acento. `bg-panel3` é quem consome. */
+  --superficie-3: #d6dee7;
+  /* A BORDA DO §5 DO GUIA, DO LADO CLARO. No escuro ela é literalmente
+     `rgba(216,225,232,.16)` composta sobre o vidro; aqui o mesmo papel
+     (separar o cartão do chão) pede o sentido inverso — escurecer, não
+     clarear. Ela é quem carrega a separação nos dois temas: o preenchimento
+     dá 1,08:1 (abaixo do mínimo de 1,2 do guardião) e a borda dá 1,49:1. */
+  --linha: #c6d0da;
+  --texto: #07111c;
+  --texto-dim: #566472;
+  /* §4, REGRA SEMÂNTICA — verde é confirmado/em dia, âmbar é atenção/prazo,
+     vermelho é crítico/erro/exclusão, e nenhuma das três é ornamento. Os
+     matizes são os do guia (145° · 35° · 359°); só a luminância desce, porque
+     as cores de lá foram calibradas para chão escuro e aqui o chão é claro. */
   --ok: #15803d;
-  --warn: #b45309;
+  --warn: #a85c05;
   --crit: #d2373c;
-  /* ONDA 96 (achado 5.1 da auditoria de 19/08) — O ACENTO DO TEMA CLARO ERA
-     ILEGÍVEL, E O TEMA CLARO É JUSTAMENTE O QUE EXISTE PRO SOL NA MARINA.
-     -------------------------------------------------------------------
-     Medido: `text-accent` (`--acao` = #d4af37) sobre cartão dava 2,10:1,
-     sobre a página 1,96:1 e sobre --superficie-2 1,86:1. O mínimo de leitura
-     é 4,5:1 — o claro entregava menos da metade na melhor das hipóteses. O
-     cabeçalho deste arquivo diz que o claro nasceu pra "leitura sob sol na
-     marina": era a única promessa do tema, e era a que ele quebrava.
+  /* ------------------------------------------------------------------
+     O DOURADO DA MARCA, DO LADO CLARO — E POR QUE ELE NÃO É #D6A53A.
+     ------------------------------------------------------------------
+     O §4 do Guia declara UM dourado: #D6A53A. Ele foi calibrado para o chao
+     escuro (7,87:1 sobre o vidro) e sobre o cartão claro entrega 1,93:1 —
+     ilegível. Os dois sentidos do token brigam num chão claro: para LER
+     COMO TEXTO ele precisa de luminância baixa; para SERVIR DE FUNDO com
+     texto claro em cima, também. Então no claro o dourado desce de degrau
+     DENTRO DA MESMA FAMÍLIA — matiz 41°, o do guia, medido no próprio
+     #D6A53A — e o par `--acao-texto` vira o claro, espelhando exatamente o
+     que o escuro faz ao contrario.
 
-     POR QUE NÃO DAVA PRA SÓ "ESCURECER UM POUCO": OS DOIS SENTIDOS BRIGAM.
-     Num chão claro, para o acento LER COMO TEXTO ele precisa de luminância
-     relativa <= 0,156 (é o que 4,5:1 contra --superficie-2 exige). Para o
-     acento SERVIR DE FUNDO com texto escuro em cima (#0b1d2d, o
-     --acao-texto de antes) ele precisa de luminância >= 0,226. Os dois
-     intervalos não se tocam: NENHUM hexadecimal satisfaz os dois. A escolha
-     não é de tom, é de qual lado o token serve — e quem decide isso é o
-     par: o acento vira escuro e --acao-texto vira o claro que se apoia nele.
-     É exatamente a simetria que o tema escuro já pratica ao contrário
-     (acento claro, --acao-texto quase preto): o acento é sempre o oposto do
-     chão, e --acao-texto é sempre da cor do chão.
+     Medido nos três chãos (cartão / página / superfície de chip):
+       --acao        #79560c → 6,37  5,93  5,51
+       --acao-forte  #5e4308 → 8,80  8,19  7,60
+       --acao-texto  #f8fafc sobre os dois: 6,37 e 8,80
 
-     O TOM CONTINUA DOURADO DE PROPÓSITO. O claro já pintava 110 dos seus
-     ~140 usos de acento em texto com `--acao-forte` (#8a6d1c, dourado
-     escuro): manter a família é o que impede a tela de ganhar um matiz novo
-     junto com o conserto. Só a escada mudou — `--acao` desceu pro degrau que
-     lê, e `--acao-forte` desceu mais um pra continuar significando "mais
-     contraste que o acento", que é o que "forte" quer dizer num chão claro.
-
-     ONDA 98 — A ESCADA CONTINUA, O TOM VOLTA A SER O DA MARCA. O dourado do
-     tema claro nunca foi o problema que a onda 96 consertou; o problema era a
-     LUMINÂNCIA. Com o chão passando a branco quente, os valores da onda 96
-     deixaram de fechar a conta sobre a superfície de chip (`--acao` #806312
-     entregava 4,46:1 lá, abaixo do mínimo), então os dois desceram mais um
-     degrau, dentro da MESMA família.
-
-     Medido nos três chões do app (cartão / página / --superficie-2):
-       --acao        #6e5410 → 6,79  6,17  5,63
-       --acao-forte  #584309 → 8,98  8,16  7,44
-       --acao-texto  #fbf9f4 sobre --acao 6,79 e sobre --acao-forte 8,98
-     `--acao-texto` deixa de ser `#ffffff` porque o §04 do HAULIX é explícito
-     — "o branco nunca deve ser #FFFFFF" — e porque a regra da casa diz que
-     ele é da cor do CHÃO: o chão virou branco quente, ele acompanha.
-
-     O QUE NÃO MUDOU, E POR QUÊ: o acento sobre o navy fixo dos instrumentos
-     (/navegar) NÃO segue esta escada. Dourado escuro sobre navy dá 3,02:1;
-     o instrumento tem chão próprio e por isso tem acento próprio, no bloco
-     `.bg-meter, .bg-mapa-instrumento` mais abaixo — mesmo mecanismo que ok/
-     warn/crit já usavam lá pelo mesmo motivo. */
-  --acao: #6e5410;
-  --acao-forte: #584309;
-  --acao-texto: #fbf9f4;
-  --campo: #fdfcf8;
-  --meter: #0b1d2d;
-  --meter-texto: #e9f1f8;
-  --meter-dim: #7c93ab;
-  /* texto-dim foi calibrado contra --superficie; sobre --superficie-2 (badges,
-     chips, pills recolhidos) o par reprova AA. Token dedicado pra essa
-     combinação: 5,20:1 aqui, 6,06:1 no dark abaixo. */
-  --texto-dim-chip: #545e69;
+     O QUE NÃO MUDOU: o acento sobre o navy fixo do instrumento (/navegar)
+     não segue esta escada — o instrumento tem chão próprio e acento próprio,
+     no bloco `.bg-meter, .bg-mapa-instrumento` mais abaixo. */
+  --acao: #79560c;
+  --acao-forte: #5e4308;
+  --acao-texto: #f8fafc;
+  --campo: #fcfdfe;
+  /* O cartucho de instrumento é navy FIXO nos dois temas, e agora ele é o
+     próprio chão do §4 (#07111C). Ver `.bg-meter` mais abaixo. */
+  --meter: #07111c;
+  --meter-texto: #e8eef4;
+  --meter-dim: #93a6b8;
+  /* texto-dim foi calibrado contra --superficie; sobre --superficie-2
+     (badges, chips, pílulas recolhidas) o par reprova AA. Token dedicado
+     pra essa combinação: 5,57:1 aqui, 6,83:1 no escuro abaixo. */
+  --texto-dim-chip: #4f5d6b;
 
   /* ONDA 63 — COR DE DADO, a categoria que faltava.
      O app tinha três famílias de cor (texto, semântico ok/warn/crít, e o
@@ -162,58 +142,56 @@
   --dado: #28587f;
 
   /* ===================================================================
-     ONDA 102 — OS OITO TONS DE HUB, E A REGRA QUE IMPEDE O ARCO-ÍRIS.
+     §4 DO GUIA — OS OITO TONS DE HUB, NO VALOR DECLARADO.
      ===================================================================
-     O dono pediu, no §3 do spec de 19/08, "cards com identidade visual por
-     hub" para a central técnica (`/barco`), e a mesma frase avisa o risco. A
-     proposta que estava escrita em `docs/DESIGN.md` §5 desde então — e que
-     estes oito tokens finalmente implementam — tem TRÊS travas, e nenhuma
-     delas é decorativa:
+     Sete deles estão na tabela do §4 do Guia de Design v1 e são copiados
+     dela sem arredondar. O oitavo (Equipamentos) NÃO EXISTE na tabela — o
+     guia lista oito hubs no §7 e sete cores no §4 — e foi derivado das
+     imagens, que o §1 declara normativas para cor: o card de Equipamentos
+     é o único neutro da grade. Esta é a ÚNICA cor deste arquivo que não sai
+     do texto do guia, e ela esta registrada como desvio em
+     `docs/DESIGN-SYSTEM.md`.
 
-     1. O ÍCONE É O CANAL PRINCIPAL. Cada hub já tem desenho próprio em
-        `components/icone.tsx`; a cor é reforço, não a informação. É o que faz
-        a identidade continuar funcionando para daltônico.
-     2. A COR DO HUB VIVE SÓ NO ÍCONE E NO CARTUCHO DELE — nunca no fundo do
-        card, nunca na borda do card, nunca no texto. Assim **a única cor que
-        aparece no CORPO do card continua sendo a de ESTADO** (o farol). Um
-        hub azul com farol vermelho tem que ler "vermelho" de longe.
-     3. SÃO DESSATURADOS DE PROPÓSITO. Medido: estes oito ficam em ~22% de
-        saturação; ouro (74/85%), verde (54/84%), âmbar (68/95%) e vermelho
-        (55/74%) ficam entre 54 e 95%. Um tom de hub saturado passaria a
-        parecer estado, que é o custo de errar isto.
+     A REGRA QUE IMPEDE O ARCO-ÍRIS NÃO É MAIS A DESSATURAÇÃO, É O ESCOPO.
+     A onda 102 mantinha os oito a ~22% de saturação para que nenhum fosse
+     confundido com estado. O guia manda o contrario: saturados, vivos, e
+     com Segurança em VERDE (#37D67A, o mesmo verde de "em dia") e
+     Manutenções em ÂMBAR (#FF9F1C, o mesmo âmbar de "atenção"). O que
+     reconcilia as duas coisas esta escrito no §5: "cor do hub apenas no
+     estado ativo ou no card daquele sistema". Ou seja:
 
-     O ARCO, E POR QUE ELE NÃO DÁ A VOLTA INTEIRA. Oito matizes igualmente
-     espaçados no círculo cairiam em cima do vermelho (0°), do âmbar (37°) e
-     do ouro (46°) — as três cores que nesta casa SIGNIFICAM alguma coisa. O
-     arco usado é 174°→328°, em oito passos de 22°, e a distância mínima até
-     qualquer semântico é 30° (hidráulica↔verde 31°, documentos↔vermelho 32°).
-     `--dado` (207°) fica a 11° de dois deles e isso é aceitável: ele é
-     preenchimento de barra de gráfico, e não existe gráfico em `/barco`.
+       COR DE HUB  vive na moldura do próprio hub — ícone, borda do card
+                   dele, aba ativa dentro dele. Nunca em outro hub, nunca
+                   num valor, nunca numa lista genérica.
+       COR DE ESTADO  vive no VALOR — número, selo, farol, texto de alerta.
 
-     A ORDEM DE ATRIBUIÇÃO NÃO É A ORDEM DO ARCO. Na grade de duas colunas do
-     celular, os vizinhos são quem se compara — então os matizes foram
-     embaralhados para que nenhum par lado a lado fique a menos de 66° e
-     nenhum par um-embaixo-do-outro a menos de 44°. Em ordem de leitura:
-     motores 196° · casco 262° · elétrica 284° · hidráulica 174° ·
-     segurança 240° · equipamentos 306° · documentos 328° · manutenções 218°.
+     Com esse recorte, verde na moldura de Segurança é identidade e verde num
+     número é "em dia" — e os dois nunca disputam o mesmo pixel. Sem esse
+     recorte, a paleta do guia vira semáforo quebrado.
 
-     MEDIDO (ícone sobre o cartucho, que é o tom a 14% sobre o cartão): o pior
-     par é hidráulica no tema claro, com 3,96:1 — acima do mínimo de 3:1 que
-     vale para elemento gráfico. Sobre o cartão liso os oito ficam entre
-     4,65:1 e 9,27:1 nos dois temas.
+     CONTRASTE: são ELEMENTO GRÁFICO (ícone e borda), então a régua é 3:1 e
+     não 4,5:1 — e há teste próprio em `lib/ui/contraste.test.ts` cobrando
+     isso nos dois temas. Sete passam com folga; hidráulica (#8B5CF6) dá
+     4,20:1 sobre o vidro, acima de 3 e abaixo de 4,5: é por isso que hub
+     NÃO PODE virar cor de texto.
 
-     DÍVIDA DECLARADA: `lib/ui/contraste.test.ts` deveria ganhar uma linha por
-     tom (a régua do `docs/DESIGN.md` §7 é "token de cor novo sem linha nova
-     ali reabre o buraco"). Esta onda não pôde tocar naquele arquivo; os
-     valores acima foram medidos fora dele e estão no relatório. */
-  --hub-motores: #3d6a7b;
-  --hub-casco: #533d7b;
-  --hub-eletrica: #6a3d7b;
-  --hub-hidraulica: #3d7b75;
-  --hub-seguranca: #3d3d7b;
-  --hub-equipamentos: #7b3d75;
-  --hub-documentos: #7b3d5e;
-  --hub-manutencoes: #3d537b;
+     ESTE BLOCO É O TEMA CLARO, ENTÃO AQUI OS OITO SÃO OS MATIZES DO GUIA
+     LIDOS DO OUTRO LADO DO CHÃO. Os hexadecimais do §4 foram calibrados
+     contra #0B1926; sobre um cartão branco, ciano e âmbar entregam 1,8–2,0:1
+     e o ícone do hub simplesmente some. A regra de tradução é a mesma do
+     resto deste bloco — MATIZ do guia, medido no próprio hexadecimal dele
+     (188° · 39° · 212° · 258° · 145° · 211° · 174° · 35°), com a luminância
+     descendo até passar dos 3:1. Medido sobre o cartão: 5,01 · 5,67 · 8,50 ·
+     8,79 · 6,03 · 7,21 · 6,14 · 6,56. Os valores do guia, sem tradução, estão
+     no bloco [data-theme="dark"], que é o tema que abre. */
+  --hub-motores: #00778a;
+  --hub-casco: #8a5a00;
+  --hub-eletrica: #004799;
+  --hub-hidraulica: #512bab;
+  --hub-seguranca: #176e3b;
+  --hub-equipamentos: #44566a;
+  --hub-documentos: #156a62;
+  --hub-manutencoes: #854d00;
 
   /* Onda 57 — forma. Raio e elevação vêm de escala declarada, e nada fora
      disto. Raio inventado por bloco foi o que fez a proposta de redesign
@@ -231,7 +209,13 @@
      CONTÉM é cartão (aninhado) ou painel (primeiro nível), quem é pílula é
      999. As elevações continuam três (--sombra-1, --sombra-2, e o plano que é
      a ausência das duas). */
-  --raio-controle: 8px;   /* chip, campo, botão pequeno */
+  /* ONDA 104 — A ESCADA DE RAIO PASSA A SER A DO §5 DO GUIA, LITERAL:
+     "12 px controles; 16 px cards; 20 px hero e drawers; pílula apenas para
+     chips/status". São os MESMOS quatro degraus que a casa já tinha, cada um
+     subindo 4px para o valor declarado — o critério de escolha continua sendo
+     função e não tamanho: quem se TOCA é controle, quem CONTÉM é cartão
+     (aninhado) ou painel (primeiro nível), quem é pílula é 999. */
+  --raio-controle: 12px;  /* chip, campo, botão pequeno */
   /* ONDA 98 (HAULIX §13 + §22 + §61) — O CARTÃO ANINHADO DESCE DE 14 PARA 12,
      E ISSO NÃO ABRE UM QUINTO DEGRAU: É O MESMO DEGRAU, NO VALOR DA RÉGUA.
      O HAULIX declara duas faixas para "quem contém", não uma: `Cards 10–12` e
@@ -244,7 +228,7 @@
      distância. Com 12 e 16 a distância vira 4px e o raio volta a significar
      profundidade, que é o motivo declarado de existirem dois.
      Nenhuma tela muda à mão: os ~60 consumidores pedem `var(--raio-cartao)`. */
-  --raio-cartao: 12px;    /* cartão ANINHADO — dentro de outro painel */
+  --raio-cartao: 16px;    /* cartão ANINHADO — dentro de outro painel */
   --raio-pilula: 999px;   /* pílula, avatar, selo */
   /* ONDA 79 (spec haulix-exato §3.2) — a referência usa ~16–20px no painel
      de primeiro nível e 8–10 nos internos. Tínhamos um raio só, e raio
@@ -255,7 +239,7 @@
      auditoria de 19/08) e por isso a hierarquia de raio era plana: painel e
      sub-painel desenhavam os mesmos 14px. Quem consome agora é o `nivel` de
      `components/ui/cartao.tsx`, que é o bloco de primeiro nível do app. */
-  --raio-painel: 16px;    /* painel de PRIMEIRO nível, direto no fundo */
+  --raio-painel: 20px;    /* herói, drawer e painel de PRIMEIRO nível */
 
   /* ONDA 91 (achado 5.10 da auditoria de 19/08) — A ALTURA VIRA TOKEN.
      A régua de 44px do docs/DESIGN.md §5 era a única medida de forma sem
@@ -287,107 +271,101 @@
 
 [data-theme="dark"] {
   /* ===================================================================
-     ONDA 98 — O ESCURO VOLTA A SER NAVY, E É ESTE O TEMA QUE ABRE.
+     ONDA 104 — A PALETA DO GUIA DE DESIGN COMMANDER v1, LITERAL.
      ===================================================================
-     A onda 79 amostrou a referência HAULIX pixel a pixel e trocou o navy por
-     cinza puro (#101010 de chão, #1a1a1a de cartão) com o limão de acento. A
-     medição estava certa e a conclusão durou até o dono ver o resultado
-     rodando: *"fundo preto absoluto, cards cinza quase idênticos… o
-     verde-limão precisa sair"*. O que a amostragem não podia medir é que a
-     referência é de OUTRO produto — logística industrial —, e o Commander é
-     náutico e premium. A cor volta a ser navy e ouro; a DENSIDADE, a
-     tipografia, a hierarquia de superfície e o status compacto do HAULIX
-     ficam, e é o que esta onda está aplicando no resto do arquivo.
+     Fonte: `docs/DESIGN-SYSTEM.md`, que transcreve o guia aprovado em
+     19/08/2026 e é NORMATIVO. Este é o tema que ABRE (o script de
+     `app/layout.tsx` põe [data-theme="dark"] antes da pintura, a menos que a
+     pessoa tenha escolhido claro), então é aqui que o guia vale sem tradução.
 
-     A ESCADA DE SUPERFÍCIE É A DO §22 DO HAULIX, EM NAVY (quatro níveis, cada
-     um um degrau acima do anterior):
-       nível 0  canvas          --fundo         #07182a
-       nível 1  cartão          --superficie    #0e2438
-       nível 2  cartão aninhado --superficie-2  #173248
-       nível 3  interativo      --superficie-3  #20415a
-     Cada passo dá 1,13 · 1,19 · 1,24 de razão — o mesmo grão da referência,
-     que trabalha em degraus de ~1,1. É esta escada que substitui sombra por
-     camada (§14: "a profundidade principal vem da diferença de superfície").
+     O §4 declara dois chãos e um só dourado, e este bloco os copia byte a
+     byte:
+       --fundo       #07111C   "Base · fundo principal"
+       --superficie  #0B1926   "Base · superfície / glass"
+       --acao        #D6A53A   "Marca · ação principal / identidade"
 
-     O TESTE QUE MEDE ISTO, E POR QUE ELE CONTINUA VERDE. `contraste.test.ts`
-     exige separação > 1,2 entre cartão e fundo por preenchimento OU por
-     borda. O preenchimento dá 1,132 — abaixo — e a borda dá 1,562, acima. É
-     exatamente a situação que a onda 79 registrou ao aceitar os dois
-     caminhos: a separação existe, e aqui ela é feita pela BORDA. */
-  --fundo: #07182a;
-  --superficie: #0e2438;
-  --superficie-2: #173248;
-  /* O nível 3 do §22, que a casa não tinha. Ver o gêmeo no bloco claro. */
-  --superficie-3: #20415a;
-  --linha: #26445f;
-  /* BRANCO QUENTE, PEDIDO DO DONO — e não o #F4F4F2 frio do §04 do HAULIX
-     nem o #fcfcfc de antes. Sobre navy, um branco de matiz quente é o que
-     separa "premium" de "terminal": 13,91:1 sobre o cartão. */
-  --texto: #f4f0e8;
-  /* 6,51:1 sobre o cartão. Num chão navy o cinza neutro puxa para verde —
-     este cinza tem o mesmo matiz do chão, um degrau de saturação abaixo. */
-  --texto-dim: #9aa8b6;
-  /* ALERTA SÓ EM VERMELHO, ÂMBAR E VERDE (veredito do dono, §4 do spec).
-     O verde deixa de ser o #96f48d limão da referência — era a mesma família
-     que acabou de sair da ação, e verde-limão de estado ao lado de ouro de
-     ação é justamente o ruído que ele nomeou. */
-  --ok: #5fd08a;
-  --warn: #f0b24d;
-  --crit: #ef6b6b;
-  /* ------------------------------------------------------------------
-     O DOURADO REAL — MARCA E AÇÃO PRINCIPAL, COM MODERAÇÃO.
-     ------------------------------------------------------------------
-     `#d4af37` é o dourado declarado da marca desde a fundação (é o do logo,
-     o do herói da embarcação, o do selo Gold). A disciplina que vem junto é a
-     do §07 do HAULIX, transposta do limão para o ouro: **1–3% da tela**, e o
-     orçamento de dois usos por tela do `docs/DESIGN.md` §5 continua sendo
-     como isso é cobrado em revisão. "Dourado em todo botão" é o mesmo defeito
-     que "limão em todo botão" — o dono nomeou o segundo, e o primeiro já
-     tinha sido nomeado na onda 63.
-     `--acao-forte` é MAIS CLARO num chão escuro, porque "forte" quer dizer
-     mais contraste: 9,58:1 contra os 7,52:1 do acento. */
-  --acao: #d4af37;
-  --acao-forte: #e6c766;
-  /* Navy e não preto — a regra da casa é que `--acao-texto` é da cor do CHÃO,
-     e o chão voltou a ser navy. Sobre o ouro dá 8,51:1. (Precisou ser preto
-     enquanto o acento era limão claro; com ouro, o navy passa com folga.) */
-  --acao-texto: #07182a;
-  --campo: #0b1e30;
-  /* O cartucho de instrumento é o navy mais fundo da escada, e não o #020202
-     de antes: preto absoluto foi nomeado como defeito, e o cartucho é
-     justamente onde o olho passa mais tempo (horímetro, sondagem). */
-  --meter: #051221;
-  --meter-texto: #f4f0e8;
-  --meter-dim: #9aa8b6;
-  --texto-dim-chip: #a4b1be;
-  /* Azul-aço: a série de gráfico dentro da família da marca. Ver o gêmeo no
-     bloco claro para o porquê de o ciano ter saído. */
+     O §3 é explícito sobre o que NÃO pode: "fundo azul-marinho quase preto,
+     nunca preto puro". #07111C é isso — e é 3 pontos de luminância acima do
+     #0a0e12 que a onda 79 tinha posto e o dono nomeou como "fundo preto
+     absoluto".
+
+     A ESCADA DE SUPERFÍCIE TEM QUATRO NÍVEIS E O GUIA DECLARA DOIS.
+     Os níveis 2 e 3 (cartão aninhado e interativo) são derivados, e a regra
+     de derivação está escrita para que ninguém invente um quinto: MESMO
+     MATIZ do #0B1926 (209°), subindo em degraus de ~1,15 de razão de
+     luminância — o mesmo grão dos dois primeiros.
+       nível 0  canvas           --fundo         #07111C
+       nível 1  cartão / vidro   --superficie    #0B1926
+       nível 2  cartão aninhado  --superficie-2  #12263A
+       nível 3  interativo       --superficie-3  #1B3550
+
+     E A SEPARAÇÃO CARTÃO↔FUNDO É FEITA PELA BORDA, DE PROPÓSITO.
+     O preenchimento dá 1,068:1 — abaixo do mínimo de 1,2 que
+     `contraste.test.ts` cobra — e a borda dá 1,505:1. Não é acidente da
+     paleta: é o §3 ("bordas luminosas de 1 px") e o §5 ("bordas 1 px, padrão
+     rgba(216,225,232,.16)") dizendo que neste sistema quem desenha o cartão é
+     a borda, e o vidro é quase da cor do chão. */
+  --fundo: #07111c;
+  --superficie: #0b1926;
+  --superficie-2: #12263a;
+  --superficie-3: #1b3550;
+  /* A BORDA DO §5, RESOLVIDA. O guia declara `rgba(216,225,232,.16)`; aqui
+     ela está composta sobre o vidro (#0B1926), que é o resultado exato que a
+     tela pinta. Fica SÓLIDA e não translúcida por uma razão de medição: o
+     guardião de contraste ignora alfa, e um `rgb(216 225 232 / .16)` seria
+     lido por ele como #d8e1e8 — mediria o melhor caso e daria a separação
+     por aprovada sem que ela existisse. Sólida, o número que ele mede é o
+     número que o olho vê: 1,505:1 sobre o vidro. */
+  --linha: #2c3945;
+  /* Branco FRIO, e a troca é do guia, não de gosto: a única cor de família
+     clara que o §5 declara é o `rgba(216,225,232,…)` da borda — azulado. Um
+     branco quente sobre este navy criaria uma segunda família de neutro que
+     o documento não tem. 15,21:1 sobre o vidro. */
+  --texto: #e8eef4;
+  --texto-dim: #93a6b8;   /* 7,10:1 sobre o vidro */
+  --texto-dim-chip: #9dafc0;   /* 6,83:1 sobre o cartão aninhado */
+  /* §4, REGRA SEMÂNTICA — os três valores do guia, sem arredondar:
+     Segurança/verde "em dia · protegido" · Manutenção/âmbar "atenção ·
+     prazo" · Crítico/vermelho "erro · vencido · excluir".
+     São OS MESMOS HEXADECIMAIS de três tons de hub, e isso é intencional no
+     guia: o que separa os dois papéis é ONDE a cor aparece — moldura do hub
+     contra valor —, não o tom. Ver o comentário longo dos hubs no tema claro. */
+  --ok: #37d67a;     /* 9,36:1 */
+  --warn: #ff9f1c;   /* 8,66:1 */
+  --crit: #ff4d4f;   /* 5,44:1 */
+  /* O DOURADO COMMANDER, E O ORÇAMENTO QUE VEM COM ELE.
+     O §3 é literal: "dourado Commander reservado para identidade e ação
+     primária; cores técnicas pertencem aos sistemas". O §9 fecha: "botões
+     dourados usados com moderação". A régua da casa que cobra isso continua
+     valendo — no máximo duas peças douradas por tela.
+     `--acao-forte` é MAIS CLARO num chão escuro porque "forte" quer dizer
+     mais contraste: 10,61:1 contra os 7,87:1 do acento.
+     `--acao-texto` é da cor do CHÃO, que é a regra da casa e aqui coincide
+     com o #07111C do guia: 8,41:1 sobre o ouro. */
+  --acao: #d6a53a;
+  --acao-forte: #e8c46b;
+  --acao-texto: #07111c;
+  --campo: #0a1622;
+  /* O cartucho de instrumento é o navy mais fundo da escada. Continua abaixo
+     do chão — quem olha horímetro e sondagem passa muito tempo ali — mas
+     ainda não é preto puro, que o §3 proíbe. */
+  --meter: #040c15;
+  --meter-texto: #e8eef4;   /* 16,81:1 */
+  --meter-dim: #93a6b8;     /* 7,85:1 */
+  /* Azul-aço: a série de gráfico. Não é cor de hub nem de estado, e é por
+     isso que ela existe separada — ver o gêmeo no bloco claro. 7,07:1. */
   --dado: #7fa8c9;
-  /* OS OITO TONS DE HUB — mesmos matizes do bloco claro, lidos do outro lado
-     do chão: L 70% aqui (para clarear sobre o navy) contra L 36% lá. A
-     saturação é a MESMA (~22% medida), porque é ela que garante que nenhum
-     deles seja confundido com estado — ver o comentário longo no tema claro,
-     que não se repete aqui de propósito. Medido sobre o cartucho (tom a 14%
-     sobre `--superficie`): 4,61:1 no pior par (segurança) e 6,15:1 no melhor;
-     sobre o cartão liso, 6,03:1 a 8,71:1. */
-  --hub-motores: #9cbdc9;
-  --hub-casco: #ac9cc9;
-  --hub-eletrica: #bd9cc9;
-  --hub-hidraulica: #9cc9c5;
-  --hub-seguranca: #9c9cc9;
-  --hub-equipamentos: #c99cc5;
-  --hub-documentos: #c99cb4;
-  --hub-manutencoes: #9cacc9;
-  /* `--dado-2` FOI APAGADO NESTA ONDA, e o motivo é a régua da casa, não a
-     paleta: ele nasceu na onda 79 para a segunda série da referência e ficou
-     desde então com ZERO consumidores em todo o `web/` — nem `@theme` ele
-     tinha, então nem utilitária `text-dado-2` existia para alguém pedir. É o
-     mesmo vício que esta casa passou as ondas 87–95 apagando (`.valor` sem
-     uso, `--raio-painel` sem uso, `PILULA_ACAO_LARGA` sem uso): token sem
-     consumidor não é neutro — ele responde "é assim que se faz" a quem
-     procura no grep, apontando um caminho que o app não anda. No dia em que
-     uma tela tiver DUAS séries no mesmo gráfico, ele volta com o consumidor
-     no mesmo commit e com uma linha no `contraste.test.ts`. */
+  /* OS OITO TONS DE HUB — os mesmos do bloco claro, que é onde a regra de
+     escopo está escrita. Aqui eles são os valores do §4 SEM tradução, porque
+     o guia calibrou a tabela dele para exatamente este chão. */
+  --hub-motores: #2de3ff;
+  --hub-casco: #ffb020;
+  --hub-eletrica: #238bff;
+  --hub-hidraulica: #8b5cf6;
+  --hub-seguranca: #37d67a;
+  --hub-equipamentos: #8fa3b8;
+  --hub-documentos: #29d3c2;
+  --hub-manutencoes: #ff9f1c;
 }
 
 /* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
@@ -479,8 +457,13 @@
    "instrumento" (não vidro liso) sem o blur, a opacidade subiu de .88
    pra .95: quase idêntico visualmente, elimina a classe do defeito. */
 :root {
-  --mapa-instrumento: rgb(11 29 45 / .95);
-  --mapa-instrumento-borda: rgb(233 241 248 / .14);
+  /* ONDA 104 — o navy do flutuante passa a ser o chão do §4 (#07111C) e a
+     borda passa a ser LITERALMENTE a do §5, `rgba(216,225,232,.16)`. Aqui
+     ela pode ser translúcida (e deve): o que está embaixo é o mapa, não uma
+     superfície conhecida, então não existe composição fixa para pré-calcular
+     — é o caso em que a rgba do guia é a única forma correta. */
+  --mapa-instrumento: rgb(7 17 28 / .95);
+  --mapa-instrumento-borda: rgb(216 225 232 / .16);
 }
 
 /* Dentro do horímetro (cartucho escuro nos dois temas) e dos cartões de
@@ -489,28 +472,27 @@
    isso, o --warn/--crit do tema CLARO (calibrados pra ler sobre superfície
    clara) ficariam escuro-sobre-escuro aqui dentro. */
 .bg-meter, .bg-mapa-instrumento {
-  --ok: #2fd07a;
-  --warn: #ffb020;
-  --crit: #ff5c5c;
-  /* ONDA 98 — O ACENTO DAQUI VOLTA A SER O DOURADO DA MARCA, e o mecanismo
-     não mudou: o chão aqui é navy FIXO nos dois temas, então quem estiver
-     dentro não pode herdar o acento calibrado pra ler sobre branco. No tema
-     claro `--acao` é dourado ESCURO (6,79:1 sobre o card branco quente) e
-     sobre este navy ele daria 3,02:1 — escuro sobre escuro, o mesmo defeito
-     que ok/warn/crit já resolviam nesta lista. Medido sobre o cartucho:
-     --acao 8,13:1 · --acao-forte 10,36:1 · --acao-texto sobre o acento
-     8,13:1. `--acao-texto` é `#0b1d2d` e não o `--acao-texto` do tema porque
-     a regra da casa é "da cor do CHÃO", e o chão daqui é o navy da marca.
+  /* ONDA 104 — O INSTRUMENTO PASSA A USAR OS VALORES DO §4 SEM ATENUAR.
+     Este bloco existe porque o chão aqui é navy FIXO nos dois temas: quem
+     está dentro não pode herdar as cores do tema CLARO, calibradas para ler
+     sobre branco (o dourado claro daria 3,02:1 aqui — escuro sobre escuro).
+     Até a onda 98 ele carregava um semáforo "vivo" próprio, mais claro que o
+     do app; agora o app inteiro já está em chão escuro e os valores do guia
+     JÁ SÃO os vivos, então o bloco deixa de ser uma segunda paleta e passa a
+     ser só a repetição da do §4 para quem não herda tema.
 
-     A ORIGEM DESTA LINHA (onda 96): são 17 dos 30 usos de `text-accent` do
-     app que vivem aqui dentro (sondagem, tempo, trilha, os cartões flutuantes
-     de /navegar) — sem ela, consertar o acento da página quebra a maioria dos
-     seus consumidores reais. E é a decisão que o comentário da onda 24 já
-     tinha escrito acima de `--mapa-instrumento`: "sempre a MESMA cor em cima
-     do mapa claro OU do satélite escuro, não segue o tema do APP". */
-  --acao: #d4af37;
-  --acao-forte: #e6c766;
-  --acao-texto: #0b1d2d;
+     Medido sobre o cartucho (--meter #040C15) e sobre o flutuante do mapa
+     (--mapa-instrumento #07111C, que é o mais claro dos dois e portanto o
+     que reprova primeiro): ok 9,01 · atenção 8,33 · crítico 5,23 ·
+     acento 7,58 · acento forte 10,21 · texto do botão sobre o acento 8,41. */
+  --ok: #37d67a;
+  --warn: #ff9f1c;
+  --crit: #ff4d4f;
+  --acao: #d6a53a;
+  --acao-forte: #e8c46b;
+  /* Da cor do CHÃO, que é a regra da casa — e o chão daqui agora é o mesmo
+     #07111C do §4. */
+  --acao-texto: #07111c;
 }
 
 body {
@@ -1139,12 +1121,25 @@ body.fundo-tela-mapa {
        herdaria o cinza do tema de TELA e sairia como uma mancha no papel. */
     --superficie-3: #eaeef3;
     --linha: #d7dee6;
-    --texto: #0b1d2d;
+    --texto: #07111c;
     --texto-dim: #46545f;
     --texto-dim-chip: #46545f;
     --ok: #15803d;
-    --warn: #b45309;
+    --warn: #a85c05;
     --crit: #d2373c;
+    /* ONDA 104 — OS OITO HUBS TAMBÉM PRECISAM DE VERSÃO DE PAPEL, e faltavam.
+       Sem estas linhas, quem imprimisse a partir do tema que ABRE levaria o
+       ciano #2DE3FF e o âmbar #FFB020 do §4 — calibrados contra navy — para
+       uma folha branca, onde entregam 1,8:1 e o ícone do hub sai invisível.
+       São os mesmos valores do tema claro, pelo mesmo motivo dele. */
+    --hub-motores: #00778a;
+    --hub-casco: #8a5a00;
+    --hub-eletrica: #004799;
+    --hub-hidraulica: #512bab;
+    --hub-seguranca: #176e3b;
+    --hub-equipamentos: #44566a;
+    --hub-documentos: #156a62;
+    --hub-manutencoes: #854d00;
   }
   .sombra-1, .sombra-2 {
     box-shadow: none !important;

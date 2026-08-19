@@ -23,7 +23,17 @@ import { ImageResponse } from "next/og"
 // renderização (esta rota roda no Node, não no edge) e o SVG vira data URI,
 // que é a única forma que o Satori — o motor do `ImageResponse` — aceita
 // para desenho vetorial. Trocar o logo passa a ser trocar UM arquivo.
-export const alt = "Commander — o dossiê do seu barco"
+// ONDA 103 — A LINHA DO CARD SAI DE "O DOSSIÊ DO SEU BARCO".
+// A auditoria de 19/08 (`produto-promessa-x-entrega.md` §2.1) mediu: `grep
+// dossi` em todo o `web/` devolve zero rota, zero botão e zero action. O PDF
+// que existe (`/barco/resumos`) é custo e uso do período — não sai nele nem o
+// nome do estaleiro. A palavra prometia um documento que o app não entrega, e
+// este card é justamente onde a promessa chega primeiro: é o que aparece
+// quando alguém manda o link no WhatsApp.
+// A linha nova é a mesma do H1 da landing, e ela é conferível: a rota pela
+// água com restrição de calado roda em `lib/domain/rota.ts` e está
+// demonstrada, funcionando, no herói da página.
+export const alt = "Commander — a rota passa onde o seu barco passa"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -74,7 +84,7 @@ export default function Image() {
             letterSpacing: "0.02em",
           }}
         >
-          O dossiê do seu barco
+          A rota passa onde o seu barco passa
         </div>
       </div>
     ),

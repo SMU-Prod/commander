@@ -58,7 +58,16 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   "components/selos/selo-verified.tsx": 9,
   "app/(app)/barco/equipamento/[id]/page.tsx": 8,
   "components/explorar/cards-parceiros.tsx": 4,
-  "components/landing/mock-telas.tsx": 4,
+  // `components/landing/mock-telas.tsx` SAIU do mapa na onda 103, junto com o
+  // arquivo. Ele desenhava um telefone com uma FOTO FALSA de embarcação — um
+  // `radial-gradient` navy no lugar da foto — e as quatro cores literais eram
+  // justamente os canais desse gradiente e do véu por cima dele. A vitrine
+  // nova não imita o app: ela RODA o app (`rota-por-calado.tsx` executa o A*
+  // de `lib/domain/rota.ts` sobre a máscara de costa de verdade), e as duas
+  // peças que a substituem nascem com teto zero — nenhuma cor escrita à mão.
+  // O dono pediu fotografia real da embarcação; o que não existe é o ASSET, e
+  // inventar um gradiente no lugar dele era a versão visual de prova
+  // fabricada. Ver o relatório da onda.
   "components/selos/selo-gold.tsx": 4,
   // ONDA 93 — caiu de 3 para 2 quando o card de compartilhamento parou de
   // redesenhar a marca à mão (o `<path>` dourado copiado de `logo.tsx`) e

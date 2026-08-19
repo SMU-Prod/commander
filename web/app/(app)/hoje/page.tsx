@@ -1,18 +1,19 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense, type ReactNode } from "react"
+// O `Avatar` ficou: ele desapareceu do cabeçalho (que virou a `FaixaTopo`
+// global) mas continua desenhando a fileira de tripulantes, lá embaixo.
 import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { CaminhoInicial } from "@/components/onboarding/caminho-inicial"
-import { Farol } from "@/components/farol"
 import { Icone, type NomeIcone } from "@/components/icone"
-import { SeletorEmbarcacao } from "@/components/seletor-embarcacao"
-import { SinoNotificacoes } from "@/components/sino-notificacoes"
+import { TituloTela } from "@/components/titulo-tela"
 import { Cartao } from "@/components/ui/cartao"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { GraficoBarras } from "@/components/ui/grafico-barras"
 import { Kpi } from "@/components/ui/kpi"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import {
   calcularSemaforo,
@@ -20,13 +21,18 @@ import {
   PESO,
   seloDoFarol,
   temInformacaoSuficiente,
+  type StatusFarol,
 } from "@/lib/domain/semaforo"
-import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude } from "@/lib/domain/saude"
+import {
+  calcularSaudeEmbarcacao,
+  FAROL_ESTADO_SAUDE,
+  type ItemParaSaude,
+  type OcorrenciaParaSaude,
+} from "@/lib/domain/saude"
 import { AREA_AGENDA } from "@/lib/domain/agenda"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
-import { carregarCapaDoHeroi, carregarNotificacoes, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
-import { contadorSino } from "@/lib/domain/notificacoes"
+import { carregarCapaDoHeroi, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
   apoioDaRevisao,
@@ -39,7 +45,6 @@ import {
   precisaDoCaminhoInicial,
   primeirosPassos,
   rotuloDaSaude,
-  seloDaSaude,
   seloDoMar,
   textoUltimaSaida,
   variacaoDoMes,
@@ -156,6 +161,48 @@ function AcaoCartao({ href, children }: { href: string; children: ReactNode }) {
     <Link href={href} className={ALVO_ACAO}>
       <span className={PILULA_ACAO}>{children}</span>
     </Link>
+  )
+}
+
+/**
+ * O CARTUCHO DE SEVERIDADE DA LINHA DE ALERTA (onda 7).
+ * ===========================================================================
+ * O mockup desenha o alerta como LINHA compacta: símbolo de severidade à
+ * esquerda, duas linhas de texto, chevron à direita — que é literalmente o §26
+ * do HAULIX (*"Alerta: ícone · título · descrição · status · ações. Compacto —
+ * nunca alertas enormes"*). Antes desta onda a esquerda era o `Farol`: um
+ * ponto de 8px, o mesmo que a lista de motores e a de hubs usam.
+ *
+ * O PONTO NÃO ESTAVA ERRADO — ESTAVA NO LUGAR ERRADO. Ele é a marca de estado
+ * de um ITEM dentro de uma lista de itens; aqui a linha inteira só existe
+ * porque alguma coisa está errada, e o que a esquerda precisa dizer é O QUANTO
+ * (vencido ou na margem), à distância de um braço, no píer, no sol. Os 36px do
+ * cartucho dão ao vermelho ~1.300px² contra os ~50 do ponto.
+ *
+ * COR E FORMA, NUNCA SÓ COR (`docs/DESIGN.md` §6, regra 3): o glifo é o mesmo
+ * nos dois estados e quem diz a palavra é o `subtitulo` da linha — "Vencido",
+ * "Atenção", "Aberta · gravidade Alta" —, que vem de `FatorSaude.detalhe`, do
+ * domínio, com teste. Por isso o cartucho é decoração pura para leitor de tela
+ * (o `Icone` já é `aria-hidden` por construção) em vez de carregar um
+ * `aria-label` que repetiria o texto ao lado.
+ *
+ * O tom é o do ESTADO e não um tom de hub: aqui a única cor que pode aparecer
+ * é a do semáforo (a mesma régua que o cartucho dos oito hubs de `/barco`
+ * respeita ao contrário — lá o tom é do hub e o estado mora no farol).
+ */
+const CARTUCHO_ALERTA: Record<StatusFarol, string> = {
+  vencido: "border-crit/30 bg-crit/12 text-crit",
+  atencao: "border-warn/30 bg-warn/12 text-warn",
+  ok: "border-ok/30 bg-ok/12 text-ok",
+}
+
+function MarcaDeAlerta({ status }: { status: StatusFarol }) {
+  return (
+    <span
+      className={`flex size-9 shrink-0 items-center justify-center rounded-[var(--raio-controle)] border ${CARTUCHO_ALERTA[status]}`}
+    >
+      <Icone nome="alerta" className="size-5" />
+    </span>
   )
 }
 
@@ -324,8 +371,11 @@ export default async function HojePage({
   // `carregarPainel` já fazia (onda 63) e vinha junto com um `auth.getUser()`
   // que é OUTRA ida à rede, não uma leitura de cookie. Duas voltas de rede para
   // saber o que já estava em `painel.perfil`.
-  const nomeUsuario = painel.perfil?.nome?.trim() || "comandante"
-  const avatarPath = painel.perfil?.avatarPath ?? null
+  //
+  // ONDA 7 — `nomeUsuario` e `avatarPath` saíram junto com a fileira de
+  // saudação: quem desenha o avatar da conta agora é a `FaixaTopo`, e ela o
+  // faz com as INICIAIS (o mesmo `nomeDoAvatar` do desktop), sem pedir URL
+  // assinada nenhuma ao storage.
 
   // Seu ano no mar (onda 18, Pilar Strava do Mar) — totais pessoais a partir
   // das saídas já registradas no diário, sem coleta nova nenhuma.
@@ -340,19 +390,14 @@ export default async function HojePage({
   const inicioJanelaGastos = `${Number(anoAtual) - 1}-01-01`
 
   const [
-    urlAvatar,
     { urlCapa, temFotos },
     { data: comandantes },
     { data: eventosSaida },
     proximaViagem,
     { data: ocorrenciasAtivasBrutas },
-    contadorAvisos,
     { data: despesasMes },
     tripulacao,
   ] = await Promise.all([
-    avatarPath
-      ? supabase.storage.from("acervo").createSignedUrl(avatarPath, 3600).then((r) => r.data?.signedUrl ?? null)
-      : Promise.resolve(null),
     carregarCapaDoHeroi(),
     supabase
       .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
@@ -413,11 +458,14 @@ export default async function HojePage({
     supabase
       .from("ocorrencias").select("*").eq("embarcacao_id", embarcacao.id)
       .in("estado", [...ESTADOS_QUE_PESAM_NA_SAUDE]).order("created_at", { ascending: false }),
-    // Contador do sino (onda 44) — mesma fonte da tela /notificacoes, via
-    // `cache()`: o badge e a lista nunca podem discordar. O layout já pediu
-    // esta mesma função nesta requisição, então aqui ela não custa consulta
-    // nenhuma; entra no `Promise.all` para o caso de a Início renderizar antes.
-    carregarNotificacoes().then(contadorSino),
+    // ONDA 7 — O CONTADOR DO SINO SAIU DAQUI, e a URL assinada do avatar
+    // também. Os dois alimentavam a fileira de saudação do topo (avatar,
+    // "Olá, fulano", seletor de barco e sino), que o cabeçalho global do
+    // mockup substituiu — o sino e o seletor agora moram na `FaixaTopo`, que o
+    // layout de `(app)` monta uma vez para todas as telas. O `Promise.all`
+    // cai de nove para sete promessas; a URL assinada era ida de rede DE
+    // VERDADE (`createSignedUrl` no storage), então esta é uma volta a menos,
+    // não só uma linha a menos.
     podeVerGastos
       ? supabase
           .from("lancamentos_financeiros").select("data, valor_centavos").eq("embarcacao_id", embarcacao.id)
@@ -457,13 +505,37 @@ export default async function HojePage({
   const saude = calcularSaudeEmbarcacao(itensParaSaude, ocorrenciasParaSaude)
   const estadoSaude = estadoExibidoDaSaude(saude, temDadoReal)
   const pendencias = saude.fatores.slice(0, 3)
-  // A MESMA LINHA DE SEMPRE, SÓ QUE NA VOZ CERTA. "1 vencido · 2 na margem ·
-  // 1 ocorrência aberta" saía em 12px dentro do menor cartão da tela (86px,
-  // medidos) — a auditoria de 19/08 mediu isto e chamou pelo nome: o assunto
-  // mais crítico do produto e o atalho mais descartável vestiam a mesma
-  // roupa. Sai daqui pra `valor` do `Cartao` (28px). Nenhuma palavra e nenhum
-  // número mudam; muda de que tamanho eles são ditos.
-  const partesDaSaude = estadoSaude != null ? contagemDaSaude(saude, ocorrenciasAtivas.length) : null
+
+  /**
+   * ONDA 7 — A SAÚDE SAI DO CARTÃO E VAI PARA O HERÓI, AO LADO DO NOME.
+   * =========================================================================
+   * É o item 1 do mockup de 19/08, com a única alteração que ele não podia ter
+   * como estava: **a porcentagem não entra** (PRD §1.1, §27.2 e §28; a
+   * história das duas notas já arrancadas está no topo de `lib/domain/saude.ts`).
+   * O anel é bezel e o número dentro dele é CONTAGEM — quantas coisas pedem
+   * ação —, e a leitura por extenso vai junto, palavra por palavra: é o mesmo
+   * `contagemDaSaude` que o cartão imprimia, com o mesmo `ocorrenciasAtivas.length`.
+   *
+   * Ou seja: nada do que a tela dizia deixou de ser dito. O que mudou é onde —
+   * e o "onde" é o ponto do mockup: o estado do barco encostado no nome do
+   * barco, sobre a foto dele, em vez de num cartão de 86px de altura três
+   * blocos abaixo.
+   *
+   * `saude.fatores.length` e não uma soma nova: é o TAMANHO da lista que
+   * "Precisa da sua atenção" enumera logo abaixo — o resumo e o detalhe leem a
+   * mesma lista, então não há como um discordar do outro.
+   *
+   * O destino do toque acompanha o estado, como a ação do cartão fazia:
+   * `/barco/saude` quando há o que detalhar, `/barco` quando o convite ainda é
+   * "complete o cadastro".
+   */
+  const saudeNoHeroi = {
+    farol: estadoSaude != null ? FAROL_ESTADO_SAUDE[estadoSaude] : null,
+    rotulo: rotuloDaSaude(estadoSaude),
+    pendencias: estadoSaude != null ? saude.fatores.length : null,
+    partes: estadoSaude != null ? contagemDaSaude(saude, ocorrenciasAtivas.length) : null,
+    href: estadoSaude != null ? "/barco/saude" : "/barco",
+  }
 
   // ONDA 96 — O CAMINHO DO DIA 1, E ELE NÃO CUSTA UMA IDA AO BANCO.
   //
@@ -561,29 +633,24 @@ export default async function HojePage({
     // Acabamento Haulix (16/08): gap de desktop desce de 24 pra 16px —
     // densidade é respeito (DESIGN §6.5), e era o que a referência tem.
     <main className="grid gap-3 lg:grid-cols-3 lg:items-start lg:gap-4">
-      {/* Sino no topo com contador (PRD §5.2). Fica aqui, no cabeçalho da
-          Início, porque NO CELULAR o app não tem uma barra superior global —
-          e o topo da tela de casa é onde o dono chega. O contador aparece
-          também no rodapé, na aba Avisos, que essa sim segue em toda tela.
-
-          A partir de `lg` a barra superior global EXISTE: a `FaixaTopo`
-          (onda 60) já carrega sino e nome do barco (o seletor, quando há
-          mais de um). Então sino e seletor daqui somem em `lg:hidden` — sem
-          isso eram dois sinos e dois nomes empilhados na mesma tela. A
-          saudação com a foto de verdade fica em toda largura: é o que a
-          faixa NÃO tem (lá o avatar é só iniciais do e-mail). */}
-      <div className="flex items-center gap-3 lg:col-span-3">
-        <Avatar url={urlAvatar} nome={nomeUsuario} />
-        <div className="min-w-0 flex-1">
-          <p className="apoio text-dim">Olá, {nomeUsuario.split(" ")[0]}</p>
-          <span className="lg:hidden">
-            <SeletorEmbarcacao
-              atual={{ id: embarcacao.id, nome: embarcacao.nome }}
-              opcoes={painel.embarcacoes}
-            />
-          </span>
-        </div>
-        <SinoNotificacoes contador={contadorAvisos} className="lg:hidden" />
+      {/* ONDA 7 — A FILEIRA DE SAUDAÇÃO VIRA O TÍTULO DA TELA.
+          Aqui havia avatar + "Olá, fulano" + seletor de barco + sino, escritos
+          à mão nesta página porque *"NO CELULAR o app não tem uma barra
+          superior global"*. Ele tem, desde esta onda: o cabeçalho do mockup
+          (marca à esquerda, sino à direita) desceu para o celular em `FaixaTopo`
+          e vale em toda tela — foi ele que liberou a vaga de "Serviços" na
+          barra de baixo. As quatro peças foram para lá, uma a uma:
+            · sino → cabeçalho, com o MESMO `ContadorAvisos` do trilho;
+            · seletor de barco → cabeçalho, quando há mais de um (era a única
+              porta de troca de barco do celular; sem isso, sumiria);
+            · avatar da conta → cabeçalho no desktop; no celular a conta mora no
+              Menu, que é uma das cinco vagas da barra;
+            · "Olá, fulano" → não foi para lugar nenhum. É a única coisa que a
+              tela deixou de dizer, e é saudação, não dado.
+          No lugar entra o que o mockup põe e o app não tinha: o NOME DA ÁREA,
+          com o filete dourado. */}
+      <div className="lg:col-span-3">
+        <TituloTela>Início</TituloTela>
       </div>
 
       {erro && (
@@ -615,13 +682,19 @@ export default async function HojePage({
         )}
 
         {/* A foto do dono é o assunto da tela — a única emoção, e a decisão
-            assumida do redesenho. Sem selo de status e sem grade de métricas
-            por cima dela desde a onda 57: o estado tem cartão próprio logo ao
-            lado (com o vocabulário do PRD §5, não um terceiro), e as horas de
-            motor têm o cartão "Motores". Hero é foto e nome. */}
+            assumida do redesenho. As horas de motor continuam fora dela (têm o
+            cartão "Motores").
+            ONDA 7 — O ESTADO VOLTA PARA CIMA DA FOTO, e não é a volta do que a
+            onda 57 tirou. O que saiu daqui em 57 foi um SEGUNDO vocabulário
+            ("Tudo em dia") competindo com o do cartão da Saúde; o que entra
+            agora é a Saúde INTEIRA, com a palavra do PRD §5 e a mesma leitura
+            que o cartão imprimia — e o cartão saiu da tela no mesmo commit.
+            Um estado, um vocabulário, um lugar: ao lado do nome do barco, que
+            é onde o mockup o pôs. */}
         <CardEmbarcacao
           className="order-2"
           embarcacao={embarcacao}
+          saude={saudeNoHeroi}
           urlCapa={urlCapa}
           podeEditarFotos={podeEditar(permissoes, "fotos")}
           temFotos={temFotos}
@@ -635,35 +708,72 @@ export default async function HojePage({
             convite já está no cartão da Saúde, e dois convites idênticos na
             mesma tela é o começo do "informação solta". */}
         {(pendencias.length > 0 || temDadoReal) && (
-          <Cartao
-            icone="alerta"
-            titulo="Precisa da sua atenção"
-            className="order-4"
-            acao={saude.fatores.length > pendencias.length
-              ? <AcaoCartao href="/barco/saude">Ver tudo</AcaoCartao>
-              : undefined}
-          >
+          <div className="order-4">
+            {/* ONDA 7 — O CARTÃO COM LISTA DENTRO VIRA UMA PILHA DE LINHAS.
+                =============================================================
+                Item 2 do mockup, e ele coincide com o §26 do HAULIX: *"Alerta:
+                ícone · título · descrição · status · ações. Compacto — nunca
+                alertas enormes"*. O que havia aqui era o oposto da segunda
+                metade: um `Cartao` de primeiro nível (borda, lustro, 16px de
+                raio, cabeçalho com ícone e ação) embrulhando de uma a três
+                linhas — moldura de painel para conteúdo de lista.
+                O cabeçalho não sumiu: virou `SecaoPagina`, que é a etiqueta de
+                seção da casa e leva a MESMA ação "Ver tudo" na mesma pílula de
+                contorno (`lib/ui/acoes.ts`). O que sumiu foi a segunda casca
+                em volta de linhas que já têm casca própria.
+                `variant="cartao"` e não `"grupo"`: as linhas agora vivem soltas
+                sobre o fundo da página, e é para exatamente este caso que a
+                variante existe — o docblock de `LinhaLista` já a descrevia como
+                *"alertas soltos de /hoje"*, um consumidor que nunca existiu até
+                agora. */}
+            <SecaoPagina
+              denso
+              icone="alerta"
+              acao={saude.fatores.length > pendencias.length
+                ? { href: "/barco/saude", rotulo: "Ver tudo" }
+                : undefined}
+            >
+              Precisa da sua atenção
+            </SecaoPagina>
             {pendencias.length > 0 ? (
-              pendencias.map((f) => (
-                <LinhaLista
-                  key={`${f.tipo}:${f.id}`}
-                  href={linkDoFator(f, podeEditar(permissoes, f.aba))}
-                  leading={<Farol status={f.farol} />}
-                  titulo={f.nome}
-                  subtitulo={f.detalhe}
-                  /* A coluna mono do canvas (tela-1b): manutenção mostra a
-                     contagem regressiva ("-19 d", "18 h"); ocorrência não tem
-                     prazo — mostra a idade ("6 d" aberta há seis dias), o
-                     único número honesto de quem não tem vencimento. A cor é
-                     a do farol da linha. */
-                  valor={f.tipo === "ocorrencia" ? idadePorOcorrencia.get(f.id) : restantePorItem.get(f.id)}
-                  valorClassName={f.farol === "vencido" ? "text-crit" : "text-warn"}
-                />
-              ))
+              <div className="grid gap-2">
+                {pendencias.map((f) => (
+                  <LinhaLista
+                    key={`${f.tipo}:${f.id}`}
+                    variant="cartao"
+                    href={linkDoFator(f, podeEditar(permissoes, f.aba))}
+                    /* O ponto de 8px do `Farol` era a marca certa numa LISTA de
+                       itens, onde o estado distingue uma linha da vizinha. Aqui
+                       toda linha é um problema, e o que a esquerda precisa dizer
+                       é o quanto — ver `MarcaDeAlerta`, no topo do arquivo. */
+                    leading={<MarcaDeAlerta status={f.farol} />}
+                    titulo={f.nome}
+                    subtitulo={f.detalhe}
+                    /* A coluna mono do canvas (tela-1b): manutenção mostra a
+                       contagem regressiva ("-19 d", "18 h"); ocorrência não tem
+                       prazo — mostra a idade ("6 d" aberta há seis dias), o
+                       único número honesto de quem não tem vencimento. A cor é
+                       a do farol da linha. */
+                    valor={f.tipo === "ocorrencia" ? idadePorOcorrencia.get(f.id) : restantePorItem.get(f.id)}
+                    valorClassName={f.farol === "vencido" ? "text-crit" : "text-warn"}
+                    /* A seta do mockup. Sem ela a linha promete detalhe e não
+                       mostra a saída; `LinhaLista` só a desenha por padrão
+                       quando há `href`, e aqui ele é `undefined` para quem não
+                       pode editar a área do item (`linkDoFator`) — nesse caso a
+                       prop também não desenha nada, que é o certo. */
+                    chevron={linkDoFator(f, podeEditar(permissoes, f.aba)) != null}
+                  />
+                ))}
+              </div>
             ) : (
-              <p className="corpo text-dim">Nenhum vencimento na margem. Bom vento e mar calmo.</p>
+              /* Sem pendência a linha não é alerta, então não veste a anatomia
+                 de alerta: é uma frase, e o bloco é do tamanho dela. Palavra
+                 por palavra a mesma de antes. */
+              <p className="corpo rounded-[var(--raio-cartao)] border border-line bg-panel p-3 text-dim">
+                Nenhum vencimento na margem. Bom vento e mar calmo.
+              </p>
             )}
-          </Cartao>
+          </div>
         )}
 
         {podeVerGastos && (
@@ -791,48 +901,28 @@ export default async function HojePage({
           verdade em `lg`. É esta coluna que antes terminava 180px antes do
           herói e deixava o quadrante inferior direito morto. */}
       <div className="contents lg:flex lg:flex-col lg:gap-4">
-        <Cartao
-          icone="escudo"
-          titulo="Saúde"
-          className="order-3"
-          /* ONDA 96 — O CARTÃO QUE ERA O MENOR DA TELA VIRA O ASSUNTO DELA.
-             A régua e o porquê estão em `saudeEhAssunto`, lá em cima. */
-          peso={saudeEhAssunto ? "assunto" : "secao"}
-          selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
-          acao={
-            estadoSaude != null
-              ? <AcaoCartao href="/barco/saude">Ver tudo</AcaoCartao>
-              : <AcaoCartao href="/barco">Completar</AcaoCartao>
-          }
-          /* A linha do canvas (tela-1b): "1 vencido · 2 na margem · 1
-             ocorrência aberta" — número em mono, palavra dim. A fonte de
-             instrumento é do NÚMERO, não da frase (revisão da onda 57):
-             `contagemDaSaude` devolve as partes e só o numeral leva a mono.
-             O que a onda 96 muda é o CORPO do numeral: 28px, a voz que o CSS
-             descreve como "o número que É o assunto da tela", com peso 600
-             tabular (HAULIX §11, dado operacional). A palavra e o separador
-             continuam em 12px de propósito — subir a frase inteira para 28px
-             quebraria em três linhas em 390px e trocaria hierarquia por
-             volume, que é o oposto do que esta onda faz. */
-          valor={partesDaSaude?.map((parte, i) => (
-            <span key={parte.rotulo}>
-              {i > 0 && <span className="apoio text-dim"> · </span>}
-              <span className="font-mono-instr font-semibold tabular-nums">{parte.numero}</span>
-              <span className="apoio text-dim"> {parte.rotulo}</span>
-            </span>
-          ))}
-        >
-          {/* Com a contagem em `valor`, o corpo fica com o que NÃO é número —
-              e nas duas telas em que ela não existe, com a frase de sempre,
-              palavra por palavra. */}
-          {estadoSaude == null ? (
-            <p className="apoio text-dim">
-              Cadastre horas de motor ou vencimentos com data pra saber como está a embarcação.
-            </p>
-          ) : partesDaSaude == null ? (
-            <p className="apoio text-dim">Nenhum item monitorado com data ou leitura.</p>
-          ) : null}
-        </Cartao>
+        {/* ONDA 7 — O CARTÃO "SAÚDE" SAIU DAQUI, E A `order-3` FICOU VAGA.
+            =================================================================
+            Ele era o resumo do que "Precisa da sua atenção" detalha, e ficava
+            TRÊS blocos abaixo da foto, do outro lado da grade — o mockup põe a
+            mesma informação encostada no nome do barco, e essa é a metade boa
+            da mudança. A outra metade é que manter os dois seria dizer a mesma
+            coisa duas vezes na mesma tela, com dois desenhos: o anel e o
+            cartão brigariam por ser o assunto, e "dois assuntos numa tela é
+            zero assunto" (`docs/DESIGN.md` §5).
+            O QUE FOI CONFERIDO ANTES DE APAGAR, peça por peça:
+              · o selo com a palavra do PRD §5 → é o rótulo embaixo do anel;
+              · a leitura "1 vencido · 2 na margem · 1 ocorrência aberta" → é a
+                linha `LeituraDaSaude` do herói, do mesmo `contagemDaSaude`;
+              · a ação "Ver tudo" → o anel inteiro é o link para `/barco/saude`;
+              · a ação "Completar" e a frase *"Cadastre horas de motor ou
+                vencimentos com data…"* → só apareciam sem dado nenhum, que é
+                EXATAMENTE a condição em que o `CaminhoInicial` abre a tela como
+                assunto, com os três passos nomeados e o motivo de cada um. O
+                convite não sumiu: parou de ser dito duas vezes.
+            `saudeEhAssunto` continua vivo, e continua decidindo a mesma coisa:
+            enquanto a Saúde não tem o que dizer, o assunto da tela é o caminho
+            que a faz existir. */}
 
         {/* O Diário é o coração do app (PRD §6) e era um ícone num grid de
             cinco atalhos. Vira cartão com a ÚNICA ação dourada da tela. Foi

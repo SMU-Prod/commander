@@ -4,12 +4,15 @@ import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Farol } from "@/components/farol"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { PatrocinioDashboard } from "@/components/publicidade/patrocinio-dashboard"
+import { TituloTela } from "@/components/titulo-tela"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
   abaDoEquipamento, CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
 } from "@/lib/domain/diario"
-import { calcularSemaforo, PESO, temInformacaoSuficiente, type StatusFarol } from "@/lib/domain/semaforo"
+import {
+  calcularSemaforo, PESO, rotuloDoFarol, temInformacaoSuficiente, type StatusFarol,
+} from "@/lib/domain/semaforo"
 import {
   carregarAcessoEmbarcacoes, carregarCapaDoHeroi, carregarPainel, hojeISO, itemMonitoradoToItemCalc,
 } from "@/lib/consultas"
@@ -145,6 +148,36 @@ export default async function BarcoPage({
    * cadastrado diz "Nada cadastrado" com o anel vazio, que é a confirmação
    * ativa de que não há o que mostrar. O que NUNCA aparece é farol verde num
    * hub vazio — ver `piorFarol` acima.
+   *
+   * ===========================================================================
+   * ONDA 7 — A CONTAGEM DE INVENTÁRIO SAI; A DE ESTADO FICA.
+   * ===========================================================================
+   * O mockup de 19/08 desenha os oito cards **sem número nenhum**: ícone
+   * grande, rótulo, e nada mais. A pergunta que ele deixa em aberto é se
+   * "2 motores" e "Nada cadastrado" também caem — e a resposta não é a mesma
+   * para os dois, porque eles não respondem a mesma pergunta.
+   *
+   * O CRITÉRIO, e ele é o do próprio princípio do sócio ("mascarando dados"):
+   * **contagem que muda o que você faz hoje informa; contagem que é censo é
+   * ruído.** Aplicado, dá três casos:
+   *
+   *   · "2 motores", "12 itens", "3 documentos" — SAEM. Ninguém abre a central
+   *     técnica para descobrir quantos motores tem o próprio barco, e o número
+   *     ocupava, nos oito cards, o mesmo lugar visual do único que importa.
+   *   · o FAROL fica, e ganha a PALAVRA que faltava. Ele já estava lá em cor,
+   *     com o estado só no `aria-label` — que é a violação literal do
+   *     `docs/DESIGN.md` §6, regra 3 (*"todo estado precisa de palavra ou
+   *     símbolo além da cor"*): daltônico não distinguia âmbar de vermelho. A
+   *     palavra vem de `rotuloDoFarol`, do domínio, com teste — não é
+   *     vocabulário novo, é o mesmo que a Saúde e o semáforo já falam.
+   *   · "Nada cadastrado" fica. Hub vazio não é censo: é o único estado em que
+   *     o card tem uma AÇÃO a oferecer, e a diferença entre "não tem nada" e
+   *     "não sei" é a régua de honestidade que este arquivo já protege.
+   *
+   * E `ok` NÃO DESENHA LINHA NENHUMA. Oito "Em dia" verdes numa grade é o
+   * "dashboard colorido" do §58 do HAULIX pela porta dos fundos — e a régua
+   * desta casa é que o alerta é raro. O que não pede nada fica calado; o card
+   * limpo É a informação de que está tudo certo ali.
    */
   const motores = equipamentos.filter((e) => e.tipo === "motor")
   const eletricos = equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica")
@@ -184,7 +217,62 @@ export default async function BarcoPage({
    * O tom sai de `--hub-*` (app/globals.css), onde estão as medições de
    * contraste e a explicação do arco de matiz. Aqui em cima só a amarração
    * hub→tom, escrita em classe LITERAL porque o Tailwind varre o código-fonte
-   * atrás da classe escrita — `bg-hub-${h.aba}/14` não geraria CSS nenhum.
+   * atrás da classe escrita — `text-hub-${h.aba}` não geraria CSS nenhum.
+   *
+   * ONDA 7 — O CARTUCHO SAI E O TOM VAI DIRETO PARA O TRAÇO DO ÍCONE, e isso
+   * responde à trava dos dois dourados de um jeito que o mockup sozinho não
+   * responde. Ele desenha os oito ícones em OURO CHEIO: seriam oito usos de
+   * dourado de conteúdo numa tela cujo orçamento é dois (`docs/DESIGN.md` §5,
+   * e §07 do HAULIX — o acento é 1–3% da tela). Oito ícones de 40px em ouro
+   * são, medidos, ~4% da área útil só neles, e o ouro deixaria de significar
+   * "aqui se age".
+   * O que entra no lugar é o que a §5 do DESIGN já tinha escrito e a onda 102
+   * implementou: os oito tons dessaturados por hub. E o CARTUCHO, que existia
+   * porque *"o ícone sozinho, a `size-6`, pinta ~90 pixels e não lê como
+   * identidade"*, deixa de ser necessário — a 40px o mesmo traço pinta ~250
+   * pixels, centrado, dominando um card de 171px. A justificativa do cartucho
+   * era o tamanho do ícone; com o ícone grande do mockup, ela caduca.
+   *
+   * ===========================================================================
+   * ONDA 104 — O TOM VOLTA A ENCOSTAR NA BORDA, E DESTA VEZ ESTÁ AUTORIZADO.
+   * ===========================================================================
+   * A trava nº 2 da onda 102 ("o tom NUNCA na borda do card") era uma regra da
+   * casa, escrita quando os oito eram dessaturados e a única defesa contra
+   * confundi-los com estado era mantê-los longe do corpo do card. O §5 do Guia
+   * de Design v1 decide o contrário, e com uma condição que a trava não tinha:
+   *
+   *   "Bordas: 1 px, padrão [o valor que virou `--linha`]; **cor do hub apenas
+   *    no estado ativo ou no card daquele sistema**."
+   *
+   * (O valor do padrão está escrito por extenso em `app/globals.css`, e não
+   * aqui: o teto de `lib/ui/tokens.test.ts` conta cor literal por arquivo e
+   * não distingue comentário de código — citar o hexadecimal numa tela subiria
+   * o teto dela por causa de uma citação. A catraca está certa em ser burra;
+   * quem cita é que muda.)
+   *
+   * A condição é o que faz funcionar. Não é "cor de hub pode aparecer no
+   * corpo"; é "a cor do hub X só aparece no card do hub X". Um card de
+   * Segurança com moldura verde é IDENTIDADE porque a moldura é dele; verde no
+   * card de Motores seria estado, e continua proibido. Com esse recorte, o
+   * corpo do card fica livre para o farol continuar sendo a única cor de
+   * ESTADO — que é a coisa que a trava nº 2 existia para proteger, e ela segue
+   * protegida por outro mecanismo.
+   *
+   * E É ASSIM QUE A GRADE DAS IMAGENS NORMATIVAS SE PARECE: oito cards com
+   * moldura e halo próprios, que é o que o §1 declara normativo ("as imagens
+   * conceituais são normativas para hierarquia, atmosfera, composição, cores e
+   * comportamento").
+   *
+   * OS TRÊS CANAIS, do mais forte ao mais fraco, e nenhum deles é o texto:
+   *   1. BORDA a 35% (60% ao apontar) — é a moldura do §5.
+   *   2. HALO atrás do ícone a 10% — o "rim light na cor do hub" do §6, que nos
+   *      renders 3D é luz e aqui, sem os assets, é um disco desfocado.
+   *   3. TRAÇO DO ÍCONE na cor cheia.
+   * O rótulo continua em `--texto` e o estado continua em ok/warn/crit. Tom de
+   * hub não vira cor de texto — é elemento gráfico, régua de 3:1, e há teste.
+   *
+   * As classes são LITERAIS porque o Tailwind varre o código-fonte atrás da
+   * classe escrita: `border-hub-${h.aba}/35` não geraria CSS nenhum.
    */
   const hubs: {
     aba: Aba
@@ -192,15 +280,18 @@ export default async function BarcoPage({
     icone: NomeIcone
     href: string
     quantidade: number
-    /** Singular e plural — "1 motor" / "2 motores". */
-    unidade: [string, string]
     status: StatusFarol | null
-    /** As três classes do cartucho: traço, véu e contorno do MESMO tom. */
+    /** A cor do traço do ícone. */
     tom: string
+    /** A moldura do §5 — a cor do hub no card DAQUELE hub, e só nele. */
+    borda: string
+    /** O halo atrás do ícone: o "rim light na cor do hub" do §6. */
+    halo: string
   }[] = [
     { aba: "motores", rotulo: "Motores", icone: "motor", href: "/barco/motores",
-      tom: "text-hub-motores bg-hub-motores/14 border-hub-motores/25",
-      quantidade: motores.length, unidade: ["motor", "motores"], status: piorFarol(itensDe(motores)) },
+      tom: "text-hub-motores", borda: "border-hub-motores/35 hover:border-hub-motores/60",
+      halo: "bg-hub-motores/10",
+      quantidade: motores.length, status: piorFarol(itensDe(motores)) },
     // `embarcacao` e não `escudo`, que era o ícone do Casco na tela antiga: lá
     // as seções eram empilhadas e o escudo do Casco nunca aparecia ao lado do
     // escudo-com-visto da Segurança. Na grade eles ficam vizinhos e viram dois
@@ -208,26 +299,33 @@ export default async function BarcoPage({
     // que distingue um card do outro antes de ler). O casco é o corpo do
     // barco, então a silhueta da embarcação é o desenho certo.
     { aba: "casco", rotulo: "Casco", icone: "embarcacao", href: "/barco/casco",
-      tom: "text-hub-casco bg-hub-casco/14 border-hub-casco/25",
-      quantidade: itensDoCasco.length, unidade: ["item", "itens"], status: piorFarol(itensDoCasco) },
+      tom: "text-hub-casco", borda: "border-hub-casco/35 hover:border-hub-casco/60",
+      halo: "bg-hub-casco/10",
+      quantidade: itensDoCasco.length, status: piorFarol(itensDoCasco) },
     { aba: "eletrica", rotulo: "Elétrica", icone: "raio", href: "/barco/eletrica",
-      tom: "text-hub-eletrica bg-hub-eletrica/14 border-hub-eletrica/25",
-      quantidade: eletricos.length, unidade: ["equipamento", "equipamentos"], status: piorFarol(itensDe(eletricos)) },
+      tom: "text-hub-eletrica", borda: "border-hub-eletrica/35 hover:border-hub-eletrica/60",
+      halo: "bg-hub-eletrica/10",
+      quantidade: eletricos.length, status: piorFarol(itensDe(eletricos)) },
     { aba: "hidraulica", rotulo: "Hidráulica", icone: "hidraulica", href: "/barco/hidraulica",
-      tom: "text-hub-hidraulica bg-hub-hidraulica/14 border-hub-hidraulica/25",
-      quantidade: itensDaHidraulica.length, unidade: ["item", "itens"], status: piorFarol(itensDaHidraulica) },
+      tom: "text-hub-hidraulica", borda: "border-hub-hidraulica/35 hover:border-hub-hidraulica/60",
+      halo: "bg-hub-hidraulica/10",
+      quantidade: itensDaHidraulica.length, status: piorFarol(itensDaHidraulica) },
     { aba: "seguranca", rotulo: "Segurança", icone: "seguranca", href: "/barco/seguranca",
-      tom: "text-hub-seguranca bg-hub-seguranca/14 border-hub-seguranca/25",
-      quantidade: itensDaSeguranca.length, unidade: ["item", "itens"], status: piorFarol(itensDaSeguranca) },
+      tom: "text-hub-seguranca", borda: "border-hub-seguranca/35 hover:border-hub-seguranca/60",
+      halo: "bg-hub-seguranca/10",
+      quantidade: itensDaSeguranca.length, status: piorFarol(itensDaSeguranca) },
     { aba: "equipamentos", rotulo: "Equipamentos", icone: "ferramenta", href: "/barco/equipamentos",
-      tom: "text-hub-equipamentos bg-hub-equipamentos/14 border-hub-equipamentos/25",
-      quantidade: outrosEquipamentos.length, unidade: ["equipamento", "equipamentos"], status: piorFarol(itensDe(outrosEquipamentos)) },
+      tom: "text-hub-equipamentos", borda: "border-hub-equipamentos/35 hover:border-hub-equipamentos/60",
+      halo: "bg-hub-equipamentos/10",
+      quantidade: outrosEquipamentos.length, status: piorFarol(itensDe(outrosEquipamentos)) },
     { aba: "documentos", rotulo: "Documentos", icone: "documento", href: "/barco/documentos",
-      tom: "text-hub-documentos bg-hub-documentos/14 border-hub-documentos/25",
-      quantidade: documentos.length, unidade: ["documento", "documentos"], status: piorFarol(documentos) },
+      tom: "text-hub-documentos", borda: "border-hub-documentos/35 hover:border-hub-documentos/60",
+      halo: "bg-hub-documentos/10",
+      quantidade: documentos.length, status: piorFarol(documentos) },
     { aba: "embarcacao", rotulo: "Manutenções", icone: "relogio", href: "/barco/manutencoes",
-      tom: "text-hub-manutencoes bg-hub-manutencoes/14 border-hub-manutencoes/25",
-      quantidade: outrasManutencoes.length, unidade: ["item", "itens"], status: piorFarol(outrasManutencoes) },
+      tom: "text-hub-manutencoes", borda: "border-hub-manutencoes/35 hover:border-hub-manutencoes/60",
+      halo: "bg-hub-manutencoes/10",
+      quantidade: outrasManutencoes.length, status: piorFarol(outrasManutencoes) },
   ]
 
   /**
@@ -278,6 +376,14 @@ export default async function BarcoPage({
 
   return (
     <main>
+      {/* O nome da área, com o filete do mockup. `/barco` abria direto na foto
+          do barco: o app dizia QUAL barco antes de dizer ONDE a pessoa estava,
+          e "não sei onde estou dentro do aplicativo" é a frase do dono que
+          originou esta tela inteira (spec §3). "Meu Barco" é o rótulo do §2.1,
+          por extenso — aqui há largura para ele, ao contrário da barra de
+          baixo, que continua em "Barco" por medida física. */}
+      <TituloTela>Meu Barco</TituloTela>
+
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* §23, downgrade Commander Pro → Commander: "não apagar embarcações
@@ -345,59 +451,74 @@ export default async function BarcoPage({
                do bundle, não quem escreveu a tela (o porquê medido está em
                `app/globals.css`, na definição da classe). A classe entrega as
                quatro propriedades, os 150ms e a curva do §49 de uma vez. */
-            className={`painel-lustro raio-painel sombra-1 transicao-ui group flex min-h-30 flex-col border border-line bg-panel p-3 hover:bg-panel2 ${TOQUE_AMPLO}`}
+            className={`painel-lustro raio-painel sombra-1 transicao-ui group flex min-h-30 flex-col items-center border bg-panel p-3 text-center hover:bg-panel2 ${h.borda} ${TOQUE_AMPLO}`}
           >
-            {/* O CARTUCHO — a área que faz o tom do hub existir.
-                O ícone sozinho, a `size-6` e 1,7px de traço, pinta ~90 pixels:
-                a 390px isso não lê como identidade, lê como ícone sujo. Os
-                40px do cartucho dão ao tom ~1.600px² e dão ao card uma âncora
-                — é ela que faz a grade ler como oito objetos distintos antes
-                de qualquer palavra.
-                `--raio-controle` (8px) e não o raio do card: a régua de raio
-                desta casa é por FUNÇÃO, e um bloco de 40px dentro de um painel
-                de 16px pede o degrau de baixo, senão os dois raios competem.
-                O tom NÃO passa daqui — ver o comentário na tabela `hubs`. */}
-            <span
-              className={`transicao-ui inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--raio-controle)] border ${h.tom}`}
-            >
-              <Icone nome={h.icone} className="size-5" />
-            </span>
-            {/* `<h2>` E NÃO `<p>`, e isto é conserto de achado, não capricho: a
-                auditoria de 19/08 mediu "nenhum `<h2>` ou `<h3>` na tela
-                inteira — 23 blocos e um único `<h1>`. Para leitor de tela,
-                /barco é uma parede sem estrutura". Os oito hubs são a estrutura
-                desta tela, então são eles que viram cabeçalho de nível 2 —
-                debaixo do `<h1>` que é o nome do barco, no herói. Cabeçalho
-                dentro de link é válido (o modelo de conteúdo de `<a>` é
-                transparente) e `.titulo-card` já é usada em `<h2>` pelo
-                `Cartao`, então nada muda de aparência. */}
-            <h2 className="titulo-card mt-2">{h.rotulo}</h2>
-            {/* `mt-auto` cola a linha de estado no rodapé do card: com oito
-                cards em quatro fileiras, o olho varre a coluna dos faróis de
-                uma vez só em vez de caçar cada um numa altura diferente. */}
-            <p className="apoio mt-auto flex items-center gap-1.5 pt-2 text-dim">
-              {h.quantidade > 0 && h.status ? (
-                <Farol status={h.status} />
-              ) : (
-                <span
-                  aria-label={h.quantidade === 0 ? "Nada cadastrado" : "Sem dados de manutenção"}
-                  className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-line"
-                />
-              )}
-              {/* O NUMERAL VAI EM MONO TABULAR E A PALAVRA NÃO — é a mesma
-                  anatomia que o cartão da Saúde e o da Tripulação já usam em
-                  `/hoje` (`docs/DESIGN.md` §5: a fonte de instrumento é do
-                  NÚMERO, não da frase). Antes a linha inteira saía na
-                  proporcional, e "2 motores" ao lado de "12 itens" não
-                  alinhava a coluna que o `mt-auto` acima existe pra criar. */}
+            {/* ONDA 7 — O ÍCONE É O ASSUNTO DO CARD: grande, centrado, no topo,
+                com o rótulo embaixo. É a anatomia do mockup e é a metade que
+                faltava para o card "ler como objeto" antes de qualquer palavra
+                — o que o cartucho de 40px vinha fazendo por um ícone de 24.
+                `flex-1 justify-center` num bloco PRÓPRIO, e não
+                `justify-center` no card inteiro: assim o par ícone+rótulo cai
+                no MESMO lugar nos oito, mesmo quando alguns têm linha de estado
+                e outros não. Sem isso a fileira de ícones sobe e desce card a
+                card, e oito quadrados deixam de ler como um painel.
+                `<div>` e não `<span>`: `<a>` tem modelo de conteúdo
+                transparente, e o `<h2>` aqui dentro é conteúdo de fluxo. */}
+            <div className="flex flex-1 flex-col items-center justify-center gap-2">
+              {/* O HALO — o "rim light na cor do hub" do §6 do guia. Nos renders
+                  3D das imagens normativas ele é luz de recorte; sem os assets
+                  3D (ver o desvio de biblioteca em `docs/DESIGN-SYSTEM.md`), o
+                  equivalente honesto é um disco desfocado atrás do traço. É
+                  `blur-md` e a 10% de propósito: ele precisa ler como luz, não
+                  como um segundo cartucho — cartucho de borda dura ao lado de
+                  uma moldura colorida daria DOIS retângulos por card.
+                  O ícone vai num irmão `relative`, e não dentro do disco: filho
+                  de elemento borrado herda o `filter`, e o traço sairia
+                  desfocado junto. */}
+              <span className="relative flex size-10 shrink-0 items-center justify-center">
+                <span aria-hidden="true" className={`absolute inset-1 rounded-[var(--raio-pilula)] blur-md ${h.halo}`} />
+                <Icone nome={h.icone} className={`relative size-10 shrink-0 ${h.tom}`} />
+              </span>
+              {/* `<h2>` E NÃO `<p>`, e isto é conserto de achado, não capricho: a
+                  auditoria de 19/08 mediu "nenhum `<h2>` ou `<h3>` na tela
+                  inteira — 23 blocos e um único `<h1>`. Para leitor de tela,
+                  /barco é uma parede sem estrutura". Os oito hubs são a estrutura
+                  desta tela, então são eles que viram cabeçalho de nível 2 —
+                  debaixo do `<h1>` que é o título da área. Cabeçalho dentro de
+                  link é válido (o modelo de conteúdo de `<a>` é transparente) e
+                  `.titulo-card` já é usada em `<h2>` pelo `Cartao`. */}
+              <h2 className="titulo-card">{h.rotulo}</h2>
+            </div>
+            {/* O RODAPÉ TEM ALTURA FIXA E FICA VAZIO NA MAIORIA DOS CARDS, e
+                as duas coisas são de propósito: `h-4` reserva a linha para que
+                os oito tenham a mesma geometria (senão o `flex-1` acima
+                distribui folga diferente em cada um), e o silêncio é a resposta
+                de um hub que não está pedindo nada. Só falam aqui os dois casos
+                que mudam o que a pessoa faz hoje — o critério inteiro está na
+                tabela `hubs`, lá em cima. */}
+            <p className="apoio flex h-4 items-center gap-1.5 text-dim">
               {h.quantidade === 0 ? (
-                "Nada cadastrado"
-              ) : (
-                <span>
-                  <span className="font-mono-instr font-semibold tabular-nums text-texto">{h.quantidade}</span>{" "}
-                  {h.quantidade === 1 ? h.unidade[0] : h.unidade[1]}
-                </span>
-              )}
+                <>
+                  {/* Anel vazio, nunca farol: verde num hub sem nada dentro
+                      diria "está tudo bem" sobre um dado que não existe. */}
+                  <span
+                    aria-hidden="true"
+                    className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-line"
+                  />
+                  Nada cadastrado
+                </>
+              ) : h.status === "vencido" || h.status === "atencao" ? (
+                <>
+                  {/* Cor E palavra — a regra 3 do §6 do DESIGN. Até esta onda o
+                      `Farol` vinha sozinho e o estado só existia no
+                      `aria-label`: quem não distingue âmbar de vermelho lia
+                      dois pontinhos iguais. */}
+                  <Farol status={h.status} />
+                  <span className={h.status === "vencido" ? "text-crit" : "text-warn"}>
+                    {rotuloDoFarol(h.status)}
+                  </span>
+                </>
+              ) : null}
             </p>
           </Link>
         ))}

@@ -6,7 +6,9 @@
  * mesma coisa, não parecidas. Enquanto o badge era um `<span>` escrito à mão
  * dentro da `BottomNav`, o trilho nasceu sem ele: a partir de 1024px o ícone
  * "Avisos" existia e o número não, e o aviso de seguro vencido sumia de todo
- * o app fora da Início (o sino de `SinoNotificacoes` tem um consumidor só).
+ * o app fora da Início. (Havia um terceiro desenho, `SinoNotificacoes`, com um
+ * consumidor só e um badge escrito à mão; ele foi apagado na onda 7, quando o
+ * cabeçalho da Início virou a `FaixaTopo` global e o sino passou a ser um só.)
  * Estilo escrito à mão em dois lugares é como a próxima divergência nasce
  * (docs/DESIGN.md §6, regra 6).
  *

@@ -249,6 +249,65 @@ describe.each(Object.entries(TEMAS))("contraste do tema %s", (nomeTema, bloco) =
 })
 
 /**
+ * OS OITO TONS DE HUB — A DÍVIDA QUE A ONDA 102 DECLAROU E A 104 PAGA.
+ *
+ * O comentário dos hubs em `globals.css` terminava assim: *"DÍVIDA DECLARADA:
+ * `lib/ui/contraste.test.ts` deveria ganhar uma linha por tom (a régua é
+ * 'token de cor novo sem linha nova ali reabre o buraco'). Esta onda não pôde
+ * tocar naquele arquivo"*. Ficaram oito tokens de cor sem cobertura, medidos
+ * uma vez à mão e nunca mais — e a onda 104 troca os oito de valor, que é
+ * exatamente quando a falta de teste cobra o preço.
+ *
+ * A RÉGUA AQUI É 3:1, E NÃO OS 4,5:1 DA TABELA ACIMA. Não é exceção
+ * conveniente: é a regra do WCAG para ELEMENTO GRÁFICO, e é o que o hub é
+ * neste sistema — ícone e borda do card daquele sistema (§5 do guia: "cor do
+ * hub apenas no estado ativo ou no card daquele sistema"). O corolário está
+ * no CSS e vale repetir: hub NÃO PODE virar cor de texto. Hidráulica
+ * (#8B5CF6) entrega 4,20:1 sobre o vidro — passa como grafismo e reprovaria
+ * como texto, e é justamente esse par que transforma a regra de escopo numa
+ * medida em vez de uma intenção.
+ */
+const HUBS = [
+  "motores",
+  "casco",
+  "eletrica",
+  "hidraulica",
+  "seguranca",
+  "equipamentos",
+  "documentos",
+  "manutencoes",
+] as const
+
+/** O mínimo WCAG para elemento gráfico e componente de interface. */
+const AA_GRAFICO = 3
+
+describe.each(Object.entries(TEMAS))("tons de hub do tema %s", (nomeTema, bloco) => {
+  const t = (nome: string) => token(bloco, nome, nomeTema)
+
+  it.each(HUBS)("--hub-%s lê sobre o cartão e sobre a página", (hub) => {
+    const cor = t(`hub-${hub}`)
+    for (const [onde, chao] of [
+      ["cartão", t("superficie")],
+      ["página", t("fundo")],
+    ] as const) {
+      const r = razao(cor, chao)
+      expect(
+        r,
+        `--hub-${hub} (${cor}) sobre ${onde} (${chao}) dá ${r.toFixed(2)}:1 ` +
+          `(mínimo ${AA_GRAFICO}:1 para elemento gráfico)`,
+      ).toBeGreaterThanOrEqual(AA_GRAFICO)
+    }
+  })
+
+  it("os oito são oito cores distintas", () => {
+    // Dois hubs com o mesmo hexadecimal não seriam um erro de contraste e
+    // passariam calados no teste acima — mas a identidade por hub é a razão
+    // de os tokens existirem, e ela morre no instante em que dois coincidem.
+    expect(new Set(HUBS.map((h) => t(`hub-${h}`))).size).toBe(HUBS.length)
+  })
+})
+
+/**
  * A regra que não é sobre um par, e sim sobre o MECANISMO.
  *
  * O acento do app e o acento do instrumento são obrigados a ser cores

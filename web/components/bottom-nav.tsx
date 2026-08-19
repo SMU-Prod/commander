@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ContadorAvisos } from "./ui/contador-avisos"
 import { Icone, type NomeIcone } from "./icone"
 import { TOQUE } from "@/lib/ui/acoes"
 
@@ -33,9 +32,18 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
     icone: "relatorio",
   },
   {
-    href: "/notificacoes",
-    rotulo: "Avisos",
-    icone: "alerta",
+    // ONDA 7 — "AVISOS" SAI, "SERVIÇOS" ENTRA. A conta que autoriza a troca
+    // está no bloco grande abaixo; em uma frase: o sino subiu para o cabeçalho
+    // de TODA tela do celular (`components/faixa-topo.tsx`), então a vaga
+    // deixou de ser a única superfície de alerta do aparelho.
+    //
+    // Âncora e não sacola: `marketplace` é o ícone de UMA das cinco áreas de
+    // dentro de Serviços, e usá-lo aqui faria a aba prometer o Marketplace e
+    // entregar um índice. A âncora é o que o mockup desenha e é o símbolo
+    // náutico de "quem te atende em terra" — nenhuma outra aba a usa.
+    href: "/servicos",
+    rotulo: "Serviços",
+    icone: "ancora",
   },
   {
     href: "/menu",
@@ -45,20 +53,52 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
 ]
 
 /**
+ * ONDA 7 — "SERVIÇOS" ENTRA, "AVISOS" SAI, E A CONTA FOI FEITA ANTES.
+ * ===========================================================================
+ * O mockup do sócio comercial (`public/imagens/novodesignmodelo.png`) desenha
+ * a barra como **Início · Barco · Diário · Serviços · Menu**. A onda 102
+ * recusou exatamente essa troca, e a recusa está preservada abaixo porque o
+ * ARGUMENTO dela continuava certo: *"Avisos é a única superfície de alerta
+ * presente em TODA tela do celular; trocá-la apagaria o aviso de seguro
+ * vencido de todo lugar"*.
+ *
+ * O QUE MUDOU NÃO FOI A OPINIÃO — FOI O FATO. Na mesma onda o cabeçalho do
+ * mockup (marca à esquerda, sino à direita) desceu para o celular em TODA
+ * tela, inclusive para quem ainda não tem barco (`FaixaMarca`, em
+ * `components/faixa-topo.tsx`, e o `||` que a chama em `moldura-app.tsx`).
+ * A premissa da recusa — "só existe uma superfície de alerta e é esta vaga" —
+ * deixou de ser verdade, e aí a troca passa a ser certa em vez de errada.
+ *
+ * O QUE FOI VERIFICADO ANTES DE APLICAR, item por item:
+ *   · o contador é o MESMO `ContadorAvisos` nos três lugares (sino do topo,
+ *     trilho de desktop, e antes aqui) — ele lê o `avisos` que o layout de
+ *     `(app)` calcula uma vez com `contadorSino(await carregarNotificacoes())`.
+ *     Sair daqui não muda a fonte nem o número: muda onde ele é desenhado;
+ *   · o alvo do sino no topo é `size-11` (44px), o mesmo piso da barra;
+ *   · `/notificacoes` continua a UM toque de qualquer tela, e continua listada
+ *     no Menu — os dois caminhos que o gate de descoberta exige;
+ *   · quem não tem barco também mantém o sino (`FaixaMarca`), que era o furo
+ *     mais fácil de deixar aberto nesta troca.
+ *
+ * O CUSTO QUE SOBRA, e ele é real: o sino do topo é MENOS visível que uma aba
+ * de 78px com rótulo escrito. A troca não é de graça — ela compra a porta da
+ * rede náutica, que é o segundo dos quatro aplicativos do §1 da spec e não
+ * tinha entrada nenhuma no celular fora do Menu. Se o dono medir que os avisos
+ * caíram, o caminho de volta está inteiro: são estas seis linhas.
+ *
+ * ---------------------------------------------------------------------------
  * ONDA 102 — COMO ESTAS CINCO SE ENCAIXAM NOS SEIS ITENS DO MENU PRINCIPAL.
  *
  * A spec de 19/08 (§2.1) fixa o menu do proprietário em seis: Início · Meu
  * Barco · Diário · Agenda · Serviços · Minha Conta. A barra cabe cinco, por
  * motivo físico (a conta está 30 linhas abaixo), então o encaixe é este:
  *
- *   · Início, Meu Barco e Diário têm vaga própria — são os três destinos que
- *     a pessoa abre todo dia;
- *   · Agenda, Serviços e Minha Conta moram no Menu, que é a quinta vaga e o
- *     gate de descoberta (PRD §9);
- *   · Avisos não é um dos seis e mesmo assim fica, pelo motivo escrito logo
- *     abaixo: é a única superfície de alerta presente em TODA tela do celular.
- *     Trocá-la por "Serviços" apagaria o aviso de seguro vencido de todo lugar
- *     pra ganhar um atalho que o Menu já dá a um toque.
+ *   · Início, Meu Barco, Diário e Serviços têm vaga própria — são os quatro
+ *     destinos do §2.1 que a pessoa abre no dia a dia;
+ *   · Agenda e Minha Conta moram no Menu, que é a quinta vaga e o gate de
+ *     descoberta (PRD §9);
+ *   · Avisos não é um dos seis e agora também não está aqui: mora no sino do
+ *     cabeçalho, presente em toda tela.
  *
  * O rótulo continua "Barco" e não "Meu barco" pela MESMA restrição que tirou
  * "Comandantes" daqui na onda 57: a 375px cada coluna tem ~75px, e "MEU
@@ -82,12 +122,12 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
  * Não reabra esta discussão sem trazer um rótulo mais curto ou uma aba pra
  * sacrificar.
  *
- * `avisos` é o contador do sino (PRD §5.2), calculado no layout e já
- * filtrado por permissão — ver `carregarNotificacoes`. Fica no rodapé
- * porque a aba Avisos é a única superfície de notificação presente em TODA
- * tela; o sino em si mora no topo da Início.
+ * O CONTADOR DE AVISOS NÃO CHEGA MAIS AQUI (onda 7). Ele acompanha o sino, e
+ * o sino subiu para o cabeçalho de toda tela — a prop foi removida junto para
+ * que ninguém a passe achando que ela ainda desenha alguma coisa. A fonte
+ * continua a mesma no layout de `(app)`; só o destino mudou.
  */
-export function BottomNav({ avisos = 0 }: { avisos?: number }) {
+export function BottomNav() {
   const pathname = usePathname()
   return (
     // Onda 57 — `lg:hidden` porque a partir de `lg` quem navega é o
@@ -97,7 +137,6 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)
-          const badge = a.href === "/notificacoes"
           return (
             <Link
               key={a.href}
@@ -135,15 +174,13 @@ export function BottomNav({ avisos = 0 }: { avisos?: number }) {
               {ativa && (
                 <span aria-hidden="true" className="absolute inset-x-0 top-0 h-0.5 bg-accent" />
               )}
-              <span className="relative">
-                <Icone nome={a.icone} className="size-[21px]" />
-                {/* Onda 57 (revisão) — o badge saiu daqui pra
-                    `ui/contador-avisos.tsx`. Ele era escrito à mão neste
-                    arquivo e SÓ neste arquivo; quando o trilho de desktop
-                    nasceu, nasceu sem número. Agora os dois desenham o mesmo
-                    componente e nenhum dos dois pode divergir do outro. */}
-                {badge && <ContadorAvisos avisos={avisos} />}
-              </span>
+              {/* Onda 57 (revisão) — o badge saiu deste arquivo pra
+                  `ui/contador-avisos.tsx`, porque escrito à mão aqui ele
+                  nasceu ausente no trilho de desktop. Onda 7 — saiu da barra
+                  inteira: ele acompanha o sino, e o sino agora é do cabeçalho.
+                  O componente compartilhado continua sendo o único desenho
+                  dele, em `faixa-topo.tsx` e no trilho. */}
+              <Icone nome={a.icone} className="size-[21px]" />
               {/* min-w-0 + truncate: sem isso os rótulos longos ("Embarcação")
                   estouram o flex-1 e encostam um no outro em tela de 375px —
                   foi o que acontecia com "Comandantes". tracking removido

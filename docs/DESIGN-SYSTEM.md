@@ -1,165 +1,402 @@
-# Sistema de Design Commander — análise profunda da referência
+# Sistema de Design Commander — DEFINITIVO
 
-Análise imagem por imagem do painel **Haulix** (by Phenomenon), a referência
-que o dono escolheu, com o mapa de adaptação: **qual padrão de qual tela vira
-o quê no Commander**, o que já está construído e o que entra em qual onda.
+**Fonte:** *Guia de Design e Implementação Visual Commander v1.0*, 19/08/2026,
+aprovado pelo dono. Este arquivo é a transcrição normativa dele para dentro do
+repositório, com os nomes de token que o código realmente usa.
 
-Complementa `docs/DESIGN.md` (princípios) e os specs de fundação e
-arquitetura. Este documento é o **catálogo**: quando uma onda refizer uma
-tela, é aqui que se olha primeiro.
+**Status: NORMATIVO.** Toda tela, componente ou correção visual do Commander
+obedece a este documento. O PRD define comportamento; este arquivo define
+apresentação e interação. Nenhum módulo cria fonte, ícone, raio, sombra ou cor
+nova sem que a linha correspondente apareça **aqui primeiro**.
 
----
+**Prioridade quando houver conflito:** clareza operacional > consistência >
+estética > efeito visual.
 
-## 1. As seis imagens, uma a uma
+## O que este arquivo substitui
 
-### Imagem 1 — Operations Dashboard sobre mapa (tablet)
-
-O que a tela é: o mapa da frota em tempo real com a interface flutuando por
-cima — o padrão Waze aplicado a gestão.
-
-| Padrão na imagem | O que é | No Commander | Estado |
-|---|---|---|---|
-| **Faixa de KPI no topo** — `Active 6/10 · Drivers 6/8 · Trips 5 · Avg Fuel 56.2% · On-time 94.2%` | pílulas de contorno, rótulo + número mono, SEMPRE visíveis | **Motor BB · Motor BE · Próxima revisão · Documentos · Saúde** (spec fundação §3.4), no desktop | ⚠️ parcial (onda 60 entregou a faixa — `components/faixa-topo.tsx` — com nome do barco (o `SeletorEmbarcacao` quando houver mais de uma embarcação, spec fundação §3.3; a Início esconde o dela e o sino em `lg:` pra não duplicar) + Motor BB/BE + Próxima revisão; **Documentos e Saúde ficaram de fora de propósito**: a faixa só deriva do que o layout de `(app)` já carrega (`carregarPainel` + avisos), e esses dois exigiriam consulta nova — ocorrências pra saúde — em TODA página) |
-| **Busca global** `Search vehicles, trips, or more… ⌘K` | uma busca só, com atalho | busca do Commander — adiada DE PROPÓSITO (spec arquitetura §5: busca não conserta menu confuso) | ❌ pós-60 |
-| **Sino com contagem + avatar com nome/papel** | canto direito fixo | faixa de topo do desktop (`FaixaTopo`): sino com o `ContadorAvisos` compartilhado + avatar de iniciais (do e-mail, tom neutro) levando a `/menu/ajustes` | ✅ onda 60 |
-| **Chips de filtro com contagem** — `All 10 · Active 6 · Idle 2 · Maintenance 1 · Offline 1` | estado + número no chip, um ativo sólido | `BarraFerramentas` das listas (Diário, Financeiro, Ocorrências, Avisos) | ⚠️ parcial (onda 59 entregou a barra nas 3 listas; a CONTAGEM nos chips e a barra em Avisos ficaram pra replicação) |
-| **Toggles à direita da barra** — `Show routes · Show alerts` | alternâncias de camada na MESMA barra dos filtros | painel de camadas do `/navegar` (hoje é botão separado) — candidato a migrar pra barra | 🔜 Onda 59/61 |
-| **Cartão flutuante do veículo sobre o mapa** — identidade, rota `Dallas → Memphis` com barra de progresso DOURADA, ETA, `72.9 mi` restantes | um cartão só, denso, com X pra fechar | o card do barco no `/navegar` (bottom-sheet hoje) — a barra de progresso dourada da rota é o detalhe a copiar: progresso é o ÚNICO dourado do cartão | ⚠️ parcial (temos o cartão; falta a barra de progresso e a densidade) |
-| **Velocímetro + galão como instrumentos** — `100 mph` com arco vermelho no excesso, `3.61 gal` donut | número gigante mono, arco semântico | instrumentos do modo navegando (SOG, combustível quando o Connect chegar) — arco de cor SÓ semântico (excesso = vermelho) | ⚠️ parcial (SOG existe; sem arco) |
-| **Tarja âmbar "Required Break: 30 min"** | aviso contextual DENTRO do cartão, não toast | tarjas de aviso do Commander (mar ruim, calado) — já é o padrão | ✅ |
-| **Bússola NW no canto** | instrumento redondo flutuante | rosa dos ventos do modo navegando | ✅ (proa no marcador) |
-
-### Imagem 2 — Ficha do veículo com carga (notebook)
-
-O que a tela é: **a anatomia de FICHA** (spec arquitetura §2.3) executada por
-completo. É a imagem mais importante para as ondas 59–60.
-
-| Padrão | O que é | No Commander | Estado |
-|---|---|---|---|
-| **Breadcrumb** `Dashboard › Fleet Vehicles › TX-4821-HX` | rastro de onde se está | fichas de equipamento/saída/ocorrência no desktop | 🔜 pós-60 (a onda 60 entregou o cabeçalho SEM o breadcrumb — ficou de fora da ficha de equipamento) |
-| **Cabeçalho de ficha**: título GRANDE + chip de estado `Idle` colado + subtítulo (modelo) | identidade e estado na mesma linha | `CabecalhoDetalhe` ganhou `selo` (chip de estado colado ao título, palavra E cor) na onda 60; a ficha de equipamento adota (semáforo via `seloDoFarol`; sem item monitorado = "Sem dados") | ✅ onda 60 no equipamento / 🔜 replicação nas demais fichas (saída, ocorrência, lançamento…) |
-| **Barra de ações da ficha**: `Maintenance · Take Offline · [Activate Route]` — duas de contorno, UMA preenchida | a ação principal é a única sólida | `CabecalhoDetalhe` ganhou `acoes` (onda 60); o equipamento usa com "Editar" em contorno — SEM preenchida de propósito: a ação principal ("Registrar serviço") continua no corpo e duplicar quebraria DESIGN §6.2 | ⚠️ parcial (slot pronto + 1 ficha; replicação pendente) |
-| **Abas com contagem**: `Overview · Cargo · Trips 2 · Maintenance 3 · Alerts 0` | número junto do rótulo | `Abas` (criado na onda 58, já com `contagem?`); onda 60: `FinanceiroNav` renderiza `Abas` por dentro — a sub-navegação do Financeiro (4 telas) já é o componente | ✅ componente + sub-navegações / 🔜 uso nas fichas (com contagem) |
-| **Painel lateral de itens** (Packages) com chips de prioridade `Critical/High/Low` | lista densa ao lado do visual | painel de equipamentos/ocorrências ao lado do Mapa da Embarcação | ✅ onda 61 (desktop: painel à direita do corte; celular: painel abaixo, âncora `#painel-zona`) |
-| **Barras de capacidade** `28 700/44 000 lbs · 65%` | valor/limite + barra fina colorida | cota de fotos, capacidade elétrica (painel de bordo), tanque | 🔜 pontual |
-
-### Imagem 3 — Driver Management em kanban
-
-O que a tela é: pessoas agrupadas por **estado operacional** (`Driving 6 ·
-Resting 3 · Off Duty 1`), cartão com avatar real, credencial
-(`CDL-A TX-88421`), micro-KPIs (`6.5h · 267 · 4.8★`) e ações de contato.
-
-**No Commander:** não copiar o kanban como layout de Tripulação — nossa
-tripulação tem 2–5 pessoas, kanban de 3 colunas ficaria vazio (decorar o
-vazio, DESIGN §6.4). O que se absorve é o **cartão de pessoa**:
-avatar + nome + credencial em chip mono + micro-KPIs + ação de contato.
-Aplica em: **Tripulação** (`/tripulacao`), **Comandantes** (vitrine — saídas
-registradas, avaliação, "Documentação declarada" como chip), **Prestadores**.
-O agrupamento por estado serve ao **Admin** (barcos por estado de saúde,
-demandas do marketplace por status). ⚠️ parcial (onda 60 entregou o cartão na
-**Tripulação**: avatar de iniciais + nome + papel + permissão legível;
-Prestadores e Comandantes JÁ TINHAM cartão próprio de vitrine — unificar as
-três anatomias numa só ficou pra replicação, junto com os micro-KPIs) /
-backlog (admin).
-
-### Imagem 4 — Dashboard de cartões com o caminhão 3D
-
-O que a tela é: a grade de cartões de anatomia única — gráfico de área,
-cartão do veículo com instrumentos, **o caminhão 3D com slots de carga
-clicáveis**, cartão do motorista.
-
-- **O caminhão 3D é o pedido explícito do dono para Manutenção**: no
-  Commander vira o **Mapa da Embarcação** — o barco em corte por ZONAS
-  (casco, motores, elétrica, hidráulica, convés, cabine), cada zona com
-  equipamentos/manutenções/ocorrências fixados no lugar físico, chip de
-  estado por item (`Critical/Normal/High` → nosso vencido/atenção/em dia).
-  Selecionar zona no desenho abre o painel lateral (imagem 2). ✅ onda 61: zona
-  física no banco (dado), corte SVG com pinos por estado (tela) e a
-  seleção sincronizada com o painel — as três camadas do spec, medidas na
-  varredura de tela. **O 3D com modelo padrão por tipo de barco (o
-  equivalente exato do caminhão) é a evolução JÁ DECIDIDA pelo dono para a
-  onda 62** ("*o 3d dos barcos temos que ter... um modelo padrão de 3d mas
-  baseado na escolha do barco*", 16/08) — não um talvez: a shortlist de
-  asset já está pronta, com o Hinckley T44 FB (flybridge) grátis em licença
-  CC-BY como 1º candidato. O corte SVG desta onda é o palco v1 — mesma
-  camada de dado e de painel, troca-se só o desenho.
-- **Gráfico de área com preenchimento translúcido** (On-Time Performance):
-  o padrão para "Gastos do mês" e "Seu ano no mar" — área, não pizza. ✅
-  (GraficoMesesGastos é barras; área entra quando houver série contínua).
-- **Cartão de pessoa com KPIs embaixo** (Marcus Johnson): mesma anatomia da
-  imagem 3. ⚠️ parcial — ver imagem 3 (Tripulação ✅ na onda 60; micro-KPIs
-  e replicação em Prestadores/Comandantes pendentes).
-
-### Imagem 5 — Carga 3D explodida (tablet)
-
-Variação da imagem 2 com o baú aberto. O que acrescenta:
-
-- **Item selecionado no 3D ganha contorno DOURADO** e o painel lateral abre
-  o detalhe correspondente — seleção sincronizada desenho↔lista. É a
-  interação-chave do Mapa da Embarcação. ✅ onda 61 — a zona selecionada no
-  corte SVG é o único dourado de conteúdo da tela (orçamento de 1 respeitado);
-  o painel ao lado (desktop) ou abaixo (celular, via âncora) sincroniza pela
-  URL (`?zona=`), sem `useState`. Silhueta específica por TIPO de barco
-  (hoje o corte é genérico) segue como evolução — o 3D da onda 62 já nasce
-  por tipo, então a silhueta 2D só compensaria no intervalo entre as duas.
-- **Callout âmbar "Fragile — handle with care"** dentro do detalhe: aviso
-  contextual por item — no Commander, "peça em backorder", "recall do
-  fabricante", "vence em 12 dias". ✅ padrão de tarja já existe.
-- **Front (Cab) ← → Rear (Doors)**: orientação escrita no desenho — no
-  barco: **Proa ← → Popa**. ✅ onda 61, escrito nas pontas do corte.
-
-### Imagem 6 — Operations Dashboard analítico
-
-O que a tela é: a Início de quem gerencia — e a validação de tudo que a
-onda 58 fez em Avisos.
-
-| Padrão | No Commander | Estado |
-|---|---|---|
-| **Quick Actions** — `Add New Trip · Assign Driver · Live Map` como cartões-botão no topo | Acesso rápido da Início (já existe como ladrilhos) | ✅ |
-| **Alert Priority Queue** — fila com BORDA LATERAL por severidade (âmbar/vermelho), título + chip de nível + descrição de UMA linha + **ações inline (✓ resolver, 👁 ver)** | a caixa de entrada de Avisos. A borda lateral por severidade e a **ação inline no próprio aviso** são o que falta no nosso `CartaoNotificacao` — hoje ele é link genérico pro hub (achado Menor 4 da revisão da onda 58) | 🔜 Onda 59 |
-| **Recent Activity** — feed com id mono + verbo + carimbo | o Diário como feed (já é) + histórico central | ✅ |
-| **Charts com UMA série destacada** | padrão dos relatórios do Financeiro | 🔜 Onda 59 |
-
----
-
-## 2. O sistema que as imagens ensinam (consolidado)
-
-O que a referência tem de disciplina, verificado nas seis imagens:
-
-1. **Fundo quase-preto, superfícies em degraus, borda 1px** — nunca sombra
-   para separar cartão de fundo. ✅ nossos tokens (onda 57).
-2. **UM acento (lima ácido no Haulix, dourado no Commander)** e ele aparece
-   em: a ação principal preenchida, o item selecionado, a barra de progresso
-   da rota, a marca. **Nunca em decoração.** ✅ regra dos 2 usos — e desde a
-   onda 60 o dourado de navegação (trilho, bottom-nav, aba ativa) e o FAB
-   global ficam de fora dessa conta, por serem moldura: ver `docs/DESIGN.md`
-   §5.
-3. **Semântico separado do acento**: verde=ok, âmbar=atenção,
-   vermelho=crítico, sempre com PALAVRA no chip. ✅.
-4. **Todo número em mono** — até dentro de chip (`CDL-A TX-88421`). ✅.
-5. **Chip é a moeda da interface**: estado, contagem, credencial, filtro —
-   tudo é pílula pequena de anatomia única. ⚠️ nosso `Chip` (filtro) e
-   `Selo` (estado) cobrem 2 dos 4 usos; credencial mono em chip entra com o
-   cartão de pessoa.
-6. **Trilho fino de ícones + faixa de topo** no desktop. ✅ trilho / 🔜 faixa.
-7. **Densidade**: cartões de ~12–16px de padding interno, listas de linhas
-   finas, nada de ar morto. ⚠️ nossas telas herdadas ainda são arejadas
-   demais no desktop — é o trabalho das ondas 59–60.
-8. **O visual central da tela é o DADO** (mapa, caminhão, gráfico) e ocupa
-   a maior célula da grade; os cartões orbitam. ✅ na Início (foto); ✅ no
-   Mapa da Embarcação (onda 61, corte SVG — o "caminhão" da referência).
-
-## 3. Fila de adaptação (o plano de ondas, atualizado por esta análise)
-
-| Onda | O que entra, vindo das imagens |
+| Documento | Situação |
 |---|---|
-| **59 — listas** | `BarraFerramentas` (chips com contagem + toggles, imagem 1) em Diário/Financeiro/Ocorrências/Avisos; **ação inline no aviso** + borda lateral por severidade (imagem 6); charts de relatório (imagem 6) |
-| **60 — fichas + topo** | faixa de KPI + sino/avatar/busca-placeholder (imagem 1); cabeçalho de ficha com chip de estado + barra de ações + `Abas` com contagem + breadcrumb (imagem 2); cartão de pessoa (imagens 3/4) em Tripulação/Comandantes/Prestadores |
-| **61 — Mapa da Embarcação** | ✅ o "caminhão" náutico (imagens 4/5): zona física no banco, corte SVG por zonas com pinos por estado, seleção sincronizada com painel lateral, Proa↔Popa. O "3D" da referência (o caminhão É 3D) fica para a onda 62 — modelo padrão por TIPO de barco, decisão do dono, shortlist pronta (Hinckley T44 FB, CC-BY) |
-| pós-61 | busca global ⌘K; kanban de estado no Admin; barras de capacidade onde houver valor/limite; **onda 62**: 3D por tipo de barco no Mapa da Embarcação |
+| `docs/referencias/haulix-design-system.md` | **superado na paleta e na atmosfera.** A referência HAULIX é de logística industrial; o Commander é náutico e premium. O que sobrevive dele é disciplina de densidade e contenção, e mesmo isso agora está escrito aqui. |
+| A versão anterior deste arquivo (catálogo das seis imagens HAULIX) | **substituída.** Era mapa de adaptação de outro produto. |
+| `docs/DESIGN.md` | **continua valendo no que não é visual** — regras de escrita, honestidade de dado (`null` nunca vira zero desenhado), domínio. Onde ele falar de cor, raio, tipografia ou composição, **este arquivo vence**. |
+| `docs/superpowers/specs/2026-08-19-arquitetura-quatro-apps.md` | **continua valendo.** É arquitetura de informação (quem vê o quê), não apresentação. Os dois se somam. |
 
----
+## 1. Princípios não negociáveis
 
-*Escrito em 15/08/2026 a partir das seis capturas do Haulix enviadas pelo
-dono. Quando uma tela for refeita, a onda cita a imagem e a linha da tabela
-que ela está executando — é assim que se cobra aderência à referência.*
+1. Uma tela tem **uma função principal**. Consulta, edição e cadastro não ficam
+   expostos ao mesmo tempo.
+2. **Resumo primeiro; detalhe depois; formulário só depois de uma ação
+   explícita.**
+3. **Aba é conteúdo controlado.** Selecionar uma aba mostra o conteúdo dela e
+   esconde o resto. Aba usada como âncora de rolagem é defeito — foi
+   exatamente o que a `/barco` fazia com oito abas de `scrollWidth 805` contra
+   `clientWidth 358`.
+4. **Ícone 3D** representa hub, equipamento e placeholder. **Ícone 2D**
+   representa navegação, ação, filtro e estado. Nunca misturar na mesma função.
+5. **Foto real do proprietário nunca é substituída por fotografia fictícia.**
+   Antes do upload, render 3D claramente ilustrativo ou ícone técnico.
+6. **Cor identifica sistema e estado.** Nunca é decoração aleatória.
+7. Desktop e mobile compartilham tokens, ícones, componentes e linguagem.
+   **Só a composição responde ao espaço.**
+8. Aparência tecnológica não pode custar legibilidade, acessibilidade,
+   desempenho ou compreensão do fluxo.
+
+**PROIBIDO:** verde-limão genérico · fundo preto absoluto · múltiplas fontes ·
+famílias de ícone misturadas · formulário sempre aberto · fotografia fictícia
+do barco ou do equipamento · brilho neon sem significado.
+
+## 2. Direção visual
+
+Atmosfera de **central de comando de iate**.
+
+- Fundo azul-marinho quase preto, **nunca preto puro**.
+- Superfícies translúcidas com textura de vidro escuro e contraste suficiente.
+- Bordas luminosas de 1 px e sombras controladas, sem excesso de glow.
+- Objetos 3D com luz de recorte na cor do hub e fundo transparente.
+- **Dourado Commander reservado para identidade e ação primária**; cor técnica
+  pertence ao sistema.
+- HUD e telemetria discretos e informativos. Não inventar microdado aleatório.
+
+## 3. Cor
+
+O tema que **abre** é o escuro (`app/layout.tsx` põe `[data-theme="dark"]`
+antes da pintura). O claro é preferência de produto (Ajustes → Aparência,
+leitura sob sol na marina) e segue a regra de tradução do §3.3.
+
+### 3.1 Tabela do guia — os valores literais
+
+| Grupo | Uso | Token do repositório | Valor |
+|---|---|---|---|
+| Base | Fundo principal | `--fundo` | `#07111C` |
+| Base | Superfície / glass | `--superficie` | `#0B1926` |
+| Marca | Ação principal / identidade | `--acao` | `#D6A53A` |
+| Motores | Informação técnica | `--hub-motores` | `#2DE3FF` |
+| Casco | Estrutura / estabilidade | `--hub-casco` | `#FFB020` |
+| Elétrica | Energia / circuitos | `--hub-eletrica` | `#238BFF` |
+| Hidráulica | Bombas / tanques | `--hub-hidraulica` | `#8B5CF6` |
+| Segurança | Em dia / protegido | `--hub-seguranca` | `#37D67A` |
+| Documentos | Arquivo / validade | `--hub-documentos` | `#29D3C2` |
+| Manutenção | Atenção / prazo | `--hub-manutencoes` | `#FF9F1C` |
+| Crítico | Erro / vencido / excluir | `--crit` | `#FF4D4F` |
+
+**REGRA SEMÂNTICA:** verde é confirmado/em dia (`--ok`, `#37D67A`); âmbar é
+atenção/prazo (`--warn`, `#FF9F1C`); vermelho é crítico/erro/exclusão
+(`--crit`, `#FF4D4F`). Nunca usar as três apenas como ornamento.
+
+### 3.2 A regra de escopo — o que impede a paleta de virar semáforo quebrado
+
+O guia dá a Segurança o **mesmo verde** de "em dia" e a Manutenções o **mesmo
+âmbar** de "atenção". Isso só funciona por causa do §5 do guia — *"cor do hub
+apenas no estado ativo ou no card daquele sistema"*:
+
+> **COR DE HUB** vive na moldura do próprio hub: ícone, borda do card dele, aba
+> ativa dentro dele. Nunca em outro hub, nunca num valor, nunca numa lista
+> genérica.
+>
+> **COR DE ESTADO** vive no VALOR: número, selo, farol, texto de alerta.
+
+Com esse recorte, verde na moldura de Segurança é **identidade** e verde num
+número é **"em dia"** — e os dois nunca disputam o mesmo pixel. Sem ele, a
+paleta do guia vira semáforo quebrado.
+
+**Corolário obrigatório: tom de hub não pode virar cor de texto.** A régua dele
+é 3:1 (elemento gráfico), não 4,5:1. Hidráulica (`#8B5CF6`) entrega 4,20:1
+sobre o vidro — passa como grafismo, reprovaria como texto. Há teste em
+`lib/ui/contraste.test.ts` cobrando os oito nos dois temas.
+
+### 3.3 Os tokens que o guia não declara, e a regra que os deriva
+
+| Token | Escuro | Claro | Como foi derivado |
+|---|---|---|---|
+| `--superficie-2` (cartão aninhado) | `#12263A` | `#E4EAF1` | mesmo matiz do vidro (209°), degrau de ~1,15 de razão de luminância |
+| `--superficie-3` (interativo/hover) | `#1B3550` | `#D6DEE7` | idem, próximo degrau |
+| `--linha` | `#2C3945` | `#C6D0DA` | o `rgba(216,225,232,.16)` do §5 **composto sobre o vidro**. Fica sólido para o guardião de contraste poder medi-lo — com alfa ele mediria o melhor caso e aprovaria uma separação inexistente |
+| `--texto` | `#E8EEF4` | `#07111C` | branco **frio**: a única família clara declarada no guia é o `rgba(216,225,232,…)` da borda |
+| `--texto-dim` | `#93A6B8` | `#566472` | mesmo matiz, um degrau de saturação abaixo |
+| `--texto-dim-chip` | `#9DAFC0` | `#4F5D6B` | calibrado contra `--superficie-2`, onde `--texto-dim` reprova |
+| `--acao-forte` | `#E8C46B` | `#5E4308` | "forte" = mais contraste que o acento; num chão escuro isso é mais claro |
+| `--acao-texto` | `#07111C` | `#F8FAFC` | **sempre da cor do chão** |
+| `--campo` | `#0A1622` | `#FCFDFE` | um degrau abaixo do vidro, para o campo parecer recuado |
+| `--meter` (cartucho de instrumento) | `#040C15` | `#07111C` | navy fixo nos dois temas |
+| `--dado` (série de gráfico) | `#7FA8C9` | `#28587F` | azul-aço: nem marca, nem semáforo |
+| `--hub-equipamentos` | `#8FA3B8` | `#44566A` | **desvio declarado — ver §12** |
+
+**Regra do tema claro:** o guia é um sistema escuro e não declara tema claro. O
+claro sobrevive como preferência de produto, e a regra que o mantém honesto é
+**mesmo matiz, luminância do outro lado do chão**. Os oito matizes de hub são
+medidos nos próprios hexadecimais do §3.1 (188° · 39° · 212° · 258° · 145° ·
+211° · 174° · 35°) e só a luminância desce, até passarem de 3:1.
+
+### 3.4 Orçamento do dourado
+
+Identidade e ação primária, **com moderação** (§9 do guia). A régua da casa que
+cobra isso: **no máximo duas peças douradas por tela**, e o dourado ocupando
+1–3% da área. "Dourado em todo botão" é o mesmo defeito que "limão em todo
+botão".
+
+## 4. Tipografia
+
+| | |
+|---|---|
+| **Família UI** | Inter. Fallback: `system-ui, -apple-system, "Segoe UI", sans-serif` |
+| **Pesos** | 400 regular · 500 medium · 600 semibold · **700 só em métrica e título-chave** |
+| **Escala mobile** | 12 rótulo · 14 corpo · 16 componente · 20 subtítulo · 24 título · 28–32 métrica |
+| **Escala desktop** | 12 rótulo · 14 corpo · 16 componente · 22 subtítulo · 30–32 título · 32–40 métrica |
+
+- **Máximo de três níveis tipográficos visíveis dentro de um card.**
+- Texto funcional sempre horizontal e legível. Nada de letra decorativa ou
+  condensada.
+- Métrica usa `tabular-nums` para não saltar de largura.
+- Contraste mínimo WCAG AA para corpo e controle essencial.
+
+## 5. Espaçamento, forma e superfície
+
+| | |
+|---|---|
+| **Ritmo** | base 4 px: 4, 8, 12, 16, 24, 32, 48 |
+| **Raios** | `--raio-controle` 12 px · `--raio-cartao` 16 px · `--raio-painel` 20 px (herói e drawer) · `--raio-pilula` 999 (só chip e status) |
+| **Bordas** | 1 px, padrão `rgba(216,225,232,.16)` (= `--linha`). Cor do hub **apenas** no estado ativo ou no card daquele sistema |
+| **Sombras** | uma sombra de profundidade + glow suave opcional. **Nunca empilhar três efeitos** |
+| **Glass** | `--superficie` com 78–88% de opacidade e blur 12–20 px quando suportado |
+| **Alturas** | `--altura-controle` 44 px (piso de toque, não negocia) · `--altura-campo` 48 px |
+
+**Profundidade vem de SUPERFÍCIE, não de sombra.** A escada tem quatro níveis
+(canvas → cartão → aninhado → interativo) e é ela que responde "este bloco está
+dentro daquele?". Sombra (`--sombra-2`) responde outra pergunta: "este bloco
+está POR CIMA, fora do fluxo?" — menu, bottom sheet, pastilha sobre o mapa,
+ação flutuante.
+
+**A separação cartão↔fundo é feita pela BORDA**, de propósito: no escuro o
+preenchimento dá 1,068:1 e a borda 1,505:1. É o §2 ("bordas luminosas de 1 px")
+dizendo que neste sistema quem desenha o cartão é a borda, e o vidro é quase da
+cor do chão.
+
+## 6. Ícones
+
+| | |
+|---|---|
+| **2D** | menu, voltar, editar, adicionar, excluir, calendário, filtro, anexar, alerta, status |
+| **Família 2D** | uma única biblioteca de line icons, traço equivalente a 1,75–2 px, cantos e proporções consistentes |
+| **3D** | hubs, equipamentos, sistemas técnicos e estado vazio antes da foto real |
+| **Câmera 3D** | perspectiva 3/4 consistente, luz principal superior esquerda, fundo transparente, rim light na cor do hub |
+| **Substituição** | havendo foto real, o render 3D some **naquele mesmo slot de mídia** |
+
+**Proibido** misturar sólido, outline, emoji, clipart e 3D na mesma função.
+
+Os renders das imagens do guia são **exemplo de linguagem, não o pacote final
+de assets**. A biblioteca definitiva precisa ser exportada em tamanhos e
+ângulos padronizados — ver §12, dívida aberta.
+
+## 7. Central Meu Barco (`/barco`)
+
+| | |
+|---|---|
+| **Desktop** | sidebar compacta · herói do barco · grid **4 × 2** para os oito hubs |
+| **Mobile** | header compacto · herói reduzido · grid obrigatório de **duas colunas** · bottom navigation fixa |
+| **Hubs** | Motores · Casco · Elétrica · Hidráulica · Segurança · Equipamentos · Documentos · Manutenções |
+| **Dados** | saúde geral e alertas essenciais. Não repetir o cabeçalho técnico inteiro em páginas externas ao barco |
+
+## 8. Hubs e abas internas
+
+- Cada tela de hub mantém a **mesma estrutura** e muda só objeto, cor técnica,
+  métricas e abas pertinentes.
+- Desktop: abas em linha quando couberem. **Não quebrar rótulo em duas linhas.**
+- Mobile: faixa horizontal rolável com indicação clara da aba ativa.
+- Estado ativo: borda/underline **na cor do hub**, nunca preenchimento neon.
+- Trocar de aba mantém o contexto e **substitui o conteúdo central**.
+- Formulário não fica dentro da aba enquanto fechado — abre por botão de ação.
+
+### Padrão de detalhe de hub (obrigatório)
+
+1. cabeçalho compacto
+2. foto real **ou** estado vazio com ícone
+3. estado e alertas
+4. **até cinco** indicadores
+5. abas reais
+6. ação principal
+7. menu de ações secundárias
+
+## 9. Telas operacionais (Diário, Agenda, Documentos, Manutenções)
+
+- Listas com cards de densidade média: título, metadado essencial, ação
+  secundária discreta.
+- Chips de filtro **apenas quando existe seleção real**. Evitar dezenas de
+  cápsulas sem hierarquia.
+- Ação primária previsível: base do conteúdo no mobile, topo/direita ou base do
+  painel no desktop.
+- Vermelho **só** em avaria crítica, vencimento, falha ou ação destrutiva.
+- Elemento 3D aqui é menor e de apoio. Nunca compete com dado e tarefa.
+
+## 10. Fotografia real e carrossel
+
+### Estado sem foto
+
+Render 3D representativo + ação **"Adicionar foto real"**. Exemplo normativo do
+guia:
+
+```
+[ícone técnico de motor]
+Foto real do Motor BB ainda não adicionada
+Fotografe o conjunto instalado e a plaqueta de identificação.
+[Adicionar foto real]
+```
+
+### Estado com foto
+
+Herói panorâmico, gradiente de leitura, moldura glass, HUD decorativo e ações
+**"Trocar foto" / "Ver foto"**. Quando a imagem for do usuário, o componente
+pode exibir **"Foto do proprietário"** — o objetivo é distinguir dado real de
+ilustração do sistema.
+
+- Nunca apresentar render 3D e foto real do mesmo item ao mesmo tempo.
+- Preservar proporção; `object-fit: cover` no herói, visualização integral em
+  "Ver foto".
+- Gradiente e HUD são **camadas CSS**. Não alterar o arquivo enviado.
+
+### Carrossel 3D
+
+| Fotos | Composição |
+|---|---|
+| 1 | herói panorâmico estático |
+| 2 | foto principal + prévia lateral recuada |
+| 3+ | centro dominante + duas laterais em perspectiva |
+
+Desktop: setas, dots, contador *x de n*. Mobile: swipe, dots, contador e
+"Deslize para ver". **Autoplay é proibido** — quem muda é o usuário.
+Acessibilidade: `aria-label`, foco visível, teclado e `prefers-reduced-motion`.
+
+## 11. Formulários, drawers e modais
+
+| Campos | Superfície |
+|---|---|
+| até 3 | modal curto ou bottom sheet |
+| 4 ou mais | drawer lateral no desktop; tela/sheet dedicado no mobile |
+
+- **Drawer desktop:** 38% da viewport, mínimo 420 px, máximo 560 px, fundo
+  contextual escurecido.
+- **Campos:** rótulo sempre visível; unidade fora do valor; placeholder é
+  exemplo, **nunca** rótulo.
+- **Obrigatórios:** asterisco discreto e validação junto ao campo.
+- **Salvar:** desabilitado até os requisitos mínimos; loading; sucesso;
+  prevenção de duplo envio.
+- **Cancelar:** fecha sem gravar; confirmar só se houver alteração não salva.
+- **Anexos:** área única para nota, foto ou documento, com tipo, tamanho,
+  progresso, erro e remoção.
+
+**Nunca** manter formulário completo permanentemente aberto abaixo de uma
+consulta.
+
+## 12. Estados obrigatórios por componente
+
+| Componente | Estados |
+|---|---|
+| Card | default · hover desktop · pressed mobile · selecionado · desabilitado · loading · erro |
+| Botão | primário dourado · secundário outline · destrutivo vermelho · icon-only com tooltip/`aria-label` |
+| Input | default · foco · preenchido · inválido · desabilitado · somente leitura |
+| Upload | vazio · enviando · concluído · falhou · tipo inválido · arquivo grande |
+| Abas | default · ativa · hover · foco · desabilitada · overflow horizontal |
+| Lista | com dados · vazia · carregando · erro · fim da paginação |
+| Alerta | informação · sucesso · atenção · crítico — **mensagem textual obrigatória além da cor** |
+| Skeleton | reproduz a geometria final; sem tela inteira pulsando; timeout com mensagem e "tentar novamente" |
+
+## 13. Responsividade
+
+| Faixa | Regra |
+|---|---|
+| Mobile 320–767 | bottom navigation · duas colunas de hubs · sheets · abas roláveis |
+| Tablet 768–1199 | navegação compacta · grid 2 ou 3 colunas · drawers controlados |
+| Desktop 1200+ | sidebar · grid 4 colunas · drawers laterais · mais densidade **sem reduzir fonte** |
+
+- **Herói:** ~16:7 no desktop, ~16:9 no mobile, altura limitada para os hubs
+  continuarem alcançáveis.
+- **Toque:** alvo mínimo 44 × 44 px, distância mínima de 8 px entre ações
+  concorrentes.
+- **Safe areas:** notch, barras do sistema e viewport dinâmica.
+- Não criar um design para mobile e outro para desktop.
+- Não esconder função essencial por falta de espaço — reorganizar por
+  prioridade.
+- Texto e número **nunca** rasterizados dentro de asset 3D.
+
+## 14. Desempenho e acessibilidade
+
+- Render 3D pré-renderizado em WebP/AVIF com PNG de fallback. WebGL só quando a
+  interação justificar.
+- Carregar asset por rota, com tamanhos responsivos. Não baixar os oito hubs em
+  resolução máxima na abertura.
+- Reservar proporção de imagem para o layout não saltar.
+- `prefers-reduced-motion`: reduzir perspectiva animada, parallax, glow pulsante
+  e transição longa.
+- Teclado completo no desktop; foco visível dourado/ciano com contraste.
+- **Não depender só de cor**: incluir ícone, texto e estado.
+- Imagem real exige alternativo ou descrição contextual; asset decorativo usa
+  `alt` vazio.
+- Testar contraste, zoom 200%, leitor de tela e aparelho em modo de economia.
+
+**Meta:** parecer avançado sem exigir hardware avançado. Aparelho intermediário
+mantém rolagem e interação fluidas.
+
+## 15. Desvios declarados
+
+O guia proíbe criar cor, fonte, ícone, raio ou sombra sem atualizá-lo. Estes
+são os pontos em que o repositório se afasta do texto, com o motivo:
+
+### 15.1 `--hub-equipamentos` não existe no guia
+
+O §7 lista **oito** hubs; a tabela de cor do §4 traz **sete**. Equipamentos
+ficou sem cor. O valor foi derivado das **imagens**, que o §1 declara normativas
+para cor: o card de Equipamentos é o único neutro da grade. Escolhido
+`#8FA3B8` (aço) no escuro e `#44566A` no claro.
+
+**Ação pendente:** confirmar com o dono. Se o guia ganhar uma cor oficial para
+Equipamentos, ela substitui esta em um commit só.
+
+### 15.2 IBM Plex Mono continua no numeral de instrumento
+
+O §16 pede "uma única família tipográfica em toda a aplicação", e o §5 oferece
+`tabular-nums` como mecanismo para métrica. O repositório mantém **IBM Plex
+Mono** em `--pilha-mono-instr`, consumida por `.rotulo` e pelos mostradores de
+instrumento (horímetro, sondagem, SOG) — **~200 pontos de uso em 90 arquivos**.
+
+Motivo de manter: é fonte de **numeral de instrumento**, não segunda família de
+display; o critério do §16 existe para impedir mistura de vozes tipográficas, e
+mono de painel é a mesma decisão que o próprio guia toma ao desenhar HUD e
+telemetria.
+
+**Ação pendente:** decisão do dono. Se ele quiser Inter pura, é um passe
+mecânico de `font-mono-instr` → `tabular-nums`, e some um download de fonte
+(ganho no §14).
+
+### 15.3 O tema claro
+
+O guia não o menciona. Ele existe como preferência de produto e segue a regra
+de tradução do §3.3. Se o dono decidir que o Commander é escuro e ponto, o tema
+claro sai inteiro e este documento perde o §3.3.
+
+## 16. Critérios de aceite visual
+
+Uma tela só está pronta quando:
+
+- [ ] uma única família tipográfica de UI (Inter) — ver desvio §15.2
+- [ ] uma única família de ícones 2D; renders 3D com ângulo, luz e escala padronizados
+- [ ] os oito hubs usam seus tokens fixos de cor
+- [ ] cards, bordas, raios, sombras e espaçamentos vêm de token, nunca de valor local
+- [ ] mobile em duas colunas de hubs + bottom navigation; desktop com sidebar e grid 4 × 2
+- [ ] abas **substituem** conteúdo, não expõem tudo numa rolagem
+- [ ] formulário abre só por ação — drawer no desktop, sheet/tela no mobile
+- [ ] sem foto real há render 3D ilustrativo; com foto, ele é substituído no mesmo slot
+- [ ] carrossel não inicia sozinho e funciona por swipe, teclado e controle visível
+- [ ] vazio, loading, erro, sucesso, inválido e desabilitado implementados
+- [ ] nenhuma linguagem visual nova sem atualizar este documento
+- [ ] revisão feita em mobile, tablet e desktop, com dado real e texto longo
+
+## 17. Onde cada regra vive no código
+
+| Assunto | Arquivo |
+|---|---|
+| Todos os tokens de cor, raio, altura, sombra, curva | `web/app/globals.css` |
+| Utilitárias Tailwind dos tokens | bloco `@theme inline` do mesmo arquivo |
+| Guardião de contraste (texto 4,5:1, hub 3:1, separação 1,2:1) | `web/lib/ui/contraste.test.ts` |
+| Teto de cor escrita à mão, por arquivo | `web/lib/ui/tokens.test.ts` |
+| Escada de superfície e composição de painel | `web/lib/ui/superficies.ts` |
+| Alvo de toque e transição | `web/lib/ui/acoes.ts` |
+| Guardião de destino de menu | `web/lib/ui/menu-destinos.test.ts` |

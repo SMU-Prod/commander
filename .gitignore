@@ -10,3 +10,6 @@ web/.varredura/
 web/.varredura-claro/
 .varredura/
 .prova-o61/
+
+# Provas visuais de onda — capturas de trabalho, nao entregavel.
+.prova-*/

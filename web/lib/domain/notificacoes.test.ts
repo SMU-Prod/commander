@@ -509,10 +509,25 @@ describe("iconeDoAviso", () => {
 // --- onda 101: o sino diz o mesmo número em todo lugar ---------------------
 
 /**
- * A PROVA DE QUE AS QUATRO SUPERFÍCIES CONCORDAM.
+ * A PROVA DE QUE AS SUPERFÍCIES DO SINO CONCORDAM.
  *
- * O número aparece em quatro lugares — barra de baixo, trilho do desktop,
- * faixa de topo e o sino da Início — e é calculado em dois
+ * ONDA 7 — DE DUAS CONTAS PARA UMA, E ESTE TESTE FICA MAIS FORTE, NÃO MAIS
+ * FRACO. O sino subiu para o cabeçalho de toda tela (`FaixaTopo`, e a
+ * `FaixaMarca` para quem não tem barco), e com isso a barra de baixo trocou
+ * "Avisos" por "Serviços" e a Início parou de desenhar sino próprio. As duas
+ * consequências no arquivo: `app/(app)/hoje/page.tsx` saiu de `ORIGENS`
+ * porque não calcula mais nada — ele nem importa `contadorSino` —, e
+ * `components/bottom-nav.tsx` saiu de `SUPERFICIES` porque não recebe mais o
+ * número. Restou UMA conta, no layout, para todas as superfícies: divergência
+ * de número deixa de ser possível por construção, que é o estado que este
+ * bloco perseguia desde a onda 101.
+ *
+ * O texto abaixo é o da onda 101 e descreve o mundo de duas contas — fica
+ * porque é ele que explica por que a catraca é estática, e por que a lista
+ * encolher é vitória e não descuido.
+ *
+ * O número aparecia em quatro lugares — barra de baixo, trilho do desktop,
+ * faixa de topo e o sino da Início — e era calculado em dois
  * (`app/(app)/layout.tsx` e `app/(app)/hoje/page.tsx`). Quatro superfícies e
  * duas contas é exatamente a forma que a divergência tem quando nasce: foi
  * assim que o trilho nasceu SEM número na onda 57, e assim que o layout zerou
@@ -547,15 +562,26 @@ describe("a contagem do sino é uma só, nos quatro lugares que a mostram (spec 
     return fonte.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ")
   }
 
-  /** Quem CALCULA o número. Os dois têm de derivá-lo da mesma dupla. */
-  const ORIGENS = ["app/(app)/layout.tsx", "app/(app)/hoje/page.tsx"]
+  /** Quem CALCULA o número — desde a onda 7, um só (ver o topo do bloco). */
+  const ORIGENS = ["app/(app)/layout.tsx"]
 
-  /** Quem MOSTRA o número. Nenhum deles pode calcular nada. */
+  /** Quem MOSTRA o número. Nenhum deles pode calcular nada.
+   *
+   *  DOIS SAÍRAM NA ONDA 7, e por motivos diferentes:
+   *  · `components/bottom-nav.tsx` — o sino deixou de ser uma das cinco abas
+   *    (entrou "Serviços"), então a barra não recebe nem desenha contador;
+   *  · `components/sino-notificacoes.tsx` — o ARQUIVO foi apagado. Ele tinha um
+   *    consumidor só, o cabeçalho escrito à mão dentro de `/hoje`, e esse
+   *    cabeçalho virou a `FaixaTopo` global. Ficaria zerado, e este projeto tem
+   *    régua escrita para isso (`lib/ui/acoes.ts`): peça sem consumidor não é
+   *    neutra — ela aparece no `grep` de quem procura "como se faz isso aqui" e
+   *    responde com um caminho que o app não anda. Ele também era o pior dos
+   *    dois desenhos: escrevia o próprio badge à mão em vez de usar o
+   *    `ContadorAvisos` compartilhado, que é exatamente a divergência que este
+   *    bloco de testes existe para impedir. */
   const SUPERFICIES = [
-    "components/bottom-nav.tsx",
     "components/trilho-lateral.tsx",
     "components/faixa-topo.tsx",
-    "components/sino-notificacoes.tsx",
     "components/ui/contador-avisos.tsx",
   ]
 
@@ -607,11 +633,16 @@ describe("a contagem do sino é uma só, nos quatro lugares que a mostram (spec 
     }
   })
 
-  it("o badge some no zero nos dois desenhos — 0 nunca vira círculo vazio", async () => {
+  it("o badge some no zero — 0 nunca vira círculo vazio", async () => {
     // `null` nunca vira zero desenhado (regra da casa, `lib/domain/patio.ts`).
-    // Os dois componentes que desenham o número têm de recusar o não-positivo.
+    // ONDA 7 — "os dois desenhos" viraram UM. O segundo era
+    // `components/sino-notificacoes.tsx`, apagado nesta onda por ter ficado sem
+    // consumidor (ver a lista `SUPERFICIES`, acima). Este teste fica MAIS
+    // forte, não mais fraco: enquanto havia dois componentes desenhando o
+    // badge, ele precisava cobrar a mesma regra duas vezes e torcer para
+    // ninguém escrever um terceiro; agora só existe um lugar onde o zero pode
+    // virar círculo vazio, e é este.
     expect(await ler("components/ui/contador-avisos.tsx")).toContain("avisos <= 0")
-    expect(await ler("components/sino-notificacoes.tsx")).toContain("contador > 0")
   })
 })
 

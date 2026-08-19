@@ -8,6 +8,7 @@ import {
   OFFSET_TRILHO,
   temAcaoFlutuantePropria,
 } from "@/lib/ui/superficies"
+import { FaixaMarca } from "./faixa-topo"
 import { TrilhoLateral } from "./trilho-lateral"
 
 /**
@@ -135,7 +136,16 @@ export function MolduraApp({
           temAcaoFlutuantePropria(pathname) ? FOLGA_COM_ACAO_FLUTUANTE : FOLGA_BASE
         }`}
       >
-        {temEstadoDoBarco(pathname) ? faixa : faixaReduzida}
+        {/* ONDA 7 — O CABEÇALHO PASSA A SER OBRIGATÓRIO, E ISSO É PRÉ-REQUISITO
+            DA TROCA NA BARRA DE BAIXO.
+            "Avisos" saiu das cinco vagas para "Serviços" entrar (§2.1 da spec),
+            e a condição para isso era o sino existir em toda tela do celular.
+            As duas faixas vêm do layout dentro de `painel != null &&`, ou seja,
+            são `false` para quem ainda não tem barco — e essa gente RECEBE
+            aviso desde a onda 99 (pedido do Marketplace que combina com o
+            perfil). Sem este `??`, ela ficaria sem porta nenhuma para
+            `/notificacoes` no telefone. */}
+        {(temEstadoDoBarco(pathname) ? faixa : faixaReduzida) || <FaixaMarca avisos={avisos} />}
         {children}
       </div>
     </>

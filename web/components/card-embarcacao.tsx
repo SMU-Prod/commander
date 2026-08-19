@@ -16,6 +16,120 @@ const COR: Record<StatusFarol, string> = {
 }
 
 /**
+ * O QUE O ANEL DE SAÚDE MOSTRA — e por que NÃO é a porcentagem do mockup.
+ * ===========================================================================
+ * O mockup de 19/08 desenha, ao lado do nome do barco, um anel dourado com
+ * "86%" dentro e a linha "Saúde 86%" embaixo. A anatomia é boa e entra; **o
+ * número não pode entrar, e não é opinião minha**: o PRD FINAL proíbe
+ * porcentagem na Saúde em TRÊS lugares (§1.1 *"Nunca usar porcentagem para
+ * 'Saúde da Embarcação'"*, §27.2, §28), `docs/DESIGN.md` §6 regra 7 repete, e
+ * `lib/domain/saude.ts` conta no topo do arquivo as duas vezes em que essa
+ * nota já existiu e foi arrancada. A régua de hoje é declarativa — Saudável /
+ * Atenção / Ação necessária, o pior estado prevalece — e não tem denominador
+ * de onde tirar 86%: `emDia / total` ignora ocorrência aberta, e itens sem
+ * informação suficiente ficam fora da conta de propósito.
+ *
+ * O QUE ENTRA NO LUGAR: o **número de pendências**, que é o tamanho exato da
+ * lista que a própria tela enumera logo abaixo, linha por linha
+ * (`saude.fatores`). É contagem, nunca nota; nunca é derivado de uma divisão;
+ * e `0` desenha, porque zero é uma resposta (`docs/DESIGN.md` §5, contagem,
+ * regra 2). Sem dado nenhum vira "—" e o anel fica neutro — jamais verde por
+ * omissão, que é a regra de honestidade que `estadoExibidoDaSaude` já protege.
+ *
+ * O ANEL É BEZEL, NÃO MEDIDOR — E ESSA DISTINÇÃO É O PONTO. Ele fecha os 360°
+ * sempre: um arco parcial ENCODIFICA uma fração, ou seja, seria a porcentagem
+ * proibida entrando pela porta do desenho depois de ser barrada na do texto.
+ * O que informa é a COR (farol) e o número dentro.
+ *
+ * POR QUE NÃO `DonutNivel` NEM `Medidor`, que já existem. Os dois foram lidos
+ * antes: o `DonutNivel` é um TANQUE — o docblock dele diz, com todas as
+ * letras, que copiá-lo para um "% de conclusão" é usar a peça errada, e ele
+ * exige `percentual`. O `Medidor` é um velocímetro com escala, zonas e
+ * ponteiro, e exige `valor`/`max`. Nenhum dos dois desenha "estado + contagem"
+ * sem que se invente o denominador que o PRD proíbe. Aqui é um `<div>` com
+ * `border` e `rounded-full`: sem SVG, sem geometria, sem componente novo na
+ * prateleira.
+ */
+export interface SaudeNoHeroi {
+  /** Cor de farol do estado (`seloDaSaude`→`FAROL_ESTADO_SAUDE`). `null` = sem dados. */
+  farol: StatusFarol | null
+  /** A palavra do PRD §5, ou "Sem dados" — vem de `rotuloDaSaude`. */
+  rotulo: string
+  /** Quantas coisas pedem ação. `null` quando não há estado nenhum. */
+  pendencias: number | null
+  /**
+   * A leitura por extenso — "1 vencido · 2 na margem · 1 ocorrência aberta",
+   * exatamente as partes que `contagemDaSaude` devolve.
+   *
+   * ELA VEM JUNTO PORQUE O MOCKUP TEM ESSA LINHA ("Saúde 86%", embaixo do nome
+   * do barco) e porque sem ela a mudança tiraria informação da tela: era o
+   * corpo do cartão "Saúde" que saiu de `/hoje` nesta onda. Palavra por
+   * palavra, número por número, o mesmo texto — só o chão mudou, de cartão
+   * para plaqueta sobre a foto.
+   */
+  partes: { numero: number; rotulo: string }[] | null
+  /** Para onde o toque leva: o detalhe da Saúde, ou o caminho de preenchê-la. */
+  href: string
+}
+
+/** A leitura por extenso, na voz que o cartão da Saúde já usava: a fonte de
+ *  instrumento é do NÚMERO, não da frase (`docs/DESIGN.md` §5). */
+function LeituraDaSaude({ partes }: { partes: { numero: number; rotulo: string }[] }) {
+  return (
+    <p className="apoio mt-1 text-meter-dim">
+      {partes.map((parte, i) => (
+        <span key={parte.rotulo}>
+          {i > 0 && " · "}
+          <span className="font-mono-instr font-semibold tabular-nums text-meter-texto">{parte.numero}</span>{" "}
+          {parte.rotulo}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+function AnelSaude({ farol, rotulo, pendencias, href }: SaudeNoHeroi) {
+  const cor = farol ? COR[farol] : "text-meter-dim"
+  return (
+    /* O alvo é a coluna inteira (56 de anel + 4 + 15 de palavra = 75px de
+       altura, acima dos 44 da régua) e o desenho de 56px mora dentro dele —
+       a mesma separação de `lib/ui/acoes.ts`.
+       `foco-por-dentro` porque o herói tem `overflow-hidden` e o anel de foco
+       global é desenhado 2px PRA FORA da caixa: encostado na borda da foto ele
+       cairia na faixa recortada, que é o defeito já pago no convite de foto
+       trinta linhas abaixo. */
+    <Link
+      href={href}
+      aria-label={`Saúde: ${rotulo}${pendencias != null ? ` — ${pendencias} ${pendencias === 1 ? "pendência" : "pendências"}` : ""}`}
+      className="foco-por-dentro transicao-ui flex shrink-0 flex-col items-center gap-1 rounded-[var(--raio-controle)]"
+    >
+      {/* `border-[3px]` e não um `<svg>`: o anel fecha a volta inteira (ver o
+          docblock — arco parcial seria porcentagem desenhada), e uma volta
+          inteira é literalmente uma borda. `currentColor` vem do `cor` acima,
+          que reusa o MESMO `COR` do escudo — as três luzes vivas do semáforo,
+          já contadas no teto de cor literal deste arquivo, calibradas para
+          este navy que não segue o tema do app. */}
+      <span
+        className={`flex size-14 items-center justify-center rounded-[var(--raio-pilula)] border-[3px] border-current ${cor}`}
+      >
+        <span className="font-mono-instr text-lg font-semibold leading-none tabular-nums text-meter-texto">
+          {pendencias ?? "—"}
+        </span>
+      </span>
+      {/* A PALAVRA TEM LARGURA FIXA, e o motivo é medido: o vocabulário do PRD
+          §5 vai de "Saudável" (9 caracteres) a "Ação necessária" (15). Solta,
+          a coluna do instrumento oscilaria de ~70 a ~120px conforme o estado
+          do barco — e a 390px os 50px de diferença saem do nome do barco, que
+          passaria a quebrar em duas linhas só quando as coisas vão mal. Com
+          `w-20` a coluna é sempre 80px e é a PALAVRA que quebra em duas
+          linhas, dentro do espaço dela. `leading-tight` para as duas linhas
+          caberem sob o anel sem empurrar o rodapé da foto. */}
+      <span className={`rotulo block w-20 text-center leading-tight ${cor}`}>{rotulo}</span>
+    </Link>
+  )
+}
+
+/**
  * O HERO: a foto do barco do dono, e mais nada.
  *
  * ONDA 57 — este componente carregava, ao mesmo tempo: monograma, selo de
@@ -39,6 +153,7 @@ const COR: Record<StatusFarol, string> = {
 export function CardEmbarcacao({
   embarcacao,
   statusGeral,
+  saude,
   urlCapa,
   podeEditarFotos,
   temFotos = false,
@@ -47,6 +162,18 @@ export function CardEmbarcacao({
   embarcacao: Embarcacao
   /** Só onde não há um cartão de Saúde na mesma tela — ver o cabeçalho. */
   statusGeral?: StatusFarol
+  /**
+   * ONDA 7 (mockup de 19/08) — A SAÚDE PASSA A MORAR AO LADO DO NOME.
+   *
+   * Só a Início passa isto, e o motivo é o mesmo que faz `statusGeral` ser
+   * opcional: dois indicadores de estado do barco na mesma tela, com
+   * vocabulários diferentes, é o defeito que a onda 57 tirou daqui. Em `/hoje`
+   * o anel É o estado (e o cartão "Saúde" saiu da tela junto); em `/barco`,
+   * onde não existe a régua da Saúde carregada, continua valendo o escudo do
+   * `piorFarol`. Passar os dois juntos é erro de chamada, não de desenho — e
+   * é por isso que o JSX abaixo mostra o escudo apenas quando não há anel.
+   */
+  saude?: SaudeNoHeroi
   urlCapa: string | null
   podeEditarFotos: boolean
   /**
@@ -153,13 +280,27 @@ export function CardEmbarcacao({
             }}
           />
           <span className="absolute left-3 top-3">{burgee}</span>
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <h1 className={NOME_DO_BARCO} style={{ textShadow: "0 1px 8px rgb(11 29 45 / .8)" }}>
-              {embarcacao.nome}
-            </h1>
-            {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+          {/* ONDA 7 — NOME E ANEL NA MESMA LINHA, que é a anatomia do mockup.
+              `items-end` alinha a base do anel com a base da legenda: o nome
+              cresce pra cima quando quebra em duas linhas, e o instrumento
+              continua ancorado no rodapé da foto. */}
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-4">
+            <div className="min-w-0 flex-1">
+              {/* ONDA 7 — `<h2>` E NÃO `<h1>`. As duas telas que desenham o
+                  herói (`/hoje` e `/barco`) ganharam nesta onda o título de
+                  tela do mockup ("Início", "Meu Barco"), que é o `<h1>` delas.
+                  Dois `<h1>` na mesma página deixam o leitor de tela sem saber
+                  qual é o assunto — e o nome do barco é, de fato, um nível
+                  abaixo do nome da área. */}
+              <h2 className={NOME_DO_BARCO} style={{ textShadow: "0 1px 8px rgb(11 29 45 / .8)" }}>
+                {embarcacao.nome}
+              </h2>
+              {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+              {saude?.partes && <LeituraDaSaude partes={saude.partes} />}
+            </div>
+            {saude && <AnelSaude {...saude} />}
           </div>
-          {statusGeral && <div className="absolute right-3 top-3">{selo}</div>}
+          {statusGeral && !saude && <div className="absolute right-3 top-3">{selo}</div>}
         </div>
       ) : (
         /* SEM FOTO, O HERÓI DEIXA DE SER UMA MOLDURA VAZIA E VIRA A PLAQUETA.
@@ -191,13 +332,24 @@ export function CardEmbarcacao({
         >
           <div className="flex items-start gap-2">
             {burgee}
-            {statusGeral && <span className="ml-auto">{selo}</span>}
+            {statusGeral && !saude && <span className="ml-auto">{selo}</span>}
           </div>
-          {/* `leading-tight` (1.25 = os 30px que o §08–11 declara para o H1):
-              o `text-2xl` do Tailwind traz 32px de caixa, e 2px por herói é o
-              tipo de folga que ninguém escolheu. */}
-          <h1 className={`${NOME_DO_BARCO} mt-2 leading-tight`}>{embarcacao.nome}</h1>
-          {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+          {/* Sem foto o anel fica na MESMA linha do nome, e não no canto de
+              cima: aqui não há fotografia para o instrumento pousar em cima —
+              ele é parte da plaqueta, colado ao que ele descreve. */}
+          <div className="flex items-end gap-3">
+            <div className="min-w-0 flex-1">
+              {/* `leading-tight` (1.25 = os 30px que o §08–11 declara para o H1):
+                  o `text-2xl` do Tailwind traz 32px de caixa, e 2px por herói é o
+                  tipo de folga que ninguém escolheu.
+                  `<h2>` pelo mesmo motivo do ramo com foto, trinta linhas
+                  acima: o `<h1>` da tela agora é o título da área. */}
+              <h2 className={`${NOME_DO_BARCO} mt-2 leading-tight`}>{embarcacao.nome}</h2>
+              {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+              {saude?.partes && <LeituraDaSaude partes={saude.partes} />}
+            </div>
+            {saude && <AnelSaude {...saude} />}
+          </div>
           {podeEditarFotos ? (
             <Link
               href="/barco/fotos"

@@ -9,6 +9,7 @@ import {
 } from "@/lib/domain/semaforo"
 import { Avatar } from "./avatar"
 import { Icone } from "./icone"
+import { Logo } from "./logo"
 import { SeletorEmbarcacao } from "./seletor-embarcacao"
 import { ContadorAvisos } from "./ui/contador-avisos"
 
@@ -39,11 +40,43 @@ import { ContadorAvisos } from "./ui/contador-avisos"
  * conteúdo desce a altura dela sozinho: nada sobrepõe nada (a varredura a
  * 1440 continua limpa por construção).
  *
- * `hidden lg:flex`: no celular nada muda — lá o contexto é a própria Início
- * e o sino mora na bottom-nav.
- *
  * DOURADO: zero. A regra refinada desta onda diz que o dourado de MOLDURA é
  * só o de navegação (o onde-estou); a faixa nem disso precisa.
+ *
+ * ===========================================================================
+ * ONDA 7 (mockup de 19/08) — A FAIXA DESCE PARA O CELULAR, E ISSO É O QUE
+ * PAGA A VAGA DE "SERVIÇOS" NA BARRA DE BAIXO.
+ * ===========================================================================
+ * Ela era `hidden lg:flex`: no celular o sino existia em UM lugar só — o
+ * cabeçalho escrito à mão dentro de `/hoje` — e por isso "Avisos" tinha de
+ * ocupar uma das cinco vagas da barra inferior. Está escrito no
+ * `components/bottom-nav.tsx` desde a onda 57, com todas as letras: trocar
+ * Avisos por Serviços *"apagaria o aviso de seguro vencido de todo lugar"*.
+ *
+ * O mockup resolve a causa em vez do sintoma: o cabeçalho dele é **marca à
+ * esquerda, sino à direita, em toda tela**. Com o sino no topo de todas as
+ * ~109 telas do celular — e com o MESMO `ContadorAvisos` do trilho e da barra,
+ * então nenhum dos três pode divergir dos outros —, a objeção da onda 57 deixa
+ * de existir e a vaga da barra fica livre para Serviços, que é o quinto item
+ * do menu do proprietário no §2.1 da spec.
+ *
+ * O QUE ISSO CUSTA, medido a 390px: 56px de barra + 16px de respiro em telas
+ * que não tinham cabeçalho nenhum. Na Início o custo é NEGATIVO — ela paga
+ * hoje ~48px com a fileira de saudação (avatar + "Olá, fulano" + seletor +
+ * sino), que esta faixa substitui inteira.
+ *
+ * O SELETOR DE EMBARCAÇÃO VEM JUNTO, E É OBRIGAÇÃO, NÃO ENFEITE. No celular
+ * ele existia SÓ na Início (o trilho é `lg`), então tirar aquela fileira sem
+ * trazê-lo mataria a única porta de troca de barco de quem usa o telefone —
+ * e "nada que hoje se alcança pode ficar inalcançável". Ele entra no lugar do
+ * WORDMARK, não ao lado dele: a marca é decoração e trocar de barco é função,
+ * e a 390px não cabem os dois. Fica à ESQUERDA (e não junto do sino) porque o
+ * menu dele abre com `left-0` — ancorado na direita, a lista de 200px sairia
+ * pela borda da tela.
+ *
+ * O AVATAR CONTINUA `lg`. No mockup não há avatar no topo; no celular a conta
+ * mora no Menu, que é uma das cinco vagas da barra. No desktop ele fica: lá
+ * não há barra de baixo e o trilho não tem a foto.
  */
 
 /** O que a faixa precisa saber de um equipamento — subconjunto estrutural de
@@ -104,6 +137,86 @@ function maisApertada(a: ResultadoCalc, b: ResultadoCalc): number {
   if (a.horasRestantes != null) return -1
   if (b.horasRestantes != null) return 1
   return (a.diasRestantes ?? Infinity) - (b.diasRestantes ?? Infinity)
+}
+
+/**
+ * A CASCA DO TOPO — o que TODA tela tem: marca à esquerda no celular, sino à
+ * direita sempre.
+ *
+ * Existe como peça própria porque o sino passou a ter DOIS chamadores — esta
+ * faixa (quem tem barco) e a `FaixaMarca` (quem não tem) — e é exatamente
+ * assim que o app já ganhou um badge de avisos na barra de baixo e nenhum no
+ * trilho, defeito que `ContadorAvisos` foi criado pra fechar. Um cabeçalho
+ * escrito duas vezes é o mesmo erro um nível acima.
+ *
+ * `h-14` fixo: a altura da barra não pode depender do que está dentro dela,
+ * senão a Início (com seletor) e o Marketplace (sem) empurram o conteúdo pra
+ * baixo em medidas diferentes e a tela "pula" ao navegar.
+ */
+function CascaTopo({
+  avisos,
+  marca,
+  conta,
+  children,
+  className = "",
+}: {
+  avisos: number
+  marca: React.ReactNode
+  conta?: React.ReactNode
+  children?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <header
+      className={`mb-4 flex h-14 items-center gap-2 border-b border-line lg:mb-5 lg:gap-4 ${className}`}
+    >
+      {marca}
+      {children}
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        {/* O sino — mesma anatomia do trilho: alvo de 44px, badge ancorado
+            no ícone (o `ContadorAvisos` compartilhado, não uma cópia). */}
+        <Link
+          href="/notificacoes"
+          aria-label="Avisos"
+          className="flex size-11 items-center justify-center rounded-[var(--raio-controle)] text-dim hover:bg-panel2"
+        >
+          <span className="relative flex">
+            <Icone nome="alerta" className="size-5" />
+            <ContadorAvisos avisos={avisos} />
+          </span>
+        </Link>
+        {conta}
+      </div>
+    </header>
+  )
+}
+
+/**
+ * O TOPO DE QUEM NÃO TEM BARCO — e ele existe por um motivo de correção, não
+ * de simetria.
+ *
+ * O layout de `(app)` monta a faixa dentro de `painel != null &&`: sem
+ * embarcação, sem faixa. Isso era inofensivo enquanto o sino do celular morava
+ * na barra de baixo; com "Avisos" saindo dela nesta onda, um Partner ou um
+ * Captain sem barco — que a onda 99 tornou destinatário de aviso de
+ * Marketplace, e o comentário do layout diz isso com todas as letras — ficaria
+ * sem NENHUMA porta para `/notificacoes` no telefone.
+ *
+ * `lg:hidden` porque a partir de 1024px quem carrega marca e sino é o trilho:
+ * uma barra de 56px com um sino solto na ponta direita seria moldura vazia.
+ */
+export function FaixaMarca({ avisos }: { avisos: number }) {
+  return (
+    <CascaTopo
+      avisos={avisos}
+      className="lg:hidden"
+      marca={
+        <Link href="/hoje" className="shrink-0 text-base">
+          <Logo />
+        </Link>
+      }
+    />
+  )
 }
 
 export function FaixaTopo({
@@ -186,8 +299,47 @@ export function FaixaTopo({
     .filter((r): r is ResultadoCalc => r != null)
     .sort(maisApertada)[0] ?? null
 
+  // O seletor só ganha o lugar do wordmark quando ele TEM o que oferecer: com
+  // um barco só, trocar a marca por um nome que não abre escolha nenhuma seria
+  // gastar a única largura da esquerda com um botão inerte.
+  const seletorNoCelular = estadoDoBarco && embarcacoes.length > 1
+
   return (
-    <header className="mb-5 hidden h-14 items-center gap-4 border-b border-line lg:flex">
+    <CascaTopo
+      avisos={avisos}
+      marca={
+        <span className="flex min-w-0 items-center gap-2 lg:hidden">
+          {/* `text-base` porque `Logo` dimensiona o símbolo em `1.6em` do corpo
+              herdado: sem um corpo declarado aqui, a marca do topo mediria o
+              que o `<html>` mandasse e mudaria de tamanho com a preferência de
+              fonte do sistema — 16px dá o selo de ~26px do mockup. */}
+          {/* Sem `aria-label`: o nome acessível sai do próprio conteúdo — o
+              wordmark "Commander" em texto, ou o `alt` do símbolo quando o
+              seletor toma o lugar dele. Um rótulo escrito à mão aqui teria de
+              conter o texto visível (WCAG 2.5.3) e, na prática, só repetiria a
+              palavra que já está desenhada. */}
+          <Link href="/hoje" className="shrink-0 text-base">
+            <Logo compacto={seletorNoCelular} />
+          </Link>
+          {seletorNoCelular && (
+            <span className="min-w-0 truncate">
+              <SeletorEmbarcacao atual={{ id: embarcacao.id, nome: embarcacao.nome }} opcoes={embarcacoes} />
+            </span>
+          )}
+        </span>
+      }
+      conta={
+        /* O avatar reusa o `Avatar` de sempre (url null = iniciais em tom
+           NEUTRO — o dourado saiu das iniciais na onda 57 e não volta). */
+        <Link
+          href="/menu/ajustes"
+          aria-label="Sua conta e ajustes"
+          className="hidden size-11 items-center justify-center rounded-[var(--raio-pilula)] lg:flex"
+        >
+          <Avatar url={null} nome={nomeDoAvatar(nome ?? null, email)} tamanho="size-9" />
+        </Link>
+      }
+    >
       {/* Com um barco só, o nome é link pra ficha — no desktop a faixa é o
           caminho mais curto pro barco em qualquer tela. `min-h-11` mantém o
           alvo no piso de 44px mesmo com a faixa medindo pela altura dos
@@ -204,8 +356,15 @@ export function FaixaTopo({
           esquerda. Um cabeçalho só, duas formas — que é o que impede as duas
           de divergirem com o tempo, do mesmo jeito que `ContadorAvisos` impede
           o trilho e a barra de baixo de divergirem. */}
+      {/* ONDA 7 — O ESTADO DO BARCO PASSA A SER `lg`, E NÃO POR CAPRICHO DE
+          largura: a 390px a fileira "Barco de Teste · MOTOR BB 612,0 h ·
+          MOTOR BE 608,0 h · Revisão em 18 h" mede ~520px contra 358 úteis, e o
+          mockup não a tem em tela nenhuma. No celular esse mesmo dado tem casa
+          melhor e maior — o cartão "Motores" da Início, dois blocos abaixo. O
+          que o celular herda daqui é o que ele não tinha: marca, sino e o
+          seletor de barco em toda tela. */}
       {estadoDoBarco && (
-        <>
+        <div className="hidden min-w-0 flex-1 items-center gap-4 lg:flex">
           {embarcacoes.length > 1 ? (
             /* `shrink-0`: o nome do barco atual não trunca — quem cede espaço é
                a fileira de pílulas ao lado, que já tem `overflow-hidden`. */
@@ -245,32 +404,8 @@ export function FaixaTopo({
               </span>
             )}
           </div>
-        </>
+        </div>
       )}
-
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        {/* O sino — mesma anatomia do trilho: alvo de 44px, badge ancorado
-            no ícone (o `ContadorAvisos` compartilhado, não uma cópia). */}
-        <Link
-          href="/notificacoes"
-          aria-label="Avisos"
-          className="flex size-11 items-center justify-center rounded-[var(--raio-controle)] text-dim hover:bg-panel2"
-        >
-          <span className="relative flex">
-            <Icone nome="alerta" className="size-5" />
-            <ContadorAvisos avisos={avisos} />
-          </span>
-        </Link>
-        {/* O avatar reusa o `Avatar` de sempre (url null = iniciais em tom
-            NEUTRO — o dourado saiu das iniciais na onda 57 e não volta). */}
-        <Link
-          href="/menu/ajustes"
-          aria-label="Sua conta e ajustes"
-          className="flex size-11 items-center justify-center rounded-[var(--raio-pilula)]"
-        >
-          <Avatar url={null} nome={nomeDoAvatar(nome ?? null, email)} tamanho="size-9" />
-        </Link>
-      </div>
-    </header>
+    </CascaTopo>
   )
 }
