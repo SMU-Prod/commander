@@ -159,8 +159,23 @@ export function CardEmbarcacao({
           </span>
         </span>
         <div className="absolute inset-x-0 bottom-0 p-4">
+          {/* O RASTREIO É `.16em`, E POR QUE ELE É ESCRITO À MÃO AQUI.
+              "Palavra em caixa alta, rastreada" é UM gesto, e o app tinha onze
+              valores para ele — este era o `.06em` (docs/DESIGN.md §5,
+              "Rastreio"). O degrau declarado é um só: `.16em`.
+              A classe `.rotulo` seria o caminho normal, e ela NÃO serve neste
+              elemento pelo mesmo motivo que não serve no wordmark de
+              `components/logo.tsx`, a única isenção que a doc registra: a
+              classe CRAVA `font-size: 11px` (e a Mono junto). Aqui o corpo é o
+              nome do barco em 22px de Inter 600 — é o título do herói, a maior
+              voz da tela. Com a classe, o nome do barco encolheria para etiqueta
+              de instrumento e o §5 inteiro de tipografia (título = Inter 600)
+              seria contrariado pra obedecer uma linha dele.
+              Então vale a regra da isenção, ao pé da letra: escreve-se o MESMO
+              valor na mão, nunca um novo. Quem mexer aqui: `.16em`, ou a classe
+              — não um terceiro número. */}
           <h1
-            className="text-[22px] font-semibold uppercase tracking-[.06em] text-meter-texto"
+            className="text-[22px] font-semibold uppercase tracking-[.16em] text-meter-texto"
             style={{ textShadow: "0 1px 8px rgb(11 29 45 / .8)" }}
           >
             {embarcacao.nome}

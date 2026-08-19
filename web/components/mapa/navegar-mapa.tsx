@@ -182,10 +182,20 @@ function criarElementoBarco(): HTMLDivElement {
   // aparecia dourado ao lado do botão "Voltar ao barco" limão. `currentColor`
   // no preenchimento do traçado, com o par de contraste da ação na classe do
   // container — se a utilitária faltar, o traço herda cor em vez de sumir.
+  //
+  // `sombra-2` e não `shadow`: os CINCO marcadores deste arquivo (proa, ponto,
+  // MOB, origem e destino da rota) escreviam a elevação em utilitária do
+  // Tailwind — `shadow` em três, `shadow-lg` em dois —, dois degraus que a
+  // escala do app não tem. A escala é `sombra-1` (separa do fundo), `sombra-2`
+  // (isto FLUTUA) e o plano, que é a ausência das duas (docs/DESIGN.md §5). E
+  // "pastilha sobre o mapa" é o exemplo literal que a doc dá de `sombra-2`:
+  // pino de marcador não está encostado na página, ele paira sobre a carta.
+  // Os dois degraus crus também divergiam do resto DESTE arquivo, que já pinta
+  // cada flutuante seu com `sombra-2` — instrumento, pílula de rumo, botoeira.
   const proa = document.createElement("div")
   proa.dataset.papel = "proa"
   proa.className =
-    "relative flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white shadow"
+    "sombra-2 relative flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white"
   proa.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">${TRACADO_PROA_BARCO}</svg>`
   el.appendChild(proa)
 
@@ -193,7 +203,7 @@ function criarElementoBarco(): HTMLDivElement {
   // mesma cor da marca, sem seta nenhuma pra não inventar uma direção.
   const ponto = document.createElement("div")
   ponto.dataset.papel = "ponto"
-  ponto.className = "relative hidden size-4 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white shadow"
+  ponto.className = "sombra-2 relative hidden size-4 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white"
   el.appendChild(ponto)
 
   return el
@@ -220,7 +230,7 @@ function atualizarRumoBarco(el: HTMLDivElement, rumo: number | null) {
  *  usuário) usado acima. */
 function criarElementoMob(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-crit text-acao-texto ring-2 ring-white shadow-lg"
+  el.className = "sombra-2 flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-crit text-acao-texto ring-2 ring-white"
   el.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_MOB}</svg>`
   return el
 }
@@ -241,7 +251,7 @@ const TRACADO_DESTINO_ROTA = '<path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7
  *  linha comeca. */
 function criarElementoOrigemRota(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "size-3.5 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white shadow"
+  el.className = "sombra-2 size-3.5 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white"
   return el
 }
 
@@ -264,7 +274,7 @@ function criarElementoDestinoRota(aproximado: boolean): HTMLDivElement {
   }
   const corpo = document.createElement("div")
   corpo.className =
-    "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white shadow-lg"
+    "sombra-2 relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white"
   corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_DESTINO_ROTA}</svg>`
   wrapper.appendChild(corpo)
   return wrapper

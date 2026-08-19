@@ -37,9 +37,17 @@ function lerPapel(formData: FormData): PapelAdmin {
 
 /** Regiões só são gravadas pro Vistoriador — é o único papel com escopo
  *  regional. Guardar região num Suporte daria a impressão de que ele é
- *  limitado a ela, e ele não é. */
-async function gravarRegioes(papelId: string, papel: PapelAdmin, regioes: string[]): Promise<void> {
-  if (!exigeRegioes(papel)) return
+ *  limitado a ela, e ele não é.
+ *
+ *  Devolve `false` quando as regiões pedidas NÃO entraram. Isso importa mais
+ *  aqui do que na maioria das escritas: `admin_papel_regioes: só o CEO cria`
+ *  recusa com zero linha e `error` nulo, e um vistoriador sem região é
+ *  exatamente o "acesso que não abre nada" que as duas actions abaixo se dão
+ *  ao trabalho de impedir antes de escrever. Sem esta resposta, a tela
+ *  anunciava a função concedida e a pessoa recebia um crachá que não abre
+ *  porta nenhuma. */
+async function gravarRegioes(papelId: string, papel: PapelAdmin, regioes: string[]): Promise<boolean> {
+  if (!exigeRegioes(papel)) return true
   const supabase = await supabaseServer()
   // Não dá pra apagar (DELETE revogado na 049 pra proteger o histórico), então
   // o conjunto é montado por diferença: insere o que falta e ignora o resto.
@@ -47,9 +55,11 @@ async function gravarRegioes(papelId: string, papel: PapelAdmin, regioes: string
     .from("admin_papel_regioes").select("regiao_id").eq("papel_id", papelId)
   const atuais = new Set(((atuaisBrutos as { regiao_id: string }[] | null) ?? []).map((r) => r.regiao_id))
   const novas = regioes.filter((r) => !atuais.has(r))
-  if (novas.length > 0) {
-    await supabase.from("admin_papel_regioes").insert(novas.map((regiao_id) => ({ papel_id: papelId, regiao_id })))
-  }
+  if (novas.length === 0) return true
+  const { data, error } = await supabase.from("admin_papel_regioes")
+    .insert(novas.map((regiao_id) => ({ papel_id: papelId, regiao_id })))
+    .select("regiao_id")
+  return !error && (data?.length ?? 0) === novas.length
 }
 
 export async function conceberPapelAdmin(formData: FormData) {
@@ -83,7 +93,7 @@ export async function conceberPapelAdmin(formData: FormData) {
   }
 
   const papelId = (inserido as { id: string }).id
-  await gravarRegioes(papelId, papel, regioes)
+  const regioesOk = await gravarRegioes(papelId, papel, regioes)
 
   await registrarLogAdmin({
     acao: "admin.papel.conceder",
@@ -94,6 +104,11 @@ export async function conceberPapelAdmin(formData: FormData) {
   })
 
   revalidatePath(CAMINHO)
+  // A função existe, as regiões não — e é a metade que falta que decide se essa
+  // pessoa consegue trabalhar. O log acima fica registrado nos dois caminhos.
+  if (!regioesOk) {
+    erro(`${ROTULO_PAPEL[papel]} concedido, mas as regiões não foram salvas — sem elas o acesso não abre nada. Edite a função e salve as regiões de novo.`)
+  }
   ok(`${ROTULO_PAPEL[papel]} concedido.`)
 }
 
@@ -123,7 +138,7 @@ export async function atualizarPapelAdmin(formData: FormData) {
     .select("id")
   if (error || !atualizado?.length) erro("Não foi possível salvar. Tente de novo.")
 
-  await gravarRegioes(id, antes.papel, regioes)
+  const regioesOk = await gravarRegioes(id, antes.papel, regioes)
 
   await registrarLogAdmin({
     acao: ativo ? "admin.papel.reativar" : "admin.papel.suspender",
@@ -135,5 +150,10 @@ export async function atualizarPapelAdmin(formData: FormData) {
   })
 
   revalidatePath(CAMINHO)
+  // Mesma razão da concessão: dizer "reativada" com as regiões de fora é
+  // prometer um acesso que a RLS do vistoriador não vai honrar.
+  if (!regioesOk) {
+    erro("Função salva, mas as regiões não foram — sem elas o acesso não abre nada. Salve as regiões de novo.")
+  }
   ok(ativo ? "Função reativada." : "Função suspensa — o acesso para agora.")
 }

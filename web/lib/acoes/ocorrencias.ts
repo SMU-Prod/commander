@@ -81,6 +81,11 @@ export async function criarOcorrencia(formData: FormData) {
     erroNova("Não foi possível registrar a ocorrência. Tente de novo.")
   }
 
+  // Sem `.select()` porque esta escrita não tem como ser recusada sozinha:
+  // `transicoes: criar pela matriz` faz um EXISTS na ocorrência e pergunta
+  // `permissao(o.embarcacao_id, o.aba, 'editar')` — exatamente o predicado de
+  // `ocorrencias: criar pela matriz`, que o insert acima acabou de atravessar e
+  // conferir linha a linha. Quem chegou até aqui já provou o acesso.
   await supabase.from("ocorrencias_transicoes").insert({
     ocorrencia_id: criada!.id, estado_anterior: null, estado_novo: "aberta", criado_por: user.id,
   })
@@ -114,6 +119,8 @@ export async function inserirOcorrenciaDoDiario(params: {
     criado_por: params.criadoPor,
   }).select("id").single()
   if (error || !criada) return { ok: false }
+  // Mesma razão de `criarOcorrencia`: a policy da transição repete o EXISTS da
+  // policy da ocorrência, e a ocorrência já foi conferida na linha acima.
   await supabase.from("ocorrencias_transicoes").insert({
     ocorrencia_id: criada.id, estado_anterior: null, estado_novo: "aberta", criado_por: params.criadoPor,
   })
@@ -174,10 +181,15 @@ export async function transicionarOcorrencia(formData: FormData) {
     .eq("id", id).select("id")
   if (error || !salva?.length) erroDetalhe(id, "Não foi possível salvar agora. Tente de novo em instantes.")
 
-  const { error: erroTransicao } = await supabase.from("ocorrencias_transicoes").insert({
+  // Aqui o `.select()` existia sem ninguém conferir o resultado. Diferente das
+  // transições de nascimento (que herdam o acesso do insert recém-conferido),
+  // esta carrega o motivo da ANULAÇÃO — o registro que o §7 exige para que
+  // anular não vire exclusão silenciosa. Perdê-lo em silêncio é perder
+  // exatamente a parte que a regra manda guardar.
+  const { data: transicao, error: erroTransicao } = await supabase.from("ocorrencias_transicoes").insert({
     ocorrencia_id: id, estado_anterior: ocorrencia.estado, estado_novo: novoEstado, observacao, criado_por: user.id,
   }).select("id")
-  if (erroTransicao) {
+  if (erroTransicao || !transicao?.length) {
     erroDetalhe(id, "O estado foi salvo, mas o histórico da mudança não. Recarregue para conferir.")
   }
 

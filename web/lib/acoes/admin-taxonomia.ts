@@ -152,9 +152,15 @@ export async function aprovarSolicitacaoTaxonomia(formData: FormData) {
     itemId = (criado as { id: string }).id
   }
 
-  const { error: erroStatus } = await supabase
-    .from("taxonomia_solicitacoes").update({ status: "aprovada" }).eq("id", id)
-  if (erroStatus) erro(CAMINHO_PEDIDOS, "O item foi criado, mas o pedido não fechou. Recarregue e confira.")
+  // `taxonomia_solicitacoes: admin decide` (`eh_admin()`) recusa com zero linha
+  // e `error` nulo. O `exigirAreaAdmin` lá em cima pergunta pelo papel na
+  // aplicação, não no banco, e são checagens diferentes — sem conferir a linha,
+  // o pedido continuava pendente na fila enquanto a tela dizia que foi aprovado
+  // e o item já existia. A frase serve tanto à recusa quanto ao pedido decidido
+  // por outro admin nesse intervalo.
+  const { data: fechado, error: erroStatus } = await supabase
+    .from("taxonomia_solicitacoes").update({ status: "aprovada" }).eq("id", id).select("id")
+  if (erroStatus || !fechado?.length) erro(CAMINHO_PEDIDOS, "O item foi criado, mas o pedido não fechou. Recarregue e confira.")
 
   await registrarLogAdmin({
     acao: "taxonomia.solicitacao.aprovar",

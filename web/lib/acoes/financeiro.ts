@@ -329,7 +329,7 @@ export async function adicionarNegocioAoFinanceiro(formData: FormData) {
   const v = validarLancamento({ tipo: "despesa", categoria, descricao, valorCentavos, data })
   if (!v.ok) erroNegocio(v.erro)
 
-  const { error } = await supabase.from("lancamentos_financeiros").insert({
+  const { data: lancado, error } = await supabase.from("lancamentos_financeiros").insert({
     embarcacao_id: painel.embarcacao.id,
     tipo: "despesa",
     categoria,
@@ -352,6 +352,10 @@ export async function adicionarNegocioAoFinanceiro(formData: FormData) {
     // `so_o_cliente_lanca_o_negocio`); o cliente lê a frase, não o código.
     erroNegocio("Não deu para lançar este negócio agora. Tente de novo em instantes.")
   }
+  // O `.select("id")` estava aqui sem ninguém ler o retorno: `lancamentos:
+  // criar pela matriz` recusa quem não tem `gastos:editar` com zero linha e
+  // `error` nulo, e a tela fechava o negócio dizendo que ele entrou no extrato.
+  if (!lancado?.length) erroNegocio("Não deu para lançar este negócio agora. Tente de novo em instantes.")
 
   revalidarFinanceiro()
   revalidatePath(rota)
@@ -441,7 +445,9 @@ export async function alterarValorRecorrente(formData: FormData) {
   if (!rec) erroRecorrente(id, "Essa recorrente não existe mais. Atualize a página.")
 
   if (escopo === "somente_este") {
-    const { error } = await supabase.from("lancamentos_financeiros").insert({
+    // `.select("id")` sem leitor de novo: a exceção deste vencimento é um
+    // lançamento como qualquer outro e passa pela policy de `gastos:editar`.
+    const { data: excecao, error } = await supabase.from("lancamentos_financeiros").insert({
       embarcacao_id: rec.embarcacao_id,
       tipo: rec.tipo,
       categoria: rec.categoria,
@@ -460,6 +466,7 @@ export async function alterarValorRecorrente(formData: FormData) {
         ? "Esse vencimento já tem lançamento próprio. Edite ele direto em Lançamentos."
         : "Não deu para salvar agora. Tente de novo em instantes.")
     }
+    if (!excecao?.length) erroRecorrente(id, "Não deu para salvar agora. Tente de novo em instantes.")
     revalidarFinanceiro()
     redirect(`/financeiro/recorrentes?ok=${encodeURIComponent("Valor ajustado só neste vencimento")}`)
   }
@@ -480,7 +487,13 @@ export async function alterarValorRecorrente(formData: FormData) {
     .update({ fim: diaAnterior }).eq("id", rec.id).select("id").maybeSingle()
   if (erroFechar || !fechada) erroRecorrente(id, "Não deu para salvar agora. Tente de novo em instantes.")
 
-  const { error: erroNova } = await supabase.from("recorrencias_financeiras").insert({
+  // A SUBSTITUTA DA SÉRIE, e a escrita cuja falha calada deixa o pior estado
+  // possível: a recorrente antiga já foi encerrada na linha acima, então uma
+  // recusa de `recorrencias: criar pela matriz` sem conferência apagaria a
+  // conta do calendário — nem o valor velho nem o novo apareceriam no mês que
+  // vem, e a tela diria "Valor alterado deste vencimento em diante". Por isso
+  // o retorno entra no mesmo `if` do rollback.
+  const { data: substituta, error: erroNova } = await supabase.from("recorrencias_financeiras").insert({
     embarcacao_id: rec.embarcacao_id,
     tipo: rec.tipo,
     categoria: rec.categoria,
@@ -495,9 +508,14 @@ export async function alterarValorRecorrente(formData: FormData) {
     origem_id: rec.id,
     criado_por: user.id,
   }).select("id")
-  if (erroNova) {
+  if (erroNova || !substituta?.length) {
     // Volta a série antiga ao que era: melhor não ter feito nada do que
     // deixar a recorrente encerrada sem a substituta.
+    //
+    // Sem `.select()` porque esta escrita não tem como ser recusada por conta
+    // própria: é a MESMA linha e a MESMA policy (`recorrencias: atualizar pela
+    // matriz`) do fechamento de `fim` vinte linhas acima, que já foi conferido
+    // linha a linha. Se aquele passou, este passa.
     await supabase.from("recorrencias_financeiras").update({ fim: rec.fim }).eq("id", rec.id)
     erroRecorrente(id, "Não deu para salvar agora. Tente de novo em instantes.")
   }
@@ -548,7 +566,12 @@ export async function marcarVencimentoPago(formData: FormData) {
   const rec = bruta as RecorrenciaFinanceira | null
   if (!rec) erroRecorrente(id, "Essa recorrente não existe mais. Atualize a página.")
 
-  const { error } = await supabase.from("lancamentos_financeiros").insert({
+  // O terceiro `.select("id")` sem leitor deste arquivo — e o de consequência
+  // mais direta: quem marca um vencimento como pago sai da tela acreditando que
+  // a conta está quitada no extrato. Recusado pela policy de `gastos:editar`,
+  // o lançamento não existe e o vencimento reaparece no mês seguinte como se a
+  // pessoa nunca tivesse pago.
+  const { data: pago, error } = await supabase.from("lancamentos_financeiros").insert({
     embarcacao_id: rec.embarcacao_id,
     tipo: rec.tipo,
     categoria: rec.categoria,
@@ -567,6 +590,7 @@ export async function marcarVencimentoPago(formData: FormData) {
       ? "Esse vencimento já foi lançado."
       : "Não deu para salvar agora. Tente de novo em instantes.")
   }
+  if (!pago?.length) erroRecorrente(id, "Não deu para salvar agora. Tente de novo em instantes.")
 
   revalidarFinanceiro()
   redirect(`/financeiro/recorrentes?ok=${encodeURIComponent(rec.tipo === "entrada" ? "Entrada registrada" : "Vencimento pago")}`)

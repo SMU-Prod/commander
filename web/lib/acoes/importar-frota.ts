@@ -155,10 +155,17 @@ export async function importarUnidades(
       }).select("id").maybeSingle()
       if (!eq) falhas.push({ nome, motivo: "criada, mas o horímetro não virou motor" })
       else {
-        await supabase.from("itens_monitorados").insert([
+        // Mesma lei do remendo acima: `itens: criar pela matriz` recusa com
+        // `error` nulo e zero linha. Sem conferir, a unidade entrava na frota
+        // com motor e sem plano de manutenção — e o relatório de importação,
+        // que existe para dizer o que ficou pela metade, dava tudo por certo.
+        const { data: plano } = await supabase.from("itens_monitorados").insert([
           { embarcacao_id: embarcacaoId, equipamento_id: eq.id, nome: "Revisão geral", intervalo_horas: 500, ultimo_ciclo_horas: l.horas, ultimo_ciclo_data: hojeISO() },
           { embarcacao_id: embarcacaoId, equipamento_id: eq.id, nome: "Troca de óleo e filtros", intervalo_horas: 250, intervalo_meses: 12, ultimo_ciclo_horas: l.horas, ultimo_ciclo_data: hojeISO() },
-        ])
+        ]).select("id")
+        if (plano?.length !== 2) {
+          falhas.push({ nome, motivo: "motor criado, mas o plano de manutenção não" })
+        }
       }
     }
   }

@@ -270,7 +270,11 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
             </div>
           </div>
 
-          <div className={`rotulo mt-2 inline-flex rounded px-2 py-0.5 ${
+          {/* `--raio-pilula` no lugar do `rounded` cru (4px do Tailwind, que
+              não é degrau de escala nenhuma): a peça é o SELO do boletim — o
+              próprio dado se chama `selo` —, e selo desenha 999 (docs/DESIGN.md
+              §5). Não é `--raio-controle`: nada aqui se toca, é leitura. */}
+          <div className={`rotulo mt-2 inline-flex rounded-[var(--raio-pilula)] px-2 py-0.5 ${
             estado.boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
             : estado.boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
             : "border border-crit/40 text-crit"

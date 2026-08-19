@@ -87,6 +87,17 @@ export default function ParceirosPage() {
             vendáveis em /assinar. A página de vendas tinha que dizer o mesmo
             que a tela de plano, senão o pitch exclui justamente quem paga. */}
         <p className="rotulo text-accent">Para marinas, postos, lojas náuticas, prestadores, restaurantes e pousadas</p>
+        {/* ESTE `tracking` NEGATIVO NÃO É O GESTO DO RÓTULO — não o troque por
+            `.rotulo`. O degrau único de rastreio do app (`.16em`) descreve
+            "palavra em caixa alta, rastreada"; isto aqui é o oposto, o APERTO da
+            Inter em título grande, e a casa dele é `.titulo-pagina`
+            (docs/DESIGN.md §5, "Rastreio", último marcador).
+            E a classe também não serve, pelo mesmo motivo medido na irmã desta
+            página (`app/page.tsx`, hero): `.titulo-pagina` carrega
+            `font-size: 1.5rem` e, vindo depois na cascata de layers, vence o
+            `text-4xl`/`sm:text-5xl` na mesma tag — o título de venda cairia pra
+            24px. Aqui o tamanho é o argumento. Fica escrito à mão, replicando a
+            voz da classe (peso, aperto, entrelinha) num corpo maior. */}
         <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-5xl">
           Seu ponto no mapa que os donos de barco já usam.
         </h1>

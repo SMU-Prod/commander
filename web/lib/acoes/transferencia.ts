@@ -35,6 +35,11 @@ export async function iniciarTransferencia(formData: FormData) {
   // só uma transferência pendente por vez — uma nova pedida cancela a
   // anterior (o índice único parcial da migration 038 garante isso mesmo
   // sob corrida de dois pedidos simultâneos).
+  //
+  // Sem `.select()` por decisão: zero linha aqui é o caso comum (ninguém tem
+  // pendência na primeira transferência) e não há o que anunciar. Uma recusa de
+  // `transferencias: prop gerencia` também não passaria batida — ela vale para
+  // o insert logo abaixo, que é conferido e é quem fala com a tela.
   await supabase.from("transferencias")
     .update({ status: "cancelada", cancelada_em: new Date().toISOString() })
     .eq("embarcacao_id", painel.embarcacao.id).eq("status", "pendente")
@@ -55,10 +60,17 @@ export async function cancelarTransferencia(formData: FormData) {
 
   const supabase = await supabaseServer()
   const id = String(formData.get("transferencia_id") ?? "")
-  const { error } = await supabase.from("transferencias")
+  // Dois desfechos zeram este update sem `error`: `transferencias: prop
+  // gerencia` (`eh_prop`) recusando — o papel do painel pode ter mudado desde
+  // que a página carregou — e o `status = 'pendente'` não casando porque o
+  // destinatário aceitou nesse intervalo. Nos dois a tela precisa parar de
+  // dizer "cancelada", e nenhum dos dois é nomeável a partir daqui.
+  const { data, error } = await supabase.from("transferencias")
     .update({ status: "cancelada", cancelada_em: new Date().toISOString() })
-    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).eq("status", "pendente")
-  if (error) erroTransferir("Não foi possível cancelar a transferência. Tente de novo.")
+    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).eq("status", "pendente").select("id")
+  if (error || !data?.length) {
+    erroTransferir("A transferência não foi cancelada. Atualize a página para ver em que pé ela está.")
+  }
 
   revalidatePath("/barco/transferir")
   redirect("/barco/transferir")

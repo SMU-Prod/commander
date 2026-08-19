@@ -100,6 +100,22 @@ export interface Plano {
  *  (0 assinaturas no banco em 15/08/2026). */
 export const PLANOS_APOSENTADOS = ["fundador_mensal", "fundador_anual"] as const
 
+/**
+ * §2 — "Cotistas viewers são incluídos na licença da empresa". Dez por unidade
+ * é a régua do §2, e precisa ser UM número.
+ *
+ * AUDITORIA 19/08, A20 — até aqui ele era escrito DUAS vezes: o argumento
+ * `viewers` de `enterprise()`, que virava a frase de `regra` lida na tela, e a
+ * conta `limite * 10` de `viewersIncluidos`. As duas concordavam nas cinco
+ * faixas por sorte, e nada as comparava: bastava o dono revisar uma faixa pelo
+ * argumento pra tela dizer 60 enquanto a função respondia 50.
+ *
+ * Mora ACIMA de `PLANOS` porque `enterprise()` a lê enquanto o objeto está
+ * sendo construído — `const` não sobe, e declará-la junto de `viewersIncluidos`
+ * derrubava o módulo inteiro no import.
+ */
+const VIEWERS_POR_UNIDADE = 10
+
 export const PLANOS: Record<PlanoId, Plano> = {
   proprietario_free: {
     id: "proprietario_free",
@@ -278,11 +294,11 @@ export const PLANOS: Record<PlanoId, Plano> = {
   // limita acesso não é a embarcação, é a conta (viewers/cotistas por
   // licença, §2) e a régua de vagas por unidade do §13 — reaproveitar o teto
   // de tripulação aqui misturaria duas contagens diferentes.
-  commander_enterprise_5: enterprise("commander_enterprise_5", 5, 50, 19990),
-  commander_enterprise_10: enterprise("commander_enterprise_10", 10, 100, 29990),
-  commander_enterprise_20: enterprise("commander_enterprise_20", 20, 200, 54990),
-  commander_enterprise_30: enterprise("commander_enterprise_30", 30, 300, 79990),
-  commander_enterprise_40: enterprise("commander_enterprise_40", 40, 400, 99990),
+  commander_enterprise_5: enterprise("commander_enterprise_5", 5, 19990),
+  commander_enterprise_10: enterprise("commander_enterprise_10", 10, 29990),
+  commander_enterprise_20: enterprise("commander_enterprise_20", 20, 54990),
+  commander_enterprise_30: enterprise("commander_enterprise_30", 30, 79990),
+  commander_enterprise_40: enterprise("commander_enterprise_40", 40, 99990),
 }
 
 /** Uma faixa Enterprise. Existe pra as cinco linhas acima não serem cinco
@@ -291,9 +307,9 @@ export const PLANOS: Record<PlanoId, Plano> = {
 function enterprise(
   id: PlanoId,
   unidades: number,
-  viewers: number,
   valorCentavos: number,
 ): Plano {
+  const viewers = unidades * VIEWERS_POR_UNIDADE
   return {
     id,
     rotulo: `Commander Enterprise ${unidades}`,
@@ -310,12 +326,29 @@ function enterprise(
   }
 }
 
-/** Quantos cotistas viewers a licença inclui (§2: "Cotistas viewers são
- *  incluídos na licença da empresa; não são cobrados individualmente para o
- *  acesso básico"). `null` = o plano não é Enterprise. */
+/**
+ * Quantos cotistas viewers a licença inclui (§2: "Cotistas viewers são
+ * incluídos na licença da empresa; não são cobrados individualmente para o
+ * acesso básico"). `null` = o plano não é Enterprise.
+ *
+ * SEM CONSUMIDOR HOJE, DE PROPÓSITO (auditoria 19/08, A20). O número JÁ chega
+ * à tela — pela frase de `regra`, que `/assinar` imprime no cartão "Em breve"
+ * (`app/(assinatura)/assinar/page.tsx:195`). Quem precisa dele como NÚMERO, e
+ * não como frase, é a única coisa que o Enterprise ainda não tem: o painel que
+ * conta quantos viewers a empresa já usou contra o teto da licença ("38 de
+ * 50"). Esse painel só faz sentido depois que existir empresa Enterprise, e
+ * hoje as cinco faixas são `disponibilidade: "em_breve"` — `ehCobravel` barra
+ * todas, nenhuma assinatura Enterprise pode ser criada.
+ *
+ * Não foi apagada porque, ao contrário de `escolherPromocao` (apagada logo
+ * abaixo), o caminho até o consumidor existe e é curto: destravar as faixas é
+ * decisão comercial do dono, não código que falta. E ela deixou de ser uma
+ * segunda fonte de verdade quando passou a dividir `VIEWERS_POR_UNIDADE` com a
+ * frase — que era o risco real de mantê-la.
+ */
 export function viewersIncluidos(id: PlanoId): number | null {
   const limite = PLANOS[id].limiteEmbarcacoes
-  return ehPlanoEnterprise(id) && limite != null ? limite * 10 : null
+  return ehPlanoEnterprise(id) && limite != null ? limite * VIEWERS_POR_UNIDADE : null
 }
 
 export function ehPlanoEnterprise(id: PlanoId): boolean {
@@ -327,15 +360,34 @@ export function ehPlanoEnterprise(id: PlanoId): boolean {
  *  — empresa com 60 Jets não pode achar que o Commander não serve pra ela. */
 export const ENTERPRISE_SOB_CONSULTA_ACIMA_DE = 40
 
-/** §14 — o plano pessoal do cotista, que NÃO substitui o acesso básico dado
- *  pela administradora. O valor mora aqui junto com os outros preços; o
- *  produto em si é a onda 75. */
+/**
+ * §14 — o plano pessoal do cotista, que NÃO substitui o acesso básico dado
+ * pela administradora.
+ *
+ * É O ÚNICO RESTO DO §14 NO CÓDIGO, e é assim de propósito: a auditoria 19/08
+ * (A8) apagou o bloco de venda inteiro de `lib/domain/cotista-plano.ts` —
+ * headline, nove recursos, copy — porque `cotista_individual` não existe em
+ * `PLANOS`, logo não está em `PLANOS_COBRAVEIS`, logo a constraint
+ * `assinaturas_plano_check` do banco recusaria a linha. Não há como cobrar.
+ * O preço fica aqui, com os outros preços, para o dia em que houver checkout;
+ * a leitura longa do porquê está em `cotista-plano.ts:14-44`.
+ */
 export const COTISTA_INDIVIDUAL_CENTAVOS = 2490
 
-/** Planos que geram assinatura no gateway — os únicos que a action `assinar`
- *  aceita e os únicos que a constraint de `assinaturas.plano` deixa entrar
- *  (migration 048). Grátis não vira linha de assinatura, e "em breve" não é
- *  vendável. */
+/**
+ * Planos que geram assinatura no gateway — grátis não vira linha de assinatura
+ * e "em breve" não é vendável.
+ *
+ * QUEM CHAMA ISTO É O TESTE, e esse é o trabalho dela (auditoria 19/08, A20).
+ * Quem decide se um plano pode ser contratado é `ehCobravel`, um id por vez —
+ * é o que a action `assinar` e a tela `/assinar` usam. Esta lista é o INVENTÁRIO
+ * derivado, e existe para `planos.test.ts:96` travá-la contra as cinco strings
+ * que a constraint `assinaturas_plano_check` aceita. Conferido no banco vivo em
+ * 19/08: a constraint lista exatamente `commander`, `commander_pro`,
+ * `captain_pro`, `partner_prestador`, `partner_loja`. Sem esta trava, tornar um
+ * plano vendável no catálogo compila, passa, sobe — e só falha no INSERT do
+ * primeiro cliente que tentar pagar.
+ */
 export const PLANOS_COBRAVEIS: readonly PlanoId[] = (Object.keys(PLANOS) as PlanoId[]).filter(
   (id) => ehCobravel(id),
 )

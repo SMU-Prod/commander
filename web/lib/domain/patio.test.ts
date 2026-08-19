@@ -9,10 +9,16 @@ import {
   estadoDaHomeDePatio,
   horasDeUso,
   linhaDaComparacao,
+  linhaDaDecisao,
+  movimentoNasceAprovado,
+  podeDecidirMovimentoPatio,
+  ROTULO_APROVACAO,
   retornoViraAvaria,
+  situacaoDaAprovacao,
   textoDuracao,
   type Movimento,
 } from "./patio"
+import { PAPEIS, MODOS_APROVACAO } from "./enterprise"
 
 const mov = (over: Partial<Movimento> = {}): Movimento => ({
   saidaEm: "2026-08-18T11:00:00Z",
@@ -185,6 +191,127 @@ describe("pátio", () => {
     it("primeira frase vira o título quando há várias", () => {
       const a = retornoViraAvaria(true, "Impeller batendo. Verificar wear ring também.")
       expect(a?.titulo).toBe("Impeller batendo")
+    })
+  })
+
+  // AUDITORIA 19/08, A6 — as três colunas de aprovação que o banco coletava e
+  // nenhuma linha do app escrevia ou lia.
+  describe("conferência do movimento (§3)", () => {
+    describe("as quatro situações", () => {
+      it("entrou direto NÃO é 'conferido' — ninguém olhou", () => {
+        // O caso mais importante do bloco. `aprovado: true` sem carimbo é o
+        // padrão do banco (`default true`), e vestir isso de conferência
+        // inventaria um ato de gente que não aconteceu.
+        expect(situacaoDaAprovacao({ aprovado: true, aprovadoPor: null, aprovadoEm: null }))
+          .toBe("direta")
+        expect(ROTULO_APROVACAO.direta).toBeNull()
+      })
+
+      it("conferido tem autor e hora", () => {
+        expect(situacaoDaAprovacao({
+          aprovado: true, aprovadoPor: "u-1", aprovadoEm: "2026-08-19T14:32:00Z",
+        })).toBe("conferida")
+      })
+
+      it("sem aprovação e sem decisão é pendente, não recusado", () => {
+        expect(situacaoDaAprovacao({ aprovado: false, aprovadoPor: null, aprovadoEm: null }))
+          .toBe("pendente")
+      })
+
+      it("recusado é decisão registrada, não ausência dela", () => {
+        expect(situacaoDaAprovacao({
+          aprovado: false, aprovadoPor: "u-1", aprovadoEm: "2026-08-19T14:32:00Z",
+        })).toBe("recusada")
+      })
+
+      it("nome apagado não devolve o movimento pra fila", () => {
+        // `aprovado_por` é `on delete set null`: funcionário desligado apaga o
+        // nome, não o fato de que a conferência aconteceu.
+        expect(situacaoDaAprovacao({
+          aprovado: false, aprovadoPor: null, aprovadoEm: "2026-08-19T14:32:00Z",
+        })).toBe("recusada")
+      })
+    })
+
+    describe("quem nasce esperando o ADM", () => {
+      it("o Commander individual não está sob régua nenhuma", () => {
+        // PROP e CMDT não têm preset Enterprise. Sem esta porta, o dono de um
+        // barco só passaria a aprovar os próprios check-outs.
+        for (const papel of ["PROP", "CMDT"] as const) {
+          for (const modo of MODOS_APROVACAO) {
+            expect(movimentoNasceAprovado({ papel, modo, acao: "check_out" }), `${papel}/${modo}`)
+              .toBe(true)
+          }
+        }
+      })
+
+      it("'tudo exige aprovação' segura o check-out e o check-in", () => {
+        expect(movimentoNasceAprovado({ papel: "OPERACOES", modo: "tudo", acao: "check_out" }))
+          .toBe(false)
+        expect(movimentoNasceAprovado({ papel: "OPERACOES", modo: "tudo", acao: "check_in" }))
+          .toBe(false)
+      })
+
+      it("'somente críticos' deixa o pátio passar — o §6 pede poucos passos", () => {
+        expect(movimentoNasceAprovado({ papel: "OPERACOES", modo: "somente_criticos", acao: "check_out" }))
+          .toBe(true)
+        expect(movimentoNasceAprovado({ papel: "OPERACOES", modo: "somente_criticos", acao: "check_in" }))
+          .toBe(true)
+      })
+
+      it("sem aprovação entra direto", () => {
+        expect(movimentoNasceAprovado({ papel: "OPERACOES", modo: "sem_aprovacao", acao: "check_out" }))
+          .toBe(true)
+      })
+    })
+
+    describe("quem confere", () => {
+      it("é a administradora, e nunca quem registra", () => {
+        // O ponto inteiro da régua: Operações registra, o ADM confere. Deixar
+        // Operações aprovar o próprio check-out faria "tudo exige aprovação"
+        // não significar nada.
+        expect(podeDecidirMovimentoPatio("OPERACOES")).toBe(false)
+        expect(podeDecidirMovimentoPatio("MECANICA")).toBe(false)
+        expect(podeDecidirMovimentoPatio("COTISTA")).toBe(false)
+        expect(podeDecidirMovimentoPatio("ADM")).toBe(true)
+        expect(podeDecidirMovimentoPatio("ADM_GERAL")).toBe(true)
+        expect(podeDecidirMovimentoPatio("PROP")).toBe(true)
+      })
+
+      it("todo papel do app tem resposta — nenhum cai no vazio", () => {
+        for (const papel of PAPEIS) {
+          expect(typeof podeDecidirMovimentoPatio(papel), papel).toBe("boolean")
+        }
+      })
+    })
+
+    describe("a frase da decisão", () => {
+      it("com nome e hora, é a mesma gramática da auditoria (§22)", () => {
+        const l = linhaDaDecisao("Ana Souza", "conferida", "2026-08-19T17:32:00Z")
+        expect(l).toContain("Ana Souza aprovou")
+        expect(l).toContain("19/08/2026")
+      })
+
+      it("recusa diz recusa", () => {
+        expect(linhaDaDecisao("Ana Souza", "recusada", "2026-08-19T17:32:00Z"))
+          .toContain("recusou")
+      })
+
+      it("sem nome, não inventa gente", () => {
+        const l = linhaDaDecisao(null, "conferida", "2026-08-19T17:32:00Z")
+        expect(l).toContain("Conferido")
+        expect(l).toContain("19/08/2026")
+      })
+
+      it("sem hora, não inventa data", () => {
+        expect(linhaDaDecisao("Ana Souza", "conferida", null)).toBe("Ana Souza aprovou")
+        expect(linhaDaDecisao(null, "recusada", null)).toBe("Recusado")
+      })
+
+      it("quem não teve decisão não ganha frase", () => {
+        expect(linhaDaDecisao("Ana Souza", "direta", "2026-08-19T17:32:00Z")).toBeNull()
+        expect(linhaDaDecisao(null, "pendente", null)).toBeNull()
+      })
     })
   })
 

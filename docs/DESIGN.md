@@ -98,12 +98,33 @@ imagem — é o barco *dele*, e o app já guarda essa foto (`foto_capa_path`).
 Só estes valores: **4, 8, 12, 16, 24, 32, 48**. Nada de 13px, 18px, 27px.
 Se um espaçamento não está nessa lista, ele foi escolhido no olho.
 
-### Raio de borda — três
-- **8px** — controle pequeno (chip, botão pequeno, campo)
-- **14px** — cartão, painel, bloco de conteúdo
-- **999px** — pílula e avatar
+### Raio de borda — quatro degraus, e o critério é a FUNÇÃO
+- **8px** (`--raio-controle`) — **quem se toca**: chip, aba, botão pequeno, campo,
+  grupo de controle do mapa.
+- **14px** (`--raio-cartao`) — **quem contém**: cartão ANINHADO, dentro de outro
+  painel; bloco de conteúdo.
+- **16px** (`--raio-painel`) — **quem contém e está no primeiro nível**, direto
+  sobre o fundo. É o `Cartao nivel="painel"`, o padrão do componente.
+- **999px** (`--raio-pilula`) — pílula, avatar, selo, badge.
 
-Quatro raios diferentes na mesma tela é sintoma, não estilo.
+> **Eram três até a onda 79** — esta seção dizia isso, e a onda 91 ligou o
+> quarto sem voltar aqui para corrigir. O degrau de 16px existe porque raio
+> único **achata a hierarquia**: painel e sub-painel desenhavam os mesmos
+> 14px e liam como o mesmo nível. Com dois degraus de "quem contém", o raio
+> passa a significar profundidade — quanto maior, mais externo.
+
+O pecado nunca foi a quantidade de degraus: é **inventar um**. `rounded-xl`
+(12px), `rounded-lg` (8px por acaso), `rounded-[10px]`, `rounded-[20px]` — cada
+um desses é um raio de facto que ninguém declarou e que ninguém consegue mudar
+em um lugar só. Se a peça se toca, é 8; se contém, é 14 ou 16; se é pílula, 999.
+Não há uma quinta pergunta.
+
+**Exceção só vale escrita, no próprio lugar, com o motivo.** Existe uma hoje:
+`components/ui/grafico-barras.tsx` desenha a barra com `rounded-t-[3px]` — a
+barra tem no máximo 34px de largura e o arredondamento é o *chanfro* do topo da
+coluna, não a forma de um bloco. Os 8px de controle comeriam um terço da largura
+e a coluna viraria um comprimido. Não é deriva; é a única medida em que 8 não
+cabe.
 
 ### Elevação — três, e cada uma significa algo
 - **plano** — o padrão. A maioria das superfícies não tem sombra.
@@ -201,18 +222,27 @@ moldura — o mesmo caso do item ativo do trilho.
 
 ### Tipografia — três papéis
 
-A família é **IBM Plex** (onda 62). A Urbanist saiu: quando o dono desenhou o
-app inteiro no Claude Design (`docs/design-mobile/`, 32 telas), a seção 2 do
-canvas testou três direções tipográficas e a terceira consolidou IBM Plex — a
-seção 3 se chama literalmente "As telas que faltavam — já em IBM Plex". A
-Urbanist é geométrica e arredondada, voz de app de consumo; a Plex é neutra de
-engenharia, e o Commander se comporta como instrumento. As duas variáveis vêm
-do `next/font` em `web/app/layout.tsx` (`--font-plex-sans` /
-`--font-plex-mono`).
+São **duas famílias, com papéis separados**: **Inter** para tudo que é texto e
+**IBM Plex Mono** para tudo que é número de instrumento e rótulo. As duas vêm do
+`next/font` em `web/app/layout.tsx`, nas variáveis `--font-sans-app` e
+`--font-plex-mono`.
 
-- **Título e estado** — IBM Plex Sans 600. A voz editorial; é onde mora a
-  personalidade.
-- **Corpo** — IBM Plex Sans (400/500), o texto que se lê.
+> **Correção da onda 95 (achado 5.8).** Este parágrafo dizia "a família é IBM
+> Plex (onda 62)" e nomeava uma variável — `--font-plex-sans` — que não existe
+> em lugar nenhum do código. A Plex Sans saiu na **onda 80**, e o motivo está
+> escrito em `app/layout.tsx`: a Plex tem personalidade de engenharia e chama
+> atenção para si; num app cujo assunto é o número, a grotesca deixa o número
+> falar. A Plex **Mono** ficou, e ficou de propósito — já está afinada com
+> `.rotulo` e com `--font-mono-instr`. Ou seja: a doc descreveu por quinze ondas
+> uma decisão que o código tinha revertido, e quem calibrasse tipografia por
+> esta página estaria calibrando contra uma fonte que o app não carrega.
+> (A Urbanist, que a onda 62 aposentou, continua fora — isso não mudou.)
+
+- **Título e estado** — Inter 600. A voz editorial; é onde mora a personalidade.
+  Título grande pede tracking negativo (`.titulo-pagina` = −.022em,
+  `.titulo-card` = −.011em): a grotesca tem aberturas menores que a Plex e, no
+  espaçamento padrão, título grande fica frouxo.
+- **Corpo** — Inter (400/500), o texto que se lê.
 - **Número de instrumento e rótulo de cartão** — IBM Plex Mono
   (`--font-mono-instr`, fallback ui-monospace). Números sempre tabulares:
   hora de motor, profundidade, coordenada, valor, distância. **Sempre**, sem
@@ -229,6 +259,74 @@ do `next/font` em `web/app/layout.tsx` (`--font-plex-sans` /
   `SecaoPagina` e o logotipo "Commander" dependem do desenho antigo, e o
   raio de ~140 usos era grande demais pra mudar sem revisar tela por tela);
   `.rotulo-dado` é a forma nova, aditiva, em `app/globals.css`.
+
+### Rastreio — um degrau só: **.16em**
+
+"Palavra em caixa alta, rastreada" é **um** gesto, e a auditoria de 19/08
+(achado 5.12) mediu **onze** valores diferentes escritos à mão para ele —
+`.05em`, `.06em`, `.08em`, `.09em`, `.1em`, `.12em`, `.14em`, `.16em`, `.28em`…
+Nenhum deles saiu de uma régua; cada um saiu do olho de quem escreveu a tela
+naquele dia. Onze valores para um gesto é o retrato do que esta página chama de
+deriva: não há decisão errada em nenhum deles isoladamente, e mesmo assim o
+conjunto lê como sistema nenhum.
+
+O degrau é o do `.rotulo`: **.16em**. Um só.
+
+- **Regra:** use a classe `.rotulo`. Ela carrega tracking, caixa alta, a Mono e
+  o piso de 11px de uma vez, e é o que impede o valor de voltar a divergir.
+- **Exceção, e é uma só:** quando o corpo do texto é dimensionado por quem
+  chama, `.rotulo` não serve — ela **crava** `font-size: 11px`. É o caso do
+  wordmark em `components/logo.tsx`, que aparece em `text-lg`, `text-base`,
+  `text-sm` e `text-[11px]` conforme a tela, com o símbolo ao lado medindo
+  `1.6em` do mesmo corpo: com a classe, a palavra congelaria em 11px enquanto o
+  símbolo continuaria escalando, e a marca sairia desalinhada em cinco telas.
+  Aí se escreve `tracking-[.16em]` na mão — **o mesmo valor**, nunca um novo.
+- **Não confunda com o aperto de título.** `tracking-[-0.02em]` em título
+  grande não é este gesto: é o negativo da Inter, e ele já tem casa própria
+  (`.titulo-pagina` / `.titulo-card`). Título que escreve o negativo à mão
+  está reescrevendo a classe, não abrindo exceção.
+
+### Contagem — uma forma: **rótulo colado no número, dentro da pílula**
+
+"Quantos" é um gesto só, e o app o escrevia de três jeitos (achado 5.7):
+dentro de uma pílula, como `rótulo: valor`, e como número mono solto ao lado de
+um título. Três formas para a mesma pergunta é o que faz duas telas vizinhas
+parecerem produtos diferentes.
+
+A régua é a primeira, e ela tem dois portadores conforme o número seja leitura
+ou filtro:
+
+- **`ChipDado`** (`components/ui/chip.tsx`) — a contagem que se **lê**. Rótulo e
+  número na mesma pílula, rótulo em `.rotulo`, número em `.valor` mono tabular.
+  Não se toca, então não paga o alvo de 44px.
+- **`Chip contagem`** e **`Abas contagem`** — a contagem que **acompanha um
+  filtro ou uma aba**: é o tamanho do recorte, dito junto do recorte. Esses se
+  tocam e pagam os 44px.
+
+Duas regras que vêm junto e não são negociáveis:
+
+1. **Sem dois-pontos.** `Sistemas: 3` transforma a pastilha numa *frase* no meio
+   de uma fila que o olho lê como painel. A referência não usa nenhum. Foi o
+   dois-pontos de `FaixaKpi` a segunda das três formas, e ele caiu na onda 95.
+2. **Zero desenha.** `Vencido 0` é uma resposta; pílula sem número não diz
+   "zero", diz "não sei contar isto" (§6, regra 7).
+
+**As exceções legítimas, e por que cada uma é uma:**
+
+- **`ContadorAvisos`** — o badge vermelho sobre o ícone de Avisos. Não tem
+  rótulo dentro da pílula porque o rótulo é o **link vizinho** ("Avisos"), e
+  repeti-lo dentro de um círculo de 16px é impossível antes de ser feio. É
+  sinal de "tem coisa te esperando", não relatório — por isso também vira "9+"
+  acima de nove.
+- **`Kpi`** (`components/ui/kpi.tsx`) — rótulo **acima** do número, sem pílula.
+  Não é contagem: é o valor de uma grandeza dentro de um cartão, e o cartão já
+  é a moldura que a pílula seria.
+- **`GradeRotuloValor`** — é `<dl>` de **dado** ("Cliente", "Capacidade"), não
+  de contagem. Mesmo desenho de par, pergunta diferente.
+- **O número que É o assunto da tela** (`Medidor`, `.valor-instrumento`) — não
+  entra em pílula nenhuma. Ali o instrumento inteiro é a moldura.
+
+Fora dessas quatro, número solto ao lado de um título é deriva, não exceção.
 
 ### Alvo de toque — 44px
 Mínimo, sem exceção, para qualquer coisa que se toca. Link no meio de

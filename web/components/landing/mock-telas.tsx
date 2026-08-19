@@ -17,7 +17,15 @@ const ABAS: { rotulo: string; icone: NomeIcone; ativa?: boolean }[] = [
 export function MockTelas() {
   return (
     <div data-theme="dark" className="mx-auto w-full max-w-[300px] select-none sm:max-w-[320px]">
-      {/* Moldura do aparelho */}
+      {/* Moldura do aparelho.
+          EXCEÇÃO ESCRITA À ESCALA DE RAIO, e o motivo é o mesmo do
+          `rounded-t-[3px]` de `components/ui/grafico-barras.tsx` (docs/DESIGN.md
+          §5): estes 34/26px não desenham painel nem controle do Commander —
+          desenham um TELEFONE, o objeto que segura a vitrine. O par é o canto
+          real de um aparelho e o miolo dele (34 menos os 8px de bisel), e a
+          relação entre os dois é o que faz a peça parecer hardware em vez de
+          dois retângulos. Com 16px viraria um cartão com uma tela dentro. Não é
+          deriva: é a única medida do arquivo que não descreve o app. */}
       <div className="sombra-2 rounded-[34px] border border-line bg-panel2 p-2">
         <div className="overflow-hidden rounded-[26px] border border-line bg-ink">
           {/* Barra de status fake */}
@@ -42,7 +50,15 @@ export function MockTelas() {
                 <span className="rotulo text-ok">Tudo em dia</span>
               </span>
               <div className="absolute inset-x-0 bottom-0 p-3">
-                <p className="text-base font-semibold uppercase tracking-[.05em] text-meter-texto">Blue Horizon</p>
+                {/* `.16em`, o degrau único de rastreio, escrito à mão pela
+                    mesma razão do herói que este mock imita (ver o comentário
+                    em `components/card-embarcacao.tsx`): `.rotulo` cravaria
+                    11px e a Mono, e aqui o nome do barco é o título da cena,
+                    dimensionado pela escala do mock. Era `.05em` — o vizinho
+                    mais distante do degrau entre os onze que a auditoria
+                    contou. O corpo continua `text-base` porque o mock é uma
+                    redução do herói de 22px, não outra peça. */}
+                <p className="text-base font-semibold uppercase tracking-[.16em] text-meter-texto">Blue Horizon</p>
                 <p className="apoio text-meter-dim">Marina da Glória · Azimut 55</p>
               </div>
             </div>

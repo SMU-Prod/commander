@@ -8,6 +8,8 @@ import { carregarTrilha } from "@/lib/consultas-captain"
 import { O_QUE_O_CAPTAIN_FREE_FAZ, O_QUE_O_CAPTAIN_PRO_LIBERA } from "@/lib/domain/captain"
 import { hojeISO } from "@/lib/domain/datas"
 import {
+  ehCobravel,
+  ENTERPRISE_SOB_CONSULTA_ACIMA_DE,
   formatarPreco,
   PLANOS,
   planosDoPerfil,
@@ -114,9 +116,14 @@ export default async function AssinarPage({
   // variável nova. Ligar a chave acende as duas telas de uma vez, sem
   // ninguém precisar lembrar de virar mais um interruptor.
   const cobrancaLigada = asaasConfigurado()
-  const planoCobravel = planos.find(
-    (p) => p.disponibilidade === "disponivel" && p.valorCentavos != null && p.valorCentavos > 0,
-  )
+  // AUDITORIA 19/08, A20 — ISTO ERA `ehCobravel` COPIADO À MÃO, e a cópia
+  // estava incompleta: faltava `ciclo != null`. A regra é a mesma que a action
+  // `assinar` aplica antes de chamar o gateway (`lib/acoes/assinatura.ts:58`) e
+  // que decide o que a constraint `assinaturas_plano_check` aceita. Com duas
+  // escritas, um plano com preço e sem ciclo desenhava o checkout aqui e era
+  // recusado lá — a tela prometendo o que a action nega, que é a definição de
+  // divergência entre telas.
+  const planoCobravel = planos.find((p) => ehCobravel(p.id))
   const primeiroContratavel = cobrancaLigada ? planoCobravel : undefined
 
   return (
@@ -174,7 +181,10 @@ export default async function AssinarPage({
           {planos.map((p) => {
             const preco = precoVigenteCentavos(p.id, promo, hoje)
             const emPromocao = preco != null && p.valorCentavos != null && preco < p.valorCentavos
-            const contratavel = p.disponibilidade === "disponivel" && p.valorCentavos != null && p.valorCentavos > 0
+            // A20 — segunda cópia de `ehCobravel` na mesma tela, agora a que
+            // decide se o cartão vira rádio de contratação. Ela e a de cima
+            // precisavam concordar entre si E com a action; eram três.
+            const contratavel = ehCobravel(p.id)
 
             if (!contratavel) {
               // Grátis e "Em breve" aparecem, mas não são contratáveis aqui —
@@ -327,6 +337,22 @@ export default async function AssinarPage({
           </div>
         )}
       </form>
+
+      {/* A20 — A FAIXA QUE A TABELA DO §2 TERMINA E A TELA NÃO DIZIA.
+          `ENTERPRISE_SOB_CONSULTA_ACIMA_DE` existe desde a onda 69 com o
+          comentário "a tela precisa dizer isso em vez de simplesmente não ter
+          opção", e nunca foi lida. O efeito era o pior possível para uma tela
+          de venda: a maior faixa listada é 40 unidades, então uma empresa com
+          60 jets lia a tabela até o fim e concluía que o Commander não atende
+          o tamanho dela — quando o §2 diz exatamente o contrário, que acima
+          disso é personalizado. Sem botão, porque não há o que contratar: o
+          que falta a essa empresa é uma conversa. */}
+      {perfil === "proprietario" && (
+        <p className="apoio mt-6 text-center text-dim">
+          Mais de {ENTERPRISE_SOB_CONSULTA_ACIMA_DE} embarcações? O plano passa a ser montado sob medida —
+          fale com a gente e a gente desenha a licença para a sua frota.
+        </p>
+      )}
 
       {perfil !== "partner" && (
         <p className="apoio mt-6 text-center text-dim">

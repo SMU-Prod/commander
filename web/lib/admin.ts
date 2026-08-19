@@ -1,9 +1,10 @@
 import { cache } from "react"
 import { redirect } from "next/navigation"
 import {
-  ehCeo,
+  ehAdminQualquer,
   papeisValidos,
   podeAcessar,
+  podeGerenciarAdministradores,
   temPapelAdmin,
   type AreaAdmin,
   type PapelAdmin,
@@ -34,11 +35,26 @@ export const meusPapeisAdmin = cache(async (): Promise<PapelAdmin[]> => {
   return papeisValidos(((data as { papel: string }[] | null) ?? []).map((r) => r.papel))
 })
 
+/**
+ * Para onde mandar quem foi barrado.
+ *
+ * AUDITORIA 19/08, A20 — as quatro barreiras abaixo escreviam `papeis.length >
+ * 0` (ou `=== 0`) à mão, quatro vezes, para responder "esta pessoa trabalha
+ * aqui?". `ehAdminQualquer` era essa pergunta, escrita e testada, sem um único
+ * chamador. A distinção que ela guarda é sutil e cara de perder: quem tem papel
+ * mas não a área volta pro painel, quem não tem papel nenhum volta pro barco —
+ * mandar um vistoriador pro `/barco` porque ele não é do Comercial faria o
+ * painel parecer quebrado pra quem legitimamente o usa.
+ */
+function destinoDeQuemNaoPode(papeis: readonly PapelAdmin[]): string {
+  return ehAdminQualquer(papeis) ? "/admin" : "/barco"
+}
+
 /** Porta do painel: qualquer papel ativo entra. Não libera dado nenhum — cada
  *  tela ainda exige a sua área. */
 export async function exigirAdmin(): Promise<PapelAdmin[]> {
   const papeis = await meusPapeisAdmin()
-  if (papeis.length === 0) redirect("/barco")
+  if (!ehAdminQualquer(papeis)) redirect("/barco")
   return papeis
 }
 
@@ -46,20 +62,29 @@ export async function exigirAdmin(): Promise<PapelAdmin[]> {
  *  pra que tela e regra não possam divergir. */
 export async function exigirAreaAdmin(area: AreaAdmin): Promise<PapelAdmin[]> {
   const papeis = await meusPapeisAdmin()
-  if (!podeAcessar(papeis, area)) redirect(papeis.length > 0 ? "/admin" : "/barco")
+  if (!podeAcessar(papeis, area)) redirect(destinoDeQuemNaoPode(papeis))
   return papeis
 }
 
 export async function exigirPapelAdmin(papel: PapelAdmin): Promise<PapelAdmin[]> {
   const papeis = await meusPapeisAdmin()
-  if (!temPapelAdmin(papeis, papel)) redirect(papeis.length > 0 ? "/admin" : "/barco")
+  if (!temPapelAdmin(papeis, papel)) redirect(destinoDeQuemNaoPode(papeis))
   return papeis
 }
 
-/** "O CEO/Super Admin é a conta-mãe que cria e gerencia os demais
- *  administradores" (§21). */
+/**
+ * "O CEO/Super Admin é a conta-mãe que cria e gerencia os demais
+ * administradores" (§21).
+ *
+ * A20 — era `ehCeo` direto. Dá o mesmo resultado hoje, e por isso a troca
+ * parece cosmética: não é. `ehCeo` responde QUEM a pessoa é;
+ * `podeGerenciarAdministradores` responde O QUE ela pode fazer, que é a
+ * pergunta que esta barreira faz. No dia em que o §21 admitir um segundo papel
+ * concedendo acesso, a regra muda num arquivo de domínio com teste — e esta
+ * linha já está do lado certo.
+ */
 export async function exigirCeo(): Promise<PapelAdmin[]> {
   const papeis = await meusPapeisAdmin()
-  if (!ehCeo(papeis)) redirect(papeis.length > 0 ? "/admin" : "/barco")
+  if (!podeGerenciarAdministradores(papeis)) redirect(destinoDeQuemNaoPode(papeis))
   return papeis
 }

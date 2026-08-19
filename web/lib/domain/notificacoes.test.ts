@@ -13,6 +13,7 @@ import {
   nivelDoVencimentoFinanceiro,
   NIVEIS_NOTIFICACAO,
   NIVEL_AVISO_MARKETPLACE,
+  notificacaoDeDemandaCompativel,
   ordenarNotificacoes,
   PUSH_POR_NIVEL,
   VAZIO_CATEGORIA_NOTIFICACAO,
@@ -244,6 +245,57 @@ describe("NIVEL_AVISO_MARKETPLACE", () => {
     for (const nivel of Object.values(NIVEL_AVISO_MARKETPLACE)) {
       expect(nivel).not.toBe("critica")
     }
+  })
+  it("pedido novo compatível é importante — ele PEDE ação de quem atende", () => {
+    expect(NIVEL_AVISO_MARKETPLACE.demanda_compativel).toBe("importante")
+  })
+  it("e por ser importante, interrompe o celular e conta no sino", () => {
+    // As três coisas são a mesma decisão neste módulo: `PUSH_POR_NIVEL` e
+    // `contadorSino` leem o mesmo nível. Se alguém rebaixar o aviso pra
+    // informativa, o push some junto — e o push é o motivo desta onda existir.
+    const aviso = notificacaoDeDemandaCompativel({
+      id: "d1", tipo: "profissional", titulo: "Serviço de Elétrica em Angra", criadoEm: null,
+    })
+    expect(PUSH_POR_NIVEL[aviso.nivel]).toBe(true)
+    expect(contadorSino([aviso])).toBe(1)
+  })
+})
+
+describe("notificacaoDeDemandaCompativel — o construtor que os dois canais usam (onda 99)", () => {
+  const base = { id: "d1", titulo: "Serviço de Elétrica em Angra", criadoEm: "2026-08-19T12:00:00Z" }
+
+  it("leva pro pedido, não pra lista — o Partner não tem barco nem Central de barco", () => {
+    expect(notificacaoDeDemandaCompativel({ ...base, tipo: "profissional" }).href).toBe("/marketplace/d1")
+  })
+
+  it("o verbo é o do botão da tela de destino, por tipo (§11.5)", () => {
+    expect(notificacaoDeDemandaCompativel({ ...base, tipo: "profissional" }).acao).toBe("Enviar proposta")
+    expect(notificacaoDeDemandaCompativel({ ...base, tipo: "tripulacao" }).acao).toBe("Enviar candidatura")
+  })
+
+  it("nasce sem aba: é o que faz o aviso chegar a quem não tem permissão de hub nenhum", () => {
+    const aviso = notificacaoDeDemandaCompativel({ ...base, tipo: "produto" })
+    expect(aviso.aba).toBeNull()
+    // "Nenhuma permissão" é o que o disparo usa pra quem não tem vínculo com
+    // barco algum (Partner, Captain). O aviso tem de passar mesmo assim.
+    expect(filtrarPorPermissao([aviso], normalizarPermissoes(null))).toHaveLength(1)
+  })
+
+  it("cinco pedidos viram UMA linha com contador — o anti-spam do §5.2", () => {
+    const avisos = ["a", "b", "c", "d", "e"].map((id) =>
+      notificacaoDeDemandaCompativel({ ...base, id, tipo: "profissional" }),
+    )
+    const agrupados = agruparSemelhantes(avisos)
+    expect(agrupados).toHaveLength(1)
+    expect(agrupados[0].quantidade).toBe(5)
+  })
+
+  it("o detalhe é o título gerado pelo Commander, nunca o texto livre de quem publicou", () => {
+    expect(notificacaoDeDemandaCompativel({ ...base, tipo: "profissional" }).detalhe).toBe(base.titulo)
+  })
+
+  it("cai na categoria Marketplace, que é o filtro que a tela oferece", () => {
+    expect(notificacaoDeDemandaCompativel({ ...base, tipo: "caminhao" }).categoria).toBe("marketplace")
   })
 })
 

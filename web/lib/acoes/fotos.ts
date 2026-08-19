@@ -53,15 +53,19 @@ export async function subirFoto(formData: FormData) {
   const r = await subirArquivo(supabase, painel.embarcacao.id, "fotos", arquivo as File)
   if ("erro" in r) voltar(album, r.erro)
 
-  const { error } = await supabase.from("fotos").insert({
+  const { data: gravada, error } = await supabase.from("fotos").insert({
     embarcacao_id: painel.embarcacao.id,
     album: album as AlbumFoto,
     arquivo_path: r.path,
     bytes: (arquivo as File).size,
     legenda: String(formData.get("legenda") ?? "").trim() || null,
     criado_por: user.id,
-  })
-  if (error) {
+  }).select("id")
+  // `fotos: criar pela matriz` (`permissao(embarcacao_id, 'fotos', 'editar')`)
+  // recusa sem erro. O arquivo já subiu ao acervo neste ponto: sem conferir a
+  // linha, o app dizia "pronto", o álbum voltava vazio e o byte ficava no
+  // bucket ocupando a cota de uma foto que ninguém consegue ver.
+  if (error || !gravada?.length) {
     await supabase.storage.from("acervo").remove([r.path])
     voltar(album, "Não foi possível salvar a foto. Tente de novo.")
   }
@@ -84,8 +88,14 @@ export async function excluirFoto(formData: FormData) {
   if (!foto) voltar(album, "Foto não encontrada.")
 
   // apaga a linha primeiro: se falhar, a capa continua íntegra
-  const { error } = await supabase.from("fotos").delete().eq("id", id)
-  if (error) voltar(album, "Não foi possível excluir a foto.")
+  //
+  // A leitura acima passa por `fotos: ver`, o delete por `fotos: excluir pela
+  // matriz` — quem enxerga o álbum não necessariamente pode mexer nele, e a
+  // recusa vem como zero linha sem erro. Conferir aqui é o que impede o pior
+  // desfecho desta action: seguir adiante e remover o arquivo do acervo com a
+  // linha ainda de pé, deixando uma foto que a tela lista e não consegue abrir.
+  const { data: apagada, error } = await supabase.from("fotos").delete().eq("id", id).select("id")
+  if (error || !apagada?.length) voltar(album, "A foto não foi excluída. Atualize a página e tente de novo.")
 
   if (painel.embarcacao.foto_capa_path === foto.arquivo_path) {
     // via RPC: a capa é do álbum, e a policy de embarcacoes só aceita o PROP

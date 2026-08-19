@@ -13,7 +13,7 @@ import {
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
   AVISO_NAO_MOVIMENTA, DESCRICAO_MODO, MODOS_CARTEIRA, ROTULO_MODO, ROTULO_MOVIMENTO,
-  ROTULO_STATUS_MOVIMENTO, leituraDoSaldo, saldoCarteira,
+  ROTULO_STATUS_MOVIMENTO, leituraDoSaldo, saldoCarteira, sinalDoMovimento, statusInicialMovimento,
 } from "@/lib/domain/carteira"
 import { CATEGORIAS_FINANCEIRAS, ROTULO_CATEGORIA, formatarDataBr } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -269,9 +269,17 @@ export default async function CarteiraDetalhePage({
               </p>
             </div>
             <CampoTextarea label="Observação (opcional)" id="observacao_gasto" name="observacao" rows={2} />
+            {/* A20 — quem decide se este gasto nasce esperando OK é
+                `statusInicialMovimento`, a mesma regra que a função do banco
+                (`carteira_registrar_gasto`) aplica de verdade. A condição
+                estava copiada aqui: a tela podia prometer "entra na hora"
+                enquanto o banco gravava `pendente`, e o tripulante só
+                descobriria pelo saldo que não mexeu. */}
             <p className="apoio text-dim">
               O gasto reduz o saldo em mãos e entra como despesa da embarcação no Financeiro
-              {!ehProprietario && carteira.modo === "aprovacao" ? ", depois que o proprietário confirmar." : "."}
+              {statusInicialMovimento({ tipo: "gasto", modo: carteira.modo, ehProprietario }) === "pendente"
+                ? ", depois que o proprietário confirmar."
+                : "."}
             </p>
             <BotaoEnviar rotulo="Registrar gasto" />
           </form>
@@ -316,6 +324,11 @@ export default async function CarteiraDetalhePage({
         )}
         {movimentos.map((m) => {
           const url = urlPorMovimento.get(m.id)
+          // A20 — o sinal do movimento vem do domínio. Escrito à mão, ele estava
+          // em DUAS expressões abaixo (o "+/−" e a cor) que precisam concordar
+          // sempre: bastava alguém tratar devolução como entrada numa delas pro
+          // extrato mostrar "+ R$ 300" em verde para dinheiro que SAIU do saldo
+          // do tripulante.
           return (
             <LinhaLista
               key={m.id}
@@ -339,9 +352,9 @@ export default async function CarteiraDetalhePage({
                   )}
                 </>
               }
-              valor={`${m.tipo === "repasse" ? "+" : "−"} ${formatarReais(m.valor_centavos)}`}
+              valor={`${sinalDoMovimento(m.tipo) === 1 ? "+" : "−"} ${formatarReais(m.valor_centavos)}`}
               valorClassName={
-                m.status !== "aprovado" ? "text-dim" : m.tipo === "repasse" ? "text-ok" : ""
+                m.status !== "aprovado" ? "text-dim" : sinalDoMovimento(m.tipo) === 1 ? "text-ok" : ""
               }
             />
           )

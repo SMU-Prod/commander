@@ -15,6 +15,7 @@ import { formatarReais } from "@/lib/domain/gastos"
 import { horasDeUso } from "@/lib/domain/patio"
 import { supabaseServer } from "@/lib/supabase/server"
 import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
+import type { Tanque, TanqueMovimento } from "@/lib/db/types"
 
 /**
  * HUB COMBUSTÍVEL (onda 78 — PRD §11).
@@ -59,23 +60,20 @@ export default async function CombustivelPage({
         .gte("saida_em", desde).not("retorno_em", "is", null),
     ])
 
-  type Tanque = {
-    id: string; nome: string; combustivel: string | null
-    capacidade_litros: number | null; saldo_inicial_litros: number; minimo_litros: number | null
-  }
-  type Mov = {
-    id: string; tanque_id: string; tipo: "entrada" | "saida" | "medicao"
-    litros: number; destino_livre: string | null; destino_embarcacao_id: string | null
-    // AUDITORIA 19/08, A15 — `fornecedor` era pedido no formulário (logo
-    // abaixo), gravado por `movimentarTanque` e não existia neste tipo: o
-    // histórico não tinha como mostrá-lo nem por engano. Quem digitou "Posto
-    // Ilha" numa entrada de 800 litros nunca mais viu de quem comprou.
-    fornecedor: string | null
-    valor_centavos: number | null; motivo: string | null; criado_em: string
-  }
-
+  // ONDA 99 (P2-5) — as duas formas saem de `lib/db/types.ts`, derivadas do
+  // banco vivo. As cópias que moravam aqui eram o caso didático do achado:
+  //
+  //  · `Tanque` não declarava `dono_id` — e `dono_id` é o PREDICADO DA RLS
+  //    desta tabela. O tipo escondia justamente a coluna que decide quem
+  //    enxerga a linha, então a tela raciocinava sobre um tanque sem dono.
+  //  · `Mov` foi onde a auditoria A15 achou `fornecedor` faltando: pedido no
+  //    formulário logo abaixo, gravado por `movimentarTanque`, e ausente do
+  //    tipo — o histórico não tinha como mostrá-lo nem por engano. Quem
+  //    digitou "Posto Ilha" numa entrada de 800 litros nunca mais viu de quem
+  //    comprou. Copiar a linha à mão é como uma coluna some da tela sem
+  //    ninguém apagar nada.
   const lista = (tanques ?? []) as Tanque[]
-  const movs = (movimentos ?? []) as Mov[]
+  const movs = (movimentos ?? []) as TanqueMovimento[]
 
   // AUDITORIA 19/08, B4 — o histórico só renderizava `destino_livre`, o caso
   // EXCEPCIONAL. Toda saída para uma unidade cadastrada — o caso normal, e o
@@ -111,7 +109,7 @@ export default async function CombustivelPage({
         titulo="Combustível"
         descricao="Tanque próprio, abastecimentos e o balanço entre a conta e a régua."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {lista.length === 0 ? (
         <EstadoVazio
@@ -178,7 +176,12 @@ export default async function CombustivelPage({
                 )}
               </div>
 
-              <form action={movimentarTanque} className="sombra-1 mt-2 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+              {/* `--raio-cartao` e não `--raio-painel`: os 14px cravados aqui
+                  eram o mesmo desenho do painel do donut logo acima, que já
+                  vinha por token. Promover só o que estava à mão deixaria dois
+                  raios no mesmo nível da mesma tela. Subir a tela inteira é
+                  decisão de tela, e está no relatório. */}
+              <form action={movimentarTanque} className="sombra-1 mt-2 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                 <input type="hidden" name="tanque_id" value={t.id} />
                 {/* O teórico viaja junto pra action saber se a medição
                     diverge sem recalcular o balanço inteiro. */}
@@ -231,13 +234,18 @@ export default async function CombustivelPage({
                   name="motivo"
                   dica="Obrigatório quando a medição não bate com o teórico."
                 />
-                <button className={`${ACAO_NAO_ESTICA} rounded-xl border border-line py-3 text-sm font-semibold`}>
+                {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão
+                    se TOCA, então `--raio-controle`, o mesmo desenho dos
+                    outros botões de formulário do app. Menos redondo que o
+                    painel de propósito: raio maior contém, raio menor aperta.
+                    Vale também pro "Cadastrar tanque" no fim da tela. */}
+                <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
                   Registrar movimento
                 </button>
               </form>
 
               {doTanque.length > 0 && (
-                <div className="sombra-1 mt-2 rounded-[14px] border border-line bg-panel px-4">
+                <div className="sombra-1 mt-2 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
                   {doTanque.slice(0, 8).map((m) => (
                     <div key={m.id} className="flex items-center justify-between gap-2 border-b border-line py-3 last:border-0">
                       <span className="min-w-0">
@@ -298,7 +306,7 @@ export default async function CombustivelPage({
       {consumo.length > 0 && (
         <>
           <SecaoPagina icone="relatorio">Consumo por unidade — últimos 6 meses</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {consumo.map((u) => (
               <div key={u.embarcacaoId} className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-0">
                 <span className="min-w-0">
@@ -321,7 +329,7 @@ export default async function CombustivelPage({
       )}
 
       <SecaoPagina icone="mais">Novo tanque</SecaoPagina>
-      <form action={criarTanque} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={criarTanque} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <Campo label="Nome" id="nome" name="nome" placeholder="Ex.: Tanque da base — Marina da Glória" />
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Combustível" id="combustivel" name="combustivel" placeholder="Gasolina" />
@@ -331,7 +339,7 @@ export default async function CombustivelPage({
           <Campo label="Saldo inicial (L)" id="saldo_inicial" name="saldo_inicial" inputMode="decimal" className="font-mono-instr tabular-nums" />
           <Campo label="Mínimo (L)" id="minimo" name="minimo" inputMode="decimal" className="font-mono-instr tabular-nums" />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl border border-line py-3 text-sm font-semibold`}>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
           Cadastrar tanque
         </button>
       </form>

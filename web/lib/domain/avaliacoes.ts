@@ -245,13 +245,27 @@ export const ROTULO_DECISAO_MODERACAO: Record<DecisaoModeracao, string> = {
   ocultar: "Ocultar por violação",
 }
 
-/** §14: "Contestação não remove avaliação automaticamente." Enquanto o admin
- *  não decide, a avaliação segue pública e contando na média — a tela só
- *  avisa que está em análise. Quem quiser trapacear contestando tudo não
- *  ganha nada com isso. */
-export function contestacaoAfetaExibicao(): false {
-  return false
-}
+/*
+ * §14: "Contestação não remove avaliação automaticamente."
+ *
+ * AUDITORIA 19/08, A20 — AQUI MORAVA `contestacaoAfetaExibicao(): false`.
+ * APAGADA, e ela é o caso mais puro da categoria: o tipo de retorno é o
+ * literal `false`, então a função não APLICA nada — ela afirma. Não tinha
+ * consumidor e, único caso da lista, nem teste: ninguém chamava, nem para
+ * medir. Um `if` que consultasse essa função seria código morto por
+ * construção, porque o compilador já sabe o resultado.
+ *
+ * A regra continua valendo, e continua sendo cumprida pelo código que de fato
+ * decide: `calcularReputacao` filtra por `visibilidade === "publica"` (abaixo),
+ * e a contestação não escreve em `visibilidade` — só a moderação do admin
+ * escreve. É por aí que a garantia se sustenta, não por uma função-espelho.
+ * A tela também já diz a frase, onde o cliente precisa lê-la:
+ * `components/avaliacoes/cartao-avaliacao.tsx:103` e
+ * `app/(app)/avaliacoes/page.tsx:218`.
+ *
+ * Mesmo diagnóstico que a onda 57 deu a `rotuloDoSelo` e esta auditoria deu a
+ * `envioAlteraRegistroOficial` (`cotista-plano.ts:96-108`).
+ */
 
 // ===========================================================================
 // §14 — "Problema solucionado"
@@ -270,14 +284,24 @@ export function estadoDaSolucao(
   return "aguardando_cliente"
 }
 
-/** §14: "A nota não muda automaticamente." A frase existe como função pra
- *  ficar impossível alguém "otimizar" isso mais tarde sem ver o teste
- *  quebrar: solução confirmada muda o SELO ao lado da avaliação, nunca o
- *  número. Quem quiser mudar a nota é o cliente, editando, dentro dos 30
- *  dias — e é ele quem decide se o problema virou nota melhor. */
-export function notaDepoisDaSolucao(notaOriginal: number): number {
-  return notaOriginal
-}
+/*
+ * §14: "A nota não muda automaticamente."
+ *
+ * AUDITORIA 19/08, A20 — AQUI MORAVA `notaDepoisDaSolucao(n) => n`. APAGADA.
+ * O comentário dela dizia existir "pra ficar impossível alguém otimizar isso
+ * sem ver o teste quebrar", e essa promessa não se sustentava: a função é a
+ * identidade, e o teste dela media a si mesmo. Quem quisesse fazer a nota
+ * subir com a solução não editaria esta função — escreveria a conta no lugar
+ * onde a nota é lida, e nada aqui quebraria.
+ *
+ * O que de fato garante a regra é não existir nenhum caminho que escreva
+ * `avaliacoes.nota` a partir de `avaliacoes_solucoes`: a solução confirmada
+ * muda o SELO (`ROTULO_ESTADO_SOLUCAO`, logo abaixo), nunca o número. Mudar a
+ * nota é do cliente, editando dentro dos 30 dias (`DIAS_EDICAO_AVALIACAO`).
+ *
+ * Mesmo motivo pelo qual `cotistaPodeGerarRelatorioPessoal(x) => x` foi
+ * apagada em A8 — "a identidade com nome bonito" (`cotista-plano.ts:130-136`).
+ */
 
 export const ROTULO_ESTADO_SOLUCAO: Record<EstadoSolucao, string> = {
   nenhuma: "",
@@ -379,13 +403,24 @@ export function formatarQuantidade(quantidade: number): string {
   return `${quantidade} ${quantidade === 1 ? "avaliação" : "avaliações"}`
 }
 
-/** Estrelas cheias/vazias pra desenhar sem depender de fonte com meia
- *  estrela: arredonda pro inteiro mais próximo só na exibição — o número
- *  exato continua ao lado, escrito. */
-export function estrelasCheias(media: number | null): number {
-  if (media == null) return 0
-  return Math.round(media)
-}
+/*
+ * AUDITORIA 19/08, A20 — AQUI MORAVA `estrelasCheias(media)`, que arredondava
+ * a média pro inteiro mais próximo pra desenhar uma régua de 5 estrelas.
+ * APAGADA: o recurso foi cortado, e por decisão registrada.
+ *
+ * `components/avaliacoes/reputacao.tsx:15-17` diz por escrito que NÃO desenha
+ * estrelas a partir da média — mostra o número exato (`formatarMedia`) e o
+ * histograma (`barrasDaDistribuicao`, abaixo). O motivo é o mesmo do resto
+ * desta base: 4,4 e 4,6 desenham as mesmas 4 ou 5 estrelas, e a régua
+ * arredondada é a única coisa que o olho lê — um número derivado, desenhado
+ * como se fosse o dado.
+ *
+ * O único componente de estrelas vivo (`components/avaliacoes/estrelas.tsx`)
+ * recebe NOTA INTEIRA de uma avaliação, nunca média, e por isso não precisa
+ * arredondar nada. Não havia reimplementação à mão para adotar: não existe um
+ * `Math.round(media)` em `web/`. Mantê-la seria deixar no domínio a única
+ * versão do app que ainda acredita na régua gráfica.
+ */
 
 /**
  * O histograma do cartão-resumo (canvas tela-4c): uma barra por estrela, de

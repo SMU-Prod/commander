@@ -12,7 +12,11 @@ export async function salvarAssinaturaPush(assinatura: {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, erro: "Sessão expirada — entre de novo." }
-  const { error } = await supabase.from("push_assinaturas").upsert(
+  // `push: proprias` (ALL, `usuario_id = auth.uid()`) casa por construção — o
+  // id gravado é o da própria sessão. O `.select()` está aqui como sentinela:
+  // se um dia a policy passar a olhar mais que o dono, esta action falha
+  // dizendo que falhou em vez de prometer aviso que nunca chegaria.
+  const { data, error } = await supabase.from("push_assinaturas").upsert(
     {
       usuario_id: user.id,
       endpoint: assinatura.endpoint,
@@ -20,14 +24,18 @@ export async function salvarAssinaturaPush(assinatura: {
       auth: assinatura.keys.auth,
     },
     { onConflict: "usuario_id,endpoint" },
-  )
-  if (error) return { ok: false, erro: "Não foi possível salvar a ativação. Tente de novo." }
+  ).select("endpoint")
+  if (error || !data?.length) return { ok: false, erro: "Não foi possível salvar a ativação. Tente de novo." }
   revalidatePath("/notificacoes")
   return { ok: true }
 }
 
 export async function removerAssinaturaPush(endpoint: string): Promise<Resultado> {
   const supabase = await supabaseServer()
+  // Delete sem `.select()` DE PROPÓSITO: desativar é idempotente e zero linha é
+  // o estado desejado, não uma recusa a denunciar. O endpoint pode já ter saído
+  // por outro aparelho, por limpeza de assinatura morta no envio, ou nunca ter
+  // existido — em todos, "os avisos estão desligados" é verdade.
   const { error } = await supabase.from("push_assinaturas").delete().eq("endpoint", endpoint)
   if (error) return { ok: false, erro: "Não foi possível desativar." }
   revalidatePath("/notificacoes")
@@ -58,6 +66,9 @@ export async function enviarPushTeste(): Promise<Resultado> {
       // só remove assinatura morta (404/410); erro transitório mantém o aparelho ativado
       const codigo = err instanceof webpush.WebPushError ? err.statusCode : null
       if (codigo === 404 || codigo === 410) {
+        // Faxina de assinatura morta, também sem `.select()`: ninguém está
+        // esperando resposta desta linha. O que a pessoa vê é o resultado do
+        // envio, contado em `enviados` — a limpeza não entra nessa conta.
         await supabase.from("push_assinaturas").delete().eq("endpoint", a.endpoint)
       }
     }

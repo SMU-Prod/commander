@@ -27,7 +27,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Início — com `cache()`, na Início isso não vira consulta extra. Já vem
   // filtrado por permissão: tripulante não vê contador subir por causa de
   // um hub que ele não pode abrir.
-  const avisos = painel ? contadorSino(await carregarNotificacoes()) : 0
+  // ONDA 99 — o `painel ? … : 0` saiu daqui. Ele zerava o sino de quem não
+  // tem embarcação, e desde esta onda essa gente É a destinatária de um aviso:
+  // o Partner e o Captain recebem "chegou um pedido que combina com você"
+  // quando alguém publica no Marketplace. Com o zero fixo, o aviso existia na
+  // tela `/notificacoes` e o sino jurava que não havia nada — a divergência
+  // exata que o comentário abaixo diz que não pode acontecer.
+  // `carregarNotificacoes` já devolve `[]` sem sessão e, sem barco, custa uma
+  // consulta curta de Marketplace em vez das cinco do painel.
+  const avisos = contadorSino(await carregarNotificacoes())
 
   // ONDA 60 — o FAB global "+ Registrar" (`RegistroRapido`) saiu daqui, e
   // do app. O gesto que ele atendia ganhou casas melhores no conteúdo nas

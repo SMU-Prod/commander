@@ -17,7 +17,13 @@ import type {
   TipoVaga,
 } from "@/lib/domain/marketplace"
 import type { DestinoAfazer, EstadoAfazer } from "@/lib/domain/afazeres"
+import type {
+  AcaoSobreEnvio,
+  EstadoEnvio,
+  TipoEnvio,
+} from "@/lib/domain/cotista-plano"
 import type { CategoriaEstoque } from "@/lib/domain/estoque-combustivel"
+import type { EstadoServico } from "@/lib/domain/mecanica"
 import type { ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 import type { PlanoId, PromocaoId } from "@/lib/domain/planos"
 import type { TipoEmbarcacao } from "@/lib/domain/tipo-embarcacao"
@@ -233,7 +239,14 @@ export interface Evento {
   custo_centavos: number | null
   anexo_path: string | null
   trilha: PontoTrilhaDb[] | null
-  tem_trilha: boolean
+  /** DIVERGÊNCIA CORRIGIDA (19/08/2026, medida no catálogo vivo): estava
+   *  `boolean`, e a coluna é NULLABLE e sem default. Saída antiga — e qualquer
+   *  insert que não mande o campo — chega com `null`, que é "ninguém disse se
+   *  tem trilha", diferente de "não tem". Passou despercebido porque `null` é
+   *  falsy e hoje ninguém lê o campo direto; mas um tipo que promete não-nulo é
+   *  justamente o que autorizaria a próxima tela a escrever
+   *  `tem_trilha ? "Com trilha" : "Sem trilha"` e afirmar o que não sabe. */
+  tem_trilha: boolean | null
   criado_por: string | null
   hora_saida: string | null
   hora_retorno: string | null
@@ -331,9 +344,33 @@ export interface LancamentoFinanceiro {
    *  054: o mesmo negócio nunca vira dois lançamentos, e proposta sem
    *  confirmação bilateral não vira despesa nenhuma (§9.1). */
   negocio_id: string | null
+  /** DE ONDE O CUSTO VEIO — as duas colunas entraram na migration 065 (§10/§11
+   *  do Upgrade 3) e NÃO estavam declaradas aqui até 19/08/2026, apesar de
+   *  `lancarCustoComOrigem` (`lib/acoes/enterprise.ts`) escrever nas duas. Tipo
+   *  que ignora coluna viva é o mesmo defeito de tipo que promete coluna morta,
+   *  do lado avesso: a tela que quisesse marcar "custo automático" não tinha
+   *  como saber que o dado já estava no banco.
+   *
+   *  `null` nos dois = lançamento DIGITADO por gente no Financeiro. Não existe
+   *  origem "manual" implícita: o `check` do banco até aceita a palavra
+   *  `'manual'`, mas nada no app a grava — o que o app grava é ausência. Por
+   *  isso `origem` nula não pode virar um selo "Manual" na tela sem que alguém
+   *  decida que as duas coisas são a mesma. */
+  origem: OrigemLancamentoDb | null
+  /** O id da linha que gerou o custo (movimento de estoque, abastecimento,
+   *  serviço…). O índice único `lancamentos_uma_entrada_por_origem` é sobre
+   *  `(origem, origem_id) where origem_id is not null` — é ele que faz o duplo
+   *  clique bater em 23505 em vez de duplicar a despesa. */
+  origem_id: string | null
   criado_por: string | null
   created_at: string
 }
+
+/** `check` de `lancamentos_financeiros.origem` (migration 065). `manual` está
+ *  na lista do banco e nenhum caminho do app o escreve — ver o comentário da
+ *  coluna. Os outros cinco são os automatismos do Upgrade 3. */
+export type OrigemLancamentoDb =
+  | "combustivel" | "mecanica" | "estoque" | "avaria" | "documentacao" | "manual"
 
 export type TipoLancamentoDb = "despesa" | "entrada"
 export type StatusLancamentoDb = "pago" | "pendente"
@@ -521,7 +558,17 @@ export interface MovimentoPatio {
   retorno_responsavel_id: string | null
   /** A avaria aberta a partir do retorno (§6). */
   ocorrencia_id: string | null
+  /** §3, régua de aprovação (migration 060). `true` por padrão porque
+   *  check-in/out NÃO são ações críticas — travar o pátio esperando ADM pra
+   *  soltar um Jet é a fricção que o §6 manda evitar. Quem está no modo "tudo
+   *  exige aprovação" nasce `false` e espera o ADM.
+   *  ATENÇÃO: `aprovado` sozinho NÃO diz se alguém conferiu — `true` sem
+   *  carimbo significa "a régua não exigia", e é diferente de "o ADM aprovou".
+   *  Quem separa as quatro situações é `situacaoDaAprovacao`
+   *  (`lib/domain/patio.ts`), pela existência da decisão gravada. */
   aprovado: boolean
+  /** `on delete set null`: funcionário desligado apaga o nome, não o fato de
+   *  que a conferência aconteceu. */
   aprovado_por: string | null
   aprovado_em: string | null
   criado_em: string
@@ -1124,9 +1171,16 @@ export interface Sondagem {
   medido_em: string
   criado_em: string
   /** Chave de deduplicação do cliente (`loteId:celulaId`, onda 14 — ver
-   *  `web/lib/nmea/fila.ts` e a migration `026_sondagens_idempotencia.sql`).
-   *  `null` em linhas gravadas antes desta onda. */
-  origem_id: string | null
+   *  `web/lib/nmea/fila.ts`).
+   *
+   *  DIVERGÊNCIA CORRIGIDA (19/08/2026, medida no catálogo vivo): estava
+   *  `string | null`, com o comentário "null em linhas gravadas antes desta
+   *  onda". A coluna é **NOT NULL** no banco de hoje, e `registrarSondagens`
+   *  (`lib/acoes/sondagem.ts`) sempre monta a chave — não existe linha sem ela.
+   *  Prometer `null` que nunca chega é o erro simétrico ao de prometer coluna
+   *  morta: obriga quem lê a escrever um ramo de ausência que nunca roda, e
+   *  esse ramo nunca é testado com dado real. */
+  origem_id: string
 }
 
 /** Linha devolvida por `sondagens_por_celula` (RPC) — SEMPRE agregado por
@@ -1142,7 +1196,23 @@ export interface CelulaSondagemAgregada {
 
 // Corredores (onda 17) — agregado ANONIMO por celula de passagens reais de
 // barcos, sem embarcacao_id/usuario_id nenhum (diferente da Sondagem acima).
-// Ver web/lib/domain/rota.ts e migration 029_corredores.sql.
+// Ver web/lib/domain/rota.ts.
+/**
+ * PROJEÇÃO, não a linha da tabela — e é por isso que ela pode ficar aqui sem
+ * ser duplicata de nada.
+ *
+ * Deriva de `public.corredores`, que no banco vivo tem CINCO colunas:
+ * `celula_id, lat, lon, passagens, ultima_passagem`. O que falta aqui é
+ * `ultima_passagem` (`timestamptz not null default now()`), e falta de
+ * propósito: quem produz este objeto é o `select("celula_id, lat, lon,
+ * passagens")` de `app/api/corredores/route.ts`, e quem consome é
+ * `buscarCorredores` (`lib/mapa/corredores.ts`), que só precisa da intensidade.
+ * Servir a data da última passagem num agregado anônimo estreitaria o anonimato
+ * de graça — carimbo de hora é o tipo de campo que, cruzado com uma célula de
+ * poucos metros, volta a apontar para uma saída específica.
+ *
+ * Não há caso de `null`: as quatro colunas são NOT NULL na origem.
+ */
 export interface CorredorAgregado {
   celula_id: string
   lat: number
@@ -1355,10 +1425,19 @@ export interface AdminLogDb {
 // então cada tela reinventa uma versão parcial e ligeiramente diferente da
 // mesma linha, sem ninguém para compará-las.
 //
-// As cinco abaixo foram escritas a partir de `information_schema.columns` e
+// As que vêm abaixo foram escritas a partir de `information_schema.columns` e
 // `pg_constraint` do banco vivo (`khgjtxvmduizyooqaoox`, lido em 19/08/2026),
 // NÃO a partir das declarações que estavam nas páginas. Onde as duas coisas
 // divergiam, quem manda é a coluna — e a divergência está anotada no campo.
+//
+// SEGUNDA LEVA, 19/08/2026 (`ServicoMecanica`, `EstoqueMovimento`,
+// `TanqueMovimento`, `EnvioCotista`): as quatro tinham o MESMO sintoma, e é o
+// mais enganoso da lista — a consulta era `select("*")`, que traz a linha
+// inteira, e o tipo declarava um subconjunto. Não é um recorte: recorte é
+// quando o `select` pede menos. Aqui o dado chegava e o tipo o escondia, então
+// a coluna existia, vinha pelo fio, e nenhuma tela sabia que podia mostrá-la —
+// que é como `fornecedor` de tanque e `tipo` de envio ficaram anos sendo
+// gravados sem nunca voltar para quem os digitou.
 
 /**
  * §20 do PRD Upgrade 3 — tarefa de pátio (migration 066).
@@ -1419,13 +1498,12 @@ export interface Tanque {
    * predicado — a tela busca sem filtro e deixa a policy cortar.
    */
   dono_id: string
-  /**
-   * Coluna viva hoje, sempre `null` (0 de 5 linhas preenchidas) e sem uma
-   * única referência em `web/`. É o achado A2. A migration
-   * `084_bases_operacionais_apagada.sql` a remove — se ela for aplicada,
-   * apague este campo daqui junto.
-   */
-  base_id: string | null
+  // A2/084 — `base_id` NÃO existe mais. Medido em `pg_attribute` no banco de
+  // hoje: `attnum 3` de `tanques` e de `estoque_itens` está `attisdropped`, e
+  // `bases_operacionais` sumiu de `pg_class`. A migration foi aplicada. O
+  // campo ficou aqui declarado depois disso, e essa é a forma mais cara de
+  // erro que este arquivo pode ter: um `select("base_id")` escrito confiando
+  // no tipo compila e só quebra em produção, com 400 do PostgREST.
   nome: string
   combustivel: string | null
   /** `numeric` do banco; o PostgREST serializa como número JSON. */
@@ -1445,8 +1523,7 @@ export interface EstoqueItem {
   id: string
   /** NOT NULL no banco; a página omitia. Mesmo papel de recorte que em `Tanque`. */
   dono_id: string
-  /** Mesma nota de `Tanque.base_id`: achado A2, morre com a migration 084. */
-  base_id: string | null
+  // `base_id` também já morreu aqui — ver a nota em `Tanque`.
   nome: string
   /** `check` do banco com as nove categorias do §10, na mesma ordem. */
   categoria: CategoriaEstoque
@@ -1516,4 +1593,196 @@ export interface Votacao {
   /** `null` enquanto aberta. Escrita por `encerrarVotacao`
    *  (`lib/acoes/enterprise.ts:390`). */
   encerrada_em: string | null
+}
+
+/**
+ * §12 do PRD Upgrade 3 — o serviço na bancada da oficina (migration 063).
+ * Tabela `public.servicos_mecanica`, conferida no catálogo vivo em 19/08/2026.
+ *
+ * Morava como `type Servico` no topo de `app/(app)/mecanica/page.tsx`, com 9
+ * das 16 colunas, alimentado por um `select("*")`. As DATAS são o motivo de
+ * este tipo importar: são quatro (`entrada_em`, `inicio_em`, `conclusao_em`,
+ * `publicado_em`) e cada `null` responde uma pergunta diferente sobre o mesmo
+ * motor. Uma tela que trate as quatro como "sem data" perde a única informação
+ * que a oficina tem sobre atraso.
+ */
+export interface ServicoMecanica {
+  id: string
+  embarcacao_id: string
+  /** A avaria que originou o serviço. `null` = serviço aberto direto na
+   *  oficina, sem ocorrência antes — comum na manutenção programada. FK
+   *  `on delete set null`: apagar a avaria não apaga o conserto. */
+  ocorrencia_id: string | null
+  /** O que o dono/pátio relatou. `null` = ninguém escreveu o sintoma. */
+  problema_informado: string | null
+  /** O que a oficina concluiu. `null` = ainda não diagnosticou, e é isso que
+   *  separa "estamos olhando" de "já sabemos o que é". NUNCA desenhar como
+   *  "sem problema encontrado". */
+  diagnostico: string | null
+  /** O que foi feito. `null` enquanto não consertou. */
+  conserto: string | null
+  /** Horímetro na entrada. `null` = não anotaram — não é zero hora de uso. */
+  horas: number | null
+  /** `date` ("AAAA-MM-DD"), as três. Cada `null` é uma etapa que ainda não
+   *  aconteceu OU que ninguém registrou, e o app não distingue as duas:
+   *  `entrada_em` nulo não significa que o barco não está lá.
+   *  `conclusao_em` é a única cuja ausência tem leitura segura, porque
+   *  `estado` a confirma — e mesmo assim quem manda é `estado`. */
+  entrada_em: string | null
+  inicio_em: string | null
+  conclusao_em: string | null
+  /** Coletada nunca (auditoria 19/08, A15): não há campo de upload em tela
+   *  nenhuma, e nenhuma action escreve. Vazia em 100% das linhas. `null` aqui
+   *  é "não existe caminho de escrita", não "o fornecedor não mandou o PDF" —
+   *  mostrar a coluna renderiza "Anexo: —" em toda linha e não devolve anexo a
+   *  ninguém. Ver a nota longa em `app/(app)/mecanica/page.tsx`. */
+  anexo_path: string | null
+  estado: EstadoServico
+  /** §7 — quando o laudo virou visível para os cotistas. `null` = NÃO
+   *  publicado, e essa é a trava do §7: o cotista não enxerga laudo não
+   *  publicado, e quem garante é a RLS (migration 063), não o botão da tela. */
+  publicado_em: string | null
+  /** `on delete set null` nos dois: funcionário desligado apaga o nome, não o
+   *  fato de que a publicação e a abertura aconteceram. */
+  publicado_por: string | null
+  criado_por: string | null
+  criado_em: string
+}
+
+/** `check` de `estoque_movimentos.tipo` (migration 064). `ajuste` é a correção
+ *  de inventário — existe justamente para que uma contagem física não precise
+ *  ser maquiada como entrada ou retirada falsa. */
+export type TipoMovimentoEstoqueDb = "entrada" | "retirada" | "ajuste"
+
+/**
+ * §10 do PRD Upgrade 3 — o que entrou e saiu do almoxarifado (migration 064).
+ * Tabela `public.estoque_movimentos`, conferida no catálogo vivo em
+ * 19/08/2026. Morava como `type Movimento` dentro do componente de
+ * `app/(app)/estoque/page.tsx`, com 7 das 9 colunas e `tipo: string`.
+ *
+ * O SALDO NÃO MORA AQUI NEM EM LUGAR NENHUM DE PROPÓSITO — ele é
+ * `estoque_itens.quantidade`, que a action atualiza junto. Esta tabela é o
+ * histórico de por quê.
+ */
+export interface EstoqueMovimento {
+  id: string
+  item_id: string
+  tipo: TipoMovimentoEstoqueDb
+  /** `numeric` NOT NULL, e SEM `check` de sinal no banco — diferente de
+   *  `estoque_itens.quantidade`, que tem `>= 0`. É o que permite ao `ajuste`
+   *  registrar uma correção para baixo. */
+  quantidade: number
+  /** Para qual unidade a peça foi. `null` = movimento do almoxarifado que não
+   *  aponta para barco nenhum (uma entrada de compra, um ajuste de contagem) —
+   *  nunca "unidade desconhecida". FK `on delete set null`: apagar a
+   *  embarcação não apaga o fato de que a peça saiu. */
+  embarcacao_id: string | null
+  /** O serviço de mecânica que consumiu a peça. `null` = retirada avulsa. É
+   *  por ele que `app/(app)/mecanica/page.tsx` soma o custo de peças por
+   *  serviço; retirada sem `servico_id` some dessa conta, o que é correto —
+   *  ela não pertence a serviço nenhum. */
+  servico_id: string | null
+  motivo: string | null
+  autor_id: string | null
+  criado_em: string
+}
+
+/** `check` de `tanque_movimentos.tipo` (migration 064). `medicao` NÃO é
+ *  entrada nem saída: é a leitura física da régua, que existe para o saldo
+ *  teórico poder ser comparado com o real em vez de ser corrigido em silêncio. */
+export type TipoMovimentoTanqueDb = "entrada" | "saida" | "medicao"
+
+/**
+ * §11 do PRD Upgrade 3 — movimento do tanque da base (migration 064).
+ * Tabela `public.tanque_movimentos`, conferida no catálogo vivo em 19/08/2026.
+ * Morava como `type Mov` dentro do componente de
+ * `app/(app)/combustivel/page.tsx`, com 10 das 12 colunas.
+ *
+ * É desta tabela que sai o saldo do tanque (`saldoTeorico`, em
+ * `lib/domain/estoque-combustivel.ts`) — `tanques` só guarda o ponto de
+ * partida. Número derivado que se guarda é número que sai de sincronia.
+ */
+export interface TanqueMovimento {
+  id: string
+  tanque_id: string
+  tipo: TipoMovimentoTanqueDb
+  /** `numeric` NOT NULL, `check (>= 0)`. Na `medicao` este número é o volume
+   *  LIDO na régua, não uma variação — quem interpreta é o domínio. */
+  litros: number
+  /** Para onde foi. O banco tem um `check` amarrando os dois: numa `saida`,
+   *  pelo menos um dos dois é obrigatório — não existe combustível que some do
+   *  tanque sem destino. Nos outros tipos os dois são nulos e isso é o normal.
+   *  `destino_livre` é o escape para destino que não é unidade cadastrada
+   *  (carro da equipe, gerador da base). FK `on delete set null`: apagar a
+   *  embarcação apaga o destino, não o litro que saiu. */
+  destino_embarcacao_id: string | null
+  destino_livre: string | null
+  /** De quem se comprou. `null` = não anotaram — foi exatamente o campo que a
+   *  auditoria 19/08 (A15) achou sendo gravado e nunca exibido: quem digitou
+   *  "Posto Ilha" numa entrada de 800 litros nunca mais viu de quem comprou. */
+  fornecedor: string | null
+  /** `bigint`, `check (null ou >= 0)`. `null` = compra sem valor informado, e
+   *  NÃO combustível de graça. Um zero aqui derrubaria o R$/litro da base. */
+  valor_centavos: number | null
+  comprovante_path: string | null
+  motivo: string | null
+  autor_id: string | null
+  criado_em: string
+}
+
+/**
+ * §15 do PRD Upgrade 3 — o que o cotista informa à administradora (migration
+ * 066). Tabela `public.envios_cotista`, conferida no catálogo vivo em
+ * 19/08/2026.
+ *
+ * Morava dentro de `app/(app)/atualizacoes/page.tsx` como um `type Envio`
+ * local, e aqui o sintoma da segunda leva é o mais claro de todos — a consulta
+ * é `select("*")`, ou seja, traz a linha INTEIRA, e a declaração listava 10 das
+ * 13 colunas. As três que sobravam não
+ * eram "campos que a tela não usa": eram campos que a tela não sabia que
+ * existiam, e não há como uma tela decidir mostrar o que ela não enxerga.
+ *
+ * A REGRA QUE GOVERNA A TABELA (§15): *nada enviado pelo cotista altera
+ * automaticamente o registro oficial*. Toda linha aqui é um PEDIDO. Isso é o
+ * que dá sentido ao par `estado`/`acao` — e é por isso que a ficha da unidade
+ * não tem nenhuma FK apontando para cá.
+ */
+export interface EnvioCotista {
+  id: string
+  embarcacao_id: string
+  /** Quem enviou. NOT NULL: envio sem autor não teria procedência, que é o
+   *  produto inteiro do §15 (ver `linhaDeProcedencia`). */
+  cotista_id: string
+  tipo: TipoEnvio
+  /** O relato em si. `null` = a pessoa mandou só número (horas/combustível) e
+   *  não escreveu nada — a tela cai para "Envio" em vez de inventar frase. */
+  texto: string | null
+  /** `numeric`. `null` = o cotista não anotou o horímetro, NUNCA "zero hora".
+   *  É a leitura que o ADM pode escolher promover a registro oficial com a
+   *  ação `atualizar_horas`; um zero desenhado aqui viraria um zero gravado
+   *  lá. */
+  horas: number | null
+  /** Percentual do ponteiro (`check` de 0 a 100 no banco), mesma unidade do
+   *  Pátio. `null` = não anotou. Repare que 0 é valor LEGÍTIMO — tanque
+   *  vazio — e é exatamente por isso que a ausência precisa ser `null`. */
+  combustivel_pct: number | null
+  /** NUNCA PREENCHIDA (auditoria 19/08, A15): a coluna existe desde a
+   *  migration 066 e nada no app escreve nela — o formulário não pede arquivo
+   *  e `enviarAoAdm` não sobe nenhum. `null` aqui não é "o cotista não mandou
+   *  foto": é "não existe caminho para mandar". Fica declarada para que a
+   *  onda que fizer o upload encontre a coluna, e para que ninguém desenhe um
+   *  "Foto: —" em 100% dos cartões enquanto isso. */
+  foto_path: string | null
+  estado: EstadoEnvio
+  /** O ADM que decidiu. `null` enquanto `estado = 'aguardando'` — e também
+   *  depois, se o perfil dele sumir. Por isso `linhaDeProcedencia` cai para
+   *  "a administradora" em vez de deixar a frase sem sujeito. */
+  decidido_por: string | null
+  /** Quando decidiu. `null` = ainda ninguém decidiu. As três colunas de
+   *  decisão andam juntas na prática, mas o banco não tem `check` amarrando —
+   *  não presuma que `estado != 'aguardando'` implica carimbo. */
+  decidido_em: string | null
+  /** O que o ADM fez com o envio. `null` enquanto aguarda. */
+  acao: AcaoSobreEnvio | null
+  criado_em: string
 }

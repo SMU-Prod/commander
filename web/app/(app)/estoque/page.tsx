@@ -7,9 +7,10 @@ import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import { criarItemEstoque, movimentarEstoque } from "@/lib/acoes/enterprise"
 import { carregarPainel } from "@/lib/consultas"
+import type { EstoqueItem, EstoqueMovimento } from "@/lib/db/types"
 import {
   CATEGORIAS_ESTOQUE, estadoDoItem, precisaRepor,
-  ROTULO_CATEGORIA_ESTOQUE, ROTULO_ESTADO_ESTOQUE, type CategoriaEstoque,
+  ROTULO_CATEGORIA_ESTOQUE, ROTULO_ESTADO_ESTOQUE,
 } from "@/lib/domain/estoque-combustivel"
 import { supabaseServer } from "@/lib/supabase/server"
 import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
@@ -54,20 +55,22 @@ export default async function EstoquePage({
       .order("criado_em", { ascending: false }).limit(20),
   ])
 
-  type Item = {
-    id: string; nome: string; categoria: CategoriaEstoque; unidade: string | null
-    quantidade: number; minimo: number | null; fornecedor: string | null
-  }
-  type Movimento = {
-    id: string; item_id: string; tipo: string; quantidade: number
-    embarcacao_id: string | null; motivo: string | null; criado_em: string
-  }
-  const itens = (data ?? []) as Item[]
+  // AUDITORIA 19/08, P2-5 — esta tela declarava a linha à mão, com sete das
+  // dez colunas e o nome genérico `Item`. A de mecânica declarava as MESMAS
+  // colunas de novo, com um recorte diferente: era a divergência acontecendo,
+  // não uma ameaça de divergência. A forma agora vem de `lib/db/types.ts`,
+  // derivada do banco vivo — inclusive `dono_id` e `custo_unitario_centavos`,
+  // que o `select("*")` já trazia e o tipo escondia.
+  // ONDA 99 (P2-5) — o movimento seguia a mesma sorte do item: cópia à mão
+  // escondendo `servico_id` e `autor_id`, que o `select("*")` já trazia. E
+  // `tipo` era `string`, o que fazia o mapa de rótulo logo abaixo precisar de
+  // um `?? m.tipo` pra não quebrar; agora é união fechada, vinda do `check`.
+  const itens = (data ?? []) as EstoqueItem[]
   const comEstado = itens.map((i) => ({ ...i, estado: estadoDoItem(Number(i.quantidade), i.minimo) }))
   const repor = comEstado.filter((i) => precisaRepor(i.estado))
   const emOrdem = comEstado.filter((i) => !precisaRepor(i.estado))
 
-  const movimentos = (brutosMovimentos ?? []) as Movimento[]
+  const movimentos = (brutosMovimentos ?? []) as EstoqueMovimento[]
   const servicos = (servicosAbertos ?? []) as { id: string; problema_informado: string | null }[]
   const itemPorId = new Map(itens.map((i) => [i.id, i]))
   const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
@@ -173,7 +176,7 @@ export default async function EstoquePage({
         descricao="A prateleira da empresa — o que tem, o que está acabando e para onde foi."
         selo={repor.length > 0 ? <Selo estado="atencao">{`${repor.length} para repor`}</Selo> : undefined}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* Onda 79 (instrumentos) — DECISÃO: `BarraCapacidade` NÃO entrou por
           item (spec §2 item 3 sugeria isso), só no agregado abaixo.
@@ -212,7 +215,7 @@ export default async function EstoquePage({
             {repor.map((i) => (
               <div key={i.id} className="relative">
                 <span
-                  className={`absolute -top-1 right-3 z-10 rounded-full border px-2 py-0.5 text-[11px] ${
+                  className={`absolute -top-1 right-3 z-10 rounded-[var(--raio-pilula)] border px-2 py-0.5 text-[11px] ${
                     i.estado === "zerado" ? "border-crit/40 bg-panel text-crit" : "border-aten/40 bg-panel text-warn"
                   }`}
                 >
@@ -249,7 +252,12 @@ export default async function EstoquePage({
       {movimentos.length > 0 && (
         <>
           <SecaoPagina icone="relatorio">Últimas movimentações</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          {/* `--raio-cartao` e não `--raio-painel`: os 14px cravados aqui e no
+              formulário abaixo eram o mesmo desenho do cartão de reposição lá
+              em cima, que já vinha por token. Promover só o que estava à mão
+              deixaria dois raios no mesmo nível da mesma tela. Subir a tela
+              inteira está no relatório. */}
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {movimentos.map((m) => {
               const item = itemPorId.get(m.item_id)
               return (
@@ -285,7 +293,7 @@ export default async function EstoquePage({
       )}
 
       <SecaoPagina icone="mais">Novo item</SecaoPagina>
-      <form action={criarItemEstoque} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={criarItemEstoque} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <Campo label="Nome" id="nome" name="nome" placeholder="Ex.: Filtro de óleo D6" />
         <div className="grid grid-cols-2 gap-3">
           <CampoSelect label="Categoria" id="categoria" name="categoria">
@@ -307,7 +315,10 @@ export default async function EstoquePage({
           />
         </div>
         <Campo label="Fornecedor — opcional" id="fornecedor" name="fornecedor" />
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl border border-line py-3 text-sm font-semibold`}>
+        {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão se TOCA,
+            então `--raio-controle`; menos redondo que o painel de propósito,
+            porque raio maior contém e raio menor aperta. */}
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
           Cadastrar item
         </button>
       </form>

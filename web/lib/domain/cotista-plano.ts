@@ -60,6 +60,46 @@ export const RESSALVA_ACESSO_BASICO =
 // ---------------------------------------------------------------------------
 // §15 — Atualizações dos Cotistas
 // ---------------------------------------------------------------------------
+//
+// As três colunas de vocabulário de `envios_cotista` (`tipo`, `estado`, `acao`)
+// têm o mapa de rótulos AQUI, e não na tela, pelo mesmo motivo: cada uma tem um
+// `check` no banco, e um `check` sem mapa do lado do app é um valor que alguma
+// tela vai acabar imprimindo cru. Estando juntos, dá pra ver de um golpe que os
+// três estão cobertos — que foi como se descobriu que `tipo` não estava.
+
+/**
+ * §15 — "O que é", o primeiro campo do formulário de envio.
+ *
+ * Espelha o `check` vivo de `envios_cotista.tipo`, conferido no catálogo do
+ * banco em 19/08/2026. NOT NULL, sem default: não existe envio sem
+ * classificação, então nenhuma tela precisa de um ramo de "sem tipo".
+ */
+export const TIPOS_ENVIO = ["uso", "ocorrencia", "observacao"] as const
+
+export type TipoEnvio = (typeof TIPOS_ENVIO)[number]
+
+/**
+ * O rótulo de cada um.
+ *
+ * VEIO DA TELA (auditoria 19/08, A15). Morava dentro de
+ * `app/(app)/atualizacoes/page.tsx` porque o passe que descobriu o problema não
+ * era dono deste arquivo. O defeito que ele consertou vale registrar: a coluna
+ * era gravada por `enviarAoAdm` e nenhuma tela a mostrava, então na fila do ADM
+ * "devolvi com o tanque cheio" e "bati o casco na rampa" chegavam como dois
+ * cartões idênticos — e a diferença entre uma observação e uma OCORRÊNCIA é a
+ * diferença entre ler amanhã e ligar agora.
+ *
+ * `Record<string, string>` DE PROPÓSITO, e não `Record<TipoEnvio, string>` como
+ * os dois mapas abaixo: `tipo` chega do PostgREST como `string`, e no dia em que
+ * o `check` do banco ganhar um quarto valor a tela imprime o valor cru (`??
+ * e.tipo`, no cartão) em vez de escrever "undefined" na cara do ADM. É a mesma
+ * escolha de sempre — mostrar o que se sabe, nunca inventar o que falta.
+ */
+export const ROTULO_TIPO_ENVIO: Record<string, string> = {
+  uso: "Uso da unidade",
+  ocorrencia: "Ocorrência",
+  observacao: "Observação",
+}
 
 /** O que o ADM pode fazer com o que o cotista enviou (§15). */
 export const ACOES_SOBRE_ENVIO = [

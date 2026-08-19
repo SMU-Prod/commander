@@ -66,6 +66,14 @@ export async function iniciarAvaliacaoGold(formData: FormData) {
     if (error || !inserida?.length) erroConsultor(`/consultor/${solicitacaoId}`, "Não foi possível abrir o Protocolo Commander. Tente de novo.")
     avaliacaoId = inserida![0].id
 
+    // ZERO LINHA AQUI É O PROJETO, NÃO UM DEFEITO. O `ignoreDuplicates` existe
+    // para o segundo clique e para dois consultores abrindo o protocolo ao
+    // mesmo tempo: o PostgREST devolve sem as linhas que já estavam lá, e um
+    // `.select()` com checagem de vazio transformaria "os 8 hubs já existem" —
+    // o desfecho desejado — em erro na cara do consultor. A recusa por policy
+    // não se esconde atrás disso: `gold_protocolo_itens: criar` pergunta o
+    // mesmo que `gold_avaliacoes: criar`, e o insert da avaliação, cinco linhas
+    // acima, é conferido linha a linha.
     const { error: erroItens } = await supabase.from("gold_protocolo_itens")
       .upsert(
         HUBS_PROTOCOLO_GOLD.map((hub) => ({ avaliacao_id: avaliacaoId, hub, estado: "na" as EstadoItemProtocolo })),

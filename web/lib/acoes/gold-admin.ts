@@ -215,9 +215,16 @@ export async function reprovarSolicitacaoGold(formData: FormData) {
 
   const { data: avaliacaoBruta } = await supabase.from("gold_avaliacoes").select("id").eq("solicitacao_id", solicitacaoId).maybeSingle()
   if (avaliacaoBruta) {
-    await supabase.from("gold_avaliacoes")
+    // Espelha a aprovação logo acima: confere a linha ANTES de mexer no estado
+    // da solicitação. `gold_avaliacoes: atualizar` recusa com zero linha e sem
+    // erro, e era o motivo da reprovação — o texto que o cliente vai ler — que
+    // ficava para trás enquanto a RPC marcava a solicitação como reprovada.
+    const { data: reprovada, error: erroAvaliacao } = await supabase.from("gold_avaliacoes")
       .update({ resultado: "reprovado", status: "concluida", observacoes_gerais: motivo })
-      .eq("id", avaliacaoBruta.id)
+      .eq("id", avaliacaoBruta.id).select("id")
+    if (erroAvaliacao || !reprovada?.length) {
+      erroAdmin(`/admin/gold/${solicitacaoId}`, "A reprovação não foi salva na avaliação. Recarregue e tente de novo.")
+    }
   }
 
   const { error } = await supabase.rpc("gold_definir_estado", {

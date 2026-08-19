@@ -71,6 +71,23 @@ export type RecursoCarreira =
   | "avaliacoes"
   | "historico_trabalhos"
 
+/**
+ * QUEM ITERA ISTO É O TESTE, e esse é o trabalho da lista (auditoria 19/08,
+ * A20). Ela não é uma segunda cópia da união acima: é o que permite a
+ * `captain.test.ts` varrer TODOS os recursos e exigir, de cada um, que
+ * `carreiraLiberada` responda igual (§12 vende um pacote, não recursos
+ * avulsos) e que `mensagemCarreiraBloqueada` devolva título e descrição — o
+ * "portão sem explicação é cadeado mudo" do comentário logo acima só é
+ * verdade porque alguém confere um a um.
+ *
+ * O TypeScript sozinho não dá essa garantia: `Record<RecursoCarreira, …>`
+ * obriga a existir a chave, não a existir uma frase que preste.
+ *
+ * Hoje só `"disponibilidade"` e `"perfil_ativo"` chegam a ser passados por
+ * alguma tela; os outros quatro são portões cujas telas ainda não existem —
+ * por isso a varredura importa mais, não menos: é a única coisa que impede a
+ * copy deles de apodrecer sem ninguém ver.
+ */
 export const RECURSOS_CARREIRA: readonly RecursoCarreira[] = [
   "perfil_ativo",
   "explorar_completo",

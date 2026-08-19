@@ -340,6 +340,22 @@ async function diagnosticarAssinatura(
  * passa pela RPC `gold_definir_estado`, que exigiria `auth.uid()` de uma sessão
  * de usuário que este webhook não tem.
  *
+ * ---------------------------------------------------------------------------
+ * A REGRA PASSOU A TER DENTES (migration 088)
+ * ---------------------------------------------------------------------------
+ * Quando a onda 85 foi escrita, a máquina de estados era só uma CONVENÇÃO deste
+ * lado: `gold_transicao_valida` só era consultada de dentro de
+ * `gold_definir_estado`, e `gold_solicitacoes` não tinha trigger nenhum — foi
+ * exatamente por essa fresta que o salto sobreviveu por meses sem nada ter como
+ * notar. A migration 088 põe um `BEFORE UPDATE` que aplica a mesma função a
+ * QUALQUER escrita de `estado`, e de propósito **não** isenta a chave de
+ * serviço: o webhook sabe uma coisa só — que o dinheiro entrou — e é a máquina
+ * de estados que diz o que essa notícia significa.
+ *
+ * Consequência prática para quem for mexer nesta função: voltar a saltar deixa
+ * de ser um erro invisível e vira um 500 com `transicao_invalida_…` na hora em
+ * que alguém pagou. Os dois passos abaixo não são estilo — são o contrato.
+ *
  * NÃO precisa do carimbo de ordem do A-06: cobrança avulsa não tem par de
  * eventos opostos (ou o pagamento foi confirmado, ou não foi).
  */

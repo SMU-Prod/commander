@@ -185,7 +185,11 @@ export function VerViagemMapa({
         )}
       </div>
 
-      <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[18px] border-t border-line bg-panel/95 p-4 backdrop-blur">
+      {/* Mesma folha da tela irmã (`planejar-viagem-mapa.tsx`), mesmo degrau:
+          `--raio-painel` (16px) para quem CONTÉM no primeiro nível, direto
+          sobre o mapa (docs/DESIGN.md §5). Eram 18px em ambas — o mesmo número
+          escrito à mão duas vezes, que é como um raio de facto se propaga. */}
+      <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[var(--raio-painel)] border-t border-line bg-panel/95 p-4 backdrop-blur">
         <h2 className="titulo-card">{nome}</h2>
         <p className="apoio mt-0.5 text-dim">{dataFormatada}</p>
 

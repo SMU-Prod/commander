@@ -38,19 +38,27 @@ export async function criarDocumento(formData: FormData) {
   if (arquivo instanceof File && arquivo.size > 0) {
     const r = await subirArquivo(supabase, painel.embarcacao.id, "documentos", arquivo)
     if ("erro" in r) {
+      // Desfazer o vencimento criado há duas linhas: aqui zero linha É o
+      // esperado quando o próprio insert acima não colou, e não há nada a
+      // anunciar — quem manda na tela é o `r.erro` do arquivo.
       if (itemId) await supabase.from("itens_monitorados").delete().eq("id", itemId)
       volta(r.erro)
     } else arquivoPath = r.path
   }
 
-  const { error } = await supabase.from("documentos").insert({
+  const { data: documento, error } = await supabase.from("documentos").insert({
     embarcacao_id: painel.embarcacao.id, nome, arquivo_path: arquivoPath,
     validade, item_monitorado_id: itemId,
-  })
-  if (error) {
+  }).select("id")
+  // `documentos: criar pela matriz` pede `permissao(embarcacao_id,
+  // 'documentos', 'editar')` — quem só lê a aba chegava até aqui, o banco
+  // recusava calado e a lista voltava sem o documento recém-"salvo".
+  if (error || !documento?.length) {
     if (arquivoPath) await supabase.storage.from("acervo").remove([arquivoPath])
+    // Mesmo caso do rollback acima: se o item também foi recusado, não há linha
+    // para apagar e o delete vazio é o desfecho correto.
     if (itemId) await supabase.from("itens_monitorados").delete().eq("id", itemId)
-    volta("Não foi possível salvar o documento.")
+    volta("O documento não foi salvo. Tente de novo; se continuar, fale com quem administra a embarcação.")
   }
 
   revalidatePath("/barco/documentos")
@@ -75,21 +83,27 @@ export async function anexarArquivo(formData: FormData) {
   const { data: existente } = await supabase.from("documentos")
     .select("id").eq("item_monitorado_id", itemId).is("arquivo_path", null).maybeSingle()
 
+  // Os dois ramos gravam por policies distintas (`documentos: atualizar pela
+  // matriz` e `documentos: criar pela matriz`), ambas presas a
+  // `permissao(embarcacao_id, 'documentos', 'editar')` e ambas recusando com
+  // zero linha e `error` nulo. Sem conferir a linha, o arquivo ficava no acervo
+  // e o vínculo não existia: a tela dizia "anexado" e o documento continuava
+  // sem anexo nenhum.
   if (existente) {
-    const { error } = await supabase.from("documentos")
-      .update({ arquivo_path: arquivoPath }).eq("id", existente.id)
-    if (error) {
+    const { data: vinculado, error } = await supabase.from("documentos")
+      .update({ arquivo_path: arquivoPath }).eq("id", existente.id).select("id")
+    if (error || !vinculado?.length) {
       await supabase.storage.from("acervo").remove([arquivoPath])
-      volta("Não foi possível vincular o arquivo.")
+      volta("O arquivo não foi anexado. Tente de novo; se continuar, fale com quem administra a embarcação.")
     }
   } else {
-    const { error } = await supabase.from("documentos").insert({
+    const { data: criado, error } = await supabase.from("documentos").insert({
       embarcacao_id: painel.embarcacao.id, nome: item!.nome,
       arquivo_path: arquivoPath, validade: item!.data_fixa, item_monitorado_id: itemId,
-    })
-    if (error) {
+    }).select("id")
+    if (error || !criado?.length) {
       await supabase.storage.from("acervo").remove([arquivoPath])
-      volta("Não foi possível vincular o arquivo.")
+      volta("O arquivo não foi anexado. Tente de novo; se continuar, fale com quem administra a embarcação.")
     }
   }
   revalidatePath("/barco/documentos")
@@ -105,12 +119,22 @@ export async function excluirDocumento(formData: FormData) {
   if (!doc) volta("Documento não encontrado.")
 
   if (doc!.item_monitorado_id) {
+    // Aqui zero linha é desfecho esperado, não recusa disfarçada: o vencimento
+    // pode já ter sido apagado pela tela de itens, e o vínculo do documento
+    // sobrevive ao item. Quanto à permissão, as duas policies são a MESMA
+    // pergunta — `itens: excluir pela matriz` chama `aba_alvo(null,
+    // 'documento')`, que devolve literalmente 'documentos'. Então quem for
+    // barrado aqui será barrado no delete abaixo, e é de lá que sai a frase.
     const { error: erroItem } = await supabase
       .from("itens_monitorados").delete().eq("id", doc!.item_monitorado_id)
     if (erroItem) volta("Não foi possível excluir o vencimento vinculado. Tente de novo.")
   }
-  const { error } = await supabase.from("documentos").delete().eq("id", id)
-  if (error) volta("Não foi possível excluir. Tente de novo.")
+  // `documentos: excluir pela matriz` recusa com zero linha e `error` nulo.
+  // Conferir a linha é o que segura o resto da action: logo abaixo o arquivo
+  // sai do acervo, e fazer isso com a linha de pé deixaria na lista um
+  // documento cujo anexo não abre mais.
+  const { data: apagado, error } = await supabase.from("documentos").delete().eq("id", id).select("id")
+  if (error || !apagado?.length) volta("O documento não foi excluído. Atualize a página e tente de novo.")
   if (doc!.arquivo_path) {
     // best-effort: arquivo órfão é aceitável; linha fantasma não.
     await supabase.storage.from("acervo").remove([doc!.arquivo_path])

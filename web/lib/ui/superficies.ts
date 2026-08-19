@@ -148,7 +148,16 @@ export const LARGURA_CONTEUDO = "max-w-[430px] md:max-w-[680px] lg:max-w-[1400px
  *   Linha de leitura de 1400px é **ilegível**: o olho perde a volta ao
  *   começo da linha seguinte, e um campo de texto largo desse tamanho não
  *   diz quanto se espera que a pessoa escreva. A tipografia clássica fecha
- *   a conta em 45–75 caracteres; a 16px da Plex, isso dá ~640px.
+ *   a conta em 45–75 caracteres; a 16px, isso cai na casa dos 640px.
+ *
+ *   ONDA 95 (achado 5.8) — esta linha dizia "a 16px da Plex". A fonte de
+ *   TEXTO é Inter desde a onda 80 (a Plex sobrou só como mono de
+ *   instrumento), e a Inter tem largura de avanço diferente: a mesma conta
+ *   não devolve exatamente 640. O número segue defensável e não mudou — o
+ *   que mudou é a conta parar de nomear a fonte errada, que é o que
+ *   impedia qualquer um de refazê-la. Era a MESMA frase já corrigida em
+ *   `lib/ui/largura.ts`, que é onde o número mora hoje; esta cópia aqui
+ *   ficou para trás e virou a terceira divergência da mesma família.
  *
  * Por isso a largura passa a ser por NATUREZA DE CONTEÚDO, e não por tela:
  *

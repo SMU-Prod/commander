@@ -4,7 +4,6 @@ import {
   AVISO_DISPONIBILIDADE_MARINA,
   BLOCOS_PERFIL_PARTNER,
   demandaCompativelComPartner,
-  demandasDoPartner,
   demandasParaPartner,
   ehTipoPartner,
   explorarCompletoLiberado,
@@ -205,16 +204,10 @@ describe("que demandas cada tipo recebe (§13 + §11.1)", () => {
     }
   })
 
-  it("filtra a vitrine pelo tipo antes de qualquer interesse", () => {
-    const demandas = [
-      { id: "a", tipo: "vaga_embarcacao" as const },
-      { id: "b", tipo: "profissional" as const },
-      { id: "c", tipo: "caminhao" as const },
-    ]
-    expect(demandasDoPartner(demandas, simples("marina")).map((d) => d.id)).toEqual(["a"])
-    expect(demandasDoPartner(demandas, simples("posto")).map((d) => d.id)).toEqual(["c"])
-    expect(demandasDoPartner(demandas, simples("restaurante"))).toEqual([])
-  })
+  // A20 — "filtra a vitrine pelo tipo antes de qualquer interesse" saiu junto
+  // com `demandasDoPartner`. O corte por tipo continua medido: pelo caso acima,
+  // direto em `tiposDeDemandaDoPartner`, e pelos casos de `demandasParaPartner`,
+  // que é o filtro que as telas de fato chamam.
 })
 
 describe("taxonomia declarada (§13.2, §21.2)", () => {

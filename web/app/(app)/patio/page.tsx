@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -6,17 +7,56 @@ import { Campo, CampoTextarea } from "@/components/ui/campo"
 import { CampoArquivo } from "@/components/ui/campo-arquivo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { Selo } from "@/components/ui/selo"
-import { registrarRetorno, registrarSaida } from "@/lib/acoes/patio"
+import { Selo, type EstadoSelo } from "@/components/ui/selo"
+import { decidirMovimentoPatio, registrarRetorno, registrarSaida } from "@/lib/acoes/patio"
 import { carregarPainel } from "@/lib/consultas"
 import { carregarPatio } from "@/lib/consultas-patio"
+import type { MovimentoPatio } from "@/lib/db/types"
+import type { Papel } from "@/lib/domain/enterprise"
 import {
   COMPONENTES_JET, componentesJetSemPlano, ehJet, estadoDaHomeDePatio,
-  linhaDaComparacao, textoDuracao, duracaoHoras,
+  linhaDaComparacao, linhaDaDecisao, podeDecidirMovimentoPatio, ROTULO_APROVACAO,
+  situacaoDaAprovacao, textoDuracao, duracaoHoras, type SituacaoAprovacao,
 } from "@/lib/domain/patio"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { ROTULO_TIPO_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { supabaseServer } from "@/lib/supabase/server"
+
+/**
+ * AUDITORIA 19/08, A6 — O VESTIDO DE CADA SITUAÇÃO DE CONFERÊNCIA.
+ *
+ * `direta` não está aqui, e essa ausência é a regra: registro que entrou sem
+ * régua de aprovação NÃO ganha selo. Ele não foi conferido nem deixou de ser —
+ * ninguém precisava conferir. Pintar isso de qualquer cor seria afirmar um
+ * estado que não existe, que é o vício que `lib/domain/patio.ts` combate desde
+ * o cabeçalho.
+ *
+ * `pendente` é `atencao` e não `critico`: movimento esperando o ADM é rotina
+ * do modo "tudo exige aprovação", não incidente. O vermelho fica pra recusa,
+ * que é a única das quatro em que alguém disse que algo está errado.
+ */
+const SELO_APROVACAO: Partial<Record<SituacaoAprovacao, EstadoSelo>> = {
+  conferida: "ok",
+  pendente: "atencao",
+  recusada: "critico",
+}
+
+function situacaoDe(m: MovimentoPatio): SituacaoAprovacao {
+  return situacaoDaAprovacao({
+    aprovado: m.aprovado,
+    aprovadoPor: m.aprovado_por,
+    aprovadoEm: m.aprovado_em,
+  })
+}
+
+/** A pílula de conferência — `null` quando não há o que afirmar. */
+function SeloDaConferencia({ situacao }: { situacao: SituacaoAprovacao }) {
+  const estado = SELO_APROVACAO[situacao]
+  const rotulo = ROTULO_APROVACAO[situacao]
+  if (!estado || !rotulo) return null
+  return <Selo estado={estado}>{rotulo}</Selo>
+}
 
 /**
  * A HOME DE CAMPO (onda 70b — PRD-UPGRADE-3-COTAS §6).
@@ -53,10 +93,13 @@ export default async function PatioPage({
   // Movimento de pátio é registro de saída e retorno — mesma natureza do
   // Diário, e é dessa área que ele tira a permissão (migration 060).
   const editavel = podeEditar(painel.permissoes, "diario")
-  const patio = await carregarPatio()
+  // A6 — quem confere não é quem registra (§3). A régua mora no domínio, e é
+  // ela que decide se esta tela paga a consulta da fila de conferência.
+  const podeDecidir = podeDecidirMovimentoPatio(painel.papel as Papel)
+  const patio = await carregarPatio(8, podeDecidir)
   if (!patio) redirect("/onboarding")
 
-  const { falhouLeitura, aberto, historico, nomePorId } = patio
+  const { falhouLeitura, aberto, historico, pendentes, nomePorId } = patio
   const unidade = painel.embarcacao
   const nomeDe = (id: string | null) => (id ? nomePorId.get(id) ?? null : null)
   // AUDITORIA 19/08, B7 — a tela deixou de decidir por `aberto ? … : …`. Com
@@ -128,7 +171,7 @@ export default async function PatioPage({
           que toda tela do app já herda do layout — renderizar os dois fazia
           "Saída registrada" aparecer duas vezes na mesma tela (achado na
           prova visual desta onda). */}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* O cartão da unidade: nome, tipo e horímetro atual. É o que confirma
           pra pessoa do pátio que ela está no barco certo antes de tocar em
@@ -182,12 +225,24 @@ export default async function PatioPage({
           <SecaoPagina icone="ancora">Registrar retorno</SecaoPagina>
           <form action={registrarRetorno} className="space-y-4">
             <input type="hidden" name="movimento_id" value={aberto.id} />
-            <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            {/* `--raio-cartao` e não `--raio-painel`: este painel guarda o
+                sub-bloco "Na saída" em `--raio-controle`, e o par 14/8 já diz
+                a profundidade. Subir estes 14 pra 16 seria promoção de tela
+                inteira — os cartões de fila mais abaixo teriam de vir junto —
+                e isso está no relatório, não aqui pela metade. */}
+            <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               {/* O que foi anotado na saída, à vista: o §6 chama isso de
                   "comparação com check-out", e comparar de cabeça com o
                   formulário aberto é como se erra o horímetro. */}
               <div className="rounded-[var(--raio-controle)] border border-line bg-panel2 p-3">
-                <p className="rotulo text-dim">Na saída</p>
+                {/* A6 — a conferência da SAÍDA aparece pra quem está recebendo
+                    o barco. Não é enfeite: se o check-out desta unidade ainda
+                    não passou pelo ADM, quem faz o check-in precisa saber que
+                    está anotando em cima de um registro que ninguém validou. */}
+                <div className="flex items-center gap-2">
+                  <p className="rotulo min-w-0 flex-1 text-dim">Na saída</p>
+                  <SeloDaConferencia situacao={situacaoDe(aberto)} />
+                </div>
                 <p className="apoio mt-1">
                   {[
                     aberto.saida_horas != null ? `${aberto.saida_horas.toLocaleString("pt-BR")} h` : null,
@@ -270,7 +325,7 @@ export default async function PatioPage({
         <>
           <SecaoPagina icone="embarcacao">Registrar saída</SecaoPagina>
           <form action={registrarSaida} className="space-y-4">
-            <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <div className="grid grid-cols-2 gap-3">
                 <Campo
                   label="Horas na saída"
@@ -307,6 +362,108 @@ export default async function PatioPage({
             </div>
             <BotaoEnviar rotulo="Registrar saída" />
           </form>
+        </>
+      )}
+
+      {/* ---------------------------------------------------------------
+          AUDITORIA 19/08, A6 — A FILA QUE DAVA SENTIDO ÀS TRÊS COLUNAS.
+
+          `movimentos_patio.aprovado/aprovado_por/aprovado_em` existem desde a
+          migration 060 e nenhuma tela as mostrava, nenhuma escrita as tocava.
+          O efeito prático: o ADM ligava "Tudo exige aprovação" na ficha do
+          funcionário em /tripulacao, o app confirmava a mudança, e a
+          movimentação de pátio dessa pessoa continuava entrando sem passar por
+          ninguém — um controle que existia só na tela onde é configurado.
+
+          A LISTA JUNTA PENDENTE E RECUSADO porque as duas são a mesma
+          pergunta ("o que desta unidade não está conferido?"), e porque uma
+          recusa que sumisse da tela deixaria o ADM sem memória da própria
+          decisão. O selo de cada linha separa as duas, e só a pendente
+          oferece botão.
+
+          Vem ANTES do histórico e DEPOIS do gesto do dia: o §6 manda a home de
+          campo abrir pelo check-out/check-in. Conferência é trabalho de ADM,
+          que não está com o barco na rampa.
+          --------------------------------------------------------------- */}
+      {podeDecidir && estado !== "indisponivel" && pendentes.length > 0 && (
+        <>
+          <SecaoPagina icone="alerta">Movimentações a conferir</SecaoPagina>
+          <div className="space-y-2">
+            {pendentes.map((m) => {
+              const situacao = situacaoDe(m)
+              const decisao = linhaDaDecisao(nomeDe(m.aprovado_por), situacao, m.aprovado_em)
+              const quem = nomeDe(m.responsavel_id)
+              return (
+                <div key={m.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
+                  <div className="flex items-center gap-2">
+                    <p className="titulo-card min-w-0 flex-1">
+                      {new Date(m.saida_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      {/* "ainda fora" e não uma data de retorno em branco: o
+                          ADM precisa saber que está conferindo meia história. */}
+                      {m.retorno_em == null && <span className="apoio text-dim"> · ainda fora</span>}
+                    </p>
+                    <SeloDaConferencia situacao={situacao} />
+                  </div>
+                  {quem && <p className="apoio mt-1 text-dim">{quem}</p>}
+                  {(() => {
+                    const comparacao = linhaDaComparacao({
+                      saidaEm: m.saida_em,
+                      saidaHoras: m.saida_horas,
+                      saidaCombustivelPct: m.saida_combustivel_pct,
+                      retornoEm: m.retorno_em,
+                      retornoHoras: m.retorno_horas,
+                      retornoCombustivelPct: m.retorno_combustivel_pct,
+                    })
+                    return comparacao
+                      ? <p className="apoio mt-1 font-mono-instr text-dim">{comparacao}</p>
+                      : null
+                  })()}
+                  {(m.saida_estado || m.retorno_estado) && (
+                    <div className="mt-2 space-y-1 border-t border-line pt-2">
+                      {m.saida_estado && (
+                        <p className="apoio text-dim"><span className="rotulo">Saiu:</span> {m.saida_estado}</p>
+                      )}
+                      {m.retorno_estado && (
+                        <p className="apoio text-dim"><span className="rotulo">Voltou:</span> {m.retorno_estado}</p>
+                      )}
+                    </div>
+                  )}
+                  {decisao ? (
+                    <p className="apoio mt-2 text-dim">{decisao}</p>
+                  ) : (
+                    /* Dois formulários e não um com dois submits: a recusa
+                       passa pelo `Confirmar`, que já é um `<button
+                       type="submit">` sem `name`/`value` — no mesmo `<form>`
+                       as duas decisões chegariam indistinguíveis na action. O
+                       `<input hidden>` de cada um resolve sem inventar
+                       variante nova do componente. */
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <form action={decidirMovimentoPatio}>
+                        <input type="hidden" name="movimento_id" value={m.id} />
+                        <input type="hidden" name="decisao" value="aprovar" />
+                        <BotaoEnviar rotulo="Conferir" variante="ok" />
+                      </form>
+                      <form action={decidirMovimentoPatio}>
+                        <input type="hidden" name="movimento_id" value={m.id} />
+                        <input type="hidden" name="decisao" value="recusar" />
+                        {/* Recusa é carimbo que não se desfaz pela tela (a
+                            tabela não tem policy de delete, migration 060) —
+                            logo, pede confirmação. O vermelho fica no passo da
+                            confirmação, que o `Confirmar` já desenha. */}
+                        <Confirmar
+                          mensagem="Recusar esta movimentação?"
+                          rotulo="Recusar"
+                          className={ALVO_ACAO}
+                        >
+                          <span className={PILULA_ACAO}>Recusar</span>
+                        </Confirmar>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </>
       )}
 
@@ -361,9 +518,20 @@ export default async function PatioPage({
                       <span className="apoio">ocorrência</span>
                     </span>
                   )}
+                  {/* A6 — o histórico passou a dizer o que foi conferido e o
+                      que não foi. Sem isto, uma movimentação recusada pelo ADM
+                      lia exatamente igual a uma aprovada. */}
+                  <SeloDaConferencia situacao={situacaoDe(m)} />
                 </div>
                 {comparacao && <p className="apoio mt-1 font-mono-instr text-dim">{comparacao}</p>}
                 {linhaQuem && <p className="apoio mt-1 text-dim">{linhaQuem}</p>}
+                {/* Quem conferiu e quando — a procedência que o §22 pede. Só
+                    aparece quando houve ato de gente: registro que entrou
+                    direto não ganha frase nenhuma. */}
+                {(() => {
+                  const decisao = linhaDaDecisao(nomeDe(m.aprovado_por), situacaoDe(m), m.aprovado_em)
+                  return decisao ? <p className="apoio mt-1 text-dim">{decisao}</p> : null
+                })()}
                 {/* AUDITORIA 19/08, B8 — o formulário sempre gravou
                     `saida_estado` e `retorno_estado` e nada os lia. O
                     funcionário anotava "casco limpo, sem avaria aparente" na
@@ -427,7 +595,7 @@ export default async function PatioPage({
       {unidadeEhJet && (
         <>
           <SecaoPagina icone="ferramenta">Propulsão do Jet</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {COMPONENTES_JET.map((c) => {
               const monitorado = !semPlano.includes(c.slug)
               return (

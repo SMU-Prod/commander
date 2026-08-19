@@ -65,7 +65,13 @@ export function CardParceiro({
           tema claro, e no escuro acompanha o chão de instrumento em vez de
           ficar preso ao valor de um tema só. */}
       <div className="fixed inset-0 z-20 bg-meter/40" onClick={aoFechar} />
-      <div className="sombra-2 fixed inset-x-0 bottom-0 z-30 rounded-t-[20px] border-t border-line bg-panel">
+      {/* `--raio-painel` (16px) no lugar dos 20px cravados — mesma folha de
+          rodapé de `aviso-navegar.tsx` e `explorar-mapa.tsx`, mesmo degrau:
+          quem CONTÉM e está no primeiro nível, direto sobre o fundo, é 16
+          (docs/DESIGN.md §5). Vale registrar por que as três folhas do mapa
+          tinham três números: cada uma foi escrita no olho, em ondas
+          diferentes — 20, 20 e 18 pro mesmo gesto. */}
+      <div className="sombra-2 fixed inset-x-0 bottom-0 z-30 rounded-t-[var(--raio-painel)] border-t border-line bg-panel">
         <div className="mx-auto max-h-[75dvh] max-w-[430px] overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <div className="flex justify-center">
             <span className="h-1 w-10 rounded-[var(--raio-pilula)] bg-line" />

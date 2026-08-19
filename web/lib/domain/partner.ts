@@ -273,17 +273,22 @@ export function recebeDemandas(tipo: TipoPartner): boolean {
   }).length > 0
 }
 
-/** Filtro de vitrine: das demandas vivas, as que este Partner deve ver.
- *  Complementa (não substitui) `demandasCompativeis` do §11.4 — aquele filtra
- *  por interesse cadastrado (região, categoria, porte); este corta antes, pelo
- *  TIPO, que é o limite do §13.3/§13.4 e não é negociável por interesse. */
-export function demandasDoPartner<T extends { tipo: TipoDemanda }>(
-  demandas: readonly T[],
-  p: PartnerParaRegra,
-): T[] {
-  const aceitos = new Set<TipoDemanda>(tiposDeDemandaDoPartner(p))
-  return demandas.filter((d) => aceitos.has(d.tipo))
-}
+/*
+ * AUDITORIA 19/08, A20 — AQUI MORAVA `demandasDoPartner`, que filtrava a
+ * vitrine só pelo TIPO de demanda. APAGADA: ela foi SUPLANTADA, não esquecida.
+ *
+ * Quem as duas telas do Partner chamam é `demandasParaPartner` (mais abaixo
+ * neste arquivo) — `app/(parceiro)/parceiro/marketplace/page.tsx:68` e
+ * `app/(parceiro)/parceiro/page.tsx:86`. Ela aplica o mesmo corte por tipo, via
+ * `demandaCompativelComPartner` → `tiposDeDemandaDoPartner`, e MAIS a região, a
+ * atividade declarada e a vaga. Nenhuma tela quer o corte por tipo sozinho: um
+ * parceiro que visse toda demanda do seu tipo no país inteiro receberia pedidos
+ * de vaga a 800 km da marina dele.
+ *
+ * Manter as duas era o risco real: dois filtros de vitrine com nomes quase
+ * iguais, um mais frouxo que o outro, e o mais frouxo com teste verde. A
+ * próxima tela de Partner escolheria pelo nome, não pelo comportamento.
+ */
 
 // ===========================================================================
 // §13 + §21.2 — que taxonomia cada tipo declara

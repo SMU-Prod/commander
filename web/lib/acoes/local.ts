@@ -21,11 +21,19 @@ export async function salvarLocalMarina(formData: FormData) {
     erroLocal("Essas coordenadas não existem no mapa. Confira se copiou certo do GPS ou do Google Maps.")
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("embarcacoes")
     .update({ marina_lat: lat, marina_lon: lon })
     .eq("id", painel.embarcacao.id)
-  if (error) erroLocal("Não foi possível salvar a posição. Tente de novo.")
+    .select("id")
+  // `embarcacao: prop edita` (using e with check `eh_prop(id)`) recusa quem não
+  // é proprietário devolvendo ZERO LINHA com `error` nulo. Esta tela é visível
+  // a quem tem acesso à embarcação, não só ao dono: sem a checagem da linha, o
+  // comandante que salvasse a marina caía em /hoje com o mapa no lugar de antes
+  // e nada na tela para explicar.
+  if (error || !data?.length) {
+    erroLocal("A posição não foi salva. Tente de novo; se continuar, fale com quem administra a embarcação.")
+  }
 
   revalidatePath("/hoje")
   revalidatePath("/barco")

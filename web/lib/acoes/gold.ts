@@ -5,7 +5,7 @@ import {
   AsaasRecusa, asaasConfigurado, cancelarCobrancaAvulsaAsaas, criarClienteAsaas, criarCobrancaAvulsaAsaas,
 } from "@/lib/asaas"
 import { carregarAssinatura, carregarPainel, hojeISO } from "@/lib/consultas"
-import { ROTULO_FAIXA_PORTE, sugerirFaixaPorte } from "@/lib/domain/gold"
+import { estadoFinal, ROTULO_FAIXA_PORTE, sugerirFaixaPorte } from "@/lib/domain/gold"
 import { formatarPreco, precoGoldComDesconto } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { FaixaPorteGold, GoldPreco, GoldSolicitacao } from "@/lib/db/types"
@@ -120,11 +120,18 @@ export async function criarSolicitacaoGold(formData: FormData) {
   if (tipo === "minha") {
     if (painel.papel !== "PROP") erroLista("Só o proprietário pode solicitar o Commander Gold da própria embarcação.")
 
-    const { data: aberta } = await supabase
+    const { data: abertaBruta } = await supabase
       .from("gold_solicitacoes").select("id, estado")
       .eq("embarcacao_id", painel.embarcacao.id)
       .order("criado_em", { ascending: false }).limit(1).maybeSingle()
-    if (aberta && !["aprovado", "reprovado", "cancelado"].includes(aberta.estado)) {
+    // A20 — a guarda que impede ABRIR UM SEGUNDO PEDIDO pago sobre a mesma
+    // embarcação listava os três estados terminais à mão. É a regra mais cara
+    // desta action (a faixa 81+ pés custa milhares), e ela vivia fora do
+    // domínio, byte a byte igual à cópia de `selos/gold/page.tsx` — duas listas
+    // literais que ninguém obrigava a concordar. `estadoFinal` deriva os
+    // terminais de `TRANSICOES_VALIDAS`, a mesma tabela que espelha a RPC.
+    const aberta = abertaBruta as Pick<GoldSolicitacao, "id" | "estado"> | null
+    if (aberta && !estadoFinal(aberta.estado)) {
       redirect(`/barco/selos/gold/${aberta.id}`)
     }
 

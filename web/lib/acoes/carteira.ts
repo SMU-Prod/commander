@@ -3,7 +3,9 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { subirArquivo } from "@/lib/acervo"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
-import { MODOS_CARTEIRA, saldoCarteira, validarMovimento, type ModoCarteira } from "@/lib/domain/carteira"
+import {
+  MODOS_CARTEIRA, saldoCarteira, statusInicialMovimento, validarMovimento, type ModoCarteira,
+} from "@/lib/domain/carteira"
 import { CATEGORIAS_FINANCEIRAS, centavosDeReais, type CategoriaFinanceira } from "@/lib/domain/financeiro"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeEditar } from "@/lib/domain/permissoes"
@@ -174,7 +176,12 @@ export async function registrarRepasse(formData: FormData) {
     data: t("data") ?? hojeISO(),
     descricao,
     observacao: t("observacao"),
-    status: "aprovado",
+    // A20 — `"aprovado"` estava fixo aqui. Dá no mesmo HOJE, porque a linha 160
+    // acima só deixa o proprietário repassar, e proprietário não espera
+    // aprovação de si mesmo. O literal era o problema: ele guardava essa
+    // dependência sem dizer, e no dia em que o §9.4 deixar o CMDT repassar,
+    // esta linha continua gravando "aprovado" sem nenhum teste reclamar.
+    status: statusInicialMovimento({ tipo: "repasse", modo: carteira.modo, ehProprietario }),
     criado_por: user.id,
     decidido_por: user.id,
     decidido_em: new Date().toISOString(),
@@ -241,7 +248,12 @@ export async function registrarGasto(formData: FormData) {
   }
 
   revalidarCarteira(id)
-  const esperaOk = !ehProprietario && carteira.modo === "aprovacao"
+  // A20 — a mensagem tem que dizer o que o BANCO acabou de fazer. Quem grava o
+  // status do gasto é `carteira_registrar_gasto`; `statusInicialMovimento` é a
+  // cópia fiel dessa decisão, e é ela que deve montar a frase. A condição solta
+  // que estava aqui era uma terceira escrita da mesma regra — a action, a tela
+  // e a função do banco, cada uma por conta própria.
+  const esperaOk = statusInicialMovimento({ tipo: "gasto", modo: carteira.modo, ehProprietario }) === "pendente"
   redirect(`/carteira/${id}?ok=${encodeURIComponent(
     esperaOk ? "Gasto enviado para aprovação" : "Gasto registrado",
   )}`)
@@ -280,7 +292,10 @@ export async function registrarDevolucao(formData: FormData) {
     data: t("data") ?? hojeISO(),
     descricao: t("descricao") ?? "Devolução de saldo",
     observacao: t("observacao"),
-    status: ehProprietario ? "aprovado" : "pendente",
+    // A20 — a devolução do tripulante nasce pendente porque o §9.4 pede que o
+    // proprietário CONFIRME o recebimento; a do próprio dono já nasce aprovada.
+    // A regra é a mesma dos outros dois tipos e agora sai do mesmo lugar.
+    status: statusInicialMovimento({ tipo: "devolucao", modo: carteira.modo, ehProprietario }),
     criado_por: user.id,
     decidido_por: ehProprietario ? user.id : null,
     decidido_em: ehProprietario ? new Date().toISOString() : null,

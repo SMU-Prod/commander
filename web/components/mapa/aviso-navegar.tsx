@@ -33,7 +33,14 @@ export function AvisoNavegar({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
           um preto translúcido comum já cumpre o papel de véu por trás da
           folha. */}
       <div className="fixed inset-0 z-40 bg-black/40" onClick={aoFechar} />
-      <div className="sombra-2 fixed inset-x-0 bottom-0 z-50 rounded-t-[20px] border-t border-line bg-panel">
+      {/* `--raio-painel` (16px) e não os 20px cravados: a escala tem quatro
+          degraus e o critério é a FUNÇÃO, não o tamanho (docs/DESIGN.md §5).
+          Esta folha CONTÉM conteúdo e está no primeiro nível — direto sobre o
+          fundo, sem outro painel em volta —, que é a definição do degrau de
+          16px. Os 20 não saíram de régua nenhuma: eram um quinto raio de facto,
+          impossível de mudar num lugar só. A folha de baixo de
+          `explorar-mapa.tsx` já desenha assim. */}
+      <div className="sombra-2 fixed inset-x-0 bottom-0 z-50 rounded-t-[var(--raio-painel)] border-t border-line bg-panel">
         <div className="mx-auto max-w-[430px] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
           <div className="flex justify-center">
             <span className="h-1 w-10 rounded-[var(--raio-pilula)] bg-line" />

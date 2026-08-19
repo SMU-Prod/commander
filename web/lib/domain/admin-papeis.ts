@@ -112,9 +112,30 @@ export function ehAdminQualquer(papeis: readonly PapelAdmin[]): boolean {
   return papeis.length > 0
 }
 
-/** Papel de alcance NACIONAL. O vistoriador fica de fora por definição do
- *  §21 ("Não concede acesso nacional irrestrito") — a mesma linha que a
- *  função `eh_admin()` do banco passou a traçar na onda 48. */
+/**
+ * Papel de alcance NACIONAL. O vistoriador fica de fora por definição do §21
+ * ("Não concede acesso nacional irrestrito") — a mesma linha que a função
+ * `eh_admin()` do banco passou a traçar na onda 48.
+ *
+ * SEM CONSUMIDOR HOJE, DE PROPÓSITO (auditoria 19/08, A20). O painel só faz
+ * duas perguntas: "trabalha aqui?" (`ehAdminQualquer`) e "pode esta área?"
+ * (`podeAcessar`) — nenhuma tela pergunta ainda "até onde esta pessoa
+ * enxerga?", porque nenhuma consulta administrativa é recortada por região no
+ * TypeScript: hoje é a RLS que corta, sozinha.
+ *
+ * Quem vai chamá-la é esse recorte, quando existir — a listagem que precisa
+ * mostrar ao vistoriador só as embarcações das regiões dele
+ * (`admin_papel_regioes`, já gravada por `lib/acoes/admin-papeis.ts` e já
+ * exigida no formulário por `exigeRegioes`). O par é este: `exigeRegioes` diz
+ * quem PRECISA de região, `ehAdminNacional` diz quem DISPENSA — e um filtro
+ * regional aplicado a um CEO devolveria lista vazia para quem deveria ver
+ * tudo.
+ *
+ * Não é espelho de regra do banco como as funções que esta auditoria apagou:
+ * ela CALCULA (a lista de papéis nacionais é a coisa que muda quando o §21
+ * ganhar um papel novo), e é o único lugar do app onde essa lista está
+ * escrita.
+ */
 export function ehAdminNacional(papeis: readonly PapelAdmin[]): boolean {
   return papeis.some((p) => p === "ceo" || p === "suporte" || p === "comercial")
 }

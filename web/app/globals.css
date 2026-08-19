@@ -52,10 +52,22 @@
      referência (painel Haulix) usa nos gráficos pelo mesmo motivo. */
   --dado: #0f6d7a;
 
-  /* Onda 57 — forma. Três raios e três elevações, e nada fora disto.
-     Quatro raios diferentes na mesma tela foi o que fez a proposta de
-     redesign parecer gerada: decoração distribuída em vez de sistema.
-     Ver docs/DESIGN.md §5. */
+  /* Onda 57 — forma. Raio e elevação vêm de escala declarada, e nada fora
+     disto. Raio inventado por bloco foi o que fez a proposta de redesign
+     parecer gerada: decoração distribuída em vez de sistema.
+     Ver docs/DESIGN.md §5.
+
+     ONDA 95 (achado 5.8) — ESTE COMENTÁRIO DIZIA "TRÊS RAIOS" E O BLOCO LOGO
+     ABAIXO DECLARA QUATRO. O quarto (--raio-painel, 16px) entrou na onda 79 e
+     ganhou consumidor na 91; a linha que apresenta a escala ficou descrevendo
+     a escala anterior. Não é preciosismo: é o primeiro texto que alguém lê
+     antes de escolher um raio, e ele estava mandando escolher entre três
+     opções num arquivo que oferece quatro — que é exatamente como se inventa
+     um quinto raio de 12px "porque faltava um degrau no meio". São QUATRO, e o
+     critério de escolha é função, não tamanho: quem se TOCA é controle, quem
+     CONTÉM é cartão (aninhado) ou painel (primeiro nível), quem é pílula é
+     999. As elevações continuam três (--sombra-1, --sombra-2, e o plano que é
+     a ausência das duas). */
   --raio-controle: 8px;   /* chip, campo, botão pequeno */
   --raio-cartao: 14px;    /* cartão ANINHADO — dentro de outro painel */
   --raio-pilula: 999px;   /* pílula, avatar, selo */
@@ -456,6 +468,18 @@ body.fundo-tela-mapa {
   .corpo { font-size: .875rem; line-height: 1.5; }                            /* 14px */
   /* 12px, não 13: com `.corpo` em 14 o degrau de 1px não se via. */
   .apoio { font-size: .75rem; line-height: 1.5; }                             /* 12px */
+  /* ONDA 95 (achado 5.12) — ESTE `.16em` É O ÚNICO DEGRAU DE RASTREIO DO APP.
+     A auditoria de 19/08 mediu ONZE valores de `tracking-[…]` escritos à mão
+     para um gesto só ("palavra em caixa alta, rastreada"): .05, .06, .08, .09,
+     .1, .12, .14, .16 e até .28em. Nenhum saiu de régua nenhuma — cada um saiu
+     do olho de quem escreveu aquela tela naquele dia, e é por isso que o
+     conjunto não lê como sistema mesmo sem nenhum deles estar "errado".
+     Quem precisa do gesto pede ESTA classe. Só há uma isenção, e ela está em
+     `components/logo.tsx`: a classe crava `font-size: 11px`, e o wordmark é
+     dimensionado por quem chama (de `text-[11px]` a `text-lg`) com o símbolo
+     ao lado medindo 1.6em do mesmo corpo — com a classe, a palavra congelaria
+     e a marca sairia desalinhada. Lá se escreve `tracking-[.16em]` na mão: o
+     MESMO valor, nunca um novo. Ver docs/DESIGN.md §5, "Rastreio". */
   .rotulo {
     /* var(--pilha-mono-instr), e NÃO var(--font-mono-instr): o token do
        @theme inline não existe como custom property no DOM — ver o comentário

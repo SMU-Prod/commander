@@ -11,7 +11,7 @@ import {
   carregarSeloGold, carregarSolicitacaoGoldDaEmbarcacao, hojeISO,
 } from "@/lib/consultas-gold"
 import {
-  DESCRICAO_ESTADO_SOLICITACAO, formatarPrecoGold, ROTULO_ESTADO_SOLICITACAO,
+  DESCRICAO_ESTADO_SOLICITACAO, estadoFinal, formatarPrecoGold, ROTULO_ESTADO_SOLICITACAO,
   ROTULO_FAIXA_PORTE, ROTULO_STATUS_SELO, statusSeloGold, sugerirFaixaPorte,
 } from "@/lib/domain/gold"
 
@@ -38,7 +38,12 @@ export default async function GoldPage({
 
   const hoje = hojeISO()
   const statusSelo = selo ? statusSeloGold(selo.validade_ate, hoje) : null
-  const emAndamento = solicitacao && !["aprovado", "reprovado", "cancelado"].includes(solicitacao.estado)
+  // A20 — os três estados terminais estavam listados à mão aqui, e `estadoFinal`
+  // (que os deriva de `TRANSICOES_VALIDAS`, a mesma tabela que espelha a RPC
+  // `gold_definir_estado`) nunca era chamada. Uma lista literal não acompanha a
+  // máquina de estados: acrescentar um estado terminal no domínio deixaria esta
+  // tela oferecendo "solicitar de novo" numa avaliação que ainda está viva.
+  const emAndamento = solicitacao != null && !estadoFinal(solicitacao.estado)
   const faixaSugerida = sugerirFaixaPorte(painel.embarcacao.comprimento_m)
 
   return (

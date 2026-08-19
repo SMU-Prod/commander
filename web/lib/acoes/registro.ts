@@ -47,28 +47,36 @@ export async function registrarVoltaAoMar(formData: FormData) {
   let falhas = 0
   for (const l of leituras) {
     const { data: atualizado, error: upErro } = await atualizarLeituraEquipamento(supabase, l.equipamentoId, l.nova)
-    const { error: evErro } = await supabase.from("eventos").insert({
+    const { data: evento, error: evErro } = await supabase.from("eventos").insert({
       embarcacao_id: embarcacaoId,
       equipamento_id: l.equipamentoId,
       tipo: "leitura_horas",
       horas_no_momento: l.nova,
       criado_por: user.id,
       data: hojeISO(),
-    })
-    if (upErro || !atualizado?.length || evErro) falhas++
+    }).select("id")
+    if (upErro || !atualizado?.length || evErro || !evento?.length) falhas++
   }
 
   const litros = String(formData.get("litros") ?? "").trim()
   const obs = String(formData.get("obs") ?? "").trim()
   if (litros !== "" || obs !== "") {
-    const { error } = await supabase.from("eventos").insert({
+    // A LACUNA QUE ESTE `.select()` FECHA. `eventos: criar pela matriz` aceita
+    // `permissao(..., 'diario', 'editar') OR permissao(..., aba_alvo(
+    // equipamento_id, categoria), 'editar')`. Este evento vai SEM equipamento e
+    // sem categoria, e `aba_alvo(null, null)` cai no `else` da função: aba
+    // 'embarcacao'. Ou seja, ele exige Diário ou Embarcação — e o guard lá em
+    // cima só conferiu Motores. Quem tem exatamente esse recorte de acesso
+    // gravava as horas, tinha o abastecimento recusado sem erro nenhum e era
+    // mandado para /hoje sem aviso: o litro nunca entrou no Diário.
+    const { data: evento, error } = await supabase.from("eventos").insert({
       embarcacao_id: embarcacaoId,
       tipo: litros !== "" ? "abastecimento" : "navegacao",
       descricao: [obs || null, litros !== "" ? `${litros} L abastecidos` : null].filter(Boolean).join(" · "),
       criado_por: user.id,
       data: hojeISO(),
-    })
-    if (error) falhas++
+    }).select("id")
+    if (error || !evento?.length) falhas++
   }
 
   revalidatePath("/hoje")

@@ -182,7 +182,11 @@ export async function criarEvento(formData: FormData) {
   // monitorado e da leitura de horas logo abaixo — avisa, não perde o que já
   // foi salvo.
   if (custoCentavos != null && custoCentavos > 0) {
-    const { error: erroLancamento } = await supabase.from("lancamentos_financeiros").insert({
+    // O `.select("id")` já estava aqui, sem leitor. `lancamentos: criar pela
+    // matriz` exige `gastos:editar`, que é permissão DIFERENTE da que deixou
+    // este evento entrar no Diário — quem registra serviço sem acesso a
+    // Financeiro cai exatamente nesse buraco, e caía sem ver o aviso abaixo.
+    const { data: lancamento, error: erroLancamento } = await supabase.from("lancamentos_financeiros").insert({
       embarcacao_id: painel.embarcacao.id,
       tipo: "despesa",
       categoria: categoriaFinanceiraDoEvento({ tipo, categoria }),
@@ -196,7 +200,7 @@ export async function criarEvento(formData: FormData) {
       evento_id: inserido!.id,
       criado_por: user.id,
     }).select("id")
-    if (erroLancamento) {
+    if (erroLancamento || !lancamento?.length) {
       revalidatePath("/diario")
       redirect(`/diario?erro=${encodeURIComponent("Registro salvo, mas o custo não entrou no Financeiro. Lance por lá para não perder o valor.")}`)
     }
@@ -205,9 +209,15 @@ export async function criarEvento(formData: FormData) {
   if (item) {
     const eq = painel.equipamentos.find((e) => e.id === item.equipamento_id)
     const atualizacao = zerarCiclo(item, { data, horas: horas ?? eq?.horas_atuais ?? null })
-    const { error: erroItem } = await supabase
-      .from("itens_monitorados").update(atualizacao).eq("id", item.id)
-    if (erroItem) {
+    // O evento entrou por `eventos: criar pela matriz`, que aceita QUALQUER UMA
+    // de duas permissões: Diário ou a aba do equipamento. Já `itens: atualizar
+    // pela matriz` exige especificamente a aba do item — quem tem só Diário
+    // grava o serviço no Diário e não zera o ciclo, e a recusa vinha com
+    // `error` nulo e zero linha. O semáforo de manutenção continuava vermelho
+    // depois da manutenção feita, sem uma palavra na tela.
+    const { data: ciclo, error: erroItem } = await supabase
+      .from("itens_monitorados").update(atualizacao).eq("id", item.id).select("id")
+    if (erroItem || !ciclo?.length) {
       revalidatePath("/diario")
       redirect(`/diario?erro=${encodeURIComponent("Evento salvo, mas o ciclo da manutenção não foi zerado. Confira e ajuste se precisar.")}`)
     }

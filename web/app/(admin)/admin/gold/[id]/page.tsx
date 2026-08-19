@@ -15,6 +15,7 @@ import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { temPapelAdmin } from "@/lib/domain/admin-papeis"
 import {
   HUBS_PROTOCOLO_GOLD, ROTULO_ESTADO_ITEM, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE, ROTULO_HUB_GOLD,
+  transicaoValidaGold,
 } from "@/lib/domain/gold"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { GoldConsultor } from "@/lib/db/types"
@@ -125,7 +126,16 @@ export default async function AdminDetalheGoldPage({
         </div>
       )}
 
-      {solicitacao.estado === "aguardando_agendamento" && (
+      {/* A20 — OS PORTÕES DESTA TELA PERGUNTAM PELA TRANSIÇÃO, NÃO PELO ESTADO.
+          Eram três comparações de igualdade escritas à mão, uma por botão. Dão
+          o mesmo resultado hoje, e é justamente por isso que o desvio passaria
+          despercebido: `transicaoValidaGold` espelha `gold_transicao_valida`, a
+          função que a RPC `gold_definir_estado` usa para ACEITAR OU RECUSAR de
+          verdade. Com igualdade, mudar a máquina de estados no domínio e no
+          banco deixava esta tela oferecendo um botão que a RPC recusa — o
+          operador clica, nada acontece, e o erro aparece do lado do servidor.
+          Agora o botão só existe quando a transição que ele dispara é aceita. */}
+      {transicaoValidaGold(solicitacao.estado, "agendado") && (
         <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Agendar avaliação presencial</p>
           {consultores.length === 0 && (
@@ -178,14 +188,14 @@ export default async function AdminDetalheGoldPage({
         </div>
       )}
 
-      {solicitacao.estado === "avaliacao_realizada" && (
+      {transicaoValidaGold(solicitacao.estado, "em_analise") && (
         <form action={iniciarAnaliseGold} className="mt-4">
           <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
           <BotaoEnviar rotulo="Abrir análise" larguraCheia />
         </form>
       )}
 
-      {solicitacao.estado === "em_analise" && (
+      {transicaoValidaGold(solicitacao.estado, "aprovado") && (
         <div className="mt-4 space-y-3">
           <form action={aprovarSolicitacaoGold} className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-ok/40 bg-panel p-4">
             <input type="hidden" name="solicitacao_id" value={solicitacao.id} />

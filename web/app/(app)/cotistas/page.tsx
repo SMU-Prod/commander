@@ -80,7 +80,7 @@ export default async function CotistasPage({
         titulo="Cotistas"
         descricao="Quem divide esta unidade — e quantas vagas ainda cabem."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* O contador do §13, no formato que ele escreve: "7/10". */}
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
@@ -88,9 +88,9 @@ export default async function CotistasPage({
           <p className="rotulo text-dim">Vagas ocupadas</p>
           <p className="font-mono-instr text-[15px] font-semibold tabular-nums">{vagas.rotulo}</p>
         </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-panel2">
+        <div className="mt-2 h-1 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
           <div
-            className={`h-full rounded-full ${vagas.cabeMais ? "bg-dim" : "bg-crit"}`}
+            className={`h-full rounded-[var(--raio-pilula)] ${vagas.cabeMais ? "bg-dim" : "bg-crit"}`}
             style={{ width: `${vagas.total === 0 ? 0 : Math.min(100, (vagas.ocupadas / vagas.total) * 100)}%` }}
           />
         </div>
@@ -106,7 +106,13 @@ export default async function CotistasPage({
       </div>
 
       <SecaoPagina icone="pessoas">Cota da unidade</SecaoPagina>
-      <form action={definirCotas} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      {/* `--raio-cartao` e não `--raio-painel`: os 14px cravados aqui e nos
+          dois painéis abaixo eram o MESMO desenho do cartão de vagas lá em
+          cima, que já vinha por token. Promover só os que estavam à mão
+          deixaria dois raios no mesmo nível da mesma tela — a hierarquia
+          achatada que o degrau de 16px existe pra desfazer. Subir a tela
+          inteira é decisão de tela, e está no relatório. */}
+      <form action={definirCotas} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <Campo
           label="Quantos cotistas esta unidade tem"
           id="cotas_total"
@@ -116,13 +122,18 @@ export default async function CotistasPage({
           className="font-mono-instr tabular-nums"
           dica="É o número de vagas do link de convite. Zero significa que a unidade não é de cotas."
         />
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl border border-line py-3 text-sm font-semibold`}>
+        {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão é peça
+            que se TOCA, então `--raio-controle`; é o desenho que os outros
+            ~10 botões de formulário do app já usam com este mesmo par de
+            classes. Fica menos redondo que o painel de propósito: raio maior
+            é o que contém, raio menor é o que se aperta. */}
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
           Salvar cota
         </button>
       </form>
 
       <SecaoPagina icone="sinal">Link de convite</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         {urlLink ? (
           <>
             <p className="break-all font-mono-instr text-xs text-dim">{urlLink}</p>
@@ -205,7 +216,7 @@ export default async function CotistasPage({
                 <div className="flex items-center gap-2">
                   <p className="titulo-card min-w-0 flex-1 truncate">{nome}</p>
                   {suspenso && (
-                    <span className="shrink-0 rounded-full border border-crit/40 px-2 py-0.5 text-[11px] text-crit">
+                    <span className="shrink-0 rounded-[var(--raio-pilula)] border border-crit/40 px-2 py-0.5 text-[11px] text-crit">
                       Suspenso
                     </span>
                   )}
@@ -262,7 +273,7 @@ export default async function CotistasPage({
       {eventos.length > 0 && (
         <>
           <SecaoPagina icone="escudo">Histórico de acesso</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {eventos.map((e) => (
               <div key={e.id} className="border-b border-line py-3 last:border-0">
                 <p className="corpo">

@@ -143,10 +143,16 @@ export function criarElementoMarcadorParceiro(p: Parceiro): HTMLDivElement {
   // MARCA, e marca sai de token: aqui o elemento é DOM (não canvas WebGL),
   // então a classe utilitária resolve sozinha nos dois temas, sem precisar
   // do leitor de `lib/mapa/cores-tema.ts`.
+  // `--raio-pilula` e não `rounded-full`: a escala de raio tem quatro degraus
+  // declarados e `rounded-full` não é nenhum deles — é um quinto valor, vindo
+  // do Tailwind, que ninguém consegue mudar em um lugar só (docs/DESIGN.md §5).
+  // Num pino de 36px os dois desenham o mesmo círculo, então a troca é de
+  // procedência, não de forma: quem responde por "isto é redondo" passa a ser
+  // o token, como já é nos marcadores de `navegar-mapa.tsx`.
   const corpo = document.createElement("div")
   corpo.className = destaque
-    ? "relative flex size-9 items-center justify-center rounded-full ring-2 ring-accent"
-    : "relative flex size-9 items-center justify-center rounded-full ring-2 ring-white"
+    ? "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] ring-2 ring-accent"
+    : "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] ring-2 ring-white"
   corpo.style.backgroundColor = p.cor
   const tracado = TRACADO_ICONE_PARCEIRO[p.icone] ?? TRACADO_ICONE_PARCEIRO[ICONE_FALLBACK]
   corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${tracado}</svg>`
@@ -154,7 +160,7 @@ export function criarElementoMarcadorParceiro(p: Parceiro): HTMLDivElement {
 
   if (p.tem_poita) {
     const ponto = document.createElement("span")
-    ponto.className = "absolute -right-0.5 -top-0.5 block size-2.5 rounded-full bg-accent ring-2 ring-meter"
+    ponto.className = "absolute -right-0.5 -top-0.5 block size-2.5 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-meter"
     corpo.appendChild(ponto)
   }
   return el

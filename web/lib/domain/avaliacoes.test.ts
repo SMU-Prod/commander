@@ -7,12 +7,10 @@ import {
   DIAS_EDICAO_AVALIACAO,
   diasRestantesParaEditar,
   estadoDaSolucao,
-  estrelasCheias,
   faixaDaNota,
   formatarMedia,
   formatarQuantidade,
   MOTIVOS_CONTESTACAO,
-  notaDepoisDaSolucao,
   notaValida,
   podeAvaliar,
   podeContestar,
@@ -187,11 +185,9 @@ describe("as frases são as do PRD, palavra por palavra", () => {
 })
 
 describe("§14 — problema solucionado não mexe na nota", () => {
-  it("a nota continua a mesma depois de solução confirmada", () => {
-    expect(notaDepoisDaSolucao(1)).toBe(1)
-    expect(notaDepoisDaSolucao(2)).toBe(2)
-  })
-
+  // A20 — o caso "a nota continua a mesma" saiu junto com `notaDepoisDaSolucao`:
+  // ele afirmava que a identidade é a identidade. A garantia de verdade é que
+  // nenhum estado de solução vira nota — é o que os casos abaixo medem.
   it("estados da solução", () => {
     expect(estadoDaSolucao(null)).toBe("nenhuma")
     expect(estadoDaSolucao({ resposta: null })).toBe("aguardando_cliente")
@@ -272,12 +268,9 @@ describe("média e quantidade do perfil (§14)", () => {
     expect(r.distribuicao).toEqual([0, 0, 1, 0, 2])
   })
 
-  it("estrelas cheias arredondam só na exibição", () => {
-    expect(estrelasCheias(null)).toBe(0)
-    expect(estrelasCheias(4.7)).toBe(5)
-    expect(estrelasCheias(4.4)).toBe(4)
-  })
-
+  // A20 — "estrelas cheias arredondam só na exibição" saiu com `estrelasCheias`:
+  // a régua gráfica de 5 estrelas a partir da média foi descartada em favor do
+  // número exato + histograma (ver `reputacao.tsx:15-17`).
   it("nota fora de 1..5 não é nota", () => {
     expect(notaValida(0)).toBe(false)
     expect(notaValida(6)).toBe(false)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   apurarVotacao,
+  DIAS_OFICINA_DEMORADO,
   ESTADOS_SERVICO,
   linhaDaApuracao,
   orcamentoVencido,
@@ -9,6 +10,7 @@ import {
   ROTULO_SITUACAO_VOTACAO,
   servicoAberto,
   situacaoDaVotacao,
+  tempoNaOficina,
   tomDoServico,
   type Voto,
 } from "./mecanica"
@@ -32,6 +34,52 @@ describe("mecânica", () => {
       expect(servicoAberto("em_diagnostico")).toBe(true)
       expect(servicoAberto("aguardando_peca")).toBe(true)
       expect(servicoAberto("concluido")).toBe(false)
+    })
+  })
+
+  describe("tempo na oficina (A15)", () => {
+    const hoje = "2026-08-19"
+
+    it("sem data de entrada não escreve nada — nunca 'há 0 dias'", () => {
+      // Serviço sem entrada anotada não entrou "há zero dias": ninguém digitou
+      // a data. Mesma régua de `patio.ts` — ausência não vira zero desenhado.
+      expect(tempoNaOficina(null, hoje, true)).toBeNull()
+      expect(tempoNaOficina("", hoje, true)).toBeNull()
+    })
+
+    it("com o serviço aberto, a frase é o INTERVALO e não a data", () => {
+      expect(tempoNaOficina("2026-08-19", hoje, true)?.frase).toBe("entrou hoje na oficina")
+      expect(tempoNaOficina("2026-08-18", hoje, true)?.frase).toBe("na oficina há 1 dia")
+      expect(tempoNaOficina("2026-08-07", hoje, true)?.frase).toBe("na oficina há 12 dias")
+    })
+
+    it("depois de dois meses a contagem vira meses", () => {
+      // "há 187 dias" é um número que ninguém converte de cabeça.
+      expect(tempoNaOficina("2026-02-13", hoje, true)?.frase).toBe("na oficina há 6 meses")
+    })
+
+    it("passar do teto marca a frase como demorada", () => {
+      const vespera = tempoNaOficina("2026-07-21", hoje, true) // 29 dias
+      const noTeto = tempoNaOficina("2026-07-20", hoje, true) // 30 dias
+      expect(DIAS_OFICINA_DEMORADO).toBe(30)
+      expect(vespera?.demorado).toBe(false)
+      expect(noTeto?.demorado).toBe(true)
+    })
+
+    it("serviço concluído volta a mostrar a data — ele não está mais lá", () => {
+      // "na oficina há 40 dias" num serviço fechado seria mentira com cara de
+      // alarme.
+      const r = tempoNaOficina("2026-07-10", hoje, false)
+      expect(r?.frase).toBe("entrou em 10/07/2026")
+      expect(r?.demorado).toBe(false)
+    })
+
+    it("data no futuro não vira intervalo negativo", () => {
+      // Um dedo errado no seletor de data produziria "há −180 dias", que faz a
+      // pessoa desconfiar da tela inteira.
+      const r = tempoNaOficina("2027-02-14", hoje, true)
+      expect(r?.frase).toBe("entrada marcada para 14/02/2027")
+      expect(r?.demorado).toBe(false)
     })
   })
 

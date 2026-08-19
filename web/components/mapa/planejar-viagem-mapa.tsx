@@ -200,7 +200,11 @@ export function PlanejarViagemMapa({
         </button>
       </div>
 
-      <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[18px] border-t border-line bg-panel/95 p-4 backdrop-blur">
+      {/* `--raio-painel` (16px) no lugar dos 18px cravados: quem CONTÉM e está
+          no primeiro nível — esta folha se apoia direto no mapa, não dentro de
+          outro painel — desenha 16 (docs/DESIGN.md §5). 18 não é degrau de
+          escala nenhuma; é o olho de quem escreveu a tela naquele dia. */}
+      <div className="sombra-2 absolute inset-x-0 bottom-0 z-20 max-h-[62dvh] overflow-y-auto rounded-t-[var(--raio-painel)] border-t border-line bg-panel/95 p-4 backdrop-blur">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="titulo-card">Nova viagem</h2>
           {/* ESTE É O ÚNICO CAMINHO DE VOLTA DESTA TELA — o mapa ocupa a

@@ -105,6 +105,25 @@ export function GraficoBarras({
                   {p.apoio && <p className="apoio whitespace-nowrap text-dim">{p.apoio}</p>}
                 </div>
 
+                {/* ONDA 95 (achado 5.9) — OS 3px FICAM, E ISTO AQUI É A
+                    EXCEÇÃO ESCRITA QUE A RÉGUA EXIGE.
+                    A varredura de raio cobra token em todo arredondamento, e
+                    com razão: os 12px do `xl` do Tailwind, os 8px do `lg` e os
+                    10px cravados espalhados pelas telas são raios de facto que
+                    ninguém declarou. (Escritos aqui por valor, e não pelo nome
+                    da classe, de propósito: a contagem da auditoria é um grep,
+                    e menção em comentário já inflou número neste projeto.)
+                    Este não é um deles. A barra tem 34px de teto e, no celular a
+                    390px, sai bem abaixo disso — `--raio-controle` (8px)
+                    comeria perto de um terço da largura e a coluna deixaria de
+                    ler como coluna: vira comprimido, e a comparação de altura
+                    entre meses (que é o assunto inteiro do gráfico) passa a
+                    disputar com a forma da ponta.
+                    Os 3px também não são um quinto degrau tentando nascer: não
+                    é a forma de um BLOCO, é o chanfro do topo de um traço —
+                    mesma família do `strokeLinecap="round"` do `Medidor`, que
+                    também não pede token de raio. Registrado em
+                    `docs/DESIGN.md` §5 como a única exceção viva da escala. */}
                 <div
                   style={{ backgroundColor: cor }}
                   className={`h-full w-full rounded-t-[3px] transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${p.destaque ? "opacity-100" : "opacity-70"}`}

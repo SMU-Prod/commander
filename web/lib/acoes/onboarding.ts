@@ -97,7 +97,11 @@ export async function concluirOnboarding(formData: FormData) {
     if (eqError || !eq) {
       falhas++
     } else {
-      const { error: itensError } = await supabase.from("itens_monitorados").insert(
+      // Mesma disciplina do update de tipo acima: `itens: criar pela matriz`
+      // recusa com zero linha e `error` nulo, e o plano de manutenção do motor
+      // é o que faz a Saúde existir. Sem a conferência, o wizard terminava
+      // limpo e o motor nascia sem nenhum item para acompanhar.
+      const { data: itensCriados, error: itensError } = await supabase.from("itens_monitorados").insert(
         ITENS_MOTOR.map((i) => ({
           embarcacao_id: embarcacaoId,
           equipamento_id: eq.id,
@@ -107,8 +111,8 @@ export async function concluirOnboarding(formData: FormData) {
           ultimo_ciclo_horas: m.horas,
           ultimo_ciclo_data: hojeISO(),
         })),
-      )
-      if (itensError) falhas++
+      ).select("id")
+      if (itensError || itensCriados?.length !== ITENS_MOTOR.length) falhas++
     }
   }
 
@@ -117,10 +121,13 @@ export async function concluirOnboarding(formData: FormData) {
     { nome: "TIE", validade: texto("tie_validade") },
   ].filter((d) => d.validade != null)
   if (documentos.length > 0) {
-    const { error: docsError } = await supabase.from("itens_monitorados").insert(
+    // Mesma conferência dos itens do motor: sem ela, as datas de Seguro e TIE
+    // que a pessoa digitou no wizard sumiam sem aviso, e o vencimento que devia
+    // aparecer no Hoje meses depois nunca existiu.
+    const { data: docsCriados, error: docsError } = await supabase.from("itens_monitorados").insert(
       documentos.map((d) => ({ embarcacao_id: embarcacaoId, nome: d.nome, data_fixa: d.validade, categoria: "documento" })),
-    )
-    if (docsError) falhas++
+    ).select("id")
+    if (docsError || docsCriados?.length !== documentos.length) falhas++
   }
 
   // o barco recem-criado vira o ativo — senao a pessoa cadastra e continua

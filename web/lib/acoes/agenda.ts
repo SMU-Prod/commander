@@ -138,14 +138,19 @@ export async function criarCompromisso(formData: FormData) {
   if (error || !criado) erroNovo("Não deu para salvar o compromisso agora. Tente de novo em instantes.")
 
   if (participantes.length > 0) {
-    const { error: erroPart } = await supabase.from("agenda_participantes").insert(
+    // O `.select()` já estava aqui e ninguém olhava o que ele trouxe:
+    // `agenda participantes: so o criador compartilha` também pergunta
+    // `agenda_pode_compartilhar(evento_id, usuario_id)` por participante, e
+    // recusa devolvendo zero linha sem erro. Comparar com o número de
+    // convidados pega inclusive o compartilhamento que entrou pela metade.
+    const { data: incluidos, error: erroPart } = await supabase.from("agenda_participantes").insert(
       participantes.map((usuarioId) => ({
         evento_id: criado.id,
         usuario_id: usuarioId,
         responsavel: visibilidade === "atribuido",
       })),
     ).select("evento_id")
-    if (erroPart) {
+    if (erroPart || incluidos?.length !== participantes.length) {
       // O compromisso existe, o compartilhamento não. Dizer a verdade e
       // mandar pra tela onde dá pra refazer — nada de "criado" seco.
       erroDetalhe(criado.id, "O compromisso foi criado, mas não deu pra compartilhar. Tente compartilhar de novo aqui.")
@@ -220,6 +225,13 @@ export async function compartilharCompromisso(formData: FormData) {
   // compromisso deixa de ser particular; 'atribuido' só quando há
   // responsável. Quem chegou aqui é o criador (a RLS não deixaria outro
   // inserir), então este update passa.
+  //
+  // E é por isso que ele vai sem `.select()`: `agenda participantes: so o
+  // criador compartilha` exige `agenda_dono(evento_id)`, o mesmo dono que
+  // `agenda: so o criador altera` pede — o upsert conferido acima já provou os
+  // dois. A coluna, além disso, é cache do que a lista de participantes diz;
+  // quem manda na tela é `visibilidadeEfetiva`, como explica o gêmeo desta
+  // escrita em `descompartilharCompromisso`.
   const { data: atual } = await supabase.from("agenda_participantes")
     .select("responsavel").eq("evento_id", id)
   await supabase.from("agenda_eventos")
@@ -248,6 +260,10 @@ export async function descompartilharCompromisso(formData: FormData) {
   // altera"). Quando é o participante saindo sozinho, o campo fica como
   // estava — e é por isso que a TELA lê o rótulo de `visibilidadeEfetiva`,
   // que olha a lista real de participantes em vez do campo.
+  //
+  // Daí este update ir sem `.select()`: ele é ajuste de cache de uma coluna
+  // que a tela não consulta para decidir nada, e o `if` acima já o restringe a
+  // quem a policy aceita. Não há "salvo" nenhum pendurado nele.
   if (evento?.criado_por === user.id) {
     const { data: restantes } = await supabase.from("agenda_participantes")
       .select("responsavel").eq("evento_id", id)

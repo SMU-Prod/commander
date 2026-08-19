@@ -16,6 +16,14 @@
  * parâmetro, como em `semaforo.ts`).
  */
 
+// A régua de confiança do §3 é importada, nunca reescrita: `exigeAprovacao` já
+// sabe que check-out e check-in não são ações críticas, e tem teste desde a
+// onda 69. Domínio puro chamando domínio puro (auditoria 19/08, A6).
+import {
+  ehPapelEnterprise, exigeAprovacao, linhaDeAuditoria, ROTULO_EVENTO,
+  type AcaoEnterprise, type ModoAprovacao, type Papel,
+} from "./enterprise"
+
 // ---------------------------------------------------------------------------
 // A forma mínima que o domínio recebe
 // ---------------------------------------------------------------------------
@@ -203,6 +211,167 @@ export function retornoViraAvaria(
 function primeiraLinha(texto: string, teto = 70): string {
   const primeira = texto.split(/\n|[.!?](?=\s|$)/)[0].trim() || texto.trim()
   return primeira.length <= teto ? primeira : `${primeira.slice(0, teto - 1).trimEnd()}…`
+}
+
+// ---------------------------------------------------------------------------
+// §3 — A RÉGUA DE APROVAÇÃO CHEGA AO PÁTIO
+// ---------------------------------------------------------------------------
+
+/**
+ * AUDITORIA 19/08, A6 — O CONTRATO QUE O BANCO COLETAVA E NINGUÉM CUMPRIA.
+ *
+ * `movimentos_patio` guarda `aprovado`, `aprovado_por` e `aprovado_em` desde a
+ * migration 060, e o comentário dela diz com todas as letras o que esperava
+ * acontecer: *"Quem estiver no modo 'tudo exige aprovação' grava `false` e o
+ * ADM confirma."* Nada no app gravava `false`, nada lia as três colunas, e
+ * `exigeAprovacao` — que já conhece `check_out` e `check_in`, com teste desde
+ * a onda 69 — nunca era chamada pelo pátio. Ou seja: o ADM ligava "Tudo exige
+ * aprovação" na ficha do funcionário em /tripulacao, o app dizia que ligou, e
+ * a movimentação de pátio dessa pessoa continuava entrando direto.
+ *
+ * O QUE APROVAÇÃO SIGNIFICA AQUI, E O QUE ELA NÃO SIGNIFICA. Ela NÃO trava a
+ * saída: "travar o pátio esperando ADM pra soltar um Jet é exatamente a
+ * fricção que o §6 manda evitar" (migration 060, e o mesmo texto está no
+ * `ACOES_ENTERPRISE`). A unidade sai, o registro existe, e ele fica marcado
+ * como não conferido até o ADM olhar. Conferência POSTERIOR, não portaria.
+ */
+
+/** A forma mínima da aprovação — as três colunas, sem o resto do movimento. */
+export interface AprovacaoDoMovimento {
+  aprovado: boolean
+  aprovadoPor: string | null
+  aprovadoEm: string | null
+}
+
+/**
+ * SÃO QUATRO ESTADOS, E NÃO DOIS — pelo mesmo motivo que a home de campo tem
+ * três (ver `estadoDaHomeDePatio`).
+ *
+ * `aprovado` é `boolean not null default true`, então lido sozinho ele só sabe
+ * dizer sim ou não. Só que `true` cobre duas histórias muito diferentes:
+ *
+ *   · `direta` — a régua desta pessoa não exigia conferência e o registro
+ *     entrou. NINGUÉM olhou. Vestir isso de "Conferido" seria inventar um ato
+ *     de gente que não aconteceu, e é justamente esse ato que teria valor numa
+ *     discussão sobre avaria.
+ *   · `conferida` — um ADM abriu, olhou e aprovou. Tem autor e hora.
+ *
+ * E `false` também cobre duas: ainda ninguém decidiu (`pendente`) ou alguém
+ * decidiu que não (`recusada`). Quem separa os pares é a EXISTÊNCIA da decisão
+ * gravada, não o booleano.
+ */
+export type SituacaoAprovacao = "direta" | "conferida" | "pendente" | "recusada"
+
+/**
+ * Houve um ato humano registrado nesta linha?
+ *
+ * Basta UM dos dois carimbos. `aprovado_por` é `on delete set null`
+ * (migration 060): o funcionário desligado apaga o nome, não o fato de que a
+ * conferência aconteceu. E exigir os dois faria uma linha meio gravada
+ * (hora sem autor) reaparecer na fila do ADM como se ninguém tivesse olhado.
+ */
+function houveDecisao(a: AprovacaoDoMovimento): boolean {
+  return a.aprovadoEm != null || a.aprovadoPor != null
+}
+
+export function situacaoDaAprovacao(a: AprovacaoDoMovimento): SituacaoAprovacao {
+  if (!houveDecisao(a)) return a.aprovado ? "direta" : "pendente"
+  return a.aprovado ? "conferida" : "recusada"
+}
+
+/**
+ * O que a tela escreve na pílula. `direta` é `null` DE PROPÓSITO: registro que
+ * entrou direto não ganha selo nenhum — não há o que afirmar sobre ele, e um
+ * selo cinza dizendo "Sem conferência" transformaria o caso NORMAL (a régua
+ * está em "sem aprovação", que é o padrão do produto) numa fila de pendência
+ * visual que não existe.
+ */
+export const ROTULO_APROVACAO: Record<SituacaoAprovacao, string | null> = {
+  direta: null,
+  conferida: "Conferido",
+  pendente: "Aguarda conferência",
+  recusada: "Recusado",
+}
+
+/**
+ * Este check-out/check-in entra valendo ou nasce esperando o ADM?
+ *
+ * DUAS PORTAS, NESTA ORDEM:
+ *
+ * 1. A régua de confiança governa a EQUIPE de uma conta empresarial. PROP e
+ *    CMDT são o Commander individual e não têm preset Enterprise — é a mesma
+ *    porta que `podePublicarParaCotistas` abre primeiro. Sem ela, o dono de um
+ *    barco só (que não tem linha em `vinculos` com régua nenhuma) cairia no
+ *    padrão "tudo" e passaria a ter que aprovar os próprios check-outs.
+ * 2. Dentro do Enterprise quem responde é `exigeAprovacao`, não uma cópia da
+ *    regra escrita aqui. Ela já sabe que `check_out`/`check_in` NÃO são ações
+ *    críticas — logo, só o modo "tudo" os segura; "somente_criticos" deixa
+ *    passar, que é o comportamento que o §6 pede.
+ */
+export function movimentoNasceAprovado(p: {
+  papel: Papel
+  modo: ModoAprovacao
+  acao: Extract<AcaoEnterprise, "check_out" | "check_in">
+}): boolean {
+  if (!ehPapelEnterprise(p.papel)) return true
+  return !exigeAprovacao(p.modo, p.acao, p.papel)
+}
+
+/**
+ * Quem confere.
+ *
+ * §3: aprovar é da administradora ("Gestão da frota, publicações, APROVAÇÕES"
+ * está na função do ADM, e só na dele). `PROP` entra porque no Commander
+ * individual o dono da unidade é a administradora dela — e porque um registro
+ * pendente sem ninguém com poder de decidir ficaria preso pra sempre.
+ *
+ * `OPERACOES` fica de fora, e é o ponto inteiro da régua: quem registra o
+ * movimento não é quem o confere. Deixar Operações aprovar o próprio check-out
+ * transformaria o modo "tudo exige aprovação" num campo que não faz nada — que
+ * é exatamente o defeito que o A6 encontrou.
+ *
+ * ATENÇÃO, LIMITE CONHECIDO: a policy de UPDATE da tabela (migration 060) cobra
+ * só `permissao(embarcacao_id, 'diario', 'editar')`, ou seja, o banco NÃO
+ * distingue quem confere de quem registra. Esta função é a única barreira, e
+ * ela mora no app — mesma situação já documentada em `enterprise.ts` para a
+ * publicação de laudo (B6/A7). Enquanto a policy não separar os dois gestos,
+ * nenhuma tela pode assumir que o banco segura isto.
+ */
+export function podeDecidirMovimentoPatio(papel: Papel): boolean {
+  return papel === "PROP" || papel === "ADM" || papel === "ADM_GERAL"
+}
+
+/**
+ * "Ana Souza aprovou · 18/08/2026 14:32" — a procedência da conferência, na
+ * mesma gramática da trilha de auditoria (§22), porque é a mesma frase.
+ *
+ * Os dois ramos de baixo existem porque `null` não vira frase inventada:
+ * sem nome (perfil apagado) ninguém escreve "Alguém aprovou"; sem hora não se
+ * escolhe uma data. Diz-se o que existe, e só.
+ */
+export function linhaDaDecisao(
+  nome: string | null,
+  situacao: SituacaoAprovacao,
+  quandoISO: string | null,
+): string | null {
+  if (situacao !== "conferida" && situacao !== "recusada") return null
+  const evento = situacao === "conferida" ? "aprovou" : "recusou"
+  const autor = nome?.trim() || null
+
+  if (autor && quandoISO) return linhaDeAuditoria(autor, evento, quandoISO)
+  if (autor) return `${autor} ${ROTULO_EVENTO[evento]}`
+  const verbo = situacao === "conferida" ? "Conferido" : "Recusado"
+  return quandoISO ? `${verbo} · ${dataHoraCurta(quandoISO)}` : verbo
+}
+
+/** O mesmo formato de `linhaDeAuditoria`, para o ramo sem autor. Fuso fixo de
+ *  São Paulo como no resto do app: o servidor roda em UTC. */
+function dataHoraCurta(iso: string): string {
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  })
 }
 
 // ---------------------------------------------------------------------------

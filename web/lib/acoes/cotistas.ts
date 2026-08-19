@@ -33,9 +33,13 @@ export async function definirCotas(formData: FormData) {
   if (n > 200) erro("Máximo de 200 cotas por unidade.")
 
   const supabase = await supabaseServer()
-  const { error } = await supabase
-    .from("embarcacoes").update({ cotas_total: n }).eq("id", painel.embarcacao.id)
-  if (error) erro("Não deu pra salvar as cotas. Tente de novo.")
+  // `somenteDono` acima olha o papel do painel; `embarcacao: prop edita` olha o
+  // vínculo PROP ativo no banco, na hora. Os dois discordam justamente quando
+  // interessa — painel montado antes de uma transferência ou de uma suspensão —
+  // e a discordância volta como zero linha sem erro.
+  const { data, error } = await supabase
+    .from("embarcacoes").update({ cotas_total: n }).eq("id", painel.embarcacao.id).select("id")
+  if (error || !data?.length) erro("As cotas não foram salvas. Atualize a página e tente de novo.")
 
   revalidatePath("/cotistas")
   redirect(`/cotistas?ok=${encodeURIComponent("Cotas atualizadas")}`)
@@ -56,14 +60,22 @@ export async function redefinirLink() {
   const painel = await somenteDono()
   const supabase = await supabaseServer()
 
+  // Sem `.select()` de propósito: na primeira vez não existe link ativo, e zero
+  // linha é o estado normal — não há promessa nenhuma pendurada nesta escrita.
+  // Se `convites_cotista: quem gerencia tripulação desativa` recusar, o insert
+  // logo abaixo esbarra no índice único de link ativo por unidade e devolve
+  // erro de verdade; é de lá que a tela fica sabendo.
   await supabase.from("convites_cotista")
     .update({ ativo: false })
     .eq("embarcacao_id", painel.embarcacao.id).eq("ativo", true)
 
-  const { error } = await supabase.from("convites_cotista").insert({
+  // `convites_cotista: quem gerencia tripulação cria` (`eh_prop`) recusa em
+  // silêncio: a tela dizia "Link novo gerado" e a lista continuava com o link
+  // velho, que a pessoa então distribuía achando que era o novo.
+  const { data, error } = await supabase.from("convites_cotista").insert({
     embarcacao_id: painel.embarcacao.id,
-  })
-  if (error) erro("Não deu pra gerar o link. Tente de novo.")
+  }).select("id")
+  if (error || !data?.length) erro("O link novo não foi gerado. Atualize a página e tente de novo.")
 
   revalidatePath("/cotistas")
   redirect(`/cotistas?ok=${encodeURIComponent("Link novo gerado")}`)
@@ -162,7 +174,14 @@ export async function alternarSuspensao(formData: FormData) {
   const { data: perfilAlvo } = await supabase.from("profiles")
     .select("nome").eq("id", data[0].usuario_id).maybeSingle()
 
-  await supabase.from("auditoria").insert({
+  // A linha de auditoria também pode ser recusada em silêncio (`auditoria:
+  // registra em nome proprio...` exige `autor_id = auth.uid()` e
+  // `pode_ver_embarcacao`), e o buraco aqui é mais traiçoeiro que o de uma
+  // tela: o acesso muda de verdade e o rastro não existe, então a disputa de
+  // julho não tem o que consultar. Não vira mensagem porque a pessoa não pediu
+  // auditoria — pediu suspensão, e essa aconteceu. Vai pro log do servidor, no
+  // mesmo desenho de `registrarLogAdmin`.
+  const { data: rastro, error: erroRastro } = await supabase.from("auditoria").insert({
     embarcacao_id: painel.embarcacao.id,
     autor_id: user?.id ?? null,
     evento: suspender ? "bloqueou_cotista" : "desbloqueou_cotista",
@@ -172,7 +191,10 @@ export async function alternarSuspensao(formData: FormData) {
     antes: { suspenso_em: antes?.suspenso_em ?? null },
     depois: { suspenso_em: suspender ? new Date().toISOString() : null },
     motivo,
-  })
+  }).select("id")
+  if (erroRastro || !rastro?.length) {
+    console.error("[cotistas] auditoria de suspensão não foi gravada:", erroRastro?.message ?? "recusada sem erro", vinculoId)
+  }
 
   revalidatePath("/cotistas")
   revalidatePath("/tripulacao")

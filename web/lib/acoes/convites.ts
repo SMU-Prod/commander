@@ -81,8 +81,16 @@ export async function criarConvite(formData: FormData) {
 export async function revogarConvite(formData: FormData) {
   const supabase = await supabaseServer()
   const id = String(formData.get("convite_id") ?? "")
-  const { error } = await supabase.from("convites").delete().eq("id", id).is("usado_em", null)
-  if (error) erroTripulacao("Não foi possível revogar.")
+  // Duas coisas diferentes zeram este delete e nenhuma delas vira `error`: a
+  // policy `convites: prop gerencia` (`eh_prop(embarcacao_id)`) barrando quem
+  // não é dono, e o `is("usado_em", null)` não casando porque alguém aceitou o
+  // convite entre a tela carregar e o clique. A frase precisa caber nas duas —
+  // por isso ela manda olhar a situação do convite em vez de nomear a causa.
+  const { data, error } = await supabase.from("convites").delete()
+    .eq("id", id).is("usado_em", null).select("id")
+  if (error || !data?.length) {
+    erroTripulacao("O convite não foi revogado. Atualize a página para ver em que pé ele está.")
+  }
   revalidatePath("/tripulacao")
   redirect("/tripulacao")
 }

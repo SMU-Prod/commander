@@ -5,14 +5,14 @@ import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
-import { criarAfazer, mudarEstadoAfazer } from "@/lib/acoes/enterprise"
+import { atribuirAfazer, criarAfazer, mudarEstadoAfazer } from "@/lib/acoes/enterprise"
 import { carregarPainel } from "@/lib/consultas"
 import {
   DESTINOS_AFAZER, podeCriarAfazerProprio, ROTULO_DESTINO_AFAZER, ROTULO_ESTADO_AFAZER,
-  type DestinoAfazer, type EstadoAfazer,
 } from "@/lib/domain/afazeres"
 import { supabaseServer } from "@/lib/supabase/server"
 import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
+import type { Afazer } from "@/lib/db/types"
 
 /**
  * AFAZERES (onda 78 — PRD §20).
@@ -66,11 +66,12 @@ export default async function AfazeresPage({
   // voltar se um dia esta tela passar a listar a frota inteira.
   const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
 
-  type Afazer = {
-    id: string; titulo: string; detalhe: string | null; destino: DestinoAfazer
-    prazo: string | null; estado: EstadoAfazer; origem_tipo: string | null
-    embarcacao_id: string | null; responsavel_id: string | null
-  }
+  // ONDA 99 (P2-5) — a forma da linha sai de `lib/db/types.ts`, derivada do
+  // banco vivo. A cópia que morava aqui tipava `origem_tipo` como `string |
+  // null`, e com isso o `switch` sobre origem parecia exaustivo sem ser: para
+  // o compilador, qualquer texto cabia ali. O tipo do banco fecha a união em
+  // "manutencao" | "avaria" | null, e agora um valor novo no `check` reprova
+  // no `tsc` em vez de cair silenciosamente no ramo padrão.
   const lista = (data ?? []) as Afazer[]
   const abertos = lista.filter((a) => a.estado !== "concluido")
   const feitos = lista.filter((a) => a.estado === "concluido")
@@ -102,6 +103,31 @@ export default async function AfazeresPage({
       [p.id, p.nome?.trim() || "Alguém da equipe"] as const),
   )
   const equipe = idsDaEquipe.map((id) => ({ id, nome: nomeDaPessoa.get(id) ?? "Alguém da equipe" }))
+
+  /**
+   * A16 — AS OPÇÕES DO SELETOR DE "PASSAR PARA".
+   *
+   * É a equipe ativa MAIS o responsável atual, quando ele já não está nela
+   * (foi suspenso depois de receber a tarefa). Sem esse acréscimo o `<select>`
+   * abriria com uma pessoa DIFERENTE da que está gravada — o `defaultValue`
+   * não casaria com opção nenhuma e o navegador mostraria a primeira da lista.
+   * Um controle que exibe um responsável que a tarefa não tem é pior que não
+   * existir: quem só quisesse mudar o prazo trocaria o dono sem perceber.
+   *
+   * O rótulo diz o porquê em vez de esconder: a pessoa continua sendo a
+   * responsável de fato, só não pode receber tarefa nova nesta unidade — e é
+   * exatamente por isso que o cartão dela precisa de um caminho pra sair.
+   */
+  const opcoesDeResponsavel = (responsavelId: string | null) => {
+    const ativos = equipe.map((p) => ({ id: p.id, nome: p.nome }))
+    if (responsavelId != null && !ativos.some((p) => p.id === responsavelId)) {
+      return [
+        { id: responsavelId, nome: `${nomeDaPessoa.get(responsavelId) ?? "Quem saiu da unidade"} · sem acesso ativo` },
+        ...ativos,
+      ]
+    }
+    return ativos
+  }
 
   // §20: "Operações pode criar tarefa própria somente se autorizado" — e a
   // autorização é a mesma régua de confiança do §3, não uma permissão nova.
@@ -159,6 +185,42 @@ export default async function AfazeresPage({
           </form>
         </div>
       )}
+
+      {/* A16 — PASSAR A TAREFA ADIANTE.
+          Escolher o responsável só na criação resolve o app de demonstração,
+          não a vida da equipe: a tarefa nasce "para Operações", o Marcos entra
+          de férias, e sem este seletor a única saída seria concluir a tarefa
+          que ninguém fez e abrir outra igual — apagando o registro do que foi
+          combinado.
+
+          As três condições do `&&`, cada uma fechando uma porta que só
+          produziria recusa:
+          · concluída não se repassa (não há mais o que fazer);
+          · tarefa DA BASE não tem responsável possível — `embarcacao_id` nulo
+            faz o `EXISTS` da policy comparar com NULL e nunca casar, e
+            `recusaDoResponsavel` explica isso na criação. Oferecer o controle
+            aqui seria oferecer um botão que sempre recusa;
+          · com uma pessoa só na unidade não há para quem passar — a menos que
+            a tarefa já tenha dono, e aí o controle existe pra DESFAZER. */}
+      {a.estado !== "concluido" && a.embarcacao_id != null
+        && (equipe.length > 1 || a.responsavel_id != null) && (
+        <form action={atribuirAfazer} className="mt-3 flex flex-wrap items-end gap-2">
+          <input type="hidden" name="afazer_id" value={a.id} />
+          <CampoSelect
+            label="De quem é"
+            id={`responsavel-${a.id}`}
+            name="responsavel_id"
+            defaultValue={a.responsavel_id ?? ""}
+            wrapperClassName="min-w-[11rem] flex-1"
+          >
+            <option value="">Ninguém</option>
+            {opcoesDeResponsavel(a.responsavel_id).map((p) => (
+              <option key={p.id} value={p.id}>{p.nome}</option>
+            ))}
+          </CampoSelect>
+          <BotaoEnviar variante="contorno" rotulo="Passar" />
+        </form>
+      )}
     </div>
   )
 
@@ -174,7 +236,7 @@ export default async function AfazeresPage({
         descricao={`O que a equipe combinou de fazer em ${painel.embarcacao.nome} e na base.`}
         selo={abertos.length > 0 ? <Selo estado="atencao">{`${abertos.length} em aberto`}</Selo> : undefined}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <SecaoPagina icone="ferramenta">Em aberto</SecaoPagina>
       {abertos.length === 0 ? (
@@ -191,7 +253,11 @@ export default async function AfazeresPage({
       {podeCriar && (
         <>
           <SecaoPagina icone="mais">Nova tarefa</SecaoPagina>
-          <form action={criarAfazer} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          {/* `--raio-cartao` e não `--raio-painel`: os 14px cravados aqui eram
+              o mesmo desenho dos cartões de tarefa logo acima, que já vinham
+              por token. Promover só o que estava à mão deixaria dois raios no
+              mesmo nível da mesma tela. Subir a tela está no relatório. */}
+          <form action={criarAfazer} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <Campo label="O que fazer" id="titulo" name="titulo" placeholder="Ex.: lavar o casco antes de sábado" />
             <CampoTextarea label="Detalhe — opcional" id="detalhe" name="detalhe" rows={2} />
             <div className="grid grid-cols-2 gap-3">
@@ -228,7 +294,10 @@ export default async function AfazeresPage({
               <input type="checkbox" name="da_unidade" defaultChecked className="size-4 shrink-0 accent-[var(--acao)]" />
               <span className="corpo">É desta unidade ({painel.embarcacao.nome})</span>
             </label>
-            <button className={`${ACAO_NAO_ESTICA} rounded-xl border border-line py-3 text-sm font-semibold`}>
+            {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão se
+                TOCA, então `--raio-controle` — e é o mesmo raio da caixa de
+                seleção logo acima, que também se toca. */}
+            <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
               Criar tarefa
             </button>
           </form>

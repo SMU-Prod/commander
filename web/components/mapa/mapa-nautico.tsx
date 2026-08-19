@@ -227,9 +227,18 @@ function Interruptor({ ligado, aoAlternar, rotulo }: { ligado: boolean; aoAltern
       onClick={aoAlternar}
       className={`relative h-6 w-11 shrink-0 rounded-[var(--raio-pilula)] transition-colors ${ligado ? "bg-accent" : "bg-line"}`}
     >
+      {/* `sombra-1` e não `shadow`: a escala de elevação tem três degraus e
+          nenhum deles é utilitária do Tailwind (docs/DESIGN.md §5). Este é o
+          degrau "separa do fundo", e não `sombra-2`: o botão desliza DENTRO do
+          próprio trilho, não paira sobre o conteúdo da tela — quem flutua aqui
+          é o painel de camadas inteiro, que já leva `sombra-2`. Consequência
+          assumida: `--sombra-1` é `none` no tema escuro, então no escuro o
+          botão passa a se separar só pelo branco contra o trilho, que é a
+          decisão do sistema (lá a separação é feita por contraste, não por
+          sombra), não um esquecimento daqui. */}
       <span
         aria-hidden="true"
-        className={`absolute top-0.5 left-0.5 size-5 rounded-[var(--raio-pilula)] bg-white shadow transition-transform ${ligado ? "translate-x-5" : "translate-x-0"}`}
+        className={`sombra-1 absolute top-0.5 left-0.5 size-5 rounded-[var(--raio-pilula)] bg-white transition-transform ${ligado ? "translate-x-5" : "translate-x-0"}`}
       />
     </button>
   )

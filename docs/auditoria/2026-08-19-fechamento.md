@@ -100,10 +100,10 @@ ninguém.
 | A-06 · sem carimbo de ordem | **FECHADO** | `web/app/api/asaas/webhook/route.ts:202-210` — `ultimo_evento_em` no mesmo `update`, com filtro `is.null,lte` |
 | A-07 · evento sem correspondência devolve 200 mudo | **FECHADO** | `web/app/api/asaas/webhook/route.ts:229-275` (`diagnosticarAssinatura`, separa `sem_correspondencia`/`fora_de_ordem`/`sem_efeito`) e `:307-324` no Gold |
 | A-08 · `catch` do Asaas sem log | **FECHADO** | `web/lib/acoes/assinatura.ts:111` (`console.error("[assinar] falha ao criar cliente/assinatura no Asaas", e)`) |
-| A-09 · INSERT de `gold_pagamentos` não restringe `status` nem `valor_centavos` | **ABERTO** | Policy viva `gold_pagamentos: criar` — `WITH CHECK (tem_papel_admin('suporte') OR EXISTS(select 1 from gold_solicitacoes s where s.id = solicitacao_id and (s.solicitante_id = auth.uid() or eh_prop(s.embarcacao_id))))`. Nenhuma menção a `status` ou `valor_centavos`. Os únicos `CHECK` da tabela limitam o **domínio** (`status in ('pendente','pago','falhou','cancelado')`), não o valor gravado no INSERT. Sem trigger (`pg_trigger` = nenhum) |
-| A-10 · INSERT de `assinaturas` não valida posse do `asaas_subscription_id` | **ABERTO** | Policy viva `assinatura: criar a propria pendente` — `WITH CHECK ((usuario_id = (select auth.uid())) AND (status = 'pendente'))`. Continua sem amarrar o ID do gateway |
+| A-09 · INSERT de `gold_pagamentos` não restringe `status` nem `valor_centavos` | **FECHADO** (verificado no banco vivo em 19/08, onda 98 — a policy viva já exige `pendente`, `pago_em` nulo, valor igual ao de `gold_precos` e `quem_paga` igual ao do pedido; o texto abaixo é a leitura ANTIGA, mantida para histórico) | ~~ | Policy viva `gold_pagamentos: criar` — `WITH CHECK (tem_papel_admin('suporte') OR EXISTS(select 1 from gold_solicitacoes s where s.id = solicitacao_id and (s.solicitante_id = auth.uid() or eh_prop(s.embarcacao_id))))`. Nenhuma menção a `status` ou `valor_centavos`. Os únicos `CHECK` da tabela limitam o **domínio** (`status in ('pendente','pago','falhou','cancelado')`), não o valor gravado no INSERT. Sem trigger (`pg_trigger` = nenhum) |
+| A-10 · INSERT de `assinaturas` não valida posse do `asaas_subscription_id` | **FECHADO** (verificado no banco vivo em 19/08, onda 98 — a policy viva já exige que o `asaas_subscription_id` não tenha sido visto pelo gateway e que o cliente não seja de outra pessoa; o texto abaixo é a leitura ANTIGA) | ~~ | Policy viva `assinatura: criar a propria pendente` — `WITH CHECK ((usuario_id = (select auth.uid())) AND (status = 'pendente'))`. Continua sem amarrar o ID do gateway |
 | A-11 · `NEXT_PUBLIC_COBRANCA_ATIVA` documentada como passo obrigatório | **FECHADO** (durante esta reauditoria) | `docs/OPERACAO.md:23` agora diz que a variável "foi retirada deste roteiro"; `web/.env.example:46` declara que ela não existe; o código já estava limpo (`web/app/(app)/layout.tsx:31`) |
-| A-12 · webhook salta `aguardando_pagamento → aguardando_agendamento` | **ABERTO** (P2, agora documentado) | `gold_transicao_valida` (banco vivo) segue com `when 'aguardando_pagamento' then p_novo in ('pago','cancelado')`; `web/app/api/asaas/webhook/route.ts:329-331` continua saltando. O que mudou: o desvio agora está explicado em `:277-287`. Duas definições da mesma máquina continuam existindo |
+| A-12 · webhook salta `aguardando_pagamento → aguardando_agendamento` | **FECHADO** (verificado em 19/08, onda 98 — a onda 85 já fez o webhook dar os DOIS passos, `aguardando_pagamento → pago → aguardando_agendamento`; as linhas citadas abaixo não existem mais no arquivo) | ~~ | `gold_transicao_valida` (banco vivo) segue com `when 'aguardando_pagamento' then p_novo in ('pago','cancelado')`; `web/app/api/asaas/webhook/route.ts:329-331` continua saltando. O que mudou: o desvio agora está explicado em `:277-287`. Duas definições da mesma máquina continuam existindo |
 | A-13 · doc afirma que `premium_concessoes` não libera nada | **FECHADO** (durante esta reauditoria) | `docs/OPERACAO.md:190` traz a afirmação antiga riscada e `:195` descreve o comportamento real (`premium_concessoes.plano_concedido` quando não há assinatura), que bate com `plano_do_usuario` no banco vivo |
 | A-14 · Boleto provavelmente habilitado na conta Asaas | **DECISÃO DO DONO** | Exige a conta do dono — **não verificado**. Pendência registrada em `docs/OPERACAO.md:83-95` |
 | A-15 · não existe registro de eventos do webhook | **FECHADO** | Tabela `public.asaas_eventos` existe no banco vivo (RLS ligada, 0 linhas); gravação em `web/app/api/asaas/webhook/route.ts:105-132`, chamada em `:176` |
@@ -127,13 +127,55 @@ ninguém.
 | P1-6 · link de cotista não tem como ser resgatado | **FECHADO** | Função `aceitar_convite_cotista(text)` existe no banco (SECURITY DEFINER, checa vaga de cota e vínculo prévio, grava matriz de permissões); rota `web/app/convite-cotista/[codigo]/page.tsx` existe e chama `info_convite_cotista` (`:71`) e `aceitar_convite_cotista` (`web/lib/acoes/cotistas.ts:99`). **Resíduo:** `convites_cotista.expira_em` **não** foi criada — o link continua sem prazo |
 | P1-7 · auditoria legível por qualquer vinculado | **FECHADO** | Policy viva `auditoria: o dono e quem administra leem` — `USING (eh_prop(embarcacao_id) OR permissao(embarcacao_id,'embarcacao','editar'))` |
 | P2-1 · advisors (50 ruído + leaked password) | **DECISÃO DO DONO** | `auth_leaked_password_protection` continua listado como WARN nos advisors de hoje — é um toggle de painel. As `authenticated_security_definer_function_executable` subiram para **52** e continuam sendo ruído deste desenho. Duas ressalvas do achado: (a) `registrar_visualizacao` continua sem qualquer trava (`update parceiros set visualizacoes = visualizacoes + 1`) e `publicidade_registrar_clique` só checa vigência — infláveis em laço; (b) a ressalva do `gold_reivindicar_consultor` **não se aplica**: `Confirm email` está ligado (medido) |
-| P2-2 · `auth_rls_initplan` | **ABERTO** (parcial) | Medido agora: **24** policies em `public` com `auth.uid()` sem `select` (eram 32). Ex.: as 4 de `bases_operacionais`/`estoque_itens` e os SELECT de `estoque_movimentos`/`tanque_movimentos` |
-| P2-3 · `multiple_permissive_policies` | **ABERTO** | **18** policies `FOR ALL` vivas em `public`, que continuam casando junto com as de SELECT (ex.: `bases: o dono escreve` (ALL) + `bases: o dono le` (SELECT), com predicado idêntico) |
-| P2-4 · FK sem índice | **ABERTO** | Medido coluna a coluna: **0 de 15** das FK "quentes" listadas no relatório têm índice (`afazeres.embarcacao_id`, `afazeres.responsavel_id`, `estoque_movimentos.embarcacao_id`, `…servico_id`, `estoque_itens.base_id`, `tanques.base_id`, `tanques.dono_id`, `tanque_movimentos.destino_embarcacao_id`, `movimentos_patio.responsavel_id`, `…ocorrencia_id`, `orcamentos.servico_id`, `servicos_mecanica.ocorrencia_id`, `lancamentos_financeiros.criado_por`, `votos.votante_id`, `envios_cotista.cotista_id`) |
+| P2-2 · `auth_rls_initplan` | **FECHADO** pela migration 082, aplicada e conferida no banco vivo em 19/08 — `initplan_pendentes` = **0** (eram 24). Leitura antiga abaixo | ~~ | Medido agora: **24** policies em `public` com `auth.uid()` sem `select` (eram 32). Ex.: as 4 de `bases_operacionais`/`estoque_itens` e os SELECT de `estoque_movimentos`/`tanque_movimentos` |
+| P2-3 · `multiple_permissive_policies` | **FECHADO** pela migration 083, aplicada e conferida em 19/08 — sobraram **3** de 18, e são exatamente `convites`, `push_assinaturas` e `transferencias`, onde o `FOR ALL` é o ÚNICO caminho de leitura e separá-lo tiraria acesso. Leitura antiga abaixo | ~~ | **18** policies `FOR ALL` vivas em `public`, que continuam casando junto com as de SELECT (ex.: `bases: o dono escreve` (ALL) + `bases: o dono le` (SELECT), com predicado idêntico) |
+| P2-4 · FK sem índice | **FECHADO POR MEDIÇÃO — e o achado estava errado** | Ver a seção "P2-4 revisitado", logo abaixo da tabela. Resumo: 7 das 15 ganharam índice no terceiro lote, 2 deixaram de existir com a 084, e as 6 restantes **não devem ganhar índice**: nenhuma é filtrada por consulta nenhuma do app, e nenhuma tabela-pai é apagada em lugar nenhum. Índice ali seria custo de escrita sem leitura que o pague |
 | P2-5 · tipos da onda nova fora de `types.ts` | **ABERTO** (parcial) | `web/lib/db/types.ts` ganhou `ResultadoEventoAsaas` (`:1011`) e `AsaasEvento` (`:1033`), mas continua **sem** `Afazer`, `Tanque`, `EstoqueItem`, `Orcamento` e `Votacao` |
 
 **Linha de base do banco, hoje:** 83 tabelas em `public`, **83 com RLS ligada**, 0 sem
 policy, 225 policies (eram 218).
+
+### P2-4 revisitado — o achado media a coisa errada
+
+Medido em 19/08/2026, depois do quarto lote, cruzando **duas** perguntas que o achado
+original tratava como uma só.
+
+**Pergunta 1 — quais FK ainda não têm índice?** Nas 11 tabelas do achado, **17**.
+
+**Pergunta 2 — o app consulta por alguma delas?** Contando `.eq(`/`.in(`/`.order(`
+sobre cada coluna em `app/` e `lib/`:
+
+| coluna | consultas que filtram por ela |
+|---|---|
+| `responsavel_id`, `retorno_responsavel_id`, `aprovado_por` | 0 |
+| `votante_id` | 0 |
+| `criado_por`, `publicado_por`, `decidido_por` | 0 |
+| `destino_embarcacao_id` | 0 |
+| `orcamentos.servico_id` | 0 — as consultas de `orcamentos` filtram por `embarcacao_id` (que **tem** índice) e por `id` |
+| `movimentos_patio.ocorrencia_id`, `servicos_mecanica.ocorrencia_id` | 0 — idem, filtram por `embarcacao_id` e `id` |
+
+**Sobra a outra razão para indexar uma FK: a varredura que o Postgres faz na tabela
+FILHA quando uma linha da tabela PAI é apagada.** Medido também: das 22 chamadas de
+`.delete()` do app inteiro, **nenhuma** apaga linha de `servicos_mecanica`,
+`orcamentos`, `movimentos_patio`, `tanques`, `estoque_itens`, `votacoes` ou
+`afazeres`. A única exclusão vizinha é `lancamentos_financeiros`, que não é pai de
+ninguém nesta lista. Ou seja: a varredura que o índice evitaria **nunca acontece**.
+
+**Veredito: zero índice novo.** Índice não é grátis — ele é pago em toda escrita, para
+sempre, e aqui não há leitura nem exclusão que o pague. Isto NÃO contradiz o terceiro
+lote: `INDICES-2026-08-19.sql` criou 8 e descartou 78 exatamente por este critério, e
+as 8 criadas são as que o app de fato consulta (`afazeres.embarcacao_id`,
+`afazeres.responsavel_id`, `estoque_movimentos.servico_id`, `estoque_itens.dono_id`,
+`tanques.dono_id`, `tanque_movimentos.tanque_id`, `orcamentos.embarcacao_id`,
+`envios_cotista.cotista_id`).
+
+**Por que o achado errou, e como não errar de novo:** ele veio do advisor do Supabase,
+que sinaliza *toda* FK sem índice porque não tem como saber o que a aplicação consulta.
+É um bom detector e um péssimo juiz. **A regra da casa passa a ser: uma FK ganha índice
+quando alguma consulta filtra por ela OU quando a tabela-pai é apagada — e as duas
+coisas se verificam no código, não no advisor.** Enquanto o app não mudar, esta linha do
+advisor é ruído conhecido e deve continuar aparecendo lá; reabrir o achado sem refazer
+as duas medições acima é repetir o erro.
 
 ---
 
@@ -146,7 +188,7 @@ policy, 225 policies (eram 218).
 | achado | veredito | prova |
 |---|---|---|
 | A1 · `motor_componentes` sem consumidor | **FECHADO** | `web/lib/consultas-catalogo.ts:128` (`.from("motor_componentes")`) alimenta `web/app/(app)/mecanica/page.tsx:129` e `:349` (`planoSugerido`). Banco vivo: 144 linhas na tabela |
-| A2 · `bases_operacionais` sem consumidor | **ABERTO** | Zero ocorrências de `bases_operacionais`/`base_id` em todo `web/`; a tabela existe e tem **0 linhas** no banco vivo |
+| A2 · `bases_operacionais` sem consumidor | **FECHADO** pela migration 084, aplicada em 19/08 — `to_regclass('public.bases_operacionais')` = null e 0 colunas `base_id` em `estoque_itens`/`tanques`. Isso APOSENTA a migration 073, que esperava decisão do dono: as duas eram mutuamente exclusivas. Leitura antiga abaixo | ~~ | Zero ocorrências de `bases_operacionais`/`base_id` em todo `web/`; a tabela existe e tem **0 linhas** no banco vivo |
 | A3 · `auditoria` write-only e incompleta | **FECHADO** | Lida em `web/app/(app)/cotistas/page.tsx:51`, renderizada em `:273`; `alvo/antes/depois/motivo` preenchidos em `web/lib/acoes/cotistas.ts:171-174` e `web/lib/acoes/enterprise.ts:307` |
 | A4 · `estoque_movimentos` nunca lida | **FECHADO** | `web/app/(app)/estoque/page.tsx:45-46` (render `:253-267`) e `web/app/(app)/mecanica/page.tsx:149`; `servico_id` gravado em `web/lib/acoes/enterprise.ts:509` |
 | A5 · `abastecimentos` nunca lida | **FECHADO** | `web/app/(app)/combustivel/page.tsx:56`. **Resíduo:** o insert (`web/lib/acoes/enterprise.ts:620-626`) continua sem `horas`, `posto` e `comprovante_path` |
@@ -229,7 +271,7 @@ herdadas do relatório.
 | 5.8 · divergências de documentação | **ABERTO** | As três seguem vivas — `globals.css:3-4` × `app/layout.tsx:92`; `lib/ui/largura.ts:15` ainda cita IBM Plex Sans; `navegar-mapa.tsx:315-316` ainda afirma que `text-accent` não troca entre temas — e nasceu uma quarta: `globals.css:569-572` diz 32px onde `mapa-nautico.tsx:91` já põe 44 |
 | 5.9 · raio: 86% escrito à mão | **ABERTO** (melhorou, não fechou) | **878** usos de `rounded-*`; **464 (52,8%) via token** (era 13,8%). As três trocas mecânicas não foram feitas: `rounded-[14px]` **115**, `rounded-full` **116**, `rounded-lg` **86**; `rounded-xl` (12px, token nenhum) **56**; `rounded-[10px]` **20**. Raios distintos em uso: **12** |
 | 5.10 · nove alturas de alvo, sem token | **FECHADO** | `globals.css:71-72` — `--altura-controle: 44px` e `--altura-campo: 48px`; `lib/ui/form.ts:38` usa `min-h-[var(--altura-campo)]` (conta em `:8-36`); os dois tokens medem **71 ocorrências em 32 arquivos**. **Resíduo:** `diario/page.tsx:292` segue `min-h-6` |
-| 5.11 · `mt-5` × 61 | **ABERTO** | **46 usos em 39 arquivos** hoje. 20px continua fora da escala de `docs/DESIGN.md:98` e não há decisão registrada que o adote |
+| 5.11 · `mt-5` × 61 | **FECHADO — e a contagem media texto, não código** | Remedido em 19/08 (onda 98) classificando cada ocorrência: **10 no app inteiro, e ZERO delas é um `mt-5` aplicado**. Seis são linhas de COMENTÁRIO da onda 93 explicando por que o `mt-5` que existia ali era inerte (`SecaoPagina` já escreve `mt-6` e o Tailwind emite `.mt-5` antes) — ou seja, o texto que documenta a correção estava sendo contado como se fosse a doença. As outras quatro são `-mt-5` NEGATIVO em `explorar-mapa`, `navegar-mapa`, `planejar-viagem-mapa` e `ver-viagem-mapa`: contra-margem que cancela o respiro da casca pro mapa encostar na borda, e trocá-la por um degrau da escala quebraria o sangramento. **Lição: contar classe por substring conta comentário e conta margem negativa como se fossem uso.** |
 | 5.12 · `tracking-[…]` com 11 valores | **ABERTO** | **31 usos** (era 47) e **ainda 11 valores distintos**, incluindo o `.28em` de `components/logo.tsx` |
 | 5.13 · teto de cor com buraco de `rgb()` | **FECHADO** | `web/lib/ui/tokens.test.ts:139` — o regex agora é `/#[0-9a-fA-F]{3,8}\b\|rgba?\(/g`; `TETO_POR_ARQUIVO` (`:48-82`) tem 12 entradas somando **57** (era 24 somando 91) |
 | 6.1 · oito rótulos para "abrir a seção" | **FECHADO** | Sobraram **4** rótulos em slot de ação: "Ver tudo" (padrão, 8 usos), "Gerenciar", "Completar" e "Completar em Embarcação", com as exceções declaradas em `hoje/page.tsx:142-145` |

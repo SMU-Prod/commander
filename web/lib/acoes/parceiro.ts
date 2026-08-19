@@ -184,6 +184,9 @@ export async function salvarParceiro(formData: FormData) {
 
   await salvarAtividades(supabase, parceiroId, categoria, atividadesLigadas, formData)
   if (perfilTem(categoria, "vagas")) await salvarVagas(supabase, parceiroId, formData)
+  // Quem não é Marina não tem vaga para mostrar. Sem `.select()` de propósito:
+  // o caso normal é não existir linha nenhuma para apagar, e todo salvamento de
+  // Pousada, Loja ou Oficina passa por aqui.
   else await supabase.from("parceiro_vagas").delete().eq("parceiro_id", parceiroId)
 
   revalidatePath("/parceiro")
@@ -212,6 +215,9 @@ async function salvarAtividades(
   formData: FormData,
 ) {
   const tiposPermitidos = taxonomiasDoPartner({ categoria, ...atividadesLigadas })
+  // Delete sem `.select()`: zero linha é o caso comum (perfil novo, ou quem
+  // nunca declarou atividade) e não há promessa presa nele. O que exige
+  // cuidado é o insert lá embaixo — a partir daqui a lista está VAZIA.
   await supabase.from("parceiro_atividades").delete().eq("parceiro_id", parceiroId)
   if (tiposPermitidos.length === 0) return
 
@@ -224,9 +230,18 @@ async function salvarAtividades(
     .filter((i) => (tiposPermitidos as readonly string[]).includes(i.tipo))
   if (validos.length === 0) return
 
-  await supabase
+  // A METADE PERIGOSA DO "APAGA E REINSERE". `atividades: o dono cria` recusa
+  // com `error` nulo e zero linha, e as atividades antigas já foram apagadas
+  // seis linhas acima: a falha silenciosa não deixava as coisas como estavam,
+  // ela ZERAVA o que o parceiro tinha declarado — e o Explorar, que filtra por
+  // essas linhas, parava de encontrá-lo enquanto a tela dizia "Perfil salvo".
+  const { data: gravadas, error } = await supabase
     .from("parceiro_atividades")
     .insert(validos.map((i) => ({ parceiro_id: parceiroId, taxonomia_id: i.id, tipo: i.tipo })))
+    .select("taxonomia_id")
+  if (error || gravadas?.length !== validos.length) {
+    erroParceiro("Seu perfil foi salvo, mas as atividades não. Abra o perfil e marque as atividades de novo.")
+  }
 }
 
 /**
@@ -251,6 +266,8 @@ async function salvarVagas(supabase: Cliente, parceiroId: string, formData: Form
 
     const vazia = total == null && disponiveis == null && porte == null && diaria == null && mensal == null && !sobConsulta
     if (vazia) {
+      // Sem `.select()`: a Marina que nunca preencheu este tipo de vaga passa
+      // por aqui em todo salvamento, e zero linha é o estado que ela pediu.
       await supabase.from("parceiro_vagas").delete().eq("parceiro_id", parceiroId).eq("tipo", tipo)
       continue
     }
@@ -258,7 +275,12 @@ async function salvarVagas(supabase: Cliente, parceiroId: string, formData: Form
       erroParceiro("As vagas disponíveis não podem passar do total.")
     }
 
-    const { error } = await supabase.from("parceiro_vagas").upsert(
+    // Upsert SEM `ignoreDuplicates` — ele sempre grava, então zero linha aqui
+    // só pode ser `vagas: a marina cria`/`corrige` recusando calada. E o número
+    // de vagas é o que o Explorar mostra como disponibilidade do dia: publicar
+    // "salvo" sobre uma vaga que não entrou deixa a vitrine anunciando o número
+    // velho como se fosse fresco.
+    const { data: vaga, error } = await supabase.from("parceiro_vagas").upsert(
       {
         parceiro_id: parceiroId,
         tipo,
@@ -270,8 +292,8 @@ async function salvarVagas(supabase: Cliente, parceiroId: string, formData: Form
         sob_consulta: sobConsulta,
       },
       { onConflict: "parceiro_id,tipo" },
-    )
-    if (error) erroParceiro("Não foi possível salvar as vagas. Confira os números e tente de novo.")
+    ).select("tipo")
+    if (error || !vaga?.length) erroParceiro("Não foi possível salvar as vagas. Confira os números e tente de novo.")
   }
 }
 
@@ -380,14 +402,17 @@ export async function adicionarAcomodacao(formData: FormData) {
   // §13.6: "valores OPCIONAIS" — vazio é resposta válida, não erro.
   const valor = precoCentavos(String(formData.get("valor_diaria") ?? "").trim() || null, "o valor da diária")
 
-  const { error } = await supabase.from("parceiro_acomodacoes").insert({
+  // `acomodacoes: a pousada cria` recusa com zero linha e sem erro — a mesma
+  // conferência que `excluirAcomodacao` já faz logo abaixo. Sem ela, a tela
+  // dizia "Acomodação adicionada" e a lista voltava do jeito que estava.
+  const { data: criada, error } = await supabase.from("parceiro_acomodacoes").insert({
     parceiro_id: p.id,
     nome,
     capacidade,
     valor_diaria_centavos: valor,
     descricao: String(formData.get("descricao") ?? "").trim() || null,
-  })
-  if (error) erroParceiro("Não foi possível adicionar a acomodação. Tente de novo.")
+  }).select("id")
+  if (error || !criada?.length) erroParceiro("Não foi possível adicionar a acomodação. Tente de novo.")
 
   revalidatePath("/parceiro/perfil")
   ok("Acomodação adicionada")

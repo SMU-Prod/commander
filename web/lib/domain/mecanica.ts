@@ -11,6 +11,8 @@
  * barco; quem gerencia a oficina é a oficina.
  */
 
+import { diaCivilSP, diasAteData } from "./datas"
+
 // ---------------------------------------------------------------------------
 // §7 — o andamento do serviço
 // ---------------------------------------------------------------------------
@@ -48,6 +50,63 @@ export function tomDoServico(e: EstadoServico): TomServico {
  *  painel do ADM ("quantas unidades estão na mecânica agora"). */
 export function servicoAberto(e: EstadoServico): boolean {
   return e !== "concluido"
+}
+
+/**
+ * HÁ QUANTO TEMPO ESTE MOTOR ESTÁ NA OFICINA (auditoria 19/08, A15).
+ *
+ * `servicos_mecanica.entrada_em` era pedida no formulário de abrir serviço,
+ * gravada por `abrirServico` e nunca chegava à tela. Devolvê-la como a DATA
+ * CRUA ("entrou em 05/08") fechava o achado pela letra e não pelo espírito: a
+ * pergunta que essa coluna existe pra responder não é "que dia entrou", é
+ * *"há quanto tempo esse barco está parado lá"* — e quem lê uma data solta
+ * numa lista de vinte serviços tem que fazer a subtração de cabeça, uma vez
+ * por linha. O número que decide se o ADM liga pra oficina é o intervalo, não
+ * a data; a data vira o detalhe de quem quiser conferir.
+ *
+ * A CONTA SÓ VALE ENQUANTO O SERVIÇO ESTÁ ABERTO. Num serviço concluído
+ * "na oficina há 40 dias" seria mentira com cara de alarme — ele saiu de lá.
+ * Fechado, a frase volta a ser a data, que é o fato que resta.
+ *
+ * SEM `entrada_em` NÃO SE ESCREVE NADA (devolve `null`, e a tela omite a
+ * frase). Serviço sem entrada anotada não entrou "há 0 dias": ninguém digitou
+ * a data. É a mesma régua de `lib/domain/patio.ts` — ausência não vira zero
+ * desenhado.
+ *
+ * DATA NO FUTURO NÃO VIRA "HÁ −3 DIAS". Um dedo errado no seletor de data
+ * (2027 em vez de 2026) produziria intervalo negativo, e "há −180 dias" é o
+ * tipo de número que faz a pessoa desconfiar da tela inteira. A frase diz o
+ * que o dado realmente é: uma entrada marcada pra frente.
+ */
+export const DIAS_OFICINA_DEMORADO = 30
+
+export interface TempoNaOficina {
+  frase: string
+  /** Passou de `DIAS_OFICINA_DEMORADO` com o serviço ainda aberto — a tela
+   *  pinta a frase em `text-warn`. Não é erro nem alarme: é o intervalo em que
+   *  "está na oficina" deixa de ser andamento e vira pergunta pro fornecedor. */
+  demorado: boolean
+}
+
+export function tempoNaOficina(
+  entradaEm: string | null,
+  hoje: string,
+  aberto: boolean,
+): TempoNaOficina | null {
+  if (!entradaEm) return null
+  const dia = diaCivilSP(entradaEm)
+  const dataBr = dia.split("-").reverse().join("/")
+  if (!aberto) return { frase: `entrou em ${dataBr}`, demorado: false }
+
+  const dias = -diasAteData(dia, hoje)
+  if (dias < 0) return { frase: `entrada marcada para ${dataBr}`, demorado: false }
+  if (dias === 0) return { frase: "entrou hoje na oficina", demorado: false }
+  if (dias === 1) return { frase: "na oficina há 1 dia", demorado: false }
+  // Dois meses é onde a contagem em dias para de informar: "há 187 dias" é um
+  // número que ninguém converte, e o que a frase precisa transmitir a partir
+  // daí não é precisão, é a ordem de grandeza do abandono.
+  if (dias < 60) return { frase: `na oficina há ${dias} dias`, demorado: dias >= DIAS_OFICINA_DEMORADO }
+  return { frase: `na oficina há ${Math.floor(dias / 30)} meses`, demorado: true }
 }
 
 // ---------------------------------------------------------------------------
