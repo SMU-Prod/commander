@@ -32,6 +32,7 @@ export function Chip({
   href,
   ativo,
   nivel = "primario",
+  contagem,
   children,
 }: {
   href: string
@@ -39,6 +40,12 @@ export function Chip({
   /** `primario`: a pergunta principal da tela (dourado cheio quando ativo).
    *  `secundario`: recorte dentro da primeira (contorno, fundo transparente). */
   nivel?: "primario" | "secundario"
+  /** ONDA 79 — "All 10 · Active 4 · Idle 2" da referência (spec §3, item
+   *  10): o tamanho de cada recorte, junto do filtro. `undefined` continua
+   *  sem número nenhum (os ~12 consumidores atuais não mudam). Zero também
+   *  desenha — mesma régua de honestidade da contagem do `Abas` (onda 79):
+   *  "Vencido 0" é resposta, não a ausência de uma. */
+  contagem?: number
   children: ReactNode
 }) {
   // O nível 2 não tem `bg-panel` de propósito: fica sobre o fundo da página e
@@ -57,9 +64,12 @@ export function Chip({
     <Link
       href={href}
       aria-current={ativo ? "true" : undefined}
-      className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm ${estilo}`}
+      className={`flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm ${estilo}`}
     >
       {children}
+      {contagem != null && (
+        <span className="font-mono-instr text-[11px] tabular-nums opacity-80">{contagem}</span>
+      )}
     </Link>
   )
 }

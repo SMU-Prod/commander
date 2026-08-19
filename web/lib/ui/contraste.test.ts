@@ -73,6 +73,7 @@ function token(nome: string): string {
 
 const FUNDO = token("fundo")
 const SUPERFICIE = token("superficie")
+const LINHA = token("linha")
 const TEXTO = token("texto")
 const TEXTO_FRACO = token("texto-dim")
 /** Onda 79 — a borda entrou na conta: é ela que separa cartão de fundo na
@@ -97,35 +98,39 @@ describe("contraste do tema escuro", () => {
   })
 
   it("o cartao se separa do fundo, senao o escuro vira uma mancha so", () => {
-    // O limiar de 1.2 continua e NÃO desce — foi ele que reprovou o
-    // `#121820` do plano da onda 57 e obrigou a clarear a superfície.
+    // O limiar continua 1.2 e NÃO desce (revisão da onda 57): foi ele que
+    // reprovou o `#121820` do plano original e obrigou a clarear a
+    // superfície — afrouxar aqui apagaria a razão de a superfície ser o que
+    // é hoje. Se um par real não passar, o que muda é a cor, não o limiar.
     //
-    // O QUE MUDOU NA ONDA 79 é o que ele mede, não o quanto ele exige.
-    //
-    // A paleta passou a ser a MEDIDA da referência (ver o cabeçalho do
-    // bloco escuro em globals.css): cartão #1a1a1a sobre fundo #101010 dá
-    // 1.09 — abaixo de 1.2. A tentação seria baixar a régua. Não é o caso:
-    // a referência separa cartão do fundo com BORDA, e a borda dela
-    // (#2c2c2c sobre o cartão) dá 1.22, acima do mesmo limiar.
-    //
-    // Ou seja: a separação que este teste protege EXISTE — ele é que media
-    // um jeito só de consegui-la. Agora aceita os dois, e quando o
-    // preenchimento não separa sozinho, EXIGE que a borda separe. Isso é
-    // mais rígido que antes, não menos: antes uma paleta podia passar com
-    // preenchimento no limite e borda invisível; agora não passa.
+    // ONDA 79 — DUAS FORMAS DE SEPARAR, NÃO UMA SÓ.
+    // A paleta medida pixel a pixel da referência (`app/globals.css`,
+    // comentário do bloco `[data-theme="dark"]`) é cinza puro em toda
+    // superfície — o preenchimento sozinho (#1a1a1a sobre #101010) dá
+    // 1,105:1, abaixo do 1,2. Só que a referência não separa cartão do
+    // fundo com preenchimento: separa com BORDA, e a borda dela (#2c2c2c
+    // sobre o cartão) dá 1,225:1 — acima do MESMO 1,2. A separação que este
+    // teste protege existe; ele só media um jeito só de obtê-la. Agora
+    // aceita os dois e exige que PELO MENOS UM passe — na prática, hoje,
+    // é a borda quem carrega a régua.
     const porPreenchimento = razao(SUPERFICIE, FUNDO)
     const porBorda = razao(LINHA, SUPERFICIE)
     expect(
-      porPreenchimento > 1.2 || porBorda > 1.2,
-      `Cartão não se separa do fundo por nenhum caminho: preenchimento ${porPreenchimento.toFixed(3)} ` +
-        `(--superficie sobre --fundo) e borda ${porBorda.toFixed(3)} (--linha sobre --superficie), ` +
-        "ambos abaixo de 1.2. Clareie a superfície OU a linha.",
-    ).toBe(true)
+      Math.max(porPreenchimento, porBorda),
+      `Nem preenchimento (${porPreenchimento.toFixed(3)}:1) nem borda (${porBorda.toFixed(3)}:1) ` +
+        `separam o cartão do fundo acima de 1,2:1.`,
+    ).toBeGreaterThan(1.2)
   })
 
-  it("quando o preenchimento nao separa, a borda tem que separar", () => {
-    // O par que a regra acima realmente protege hoje, medido sozinho pra
-    // falhar com mensagem própria em vez de escondido num `||`.
+  it("quando o preenchimento nao separa, a borda TEM que separar", () => {
+    // O teste acima aceita qualquer um dos dois caminhos. Este fecha a
+    // brecha que sobra: se o preenchimento não separa, a borda deixa de ser
+    // alternativa e vira obrigação — com mensagem própria, em vez de a falha
+    // aparecer escondida dentro de um `Math.max`.
+    //
+    // É por isso que a regra ficou MAIS rígida que antes da onda 79, não
+    // menos: antes uma paleta passava com preenchimento no limite e borda
+    // invisível; agora, nessa situação, ela reprova aqui.
     if (razao(SUPERFICIE, FUNDO) > 1.2) return
     expect(razao(LINHA, SUPERFICIE)).toBeGreaterThan(1.2)
   })

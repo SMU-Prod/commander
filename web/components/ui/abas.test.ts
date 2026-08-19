@@ -12,6 +12,7 @@ import { Abas } from "./abas"
 const ABAS_TESTE = [
   { valor: "pendentes", rotulo: "Pendentes", href: "/avisos?aba=pendentes", contagem: 3 },
   { valor: "historico", rotulo: "Histórico", href: "/avisos?aba=historico" },
+  { valor: "alertas", rotulo: "Alertas", href: "/avisos?aba=alertas", contagem: 0 },
 ]
 
 function html(ativa: string) {
@@ -46,5 +47,18 @@ describe("Abas", () => {
     const saida = html("pendentes")
     const linkHistorico = saida.match(/<a[^>]*href="\/avisos\?aba=historico"[^>]*>.*?<\/a>/)?.[0] ?? ""
     expect(linkHistorico).not.toContain("<span")
+  })
+
+  /**
+   * ONDA 79 — a referência (anatomia de ficha, "Alerts 0") mostra a
+   * contagem zero em vez de escondê-la; era o oposto até aqui
+   * (`contagem > 0`). Zero é uma resposta ("não há nenhum"), não ausência
+   * de resposta — mesma régua de honestidade do resto do app.
+   */
+  it("contagem zero também aparece — é resposta, não ausência dela", () => {
+    const saida = html("pendentes")
+    const linkAlertas = saida.match(/<a[^>]*href="\/avisos\?aba=alertas"[^>]*>.*?<\/a>/)?.[0] ?? ""
+    expect(linkAlertas).toContain("<span")
+    expect(linkAlertas).toContain(">0</span>")
   })
 })

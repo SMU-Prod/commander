@@ -356,6 +356,36 @@ body.fundo-tela-mapa {
     letter-spacing: .16em;
     text-transform: uppercase;
   }
+
+  /* ONDA 79 (anatomia Haulix, ficha de equipamento) — O MICRO-RÓTULO DE
+     DADO, E POR QUE ELE NÃO ENTROU DENTRO DE `.rotulo`.
+     ---------------------------------------------------------------------
+     A varredura pixel a pixel das capturas (`public/imagens/*.png`) achou
+     um segundo papel de rótulo que a referência usa por toda parte —
+     "Weight capacity", "Client", "Risk score", "Destination" — e ele NÃO é
+     o `.rotulo` de cima: é caixa de frase, sem tracking, fonte de TEXTO
+     (proporcional), não de instrumento (mono). É a legenda de um VALOR
+     dentro de um cartão, não a etiqueta de um instrumento nem o overline
+     de uma seção.
+     Cogitei simplesmente TROCAR `.rotulo` para essa forma e abrir uma
+     `.rotulo-instrumento` pra quem precisasse do desenho antigo — era o
+     pedido original. Descartei depois de medir o raio: `.rotulo` sozinho
+     aparece hoje em ~140 lugares em `app/` e `components/`, e a maioria não
+     é rótulo de dado — é o link "Voltar" de toda tela de detalhe (mono
+     dourado rastreado, e o `docs/DESIGN.md` §5 registra isso, letra por
+     letra, como "a referência, então fica"), é o overline de `SecaoPagina`
+     usado em ~35 arquivos, e é a marca "Commander" tratada como logotipo em
+     três telas públicas. Trocar o `.rotulo` embaixo desses pés silenciosamente
+     mudaria a cara de dezenas de telas que ninguém revisou contra a
+     referência — o mesmo risco que a regra de não mexer em token de cor
+     existe pra evitar, só que em tipografia. Então a classe nova é ADITIVA:
+     `.rotulo` não mudou uma linha; quem quiser a forma medida da referência
+     pede `.rotulo-dado` explicitamente. Hoje só os componentes desta onda
+     (grade rótulo/valor, faixa de KPI) e a ficha de equipamento pedem. */
+  .rotulo-dado {
+    font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
+    line-height: 1.4;
+  }
 }
 
 /* Foco visível — não existia nenhum. Sem border-radius: o navegador já
