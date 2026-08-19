@@ -24,7 +24,7 @@ import { calcularSaudeEmbarcacao, type ItemParaSaude, type OcorrenciaParaSaude }
 import { AREA_AGENDA } from "@/lib/domain/agenda"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
-import { carregarNotificacoes, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarCapaDoHeroi, carregarNotificacoes, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { contadorSino } from "@/lib/domain/notificacoes"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
@@ -233,9 +233,7 @@ export default async function HojePage({
   const urlAvatar = perfil?.avatar_path
     ? (await supabase.storage.from("acervo").createSignedUrl(perfil.avatar_path, 3600)).data?.signedUrl ?? null
     : null
-  const urlCapa = embarcacao.foto_capa_path
-    ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
-    : null
+  const { urlCapa, temFotos } = await carregarCapaDoHeroi()
   const { data: comandantes } = await supabase
     .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
     .eq("tipo", "comandante").eq("visivel", true).limit(2)
@@ -470,6 +468,7 @@ export default async function HojePage({
           embarcacao={embarcacao}
           urlCapa={urlCapa}
           podeEditarFotos={podeEditar(permissoes, "fotos")}
+          temFotos={temFotos}
         />
 
         {/* Um cartão só pro que pede ação, alimentado pela lista de FATORES da

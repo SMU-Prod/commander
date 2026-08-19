@@ -85,10 +85,35 @@ export function cotaDoPlano(nivel: NivelPlano, usoFotos: number, bytesUsados: nu
     valor: `${formatarBytes(uso.usadoBytes)} / ${formatarBytes(uso.limiteBytes)}`,
     percentual: uso.percentual,
     critico: uso.percentual > 90,
-    usado: Math.round(uso.usadoBytes / MB),
+    usado: usadoEmMb(uso.usadoBytes),
     total: Math.round(uso.limiteBytes / MB),
     unidade: "MB",
   }
+}
+
+/**
+ * ONDA 97 — UM ARQUIVO GRAVADO NÃO PODE SAIR COMO ZERO NO MOSTRADOR.
+ *
+ * Print do dono, 19/08: o álbum com uma foto dentro e o cartão de cota
+ * dizendo "0 / 500 MB · 0%". A foto tem 87 KB reais no banco. `valor` já
+ * acertava ("87 KB / 500 MB", via `formatarBytes`, que troca de unidade);
+ * quem mentia era o par cru `usado`/`total`, que a `BarraCapacidade` desenha
+ * — ele arredondava bytes→MB com `Math.round` e tudo abaixo de meio mega
+ * virava 0. É a mesma regra da casa que `lib/domain/patio.ts` guarda: zero
+ * desenhado quer dizer "não tem nada", e aqui tinha.
+ *
+ * O conserto é estreito de propósito. Acima de 1 MB nada muda — 250 MB
+ * continua saindo "250", inteiro, como os testes cobram. Abaixo de 1 MB, e
+ * só aí, entram duas casas, com piso em 0,01: quem gravou alguma coisa nunca
+ * lê zero, e a menor fração exibível é a menor fração que a unidade tem.
+ * Trocar a unidade da barra pra KB não serve: o teto viraria "512.000 KB" e
+ * a régua ficaria ilegível pra ganhar precisão num canto do mostrador.
+ */
+function usadoEmMb(bytes: number): number {
+  const mb = bytes / MB
+  if (mb <= 0) return 0
+  if (mb >= 1) return Math.round(mb)
+  return Math.max(0.01, Math.round(mb * 100) / 100)
 }
 
 export function formatarBytes(bytes: number): string {

@@ -50,6 +50,25 @@ describe("cotaDoPlano", () => {
     const c = cotaDoPlano("commander_pro", 10, COTA_MB * MB * 0.95)
     expect(c.critico).toBe(true)
   })
+  // ONDA 97 — o caso do print do dono: uma foto de 87 KB no álbum e o
+  // mostrador lendo "0 / 500 MB". `valor` já estava certo; o par cru que a
+  // `BarraCapacidade` desenha é que zerava. Ver `usadoEmMb`.
+  it("arquivo abaixo de 1 MB NÃO desce pra zero no mostrador", () => {
+    const c = cotaDoPlano("commander", 1, 89_040)
+    expect(c.valor).toBe("87 KB / 500 MB")
+    expect(c.usado).toBeGreaterThan(0)
+    expect(c.usado).toBe(0.08)
+    expect(c.unidade).toBe("MB")
+  })
+  it("um byte gravado ainda aparece — o piso é a menor fração da unidade", () => {
+    expect(cotaDoPlano("commander", 1, 1).usado).toBe(0.01)
+  })
+  it("álbum de fato vazio continua sendo zero", () => {
+    expect(cotaDoPlano("commander", 0, 0).usado).toBe(0)
+  })
+  it("acima de 1 MB nada muda — o número segue inteiro", () => {
+    expect(cotaDoPlano("commander", 200, (COTA_MB / 2) * MB).usado).toBe(250)
+  })
 })
 
 describe("formatarBytes", () => {

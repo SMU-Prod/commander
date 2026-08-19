@@ -553,6 +553,55 @@ body.fundo-tela-mapa {
    foi o que aconteceu na primeira tentativa. */
 .foco-por-dentro:focus-visible { outline-offset: -2px; }
 
+/* ONDA 97 — O CAMPO DE DATA VAZAVA PRA FORA DO CARTÃO.
+   Print do dono, 19/08, iPhone: em /mecanica, "Válido até" e "Entrada na
+   oficina" estouram a borda do cartão enquanto TODOS os campos vizinhos —
+   mesma classe, mesmo formulário, mesmo `w-full` de `lib/ui/form.ts` — param
+   certinho no lugar. O que os dois têm de diferente é uma coisa só:
+   `type="date"`.
+
+   A causa é do navegador, não do nosso CSS. O WebKit monta os campos de
+   data/hora com uma árvore-sombra própria e dá a ela uma largura MÍNIMA
+   intrínseca; `width: 100%` define a largura desejada, mas mínimo intrínseco
+   ganha de largura desejada na resolução final. Resultado: o campo se recusa
+   a encolher até o cartão e sai por cima da borda.
+
+   Por isso o conserto NÃO é mais um `w-full` em cada tela. São 23 arquivos
+   com campo de data hoje, e a regra que falta é uma normalização de controle
+   nativo — o mesmo lugar onde já mora o skin do Mapbox logo abaixo. Três
+   declarações, cada uma fechando um caminho:
+
+   · `appearance: none` desliga a montagem nativa que carrega o mínimo;
+   · `min-width: 0` derruba o piso intrínseco no que sobrar dela;
+   · `max-width: 100%` é o cinto de segurança — não importa o que o navegador
+     invente de tamanho preferido, o campo não passa do pai. É esta que
+     garante que o vazamento não volta num WebKit futuro.
+
+   `::-webkit-date-and-time-value` junto porque o valor vem CENTRALIZADO por
+   padrão no iOS: sem isto, a data ficaria no meio do campo enquanto o texto
+   de todos os outros começa na esquerda — desalinho que só aparece depois de
+   preencher, quando ninguém está mais olhando.
+
+   Em `@layer base` de propósito: regra sem camada venceria as utilitárias do
+   Tailwind (foi a pegadinha registrada no `.foco-por-dentro` acima), e aí uma
+   tela que legitimamente precisasse de outra largura não conseguiria pedir. */
+@layer base {
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="time"],
+  input[type="week"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    margin: 0;
+  }
+}
+
 /* Onda 24 (passe de arte, bloco 3) — skin dos controles NATIVOS do Mapbox
    (zoom, bússola, locate — e o botão "Camadas" do próprio Commander, que já
    entra no mesmo grupo visual, ver ControleCamadas em mapa-nautico.tsx) pra

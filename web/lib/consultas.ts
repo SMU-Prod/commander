@@ -463,6 +463,39 @@ export const carregarUsoFotos = cache(async (): Promise<number> => {
 })
 
 /**
+ * O QUE O HERÓI PRECISA SABER SOBRE FOTO — a capa assinada e, quando ela não
+ * existe, se o álbum está mesmo vazio.
+ *
+ * ONDA 97. As duas telas que desenham o herói (`/hoje` e `/barco`) tinham a
+ * MESMA linha de URL assinada copiada, e as duas chutavam o convite: sem
+ * capa, mandavam "adicionar foto" — inclusive pro dono que já tinha subido
+ * uma e só não tinha marcado qual seria a capa. Subir e escolher a capa são
+ * dois passos (`definir_capa`, migrations 014/015), e o herói não tinha como
+ * saber em qual deles a pessoa parou.
+ *
+ * NÃO CUSTA UMA VOLTA DE REDE A MAIS, e o desenho é de propósito: os dois
+ * ramos são excludentes. Com capa, paga-se a URL assinada e nada mais — a
+ * contagem seria inútil, porque a capa JÁ é uma foto. Sem capa, não há URL
+ * pra assinar e o que se paga é a contagem (`head: true`, sem trazer linha).
+ * Uma chamada em qualquer caminho, igual a antes.
+ */
+export const carregarCapaDoHeroi = cache(async (): Promise<{
+  urlCapa: string | null
+  /** `true` quando existe foto no álbum — ver `temFotos` em `CardEmbarcacao`. */
+  temFotos: boolean
+}> => {
+  const painel = await carregarPainel()
+  if (!painel) return { urlCapa: null, temFotos: false }
+  const caminho = painel.embarcacao.foto_capa_path
+  if (caminho) {
+    const supabase = await supabaseServer()
+    const { data } = await supabase.storage.from("acervo").createSignedUrl(caminho, 3600)
+    return { urlCapa: data?.signedUrl ?? null, temFotos: true }
+  }
+  return { urlCapa: null, temFotos: (await carregarUsoFotos()) > 0 }
+})
+
+/**
  * CENTRAL DE NOTIFICAÇÕES (onda 44, PRD §5.2) — monta a lista viva de avisos
  * desta pessoa, neste barco.
  *

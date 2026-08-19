@@ -6,9 +6,9 @@ import { Casco, type ZonaDoCasco } from "./casco"
 /**
  * Mesmo padrão de `faixa-topo.test.ts`: `renderToStaticMarkup` sem jsdom.
  * O Casco é função pura de props pra HTML, e o que precisa ser cobrado é o
- * CONTRATO que sobrevive ao 3D da onda 62: pino só onde há equipamento,
- * cor E palavra por estado, cinza honesto quando não há dado (nunca verde
- * por omissão), e o dourado só na zona selecionada.
+ * CONTRATO que sobrevive ao 3D da onda 62: TODA zona é tocável, contagem só
+ * onde há equipamento, cor E palavra por estado, cinza honesto quando não há
+ * dado (nunca verde por omissão), e o dourado só na zona selecionada.
  */
 
 function pino(sobre: Partial<ZonaDoCasco> = {}): ZonaDoCasco {
@@ -20,16 +20,34 @@ function html(zonas: ZonaDoCasco[], selecionada?: ZonaDoCasco["zona"]) {
 }
 
 describe("Casco", () => {
-  it("pino só em zona presente — as outras seis não ganham link", () => {
+  // ONDA 97 — as duas provas abaixo cobravam o CONTRÁRIO até hoje ("pino só
+  // em zona presente", "contagem zero não vira pino"). Elas guardavam a regra
+  // que deixou o mapa do dia 1 sem um único alvo de toque embaixo de uma
+  // legenda que manda tocar — ver o bloco dos marcadores em `casco.tsx`. O
+  // que a regra protegia de verdade (não escrever "0" numa zona vazia)
+  // continua cobrado, agora separado do direito de tocar.
+  it("TODA zona é tocável, inclusive a vazia — a legenda manda tocar", () => {
     const saida = html([pino()])
     expect(saida).toContain('href="/barco/mapa?zona=praca_de_maquinas"')
-    for (const ausente of ["proa", "conves", "casaria", "flybridge", "popa", "casco"]) {
-      expect(saida).not.toContain(`?zona=${ausente}`)
+    for (const outra of ["proa", "conves", "casaria", "flybridge", "popa", "casco"]) {
+      expect(saida).toContain(`?zona=${outra}`)
     }
   })
 
-  it("zona com contagem zero não vira pino — seria decorar o vazio", () => {
-    expect(html([pino({ quantidade: 0 })])).not.toContain("?zona=")
+  it("zona vazia não escreve contagem nenhuma — nem '0'", () => {
+    const saida = html([pino({ quantidade: 0 })])
+    expect(saida).toContain("?zona=praca_de_maquinas")
+    expect(saida).not.toContain(">0<")
+    // E ela se anuncia pelo que é, sem fingir farol.
+    expect(saida).toContain('aria-label="Praça de máquinas, sem equipamento"')
+  })
+
+  it("zona sem equipamento não recebe cor de farol — o anel é tracejado e dim", () => {
+    const saida = html([])
+    expect(saida).toContain("border-dashed")
+    expect(saida).not.toContain("border-ok")
+    expect(saida).not.toContain("border-warn")
+    expect(saida).not.toContain("border-crit")
   })
 
   it("aria-label completo: zona, contagem e a PALAVRA do estado", () => {
@@ -67,12 +85,15 @@ describe("Casco", () => {
     expect(semSelecao).not.toContain("aria-current")
   })
 
-  it("selecionar zona SEM pino acende a região mesmo assim — o mapa mostra onde ela fica", () => {
+  it("selecionar zona SEM equipamento acende a região mesmo assim — o mapa mostra onde ela fica", () => {
     // T4 valida `?zona=` contra o vocabulário, não contra "tem equipamento";
-    // a região acesa sem pino é o desenho respondendo "é aqui" sem inventar dado.
+    // a região acesa é o desenho respondendo "é aqui" sem inventar dado. A
+    // zona escolhida se declara escolhida mesmo vazia (onda 97) — era esse o
+    // caminho que não existia: a página sabia responder e ninguém chegava lá.
     const saida = html([pino()], "proa")
     expect(saida).toContain("stroke-accent")
-    expect(saida).not.toContain('aria-current="true"')
+    expect(saida).toContain('aria-current="true"')
+    expect(saida).not.toContain(">0<")
   })
 
   it("com `ancora`, o pino leva pro painel dentro da página (o toque rola até a resposta)", () => {

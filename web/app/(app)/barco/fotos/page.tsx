@@ -95,6 +95,15 @@ export default async function FotosPage({
         ))}
       </ChipLinha>
 
+      {/* ONDA 97 — A INSTRUÇÃO ESTAVA DEPOIS DA GRADE, ONDE NÃO EXPLICAVA
+          NADA. Ela nasceu como legenda do cartão de cota e acabou virando a
+          única menção à capa na tela — 400px abaixo dos botões que ela
+          descreve. Sobe pra cá, encostada na grade, porque é aqui que a
+          pessoa está decidindo. */}
+      {doAlbum.length > 0 && editavel && (
+        <p className="apoio mt-3 text-dim">A foto marcada como capa é a que abre o seu Commander.</p>
+      )}
+
       {doAlbum.length === 0 ? (
         <EstadoVazio
           icone="camera"
@@ -125,27 +134,55 @@ export default async function FotosPage({
                       Capa
                     </span>
                   )}
+                  {/* Excluir sobe pra QUINA DA FOTO (onda 97): no rodapé ele
+                      dividia 103px com o botão de capa, dois alvos de 44px
+                      colados — e o vizinho de "definir capa" era justamente o
+                      que apaga. Aqui os dois gestos param de disputar o mesmo
+                      centímetro. Alvo de 44px com disco de 28px dentro (a
+                      mesma separação alvo/desenho de `lib/ui/acoes.ts`), sobre
+                      véu escuro porque a foto atrás pode ser clara. */}
+                  {editavel && (
+                    <form action={excluirFoto} className="absolute right-0 top-0">
+                      <input type="hidden" name="foto_id" value={f.id} />
+                      <input type="hidden" name="album" value={albumAtivo} />
+                      <button className="flex size-11 items-center justify-center" aria-label={`Excluir a foto ${f.legenda ?? "sem legenda"}`}>
+                        <span className="flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-mapa-instrumento/80 text-crit backdrop-blur">
+                          <Icone nome="mais" className="size-4 rotate-45" />
+                        </span>
+                      </button>
+                    </form>
+                  )}
                 </div>
                 {f.legenda && <p className={`apoio truncate px-2 pt-1.5 text-dim ${editavel ? "" : "pb-1.5"}`}>{f.legenda}</p>}
+                {/* ONDA 97 — O CONTROLE DE CAPA ERA UMA ESTRELA MUDA.
+                    Relato do dono, 19/08: "temos fotos cadastradas que não
+                    aparecem na capa nem tem opção de escolher uma foto como
+                    capa". A opção EXISTIA — era este ☆ de 16px, sem palavra
+                    nenhuma ao lado, com o nome só no `aria-label` (ou seja,
+                    legível por leitor de tela e invisível pra quem enxerga).
+                    Conferido no banco: `foto_capa_path` NULL com uma foto no
+                    álbum. Não falhou nada; ninguém achou o botão.
+                    Agora ele ocupa a largura do quadradinho e diz o que faz.
+                    Quando JÁ é a capa vira estado, não botão: um `<span>`
+                    fora de qualquer `<form>` — reapertar não faria nada e um
+                    botão que não muda nada é a próxima dúvida. */}
                 {editavel && (
-                  <div className="flex items-center justify-between px-1.5 py-1">
-                    <form action={definirCapa}>
-                      <input type="hidden" name="foto_id" value={f.id} />
-                      <input type="hidden" name="album" value={albumAtivo} />
-                      <button
-                        className={`flex size-11 items-center justify-center ${ehCapa ? "text-accent-forte" : "text-dim"}`}
-                        aria-label={ehCapa ? "Foto de capa" : "Usar como capa"}
-                      >
-                        <Icone nome="estrela" className="size-4" />
-                      </button>
-                    </form>
-                    <form action={excluirFoto}>
-                      <input type="hidden" name="foto_id" value={f.id} />
-                      <input type="hidden" name="album" value={albumAtivo} />
-                      <button className="flex size-11 items-center justify-center text-crit" aria-label="Excluir foto">
-                        <Icone nome="mais" className="size-4 rotate-45" />
-                      </button>
-                    </form>
+                  <div className="p-1.5">
+                    {ehCapa ? (
+                      <span className="flex h-11 items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-accent/40 text-accent-forte">
+                        <Icone nome="estrela" className="size-4 shrink-0" />
+                        <span className="rotulo">Capa</span>
+                      </span>
+                    ) : (
+                      <form action={definirCapa}>
+                        <input type="hidden" name="foto_id" value={f.id} />
+                        <input type="hidden" name="album" value={albumAtivo} />
+                        <button className="flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-line text-dim">
+                          <Icone nome="estrela" className="size-4 shrink-0" />
+                          <span className="rotulo">Capa</span>
+                        </button>
+                      </form>
+                    )}
                   </div>
                 )}
               </div>
@@ -189,7 +226,6 @@ export default async function FotosPage({
           unidade={cota.unidade}
           rotulo="Cota do plano"
         />
-        <p className="apoio mt-2 text-dim">A foto marcada como capa é a que abre o seu Commander.</p>
       </div>
 
       {editavel && (

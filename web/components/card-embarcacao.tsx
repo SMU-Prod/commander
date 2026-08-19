@@ -41,6 +41,7 @@ export function CardEmbarcacao({
   statusGeral,
   urlCapa,
   podeEditarFotos,
+  temFotos = false,
   className = "",
 }: {
   embarcacao: Embarcacao
@@ -48,6 +49,24 @@ export function CardEmbarcacao({
   statusGeral?: StatusFarol
   urlCapa: string | null
   podeEditarFotos: boolean
+  /**
+   * ONDA 97 — O CONVITE MANDAVA SUBIR FOTO PRA QUEM JÁ TINHA SUBIDO.
+   *
+   * Print do dono, 19/08: o álbum com uma foto dentro e o herói de /barco
+   * dizendo "Adicionar foto da embarcação". O relato veio junto — "temos
+   * fotos cadastradas que não aparecem na capa". O herói não estava
+   * quebrado: `foto_capa_path` era NULL mesmo (conferido no banco), porque
+   * subir foto NÃO define capa — são duas decisões, e a segunda nunca foi
+   * pedida. Só que a tela não sabia disso e chutava a primeira, mandando
+   * fazer de novo o que já estava feito.
+   *
+   * Com este sinal o convite passa a dizer a frase certa: sem foto nenhuma,
+   * "Adicionar foto da embarcação"; com álbum cheio e capa em branco,
+   * "Escolher a foto de capa" — que é o passo que de fato falta e leva ao
+   * mesmo lugar. Um `boolean` e não a lista: o herói não desenha foto
+   * nenhuma do álbum, só precisa saber se existe alguma.
+   */
+  temFotos?: boolean
   className?: string
 }) {
   const legenda = [embarcacao.estaleiro, embarcacao.modelo, embarcacao.ano].filter(Boolean).join(" · ")
@@ -89,19 +108,30 @@ export function CardEmbarcacao({
                sem foco, 0 de 74.088 pixels mudavam. Já era assim antes desta
                onda; só ficou grave agora, que o convite deixou de ser dourado
                e o anel é o que sobrou pra dizer "você está aqui". */
-            className="foco-por-dentro flex h-44 w-full flex-col items-center justify-center gap-2 pb-16 lg:h-64"
+            /* `pt-10` (onda 97): o ícone de câmera solto ficava na MESMA
+               linha do burgee "Commander" e do selo de estado, os três
+               empilhados a 12px do topo — três coisas disputando a faixa
+               superior do herói. O ícone entrou pra dentro da pílula, onde
+               ele qualifica a ação em vez de flutuar, e a folga de cima
+               garante que a coluna do convite comece abaixo daquela faixa. */
+            className="foco-por-dentro flex h-44 w-full flex-col items-center justify-center gap-2 pt-10 pb-16 lg:h-64"
             style={{ backgroundImage: "radial-gradient(ellipse 90% 70% at 50% 15%, #16324a 0%, #0b1d2d 70%)" }}
           >
-            <Icone nome="camera" className="size-6 text-meter-dim" />
             {podeEditarFotos ? (
               <>
-                <span className="inline-flex min-h-11 items-center rounded-[var(--raio-pilula)] border border-[rgb(233_241_248/.30)] bg-[rgb(233_241_248/.12)] px-5 text-sm font-semibold text-meter-texto">
-                  Adicionar foto da embarcação
+                <span className="inline-flex min-h-11 items-center gap-2 rounded-[var(--raio-pilula)] border border-[rgb(233_241_248/.30)] bg-[rgb(233_241_248/.12)] px-5 text-sm font-semibold text-meter-texto">
+                  <Icone nome="camera" className="size-4 shrink-0" />
+                  {temFotos ? "Escolher a foto de capa" : "Adicionar foto da embarcação"}
                 </span>
-                <span className="apoio text-meter-dim">É ela que abre o seu Commander</span>
+                <span className="apoio text-meter-dim">
+                  {temFotos ? "Você já tem fotos — falta dizer qual abre o app" : "É ela que abre o seu Commander"}
+                </span>
               </>
             ) : (
-              <span className="corpo text-meter-dim">Sem foto de capa</span>
+              <>
+                <Icone nome="camera" className="size-6 text-meter-dim" />
+                <span className="corpo text-meter-dim">Sem foto de capa</span>
+              </>
             )}
           </Link>
         )}

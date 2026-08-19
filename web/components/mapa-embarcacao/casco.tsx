@@ -4,10 +4,11 @@ import { rotuloDoFarol, type StatusFarol } from "@/lib/domain/semaforo"
 
 /**
  * O PALCO do Mapa da Embarcação (onda 61, spec §3.1–3.2): o corte lateral
- * de uma motor yacht de flybridge, proa pra ESQUERDA, com um pino por zona
- * que tenha equipamento. Regra Navionics (docs/DESIGN.md §2): o desenho é
- * chrome — traço fino em `--linha`, preenchimento em `--superficie` — e os
- * PINOS são o dado.
+ * de uma motor yacht de flybridge, proa pra ESQUERDA, com um marcador em
+ * CADA zona (onda 97 — antes só as zonas com equipamento ganhavam um, e o
+ * mapa do dia 1 saía sem nenhum alvo de toque). Regra Navionics
+ * (docs/DESIGN.md §2): o desenho é chrome — traço fino em `--linha`,
+ * preenchimento em `--superficie` — e os MARCADORES são o dado.
  *
  * O 3D é o destino (onda 62, decisão do dono em 16/08): este SVG é o palco
  * versão 1. Por isso o CONTRATO é o que importa aqui — `zonas` (contagem e
@@ -136,11 +137,12 @@ export function Casco({
   ancora?: string
 }) {
   /* Ordem espacial fixa (proa→popa, casco por último) independente da ordem
-     em que o chamador montou o array — e é também a ordem de tabulação dos
-     pinos. Zona com contagem zero não ganha pino: pino "0" seria decorar o
-     vazio (DESIGN §6.4); zona sem equipamento simplesmente não está aqui. */
+     em que o chamador montou o array — e é também a ordem de tabulação.
+     TODA zona ganha marcador, inclusive a vazia: ver o comentário do bloco de
+     marcadores lá embaixo. Zona vazia entra com `null` no lugar dos dados. */
   const porZona = new Map(zonas.map((z) => [z.zona, z]))
-  const pinos = ZONAS.map((zona) => porZona.get(zona)).filter((z): z is ZonaDoCasco => z != null && z.quantidade > 0)
+  const marcadores = ZONAS.map((zona) => ({ zona, dados: porZona.get(zona) ?? null }))
+    .map((m) => ({ ...m, dados: m.dados && m.dados.quantidade > 0 ? m.dados : null }))
 
   return (
     <div className="relative">
@@ -228,25 +230,62 @@ export function Casco({
         → POPA
       </span>
 
-      {/* ---- os pinos (o dado) ------------------------------------------ */}
-      {pinos.map((z) => {
-        const ativa = selecionada === z.zona
+      {/* ---- os marcadores: o dado onde há, o convite onde não há -------- */}
+      {/*
+        ONDA 97 — O DESENHO NÃO TINHA ONDE TOCAR, E A LEGENDA PROMETIA QUE
+        TINHA.
+
+        Print do dono, 19/08: o Mapa da Embarcação com a legenda "Toque numa
+        zona para ver equipamentos, manutenções e ocorrências fixados nela" e,
+        logo abaixo, "Nenhum equipamento mapeado ainda" + dois motores em "Não
+        mapeados". Ou seja: o barco inteiro desenhado, a frase dizendo pra
+        tocar, e ZERO alvos na tela — porque o marcador só nascia em zona que
+        já tivesse equipamento. No dia 1 de todo barco, que é justamente
+        quando o mapa mais precisa ensinar, o corte era uma figura morta.
+
+        A regra antiga ("zona com contagem zero não vira pino") vinha de não
+        decorar o vazio (DESIGN §6.4), e ela CONTINUA valendo no que importa:
+        zona vazia não escreve "0" nenhum. O que ela não podia ter levado
+        junto foi o alvo de toque — número é dado, alvo é porta, e fechar a
+        porta não deixou o vazio menos decorado, deixou o mapa inutilizável.
+        A própria página já sabia responder a uma zona vazia ("Nada fixado
+        nesta zona ainda. Pra fixar um equipamento aqui, abra a ficha dele e
+        escolha a zona em 'Onde fica no barco'") — essa resposta existia sem
+        nenhum caminho que chegasse até ela.
+
+        As duas formas dizem coisas diferentes de longe: círculo cheio com a
+        contagem e a cor do farol onde MORA alguma coisa; anel tracejado,
+        miúdo e dim onde ainda não mora — o mesmo vocabulário do quadrado
+        tracejado "+ foto" da grade de Fotos, que no app já quer dizer "cabe
+        algo aqui". O alvo de 44px é idêntico nos dois: quem está de mão
+        molhada não deve adivinhar qual zona aceita toque.
+      */}
+      {marcadores.map(({ zona, dados }) => {
+        const ativa = selecionada === zona
         return (
           <Link
-            key={z.zona}
-            href={`${hrefBase}?zona=${z.zona}${ancora ? `#${ancora}` : ""}`}
-            aria-label={rotuloDoPino(z)}
+            key={zona}
+            href={`${hrefBase}?zona=${zona}${ancora ? `#${ancora}` : ""}`}
+            aria-label={dados ? rotuloDoPino(dados) : `${ROTULO_ZONA[zona]}, sem equipamento`}
             aria-current={ativa ? "true" : undefined}
             className="absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-            style={pct(PINO[z.zona])}
+            style={pct(PINO[zona])}
           >
-            <span
-              className={`flex size-8 items-center justify-center rounded-[var(--raio-pilula)] border-2 bg-panel font-mono-instr text-xs font-semibold tabular-nums ${
-                z.estado ? COR_PINO[z.estado] : COR_PINO_SEM_DADO
-              } ${ativa ? "outline-2 outline-offset-2 outline-accent" : ""}`}
-            >
-              {z.quantidade}
-            </span>
+            {dados ? (
+              <span
+                className={`flex size-8 items-center justify-center rounded-[var(--raio-pilula)] border-2 bg-panel font-mono-instr text-xs font-semibold tabular-nums ${
+                  dados.estado ? COR_PINO[dados.estado] : COR_PINO_SEM_DADO
+                } ${ativa ? "outline-2 outline-offset-2 outline-accent" : ""}`}
+              >
+                {dados.quantidade}
+              </span>
+            ) : (
+              <span
+                className={`size-5 rounded-[var(--raio-pilula)] border border-dashed border-dim ${
+                  ativa ? "outline-2 outline-offset-2 outline-accent" : ""
+                }`}
+              />
+            )}
           </Link>
         )
       })}

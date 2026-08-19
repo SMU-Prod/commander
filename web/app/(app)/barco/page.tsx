@@ -17,14 +17,14 @@ import {
   calcularSemaforo, formatarDataCurta, PESO, temInformacaoSuficiente, vencimentoPorData, type StatusFarol,
 } from "@/lib/domain/semaforo"
 import {
-  carregarAcessoEmbarcacoes, carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc,
+  carregarAcessoEmbarcacoes, carregarCapaDoHeroi, carregarPainel, carregarVerified, hojeISO,
+  itemMonitoradoToItemCalc,
 } from "@/lib/consultas"
 import { carregarMapaDaEmbarcacao } from "@/lib/consultas-mapa"
 import { mensagemDowngrade } from "@/lib/domain/assinatura-ciclo"
 import { carregarSeloGold } from "@/lib/consultas-gold"
 import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
-import { supabaseServer } from "@/lib/supabase/server"
 import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 export default async function BarcoPage({
@@ -118,10 +118,7 @@ export default async function BarcoPage({
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
 
-  const supabase = await supabaseServer()
-  const urlCapa = embarcacao.foto_capa_path
-    ? (await supabase.storage.from("acervo").createSignedUrl(embarcacao.foto_capa_path, 3600)).data?.signedUrl ?? null
-    : null
+  const { urlCapa, temFotos } = await carregarCapaDoHeroi()
 
   return (
     <main>
@@ -151,6 +148,7 @@ export default async function BarcoPage({
         statusGeral={statusGeral ?? undefined}
         urlCapa={urlCapa}
         podeEditarFotos={podeEditar(permissoes, "fotos")}
+        temFotos={temFotos}
       />
 
       {/* Mapa da Embarcação (onda 61, spec §3.4) — a porta pra tela nova,
