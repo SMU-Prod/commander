@@ -99,22 +99,34 @@ export default async function AdminPublicidadePage({
             <input type="hidden" name="produto" value={p.produto} />
             <p className="corpo font-medium">{ROTULO_PRODUTO[p.produto]}</p>
             <p className="apoio mt-0.5 text-dim">{DESCRICAO_PRODUTO[p.produto]}</p>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex items-end gap-3">
               <p className="apoio min-w-0 flex-1 text-dim">
                 Atual: {formatarPrecoPublicidade(p.preco_mensal_centavos)}
               </p>
-              <input
+              {/* Mesma caixa de ~35px de `/admin/gold/precos`, mesma correção —
+                  o porquê do `items-end` está escrito lá. O detalhe próprio
+                  daqui é o `aria-label` que SAIU: ele existia porque não havia
+                  rótulo nenhum, e mantê-lo agora sobrescreveria em silêncio o
+                  rótulo que a pessoa VÊ (é o defeito que a regra "label in
+                  name" nomeia — quem usa comando de voz pede "novo valor" e o
+                  campo atende por outro nome). Qual produto está sendo
+                  precificado continua dito pelo título do cartão, duas linhas
+                  acima, e agora o `<label for>` dá ao campo um nome de
+                  verdade. */}
+              <Campo
+                label="Novo valor"
+                id={`preco_${p.produto}`}
                 type="text"
                 name="valor_reais"
                 inputMode="decimal"
                 placeholder="199,90"
-                aria-label={`Preço mensal de ${ROTULO_PRODUTO[p.produto]}`}
                 defaultValue={
                   p.preco_mensal_centavos != null
                     ? (p.preco_mensal_centavos / 100).toFixed(2).replace(".", ",")
                     : ""
                 }
-                className="corpo w-28 rounded-[var(--raio-controle)] border border-line bg-panel2 px-2 py-1.5 text-right"
+                wrapperClassName="w-28 shrink-0"
+                className="text-right"
               />
               <BotaoEnviar rotulo="Salvar" variante="contorno" className="shrink-0 whitespace-nowrap" />
             </div>

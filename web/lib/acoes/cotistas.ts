@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { carregarPainel } from "@/lib/consultas"
+import { mensagemDeErroAoEntrar } from "@/lib/domain/cotistas"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -66,6 +67,50 @@ export async function redefinirLink() {
 
   revalidatePath("/cotistas")
   redirect(`/cotistas?ok=${encodeURIComponent("Link novo gerado")}`)
+}
+
+/**
+ * §13 — O RESGATE DO LINK. Onda 84, P1-6 da auditoria de 19/08/2026.
+ *
+ * Esta é a única action deste arquivo que NÃO é do dono: é de quem chegou
+ * pelo link. Até agora ela não existia, e por isso o módulo de cotas inteiro
+ * — vaga, suspensão, votação, envios, relatório — dependia de uma porta que
+ * ninguém tinha construído: 0 vínculos com papel COTISTA no banco.
+ *
+ * Toda a autoridade fica na RPC `aceitar_convite_cotista` (migration 077), e
+ * tem de ficar: `vinculos` não tem policy de INSERT — é essa ausência que
+ * impede alguém de se dar acesso a barco alheio, e ela não pode ser afrouxada
+ * só para esta tela funcionar. A action aqui não decide nada; ela traduz.
+ */
+export async function entrarComoCotista(formData: FormData) {
+  const codigo = String(formData.get("codigo") ?? "").trim()
+  if (codigo === "") redirect("/hoje?erro=" + encodeURIComponent("Convite inválido."))
+
+  function erroNoConvite(msg: string): never {
+    redirect(`/convite-cotista/${encodeURIComponent(codigo)}?erro=${encodeURIComponent(msg)}`)
+  }
+
+  const supabase = await supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect(`/login?volta=${encodeURIComponent(`/convite-cotista/${codigo}`)}`)
+  }
+
+  const { data, error } = await supabase.rpc("aceitar_convite_cotista", { p_codigo: codigo })
+  // O banco levanta CÓDIGO (`sem_vaga_de_cota`, `ja_faz_parte`, …); quem
+  // escolhe a frase é o domínio. Código desconhecido não vira "convite
+  // inválido" — vira uma frase que admite não saber.
+  if (error) erroNoConvite(mensagemDeErroAoEntrar(error.message))
+
+  // A RPC devolve o `embarcacao_id`. Sem esta conferência, uma resposta vazia
+  // (RPC trocada, retorno nulo) passaria por sucesso e a tela mandaria a
+  // pessoa para `/hoje` sem vínculo nenhum — a mesma lição que a suspensão
+  // aprendeu com o `.select()` logo abaixo.
+  if (!data) erroNoConvite("Não foi possível entrar com este convite agora. Tente de novo em instantes.")
+
+  revalidatePath("/hoje")
+  revalidatePath("/cotistas")
+  redirect("/hoje")
 }
 
 /** §13: "ADM pode marcar cotista como inadimplente e suspender o acesso ...

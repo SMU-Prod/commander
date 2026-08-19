@@ -6,6 +6,7 @@ import { EscolherPonto } from "@/components/mapa/escolher-ponto"
 import { EscolherPinoParceiro } from "@/components/mapa/escolher-pino-parceiro"
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { ChipDado } from "@/components/ui/chip"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
@@ -58,8 +59,36 @@ function precoParaCampo(centavos: number | null): string {
 
 /** Campo que recebe NÚMERO — vaga, calado, preço, quantidade. Mono tabular,
  *  como todo dígito do app (docs/DESIGN.md §5): sem isso a coluna de preços
- *  desalinha a vírgula e a comparação vira leitura de texto. */
+ *  desalinha a vírgula e a comparação vira leitura de texto.
+ *
+ *  NÃO recebe `.valor` (14px) nem nenhum dos três degraus da onda 87, e é
+ *  decisão: os degraus vestem número EXIBIDO — valor de linha, cartão de KPI,
+ *  mostrador. Aqui o número está dentro de um `<input>`, que herda o
+ *  `text-base` de `lib/ui/form.ts` — 16px é o que impede o iOS de dar zoom ao
+ *  focar o campo, e trocá-lo por 14 pagaria a hierarquia com a tela pulando
+ *  na cara de quem digita. Tamanho de controle e tamanho de dado são réguas
+ *  diferentes. */
 const NUMERO = "font-mono-instr tabular-nums"
+
+/**
+ * A LINHA DE CAIXA DE SELEÇÃO — E OS 44px QUE ELA NÃO TINHA.
+ *
+ * Eram oito rótulos de caixa nesta tela, todos com o mesmo vestido escrito à
+ * mão (`corpo`, `flex`, `items-center`, `gap-2.5` — e nenhuma altura):
+ * texto de 14px ao lado de uma caixa de 20px, ou seja, ~21px de alvo — menos
+ * da METADE do piso de `--altura-controle`, na tela mais longa da área do
+ * Partner e num app usado com a mão molhada, no barco balançando. O alvo
+ * verdadeiro era só o quadradinho de 20px, porque o `<label>` não tinha
+ * altura própria pra emprestar.
+ *
+ * `min-h` e não `h`: rótulo que quebre em duas linhas ("Valores sob consulta"
+ * numa coluna estreita) cresce em vez de ser cortado — mesmo raciocínio do
+ * `campo` em `lib/ui/form.ts`. O token e não `min-h-11` cravado: a régua de
+ * toque virou `--altura-controle` na onda 94 justamente pra não renascer como
+ * número solto em cada arquivo. `cursor-pointer` porque a área toda passa a
+ * ser tocável, e um alvo de 44px que não parece alvo é meio caminho andado.
+ */
+const CAIXA = "corpo flex min-h-[var(--altura-controle)] cursor-pointer items-center gap-2.5"
 
 export default async function ParceiroPerfilPage({
   searchParams,
@@ -184,7 +213,7 @@ export default async function ParceiroPerfilPage({
           <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Atividade complementar</p>
             {toggles.tambem_vende_produtos && (
-              <label className="corpo flex items-center gap-2.5">
+              <label className={CAIXA}>
                 <input
                   type="checkbox"
                   name="tambem_vende_produtos"
@@ -195,7 +224,7 @@ export default async function ParceiroPerfilPage({
               </label>
             )}
             {toggles.tambem_presta_servicos && (
-              <label className="corpo flex items-center gap-2.5">
+              <label className={CAIXA}>
                 <input
                   type="checkbox"
                   name="tambem_presta_servicos"
@@ -218,11 +247,24 @@ export default async function ParceiroPerfilPage({
           return (
             <section key={tipoTax} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <p className="rotulo text-dim">{ROTULO_TIPO_TAXONOMIA[tipoTax]}</p>
+              {/* A pílula de escolha desta lista media 32px de altura
+                  (`apoio` + `py-1.5`) — abaixo do piso de toque, e é a lista
+                  mais tocada da tela: é aqui que a Loja marca as categorias
+                  e o Posto o combustível.
+                  A anatomia vem do `Chip` do app (`components/ui/chip.tsx`),
+                  que é a pílula única e já resolveu esta briga: altura
+                  `--altura-controle`, raio `--raio-pilula`, `px-4`. Não dá
+                  pra usar o componente — ele é um `<Link>` de filtro e isto é
+                  caixa de seleção dentro de um `<form>` —, então o que se
+                  copia é a MEDIDA, não o markup, pra não nascer a próxima
+                  altura de pílula do app. O texto fica em `apoio`: são
+                  dezenas de itens lado a lado, e 12px é o que mantém a grade
+                  legível sem virar parede. */}
               <div className="flex flex-wrap gap-1.5">
                 {itens.map((i) => (
                   <label
                     key={i.id}
-                    className="apoio cursor-pointer rounded-full border border-line bg-panel2 px-3 py-1.5 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+                    className="apoio flex min-h-[var(--altura-controle)] cursor-pointer items-center rounded-[var(--raio-pilula)] border border-line bg-panel2 px-4 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
                   >
                     <input
                       type="checkbox"
@@ -267,7 +309,7 @@ export default async function ParceiroPerfilPage({
                       placeholder="2.400,00" defaultValue={precoParaCampo(v?.preco_mensal_centavos ?? null)}
                       className={NUMERO} />
                   </div>
-                  <label className="corpo flex items-center gap-2.5">
+                  <label className={CAIXA}>
                     <input type="checkbox" name={`vaga_${tv}_sob_consulta`} defaultChecked={v?.sob_consulta ?? false}
                       className="size-5 accent-[var(--acao)]" />
                     Valores sob consulta
@@ -308,7 +350,7 @@ export default async function ParceiroPerfilPage({
                 defaultValue={p?.estrutura ?? ""} />
             )}
             {tipo === "marina" && (
-              <label className="corpo flex items-center gap-2.5">
+              <label className={CAIXA}>
                 <input type="checkbox" name="tem_combustivel" defaultChecked={p?.tem_combustivel ?? false}
                   className="size-5 accent-[var(--acao)]" />
                 Combustível no local
@@ -325,7 +367,7 @@ export default async function ParceiroPerfilPage({
             )}
             {perfilTem(tipo, "poita") && (
               <>
-                <label className="corpo flex items-center gap-2.5">
+                <label className={CAIXA}>
                   <input id="tem_poita" type="checkbox" name="tem_poita" defaultChecked={p?.tem_poita ?? false}
                     className="size-5 accent-[var(--acao)]" />
                   Tem poita disponível
@@ -343,7 +385,7 @@ export default async function ParceiroPerfilPage({
             <p className="rotulo text-dim">Restaurante</p>
             <Campo label="Culinária" id="culinaria" name="culinaria" placeholder="Frutos do mar, brasileira…"
               defaultValue={p?.culinaria ?? ""} />
-            <label className="corpo flex items-center gap-2.5">
+            <label className={CAIXA}>
               <input type="checkbox" name="vaga_cortesia" defaultChecked={p?.vaga_cortesia ?? false}
                 className="size-5 accent-[var(--acao)]" />
               Vaga de carro cortesia
@@ -362,7 +404,7 @@ export default async function ParceiroPerfilPage({
                 defaultValue={p?.check_out?.slice(0, 5) ?? ""} />
             </div>
             {perfilTem(tipo, "traslado") && (
-              <label className="corpo flex items-center gap-2.5">
+              <label className={CAIXA}>
                 <input type="checkbox" name="traslado_incluso" defaultChecked={p?.traslado_incluso ?? false}
                   className="size-5 accent-[var(--acao)]" />
                 Traslado incluso
@@ -388,7 +430,7 @@ export default async function ParceiroPerfilPage({
             placeholder="O que faz o seu lugar ser a parada certa…" defaultValue={p?.sobre ?? ""} />
         </section>
 
-        <label className="corpo flex items-center gap-2.5">
+        <label className={CAIXA}>
           <input type="checkbox" name="visivel" defaultChecked={p?.visivel ?? true} className="size-5 accent-[var(--acao)]" />
           Visível no Explorar
         </label>
@@ -435,14 +477,27 @@ export default async function ParceiroPerfilPage({
                   key={a.id}
                   titulo={a.nome}
                   subtitulo={
-                    [
-                      a.capacidade != null
-                        ? `Até ${a.capacidade} ${a.capacidade === 1 ? "pessoa" : "pessoas"}`
-                        : null,
-                      a.valor_diaria_centavos != null ? formatarReais(a.valor_diaria_centavos) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || undefined
+                    a.capacidade != null
+                      ? `Até ${a.capacidade} ${a.capacidade === 1 ? "pessoa" : "pessoas"}`
+                      : undefined
+                  }
+                  /* A DIÁRIA SAI DA FRASE E VIRA DADO. Ela vinha colada na
+                     capacidade por um " · " dentro do subtítulo, ou seja:
+                     dinheiro renderizado como prosa cinza de 12px, do lado de
+                     uma contagem, sem tabular e sem a cor de valor. `ChipDado`
+                     é a peça que o app criou exatamente pra isto ("a medida
+                     mora DENTRO do chip, nunca solta ao lado de um título") e
+                     ela já escreve o degrau certo — `.valor`, os 14px do
+                     dinheiro de lista.
+                     Vai no slot `chips` e não em `valor` porque esta linha tem
+                     `trailing` (o "Excluir"), e em `LinhaLista` o `trailing`
+                     substitui o `valor`.
+                     Diária nula continua NÃO desenhando nada — nem chip, nem
+                     um "R$ 0,00" que diria à pousada que ela cobra zero. */
+                  chips={
+                    a.valor_diaria_centavos != null && (
+                      <ChipDado rotulo="Diária">{formatarReais(a.valor_diaria_centavos)}</ChipDado>
+                    )
                   }
                   trailing={
                     <form action={excluirAcomodacao} className="shrink-0">
@@ -511,7 +566,13 @@ function Galeria({
       {cabe && (
         <form action={subirFotoParceiro} className="sombra-1 mt-3 flex items-center gap-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
           <input type="hidden" name="album" value={album} />
-          <input name="foto" type="file" accept="image/jpeg,image/png,image/webp" required className="corpo min-w-0 flex-1" />
+          {/* O seletor de arquivo é alvo de toque como qualquer outro — e era
+              o menor da tela: o controle nativo mede ~24px de altura, e o
+              elemento inteiro é o que abre a galeria. `min-h` do token põe a
+              linha no piso de 44px sem estilizar o botão nativo (que cada
+              navegador desenha do seu jeito e não é nosso pra redesenhar). */}
+          <input name="foto" type="file" accept="image/jpeg,image/png,image/webp" required
+            className="corpo min-h-[var(--altura-controle)] min-w-0 flex-1" />
           {/* Subir foto é a espera mais longa da tela e o botão media 32px.
               `contorno` dá os 44px e o aviso de envio — sem gastar dourado,
               que aqui já está no "Salvar alterações" logo acima. */}

@@ -25,6 +25,14 @@ describe("MigalhaPao", () => {
     expect(saida).toContain('aria-current="page"')
   })
 
+  it("o link da trilha tem alvo de toque, e ele vem do token", () => {
+    // Onda 94 — estes links eram 15px de alvo (fonte de 11 por 1,4 de
+    // entrelinha), o menor de `components/ui/`. O teste trava o TOKEN e não os
+    // 44px: se a régua do app mudar, ela muda num lugar só.
+    const saida = renderToStaticMarkup(createElement(MigalhaPao, { itens: ITENS }))
+    expect(saida).toContain("min-h-[var(--altura-controle)]")
+  })
+
   it("com um item só, não quebra (sem chevron nenhum)", () => {
     const saida = renderToStaticMarkup(createElement(MigalhaPao, { itens: [{ rotulo: "Início" }] }))
     expect(saida).toContain("Início")

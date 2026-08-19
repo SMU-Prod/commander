@@ -993,8 +993,62 @@ export interface Assinatura {
   /** Desde quando o pagamento falha — gravado pelo trigger do banco, é o que
    *  faz a tolerância do §23 ser contável. `null` fora do problema. */
   problema_desde: string | null
+  /** Carimbo (`dateCreated`) do evento Asaas que produziu o `status` acima
+   *  (migration 075, achado A-06). O webhook só aplica evento com carimbo
+   *  maior ou igual a este — é o que impede um `PAYMENT_OVERDUE` reentregue
+   *  de derrubar quem já regularizou.
+   *
+   *  `null` é "não sei quando", NUNCA "muito antigo": assinatura anterior à
+   *  migration, ou evento que o gateway mandou sem carimbo. Nesse caso o
+   *  evento passa — na dúvida, a favor de quem paga. */
+  ultimo_evento_em: string | null
   criado_em: string
   atualizado_em: string
+}
+
+/** O que uma entrega do webhook produziu (migration 076, achado A-07).
+ *  Lista fechada, espelhada na `check` da coluna `asaas_eventos.resultado`. */
+export type ResultadoEventoAsaas =
+  /** Mudou linha no Commander. */
+  | "aplicado"
+  /** Reconhecido, mas nada a mudar (já estava assim, ou é terminal). */
+  | "sem_efeito"
+  /** A assinatura ou cobrança não existe no Commander — A-07. É o caso grave:
+   *  pode haver cliente sendo cobrado por acesso que o app não conhece. */
+  | "sem_correspondencia"
+  /** Carimbo mais velho que o já aplicado — A-06, descartado de propósito. */
+  | "fora_de_ordem"
+  /** Tipo de evento que o Commander não trata. */
+  | "evento_ignorado"
+  /** Falha ao gravar. Único que devolve 5xx, pro Asaas retentar. */
+  | "erro"
+
+/**
+ * Trilha de entregas do webhook do Asaas (migration 076, achado A-07).
+ *
+ * Uma linha por ENTREGA, inclusive reentrega do mesmo `evento_id` — duplicata
+ * é o fato que se quer enxergar, não sujeira a esconder. Append-only: a tabela
+ * não tem policy de update nem de delete, e só Suporte/CEO leem.
+ */
+export interface AsaasEvento {
+  id: string
+  /** `id` do corpo do Asaas (`evt_…`). `null` em entrega antiga sem id. */
+  evento_id: string | null
+  /** `event` do corpo: PAYMENT_CONFIRMED, PAYMENT_OVERDUE, … */
+  tipo: string
+  /** `dateCreated` da raiz do corpo. `null` = o gateway não mandou. */
+  ocorrido_em: string | null
+  asaas_payment_id: string | null
+  asaas_subscription_id: string | null
+  resultado: ResultadoEventoAsaas
+  detalhe: string | null
+  /** Quantas linhas o evento mudou. `null` = não chegou a tentar escrever —
+   *  e `null` aqui nunca deve ser desenhado como 0: "não tentou" e "tentou e
+   *  não mudou nada" são diagnósticos opostos. */
+  linhas_afetadas: number | null
+  /** O JSON cru, exatamente como chegou. */
+  corpo: unknown
+  recebido_em: string
 }
 
 /** Tolerância configurável do §23 — linha única, mudada por SQL do dono. */

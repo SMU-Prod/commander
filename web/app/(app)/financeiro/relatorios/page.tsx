@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
@@ -216,7 +217,7 @@ export default async function RelatoriosPage({
             <Campo label="De" id="de" name="de" type="date" defaultValue={sp.de ?? periodo.de} />
             <Campo label="Até" id="ate" name="ate" type="date" defaultValue={sp.ate ?? periodo.ate} />
           </div>
-          <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-semibold">Ver período</button>
+          <BotaoEnviar variante="contorno" larguraCheia rotulo="Ver período" />
         </form>
       )}
 

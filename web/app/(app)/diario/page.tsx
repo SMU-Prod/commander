@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
-import { Chip } from "@/components/ui/chip"
+import { Chip, ChipDado } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel } from "@/lib/consultas"
@@ -222,43 +222,45 @@ export default async function DiarioPage({
                     </span>
                   </div>
                   {ehSaida && (
-                    /* ONDA 92 — `mt-2` (8px, degrau da escala) no lugar de
-                       `mt-2.5` (10px, que não é degrau nenhum), e `py-1` (4px)
-                       no lugar de `py-[5px]`: a fileira de chips passa de 28,5
-                       para 26,5px sem apertar nada — quem manda na altura
-                       dentro do chip é a entrelinha do `.rotulo` (16,5px), não
-                       o padding. */
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    /* ONDA 93 — A FILEIRA VOLTA PRA CASA. Estas três pílulas
+                       são a origem do `ChipDado` (a onda 91 promoveu o desenho
+                       DAQUI pro componente) e continuavam escritas à mão logo
+                       abaixo dele — o jeito clássico de as duas cópias
+                       derivarem. Agora o dono do desenho é um só.
+                       O que muda na tela: o valor sai em `.valor` (14px) no
+                       lugar dos 12px que este arquivo escrevia. É a régua de
+                       hierarquia da onda 87 — 12px ao lado de um rótulo de
+                       11px liam como a mesma voz — e custa 2,4px de altura no
+                       chip (26,5 → 28,9). Os `mt-1` abaixo pagam essa conta
+                       com folga; a medida completa está no bloco do fim.
+                       `mt-1` e não `mt-2`: é o mesmo respiro que `LinhaLista`
+                       usa entre o texto e o slot `chips` — a fileira de chips
+                       do app passa a ter um valor só. */
+                    <div className="mt-1 flex flex-wrap gap-1.5">
                       {duracaoEvento != null && (
-                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
-                          <span className="rotulo text-dim">No mar</span>
-                          <span className="font-mono-instr text-xs font-semibold tabular-nums">{textoDuracao(duracaoEvento)}</span>
-                        </span>
+                        <ChipDado rotulo="No mar">{textoDuracao(duracaoEvento)}</ChipDado>
                       )}
-                      <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
-                        <span className="rotulo text-dim">Trilha</span>
+                      <ChipDado rotulo="Trilha">
                         {trilhaResumo ? (
-                          <span className="font-mono-instr text-xs font-semibold tabular-nums">
-                            {trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
-                          </span>
+                          `${trilhaResumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN`
                         ) : (
                           // "sem GPS" no lugar de 0 MN — o diário não inventa
-                          // distância (nota do próprio canvas).
-                          <span className="font-mono-instr text-xs font-semibold text-dim">sem GPS</span>
+                          // distância (nota do próprio canvas). E ele veste
+                          // AUSÊNCIA, não leitura: cinza e peso normal contra o
+                          // branco seminegrito que o `ChipDado` dá a um número
+                          // de verdade. Sem isso, "sem GPS" teria exatamente a
+                          // mesma voz de "12,4 MN" — que é a confusão entre
+                          // "zero" e "não sei" com outra roupa.
+                          <span className="font-normal text-dim">sem GPS</span>
                         )}
-                      </span>
-                      {aBordo > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
-                          <span className="rotulo text-dim">A bordo</span>
-                          <span className="font-mono-instr text-xs font-semibold tabular-nums">{aBordo}</span>
-                        </span>
-                      )}
+                      </ChipDado>
+                      {aBordo > 0 && <ChipDado rotulo="A bordo">{aBordo}</ChipDado>}
                     </div>
                   )}
                   {ehSaida
-                    ? apoioSaida && <p className="apoio mt-2 text-dim">{apoioSaida}</p>
+                    ? apoioSaida && <p className="apoio mt-1 text-dim">{apoioSaida}</p>
                     : (e.horas_no_momento != null || e.contato_id || e.custo_centavos != null) && (
-                        <p className="apoio mt-2 text-dim">
+                        <p className="apoio mt-1 text-dim">
                           {e.contato_id && nomeContato.get(e.contato_id)}
                           {e.horas_no_momento != null && (
                             <>
@@ -295,33 +297,54 @@ export default async function DiarioPage({
                   )}
                 </>
               )
-              // ONDA 92 — A CONTA DA DENSIDADE, PARCELA POR PARCELA.
+              // A CONTA DA DENSIDADE, PARCELA POR PARCELA (ondas 92 e 93).
               // O `p-3` (12px, degrau da escala e a decisão já tomada em
               // `Cartao`: "a referência é densa") fica. Quem engordava o
               // cartão era o resto:
               //
-              //   parcela                          antes      depois
-              //   p-3 topo + base                  24         24
-              //   linha 1 (pastilha 30 → ícone 20) 30         20,25 (o título)
-              //   folga antes dos chips            10 (2.5)    8 (2)
-              //   fileira de chips                 28,5       26,5 (py-1)
-              //   folga antes do apoio             10 (2.5)    8 (2)
-              //   linha de apoio (.apoio)          18         18
-              //   TOTAL                            120,5      104,75
+              //   parcela                      o. 91   o. 92   o. 93
+              //   p-3 topo + base               24      24      24
+              //   linha 1 (pastilha 30 → ícone) 30      20,25   20,25
+              //   folga antes dos chips         10      8 (2)   4 (1)
+              //   fileira de chips              28,5    26,5    28,9 (ChipDado)
+              //   folga antes do apoio          10      8 (2)   4 (1)
+              //   linha de apoio (.apoio)       18      18      18
+              //   TOTAL                        120,5   104,75   99,15
               //
               // Com o `gap-2` entre cartões, o passo da lista cai de 128,5
-              // para 112,75px. A referência faz o mesmo trabalho em ~64px;
-              // continuamos acima dela porque o nosso é um CARTÃO com borda e
-              // o dela é uma linha dentro de um painel.
+              // (onda 91) para 107,15px. A referência faz o mesmo trabalho em
+              // ~64px; continuamos acima dela porque o nosso é um CARTÃO com
+              // borda e o dela é uma linha dentro de um painel.
               //
-              // ALTERNATIVA DESCARTADA: a auditoria sugere levar a linha de
-              // apoio para dentro dos chips ("mar 0,8 m / 12 kt" é leitura,
-              // não prosa) e fechar em ~76px. Não fecha: `apoioSaida` é mar
-              // MAIS tripulação MAIS descrição — só o mar viraria chip, e a
-              // linha continuaria existindo nas saídas com gente ou texto,
-              // que são a maioria. E o chip do mar não cabe na primeira
-              // fileira em 390px: viraria uma segunda fileira de 26,5px, mais
-              // cara que a linha de apoio de 18px que ele veio substituir.
+              // ALTERNATIVA DESCARTADA (1): levar a linha de apoio para dentro
+              // dos chips ("mar 0,8 m / 12 kt" é leitura, não prosa) e fechar
+              // em ~76px. Não fecha: `apoioSaida` é mar MAIS tripulação MAIS
+              // descrição — só o mar viraria chip, e a linha continuaria
+              // existindo nas saídas com gente ou texto, que são a maioria. E
+              // o chip do mar não cabe na primeira fileira em 390px: viraria
+              // uma segunda fileira de 28,9px, mais cara que a linha de apoio
+              // de 18px que ele veio substituir.
+              //
+              // ALTERNATIVA DESCARTADA (2), e é a mesma régua da primeira:
+              // trocar o cartão inteiro por `LinhaLista variant="cartao"` com
+              // o slot `chips` (onda 91). Ele foi feito para isto e mesmo
+              // assim não serve AQUI, por largura, não por altura. No
+              // `LinhaLista` os chips moram DENTRO do bloco de texto — é a
+              // decisão declarada lá ("a mesma largura do título, sem disputar
+              // espaço com o número da direita"). Só que a nossa direita é o
+              // carimbo da data, e ele mais o ícone da esquerda cobram
+              //   20 (ícone) + 42 (data em `.valor`) + 24 (dois `gap-3`) = 86px
+              // dos 334px úteis do cartão a 390px — sobram 248. Dois
+              // `ChipDado` do vocabulário desta tela ("NO MAR 3 h 30" ≈ 125px
+              // + "TRILHA 12,4 MN" ≈ 133px + 6 de gap) medem ~264: a fileira
+              // que hoje cabe numa linha passa a quebrar em duas, +28,9px, e o
+              // cartão sobe pra ~132px. Ou seja, o mesmo motivo que barrou o
+              // chip do mar barra a mudança de casca — a fileira a 390px está
+              // no limite, e `meio` é 86px mais estreito que o cartão.
+              // O que destravaria: chips em largura cheia (abaixo da linha, e
+              // não dentro dela) OU alinhamento ao topo, pra ícone e data não
+              // flutuarem no meio de um bloco de três linhas. Prop nova em
+              // componente de outro dono — vai no relatório, não aqui.
               const casca = "block rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
               return ehSaida ? (
                 <Link key={e.id} href={`/diario/${e.id}`} className={casca}>

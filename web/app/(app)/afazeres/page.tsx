@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -106,9 +107,7 @@ export default async function AfazeresPage({
             <form action={mudarEstadoAfazer} className="flex-1">
               <input type="hidden" name="afazer_id" value={a.id} />
               <input type="hidden" name="estado" value="em_andamento" />
-              <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
-                Comecei
-              </button>
+              <BotaoEnviar variante="contorno" larguraCheia rotulo="Comecei" rotuloEnviando="Registrando…" />
             </form>
           )}
           <form action={mudarEstadoAfazer} className="flex-1">

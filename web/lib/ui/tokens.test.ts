@@ -76,7 +76,9 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   // a marca é um arquivo (`public/logo-commander.svg`) e o componente não
   // conhece cor nenhuma — as cores da marca vivem no asset, que é onde elas
   // devem viver.
-  "components/perfil-profissional-form.tsx": 1,
+  // `components/perfil-profissional-form.tsx` SAIU na onda 94: era a nona (e
+  // última) caixa de escolha com o dourado cravado — o valor do tema claro
+  // num app que abre no escuro. As outras oito saíram no passe de 19/08.
 }
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")

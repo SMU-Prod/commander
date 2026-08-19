@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest"
+import { PRESET_ENTERPRISE } from "./enterprise"
+import { ABAS } from "./permissoes"
 import {
   acimaDaCota,
   cotistaPodeGerarRelatorioOficial,
   estaSuspenso,
   faltaNoCadastro,
+  MATRIZ_COTISTA_NO_BANCO,
   MENSAGEM_SUSPENSO,
+  mensagemDeErroAoEntrar,
   mensagemDeRecusa,
   podeEntrarComLink,
   vagasDeCotista,
+  type ErroAoEntrarComoCotista,
   type RecusaDeEntrada,
 } from "./cotistas"
 
@@ -127,6 +132,85 @@ describe("cotistas", () => {
       // Sem isso, dez cotistas abrindo a mesma unidade gerariam dez PDFs
       // idênticos. O §16 chama isso de "geração individual repetida".
       expect(cotistaPodeGerarRelatorioOficial()).toBe(false)
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // O resgate do link (onda 84, P1-6 da auditoria de 19/08/2026)
+  // -------------------------------------------------------------------------
+
+  describe("matriz com que o cotista nasce", () => {
+    // ESTE É O TESTE QUE JUSTIFICA A DUPLICATA.
+    //
+    // A matriz é gravada por `aceitar_convite_cotista` (migration 077), em
+    // SQL, porque `vinculos` não tem policy de INSERT e aceitar a matriz como
+    // parâmetro deixaria qualquer um pedir `editar` em tudo. O SQL não
+    // importa TypeScript, então a tabela existe duas vezes — e sem este teste
+    // a divergência só apareceria quando um cotista real entrasse numa
+    // unidade em que não enxerga nada.
+    it("é exatamente o PRESET_ENTERPRISE.COTISTA — se falhar, a migration 077 ficou para trás", () => {
+      expect(MATRIZ_COTISTA_NO_BANCO).toEqual(PRESET_ENTERPRISE.COTISTA)
+    })
+
+    it("cobre as 15 áreas, sem sobrar nem faltar", () => {
+      // Área nova na matriz é área que o SQL da 077 não escreve — cairia no
+      // `coalesce(..., false)` de `permissao()` e daria no mesmo, mas por
+      // acidente. O teste força a decisão a ser tomada.
+      expect(Object.keys(MATRIZ_COTISTA_NO_BANCO).sort()).toEqual([...ABAS].sort())
+    })
+
+    it("não dá `editar` em nada — §13: cotista não administra a frota", () => {
+      for (const [aba, p] of Object.entries(MATRIZ_COTISTA_NO_BANCO)) {
+        expect(p.editar, aba).toBe(false)
+      }
+    })
+
+    it("não vê financeiro, carteira, contatos nem diário", () => {
+      for (const aba of ["gastos", "carteira", "contatos", "diario"]) {
+        expect(MATRIZ_COTISTA_NO_BANCO[aba].ver, aba).toBe(false)
+      }
+    })
+  })
+
+  describe("erro ao entrar com o link", () => {
+    it("traduz os quatro códigos que a RPC levanta", () => {
+      const codigos: ErroAoEntrarComoCotista[] = [
+        "nao_autenticado", "convite_invalido", "ja_faz_parte", "sem_vaga_de_cota",
+      ]
+      for (const c of codigos) {
+        const msg = mensagemDeErroAoEntrar(c)
+        expect(msg, c).not.toContain("_")
+        expect(msg.length, c).toBeGreaterThan(20)
+      }
+    })
+
+    it("sem vaga manda pra administradora, e não culpa quem clicou", () => {
+      const m = mensagemDeErroAoEntrar("sem_vaga_de_cota").toLowerCase()
+      expect(m).toContain("administradora")
+      expect(m).not.toContain("você")
+    })
+
+    it("erro desconhecido NÃO vira “convite inválido”", () => {
+      // Acusar de link velho um convite que pode estar perfeitamente vivo é a
+      // classe de mentira que esta tela existe para não cometer — a mesma que
+      // a auditoria apontou em /patio (B7).
+      const m = mensagemDeErroAoEntrar("timeout na rede").toLowerCase()
+      expect(m).not.toContain("não vale mais")
+      expect(m).not.toContain("inválido")
+    })
+
+    it("mensagem vazia, nula ou indefinida também cai no genérico", () => {
+      const generico = mensagemDeErroAoEntrar("qualquer coisa")
+      expect(mensagemDeErroAoEntrar("")).toBe(generico)
+      expect(mensagemDeErroAoEntrar(null)).toBe(generico)
+      expect(mensagemDeErroAoEntrar(undefined)).toBe(generico)
+    })
+
+    it("não confunde chave herdada de Object com código conhecido", () => {
+      // `"toString" in MENSAGEM_POR_ERRO` seria true num objeto comum. Se a
+      // implementação usasse `in` sem cuidado, o app mostraria `undefined`.
+      expect(mensagemDeErroAoEntrar("toString")).toBe(mensagemDeErroAoEntrar("qualquer coisa"))
+      expect(mensagemDeErroAoEntrar("constructor")).toBe(mensagemDeErroAoEntrar("qualquer coisa"))
     })
   })
 })

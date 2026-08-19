@@ -110,6 +110,88 @@ export function mensagemDeRecusa(motivo: RecusaDeEntrada): string {
   }
 }
 
+// ---------------------------------------------------------------------------
+// §13 — o resgate do link (onda 84, P1-6 da auditoria de 19/08/2026)
+// ---------------------------------------------------------------------------
+
+/**
+ * A MATRIZ COM QUE UM COTISTA NASCE — cópia declarada do que o banco escreve.
+ *
+ * `aceitar_convite_cotista` (migration 077) é `SECURITY DEFINER` e grava esta
+ * matriz no vínculo novo. Ela NÃO pode vir do app: `vinculos` não tem policy
+ * de INSERT (é a peça que impede alguém de se dar acesso a barco alheio), e
+ * aceitar a matriz como parâmetro deixaria qualquer um pedir `editar` em tudo.
+ * Ou seja: quem decide é o SQL, e o SQL não importa TypeScript.
+ *
+ * Por isso a mesma tabela existe em dois lugares — e por isso existe teste
+ * comparando esta constante com `PRESET_ENTERPRISE.COTISTA`. Mexer no preset
+ * sem mexer na migration quebra `npm test`, de propósito: o alarme é o único
+ * jeito de a divergência não passar despercebida até um cotista real entrar
+ * numa unidade em que não enxerga nada.
+ *
+ * Espelha `supabase/migrations/077_convite_cotista_resgate.sql`. Se um dia a
+ * migration mudar, mude aqui na mesma leva.
+ */
+export const MATRIZ_COTISTA_NO_BANCO: Record<string, { ver: boolean; editar: boolean }> = {
+  embarcacao: { ver: true, editar: false },
+  motores: { ver: true, editar: false },
+  eletrica: { ver: false, editar: false },
+  casco: { ver: false, editar: false },
+  hidraulica: { ver: false, editar: false },
+  seguranca: { ver: false, editar: false },
+  equipamentos: { ver: false, editar: false },
+  documentos: { ver: true, editar: false },
+  fotos: { ver: true, editar: false },
+  contatos: { ver: false, editar: false },
+  gastos: { ver: false, editar: false },
+  diario: { ver: false, editar: false },
+  historico: { ver: true, editar: false },
+  carteira: { ver: false, editar: false },
+  agenda: { ver: false, editar: false },
+}
+
+/**
+ * Os erros que `aceitar_convite_cotista` levanta.
+ *
+ * São CÓDIGOS, não frases. `aceitar_convite` (migration 008) levanta prosa
+ * acentuada e o app casa substring (`error.message.includes("expirado")`) —
+ * o que quebra em silêncio no dia em que alguém melhorar o texto do banco.
+ * Aqui o banco diz o quê e o app diz como.
+ */
+export type ErroAoEntrarComoCotista =
+  | "nao_autenticado"
+  | "convite_invalido"
+  | "ja_faz_parte"
+  | "sem_vaga_de_cota"
+
+const MENSAGEM_POR_ERRO: Record<ErroAoEntrarComoCotista, string> = {
+  nao_autenticado: "Entre na sua conta para usar este convite.",
+  convite_invalido: "Este link de convite não vale mais. Peça um novo à administradora.",
+  ja_faz_parte: "Você já tem acesso a esta unidade — pode entrar direto.",
+  // A frase é a mesma de `sem_vaga` acima porque o caso é o mesmo visto do
+  // outro lado: a vaga acabou entre a tela desenhar e a pessoa clicar. Quem lê
+  // não precisa saber que houve corrida.
+  sem_vaga_de_cota: "As vagas de cotista desta unidade estão todas ocupadas. Fale com a administradora.",
+}
+
+/**
+ * A frase que a pessoa lê quando a entrada falha.
+ *
+ * Erro desconhecido NÃO vira "convite inválido": acusar de link velho um
+ * convite que pode estar perfeitamente vivo é a classe de mentira que esta
+ * tela existe para não cometer. Vira uma frase que admite não saber.
+ */
+export function mensagemDeErroAoEntrar(bruto: string | null | undefined): string {
+  const codigo = (bruto ?? "").trim()
+  // `hasOwnProperty` e não `in`: com `in`, um erro chamado "toString" ou
+  // "constructor" casaria com o que o objeto herda de `Object` e a tela
+  // mostraria uma função no lugar da frase.
+  if (Object.prototype.hasOwnProperty.call(MENSAGEM_POR_ERRO, codigo)) {
+    return MENSAGEM_POR_ERRO[codigo as ErroAoEntrarComoCotista]
+  }
+  return "Não foi possível entrar com este convite agora. Tente de novo em instantes."
+}
+
 /** §13: "Cadastro exige nome, e-mail e telefone." Os três, e nada além —
  *  cada campo a mais é uma pessoa a menos terminando o cadastro. */
 export function faltaNoCadastro(dados: {

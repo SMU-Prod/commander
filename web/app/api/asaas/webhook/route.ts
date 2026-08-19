@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
-import type { StatusAssinatura } from "@/lib/db/types"
+import { carimboDoEvento } from "@/lib/asaas"
+import type { ResultadoEventoAsaas, StatusAssinatura } from "@/lib/db/types"
 
 export const maxDuration = 30
 
@@ -61,6 +62,87 @@ const STATUS_POR_EVENTO: Record<string, StatusAssinatura> = {
  *  nem "cancelada" pra espelhar aqui, só pago ou não). */
 const EVENTOS_PAGAMENTO_CONFIRMADO = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"])
 
+/** O que o Asaas manda, na parte que este arquivo lê. */
+interface CorpoAsaas {
+  /** Id do EVENTO (`evt_…`). Pode faltar em entrega antiga do gateway. */
+  id?: string
+  event?: string
+  /** Carimbo de criação do evento — ver `carimboDoEvento`. */
+  dateCreated?: string
+  payment?: { id?: string; subscription?: string; billingType?: string }
+  subscription?: { id?: string }
+}
+
+/** O que uma entrega produziu. Vira linha em `asaas_eventos` (migration 076)
+ *  e resposta HTTP — as duas saem do mesmo lugar de propósito, pra nunca
+ *  divergirem. */
+interface Desfecho {
+  resultado: ResultadoEventoAsaas
+  detalhe?: string
+  linhasAfetadas?: number
+  /** 200 salvo quando o Commander falhou de verdade: só aí o Asaas deve
+   *  retentar. Evento que o app entendeu e decidiu não aplicar é 200 — senão
+   *  o gateway reentrega para sempre um evento que nunca vai "dar certo". */
+  http?: number
+}
+
+/**
+ * ONDA 84 (achado A-07 da auditoria de 19/08/2026) — TODA ENTREGA DEIXA RASTRO.
+ *
+ * Antes disto, um pagamento confirmado para assinatura que o banco não conhece
+ * devolvia `200 {atualizadas: 0}` e sumia: o Asaas considerava entregue e
+ * nunca mais retentava. Reconstruir o que se perdeu virava investigação manual
+ * no painel do gateway.
+ *
+ * Grava SEMPRE, inclusive reentrega do mesmo `evento_id` — duplicata é o fato
+ * que se quer enxergar, não sujeira a esconder.
+ *
+ * Falha ao registrar NÃO derruba o webhook. A ordem de importância é clara:
+ * primeiro o dinheiro chega ao lugar certo, depois se anota. Um erro aqui vira
+ * `console.error` e a resposta segue — o contrário faria o Asaas retentar um
+ * evento que JÁ foi aplicado, só porque a anotação falhou.
+ */
+async function registrar(
+  admin: SupabaseClient,
+  corpo: CorpoAsaas,
+  desfecho: Desfecho,
+): Promise<void> {
+  const { data, error } = await admin
+    .from("asaas_eventos")
+    .insert({
+      evento_id: corpo.id ?? null,
+      tipo: corpo.event ?? "(sem evento)",
+      ocorrido_em: carimboDoEvento(corpo),
+      asaas_payment_id: corpo.payment?.id ?? null,
+      asaas_subscription_id: corpo.payment?.subscription ?? corpo.subscription?.id ?? null,
+      resultado: desfecho.resultado,
+      detalhe: desfecho.detalhe ?? null,
+      // `undefined` vira null: "não chegou a tentar escrever". Nunca 0 —
+      // "não tentou" e "tentou e não mudou nada" são diagnósticos opostos.
+      linhas_afetadas: desfecho.linhasAfetadas ?? null,
+      corpo,
+    })
+    .select("id")
+
+  // O `.select()` é o que prova que a linha entrou: sem ele, uma escrita
+  // barrada voltaria com `error: null` e a trilha teria um buraco silencioso.
+  if (error || !data?.length) {
+    console.error(`[asaas] NÃO REGISTROU o evento ${corpo.event} (${corpo.id ?? "sem id"}):`, error?.message)
+  }
+}
+
+function responder(desfecho: Desfecho) {
+  return NextResponse.json(
+    {
+      ok: desfecho.resultado !== "erro",
+      resultado: desfecho.resultado,
+      detalhe: desfecho.detalhe,
+      linhas: desfecho.linhasAfetadas,
+    },
+    { status: desfecho.http ?? 200 },
+  )
+}
+
 export async function POST(req: NextRequest) {
   const segredo = process.env.ASAAS_WEBHOOK_TOKEN
   if (!segredo || req.headers.get("asaas-access-token") !== segredo) {
@@ -71,11 +153,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ erro: "configure SUPABASE_SERVICE_ROLE_KEY" }, { status: 500 })
   }
 
-  const corpo = await req.json().catch(() => null) as {
-    event?: string
-    payment?: { id?: string; subscription?: string; billingType?: string }
-    subscription?: { id?: string }
-  } | null
+  const corpo = (await req.json().catch(() => null)) as CorpoAsaas | null
+  // Sem `event` não há o que registrar como evento — nem tipo tem. É o único
+  // caminho que não deixa linha na trilha, e é o certo: corpo ilegível não é
+  // um evento do Asaas, é ruído na porta.
   if (!corpo?.event) return NextResponse.json({ ok: true, ignorado: "sem evento" })
 
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, chaveServico, {
@@ -83,37 +164,114 @@ export async function POST(req: NextRequest) {
   })
 
   const subscriptionId = corpo.payment?.subscription ?? corpo.subscription?.id
-  if (subscriptionId) {
-    return atualizarAssinatura(admin, corpo.event, subscriptionId)
-  }
+  const desfecho = subscriptionId
+    ? await atualizarAssinatura(admin, corpo, subscriptionId)
+    : corpo.payment?.id
+      ? // Sem `subscription`: é cobrança avulsa — hoje só o Commander Gold usa
+        // esse tipo (`criarCobrancaAvulsaAsaas`, `lib/asaas.ts`).
+        await atualizarPagamentoGold(admin, corpo, corpo.payment.id)
+      : // Payment sem subscription E sem id não é nada que a gente emitiu.
+        ({ resultado: "evento_ignorado", detalhe: "sem assinatura nem cobrança" } as Desfecho)
 
-  // Sem `subscription`: é cobrança avulsa — hoje só o Commander Gold usa
-  // esse tipo (`criarCobrancaAvulsaAsaas`, `lib/asaas.ts`). Payment sem
-  // subscription E sem id não é nada que a gente emitiu — ignora.
-  const paymentId = corpo.payment?.id
-  if (paymentId) return atualizarPagamentoGold(admin, corpo.event, paymentId)
-
-  return NextResponse.json({ ok: true, ignorado: "sem assinatura nem cobrança" })
+  await registrar(admin, corpo, desfecho)
+  return responder(desfecho)
 }
 
 async function atualizarAssinatura(
-  admin: SupabaseClient, evento: string, subscriptionId: string,
-) {
+  admin: SupabaseClient, corpo: CorpoAsaas, subscriptionId: string,
+): Promise<Desfecho> {
+  const evento = corpo.event!
   const novoStatus: StatusAssinatura | null =
     evento === "SUBSCRIPTION_DELETED" ? "cancelada" : STATUS_POR_EVENTO[evento] ?? null
-  if (!novoStatus) return NextResponse.json({ ok: true, ignorado: evento })
+  if (!novoStatus) return { resultado: "evento_ignorado", detalhe: evento }
 
-  // cancelada e terminal: um PAYMENT_CONFIRMED atrasado nao ressuscita a assinatura
-  const { data, error } = await admin
+  const carimbo = carimboDoEvento(corpo)
+
+  // ONDA 84 (achado A-06) — O EVENTO VELHO NÃO DERRUBA MAIS QUEM ESTÁ EM DIA.
+  //
+  // O Asaas reentrega. Um `PAYMENT_OVERDUE` de terça reentregue na quinta,
+  // depois de um `PAYMENT_CONFIRMED` de quarta, jogava a assinatura de quem
+  // pagou em `problema_pagamento` e a tela passava a gritar com o cliente
+  // certo. O filtro `ultimo_evento_em <= carimbo` vai no MESMO `update` que
+  // muda o status: uma instrução só, então duas entregas concorrentes não se
+  // atropelam — quem perde a corrida não casa com o filtro e não escreve.
+  //
+  // Sem carimbo (`null`), o filtro não é aplicado e o evento passa. Na dúvida
+  // sobre QUANDO, o erro é a favor de quem paga — descartar em silêncio uma
+  // confirmação de pagamento seria bem pior.
+  let consulta = admin
     .from("assinaturas")
-    .update({ status: novoStatus })
+    .update(carimbo ? { status: novoStatus, ultimo_evento_em: carimbo } : { status: novoStatus })
     .eq("asaas_subscription_id", subscriptionId)
+    // cancelada é terminal: um PAYMENT_CONFIRMED atrasado não ressuscita a assinatura
     .neq("status", "cancelada")
-    .select("id")
-  if (error) return NextResponse.json({ erro: "falha ao atualizar" }, { status: 500 })
+  if (carimbo) {
+    consulta = consulta.or(`ultimo_evento_em.is.null,ultimo_evento_em.lte."${carimbo}"`)
+  }
+  const { data, error } = await consulta.select("id")
 
-  console.log(`[asaas] ${evento} → assinatura ${novoStatus} (${data?.length ?? 0} linha)`)
-  return NextResponse.json({ ok: true, atualizadas: data?.length ?? 0 })
+  if (error) {
+    console.error(`[asaas] falha ao atualizar assinatura ${subscriptionId}:`, error.message)
+    return { resultado: "erro", detalhe: error.message.slice(0, 300), http: 500 }
+  }
+
+  if (data?.length) {
+    console.log(`[asaas] ${evento} → assinatura ${novoStatus} (${data.length} linha)`)
+    return { resultado: "aplicado", detalhe: novoStatus, linhasAfetadas: data.length }
+  }
+
+  // Zero linhas tem TRÊS causas muito diferentes, e chamar as três de
+  // "atualizadas: 0" foi exatamente o que apagou o rastro do A-07. Uma
+  // leitura extra — só neste caminho, que é o raro — separa as três.
+  return await diagnosticarAssinatura(admin, subscriptionId, carimbo, novoStatus)
+}
+
+async function diagnosticarAssinatura(
+  admin: SupabaseClient,
+  subscriptionId: string,
+  carimbo: string | null,
+  novoStatus: StatusAssinatura,
+): Promise<Desfecho> {
+  const { data: atual, error } = await admin
+    .from("assinaturas")
+    .select("id, status, ultimo_evento_em")
+    .eq("asaas_subscription_id", subscriptionId)
+    .maybeSingle()
+
+  if (error) {
+    return { resultado: "erro", detalhe: error.message.slice(0, 300), http: 500 }
+  }
+
+  // A-07: pagamento confirmado para assinatura que o Commander não conhece.
+  // É o caso grave — pode significar cliente sendo cobrado por um acesso que
+  // o app não sabe que existe. Fica gritando na trilha até alguém olhar.
+  if (!atual) {
+    console.error(
+      `[asaas] SEM CORRESPONDÊNCIA: assinatura ${subscriptionId} não existe no Commander ` +
+        "— confira no painel do Asaas se há cliente sendo cobrado sem acesso.",
+    )
+    return {
+      resultado: "sem_correspondencia",
+      detalhe: `assinatura ${subscriptionId} não existe no Commander`,
+      linhasAfetadas: 0,
+    }
+  }
+
+  if (atual.status === "cancelada") {
+    return { resultado: "sem_efeito", detalhe: "assinatura cancelada (terminal)", linhasAfetadas: 0 }
+  }
+
+  const anterior = atual.ultimo_evento_em as string | null
+  if (carimbo && anterior && anterior > carimbo) {
+    console.log(`[asaas] evento fora de ordem descartado (${carimbo} < ${anterior})`)
+    return {
+      resultado: "fora_de_ordem",
+      detalhe: `evento de ${carimbo}, já aplicado até ${anterior}`,
+      linhasAfetadas: 0,
+    }
+  }
+
+  return { resultado: "sem_efeito", detalhe: `já estava em ${atual.status} (pedido: ${novoStatus})`, linhasAfetadas: 0 }
 }
 
 /** Confirma o pagamento da avaliação Commander Gold e avança a solicitação
@@ -122,11 +280,18 @@ async function atualizarAssinatura(
  *  isoladamente. Escrita direta via service role (bypassa RLS de propósito:
  *  o segredo do webhook já é o gate de autoridade aqui, igual à assinatura
  *  acima) — nunca passa pela RPC `gold_definir_estado`, que exigiria
- *  `auth.uid()` de uma sessão de usuário que este webhook não tem. */
+ *  `auth.uid()` de uma sessão de usuário que este webhook não tem.
+ *
+ *  NÃO precisa do carimbo de ordem do A-06: cobrança avulsa não tem par de
+ *  eventos opostos (ou o pagamento foi confirmado, ou não foi), e o
+ *  `.neq("status","pago")` já torna a reentrega inofensiva. */
 async function atualizarPagamentoGold(
-  admin: SupabaseClient, evento: string, paymentId: string,
-) {
-  if (!EVENTOS_PAGAMENTO_CONFIRMADO.has(evento)) return NextResponse.json({ ok: true, ignorado: evento })
+  admin: SupabaseClient, corpo: CorpoAsaas, paymentId: string,
+): Promise<Desfecho> {
+  const evento = corpo.event!
+  if (!EVENTOS_PAGAMENTO_CONFIRMADO.has(evento)) {
+    return { resultado: "evento_ignorado", detalhe: evento }
+  }
 
   const { data: pagamentos, error: erroPagamento } = await admin
     .from("gold_pagamentos")
@@ -134,8 +299,29 @@ async function atualizarPagamentoGold(
     .eq("asaas_payment_id", paymentId)
     .neq("status", "pago")
     .select("id, solicitacao_id")
-  if (erroPagamento) return NextResponse.json({ erro: "falha ao atualizar pagamento" }, { status: 500 })
-  if (!pagamentos?.length) return NextResponse.json({ ok: true, ignorado: "pagamento não encontrado ou já pago" })
+  if (erroPagamento) {
+    console.error(`[asaas] falha ao atualizar pagamento ${paymentId}:`, erroPagamento.message)
+    return { resultado: "erro", detalhe: erroPagamento.message.slice(0, 300), http: 500 }
+  }
+
+  if (!pagamentos?.length) {
+    // Mesma separação do A-07: "cobrança que o Commander não emitiu" é um
+    // problema; "já estava paga" é reentrega e não é problema nenhum.
+    const { data: existente } = await admin
+      .from("gold_pagamentos").select("id, status").eq("asaas_payment_id", paymentId).maybeSingle()
+    if (!existente) {
+      console.error(
+        `[asaas] SEM CORRESPONDÊNCIA: cobrança ${paymentId} não existe em gold_pagamentos ` +
+          "— alguém pagou uma avaliação que o Commander não registrou.",
+      )
+      return {
+        resultado: "sem_correspondencia",
+        detalhe: `cobrança ${paymentId} não existe no Commander`,
+        linhasAfetadas: 0,
+      }
+    }
+    return { resultado: "sem_efeito", detalhe: "pagamento já estava pago", linhasAfetadas: 0 }
+  }
 
   const solicitacaoId = pagamentos[0].solicitacao_id as string
   const { data: solicitacoes, error: erroSolicitacao } = await admin
@@ -144,8 +330,25 @@ async function atualizarPagamentoGold(
     .eq("id", solicitacaoId)
     .in("estado", ["aguardando_pagamento", "pago"])
     .select("id")
-  if (erroSolicitacao) return NextResponse.json({ erro: "falha ao atualizar solicitação" }, { status: 500 })
+  if (erroSolicitacao) {
+    console.error(`[asaas] falha ao avançar solicitação ${solicitacaoId}:`, erroSolicitacao.message)
+    return { resultado: "erro", detalhe: erroSolicitacao.message.slice(0, 300), http: 500 }
+  }
+
+  // Pagamento gravado e solicitação NÃO avançada é divergência de verdade: o
+  // dinheiro entrou e o processo não andou. Fica marcado, não some num 200.
+  if (!solicitacoes?.length) {
+    console.error(
+      `[asaas] pagamento ${paymentId} confirmado, mas a solicitação ${solicitacaoId} ` +
+        "não estava em aguardando_pagamento/pago — conferir à mão.",
+    )
+    return {
+      resultado: "sem_correspondencia",
+      detalhe: `pagamento pago, solicitação ${solicitacaoId} não avançou`,
+      linhasAfetadas: pagamentos.length,
+    }
+  }
 
   console.log(`[asaas] ${evento} → gold_pagamentos pago, solicitacao ${solicitacaoId} aguardando_agendamento`)
-  return NextResponse.json({ ok: true, pagamentos: pagamentos.length, solicitacoes: solicitacoes?.length ?? 0 })
+  return { resultado: "aplicado", detalhe: "gold: aguardando_agendamento", linhasAfetadas: pagamentos.length }
 }

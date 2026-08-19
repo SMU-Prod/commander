@@ -48,6 +48,56 @@ function urlRetornoPosPagamentoGold(): string {
 }
 
 /**
+ * `solicitado` → `aguardando_pagamento`, a transição que travava o produto
+ * inteiro (achado A-04 da auditoria de 19/08/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * O QUE ESTAVA ERRADO, E ONDE
+ * ---------------------------------------------------------------------------
+ * A RPC `gold_definir_estado` não tinha ramo para `aguardando_pagamento`:
+ * caía no `else` e exigia `tem_papel_admin('suporte')`. Todo pedido de Gold
+ * de cliente comum gravava a linha e parava em `solicitado`, com a tela
+ * pedindo "recarregue e tente de novo" — muro de permissão vestido de erro
+ * transitório. Recarregar nunca resolveu, e não resolveria nem com a chave do
+ * Asaas ligada: o Gold era invendável por RLS, não por gateway.
+ *
+ * A migration 074 abre exatamente esta transição para o PRÓPRIO solicitante,
+ * e só ela. Este arquivo continua sem tocar `estado` por `.update()` — a
+ * autoridade segue toda na RPC, que é a regra da casa.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE ISTO É UMA FUNÇÃO E NÃO DUAS CÓPIAS
+ * ---------------------------------------------------------------------------
+ * Os dois braços de `criarSolicitacaoGold` (minha embarcação / outra
+ * embarcação) faziam a mesma chamada com o mesmo tratamento, copiado. Copiar
+ * a transição é como a máquina de estados se espalha por três lugares e passa
+ * a ter três versões — foi assim que o A-12 nasceu.
+ */
+async function avancarParaPagamento(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>, solicitacaoId: string,
+): Promise<boolean> {
+  const { error } = await supabase.rpc("gold_definir_estado", {
+    p_solicitacao_id: solicitacaoId, p_novo_estado: "aguardando_pagamento",
+  })
+  if (error) {
+    console.error(`[gold] não avançou ${solicitacaoId} para aguardando_pagamento:`, error.message)
+    return false
+  }
+  return true
+}
+
+/** O que a pessoa lê quando a transição falha DEPOIS da 074 aplicada.
+ *
+ *  A frase antiga ("Recarregue e tente de novo") prometia que a próxima
+ *  tentativa podia dar certo — e não podia. Esta admite que o pedido está
+ *  guardado e que o caminho é falar com a equipe, sem inventar prazo. O
+ *  redirect vai para o DETALHE, não para a lista: o pedido existe, tem número
+ *  e estado, e mandar a pessoa para a lista faria parecer que se perdeu. */
+const AVISO_NAO_AVANCOU =
+  "Seu pedido está registrado, mas ainda não conseguimos liberar o pagamento. " +
+  "A equipe Commander já consegue ver este pedido — você não precisa pedir de novo."
+
+/**
  * Solicitar o Commander Gold — "minha embarcação" (o dono pede pra própria)
  * ou "outra embarcação" (Correção 09: interessado/comprador avaliando barco
  * de terceiro, sem cadastro no Commander). Nasce em `estado = 'solicitado'`
@@ -86,13 +136,10 @@ export async function criarSolicitacaoGold(formData: FormData) {
     }).select("id")
     if (error || !inserida?.length) erroLista("Não foi possível registrar o pedido. Tente de novo.")
 
-    const { error: erroTransicao } = await supabase.rpc("gold_definir_estado", {
-      p_solicitacao_id: inserida![0].id, p_novo_estado: "aguardando_pagamento",
-    })
-    if (erroTransicao) erroLista("Pedido registrado, mas não foi possível avançar pro pagamento. Recarregue e tente de novo.")
-
-    revalidarGold()
-    redirect(`/barco/selos/gold/${inserida![0].id}`)
+    const id = inserida![0].id as string
+    revalidarGold(id)
+    if (!(await avancarParaPagamento(supabase, id))) erroDetalhe(id, AVISO_NAO_AVANCOU)
+    redirect(`/barco/selos/gold/${id}`)
   }
 
   // Outra embarcação — Correção 09 e §16 ("pode ser solicitado por
@@ -121,13 +168,10 @@ export async function criarSolicitacaoGold(formData: FormData) {
   }).select("id")
   if (error || !inserida?.length) erroLista("Não foi possível registrar o pedido. Tente de novo.")
 
-  const { error: erroTransicao } = await supabase.rpc("gold_definir_estado", {
-    p_solicitacao_id: inserida![0].id, p_novo_estado: "aguardando_pagamento",
-  })
-  if (erroTransicao) erroLista("Pedido registrado, mas não foi possível avançar pro pagamento. Recarregue e tente de novo.")
-
-  revalidarGold()
-  redirect(`/barco/selos/gold/${inserida![0].id}`)
+  const id = inserida![0].id as string
+  revalidarGold(id)
+  if (!(await avancarParaPagamento(supabase, id))) erroDetalhe(id, AVISO_NAO_AVANCOU)
+  redirect(`/barco/selos/gold/${id}`)
 }
 
 /**
@@ -146,7 +190,19 @@ export async function iniciarPagamentoGold(formData: FormData) {
   const { data: solBruta } = await supabase.from("gold_solicitacoes").select("*").eq("id", solicitacaoId).maybeSingle()
   if (!solBruta) erroLista("Não encontramos essa solicitação.")
   const solicitacao = solBruta as GoldSolicitacao
-  if (solicitacao.estado !== "aguardando_pagamento") {
+  // A-04 — RESGATE DOS PEDIDOS QUE JÁ FICARAM PRESOS.
+  //
+  // Todo pedido feito antes da migration 074 parou em `solicitado` e não tem
+  // como sair de lá sozinho: `iniciarPagamentoGold` exigia
+  // `aguardando_pagamento` e a única forma de chegar lá era um admin. Com a
+  // 074 aplicada, o próprio solicitante pode dar esse passo — então damos
+  // aqui, em vez de obrigar a pessoa a abrir um pedido novo e deixar o antigo
+  // apodrecendo na lista. Se ainda assim não avançar, a frase diz a verdade.
+  if (solicitacao.estado === "solicitado") {
+    if (!(await avancarParaPagamento(supabase, solicitacaoId))) {
+      erroDetalhe(solicitacaoId, AVISO_NAO_AVANCOU)
+    }
+  } else if (solicitacao.estado !== "aguardando_pagamento") {
     erroDetalhe(solicitacaoId, "Esta solicitação não está aguardando pagamento.")
   }
 

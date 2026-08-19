@@ -107,7 +107,13 @@ export default async function AdminTaxonomiaPage({
                   <code>{i.slug}</code>
                   {i.uf ? ` · ${i.uf}` : ""}
                 </p>
-                <label className="apoio inline-flex shrink-0 items-center gap-1.5 text-dim">
+                {/* O alvo é o `<label>`, não a caixa de 16px: sem altura
+                    declarada ele media ~18px. Aposentar um item de taxonomia
+                    muda o vocabulário do produto inteiro — Marketplace,
+                    Explorar e os cadastros escolhem daqui —, e essa decisão
+                    estava atrás de um alvo de menos de meio dedo.
+                    `--altura-controle` é a régua de toque do app. */}
+                <label className="apoio inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1.5 text-dim">
                   <input type="checkbox" name="ativo" defaultChecked={i.ativo} className="size-4 accent-[var(--acao)]" /> Ativo
                 </label>
               </div>

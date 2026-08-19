@@ -33,6 +33,27 @@ import { campo as classeCampo, rot } from "@/lib/ui/form"
  *
  * A busca tokeniza: "D6-440", "d6 440", "d6440" e "volvo d6" acham a mesma
  * linha. É o mesmo problema de identidade, agora no teclado de quem digita.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE NÃO EXISTE FILTRO DE SEGMENTO NESTA TELA
+ * ---------------------------------------------------------------------------
+ * `SEGMENTOS_MOTOR` e `ROTULO_SEGMENTO` (`lib/domain/catalogo-motor.ts`) foram
+ * escritos pensando exatamente neste lugar — o §20 separa popa, centro-rabeta
+ * e diesel interno, e quem tem popa não precisa ver MTU rolando na lista. A
+ * ideia continua boa; o que não existe é o dado.
+ *
+ * O segmento é coluna de `motor_fabricantes`, ou seja, sobe pela família até o
+ * fabricante. `ModeloCatalogo` não tem esse campo e `carregarModelosDoCatalogo`
+ * não pede essa coluna no `.select()` — o que chega aqui, em `modelos`, não
+ * carrega segmento nenhum. Uma fila de chips "Popa / Centro-rabeta / Diesel
+ * interno" desenhada assim mesmo seria uma tela afirmando o que ela não
+ * consultou, que é o defeito mais caro que esta auditoria já pagou (o `/frota`
+ * desenhando origem que ninguém preenchia).
+ *
+ * Então o filtro fica de fora ATÉ o dado subir, e não o contrário. No dia em
+ * que subir, ele nasce lendo a ordem de `SEGMENTOS_MOTOR` e o texto de
+ * `ROTULO_SEGMENTO` — os rótulos moram no domínio e não se reescrevem aqui,
+ * senão a tela e o banco passam a discordar em silêncio.
  */
 export function SeletorModeloMotor({
   modelos,
@@ -64,8 +85,17 @@ export function SeletorModeloMotor({
         <>
           <p className={rot}>Motor do catálogo</p>
           <div className="flex min-h-11 items-center gap-2.5 rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 py-2">
+            {/* `.valor` e não `text-sm`: o nome do modelo é DADO, não título.
+                É a identidade que a pessoa acabou de escolher, cheia de dígito
+                ("D6-440", "Verado 400", "F300"), e a lista logo abaixo empilha
+                vários deles — o tabular de `.valor` é o que faz os números
+                caírem na mesma coluna em vez de dançarem linha a linha. Título
+                neste app tem outra voz (`.titulo-card`, 15px, na fonte do
+                corpo) e ela brigaria com o mono de instrumento, que é
+                justamente o vestido de quem mostra leitura de aparelho.
+                Mesmos 14px de antes: muda a voz declarada, não o tamanho. */}
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-mono-instr text-sm">{nomeCompletoDoModelo(escolhido)}</span>
+              <span className="valor block truncate font-mono-instr">{nomeCompletoDoModelo(escolhido)}</span>
               <span className="apoio block truncate text-dim">{detalhe(escolhido)}</span>
             </span>
             <button
@@ -115,8 +145,11 @@ export function SeletorModeloMotor({
                     onClick={() => { setEscolhido(m); setAberto(false); setTermo("") }}
                     className="flex min-h-11 w-full items-center gap-2 border-b border-line px-3.5 py-2 text-left last:border-0"
                   >
+                    {/* Mesma voz de dado da linha escolhida, acima — a lista e
+                        o resultado dela têm que ler igual, senão escolher um
+                        item parece trocar de tipografia. */}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-mono-instr text-sm">{nomeCompletoDoModelo(m)}</span>
+                      <span className="valor block truncate font-mono-instr">{nomeCompletoDoModelo(m)}</span>
                       <span className="apoio block truncate text-dim">{detalhe(m)}</span>
                     </span>
                   </button>

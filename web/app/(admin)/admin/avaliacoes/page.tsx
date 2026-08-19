@@ -1,5 +1,6 @@
 import { Estrelas } from "@/components/avaliacoes/estrelas"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { TOQUE } from "@/lib/ui/acoes"
 import { moderarAvaliacao } from "@/lib/acoes/avaliacoes-admin"
@@ -75,10 +76,23 @@ export default async function AdminAvaliacoesPage({
 
               <form action={moderarAvaliacao} className="mt-3 space-y-2">
                 <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
-                <textarea
-                  name="nota_admin" rows={2} maxLength={600}
-                  placeholder="Motivo da decisão (obrigatório para ocultar)"
-                  className="w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 text-base"
+                {/* A caixa era a string de `lib/ui/form.ts` copiada letra por
+                    letra — e uma cópia congela: quando a onda 94 pôs o piso de
+                    altura em `--altura-campo`, esta ficou pra trás. Pior que
+                    isso, ela não tinha rótulo: o único nome que um leitor de
+                    tela recebia vinha do placeholder, que some na primeira
+                    letra digitada, justo num campo cujo texto vira registro
+                    permanente. `CampoTextarea` veste a classe compartilhada e
+                    entrega o rótulo de verdade; a condição "obrigatório para
+                    ocultar" desce pra dica, que continua visível com o campo
+                    já preenchido. */}
+                <CampoTextarea
+                  label="Motivo da decisão"
+                  id={`nota_${contestacao.id}`}
+                  name="nota_admin"
+                  rows={2}
+                  maxLength={600}
+                  dica="Obrigatório para ocultar por violação."
                 />
                 {/* Os dois botões carregam `name`/`value` — é o par que diz à
                     action QUAL decisão foi tomada —, e `BotaoEnviar` não

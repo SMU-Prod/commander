@@ -157,6 +157,58 @@ export async function cancelarCobrancaAvulsaAsaas(paymentId: string) {
   await asaas(`/payments/${encodeURIComponent(paymentId)}`, { method: "DELETE" })
 }
 
+/** Fuso da API do Asaas. O gateway é brasileiro e devolve data/hora em
+ *  horário de Brasília SEM offset ("2026-08-19 15:23:45"). O Brasil não tem
+ *  mais horário de verão desde 2019, então UTC-3 é constante o ano inteiro —
+ *  não há ambiguidade a resolver. */
+const FUSO_ASAAS = "-03:00"
+
+/**
+ * O carimbo de ORDEM de um evento do webhook (achado A-06).
+ *
+ * ---------------------------------------------------------------------------
+ * QUAL CAMPO, E POR QUE NÃO O OUTRO
+ * ---------------------------------------------------------------------------
+ * O corpo do webhook do Asaas traz DOIS campos parecidos e só um serve:
+ *
+ *   · `dateCreated` na RAIZ — quando o EVENTO nasceu, com hora e segundo.
+ *     É este. Duas entregas do mesmo evento trazem o mesmo valor; eventos
+ *     diferentes trazem valores que crescem na ordem em que aconteceram.
+ *   · `payment.dateCreated` — quando a COBRANÇA foi criada, só a data
+ *     ("2026-08-19"). É o mesmo valor em TODOS os eventos daquela cobrança:
+ *     um `PAYMENT_CONFIRMED` e um `PAYMENT_OVERDUE` da mesma fatura têm
+ *     carimbo idêntico. Ordenar por ele não ordena nada.
+ *
+ * Por isso a leitura é da raiz, e `payment.dateCreated` NÃO entra como
+ * segunda opção: um carimbo que não distingue os dois eventos é pior que
+ * carimbo nenhum — ele daria a impressão de haver ordem onde não há.
+ *
+ * ---------------------------------------------------------------------------
+ * `null` NÃO É ZERO, E NÃO É "MUITO ANTIGO"
+ * ---------------------------------------------------------------------------
+ * Entrega sem carimbo devolve `null`, e `null` significa "não sei quando" —
+ * nunca uma data mínima. Quem chama trata isso deixando o evento PASSAR: na
+ * dúvida, o erro é a favor de quem paga. Transformar ausência em "época zero"
+ * descartaria a confirmação de pagamento de alguém em silêncio.
+ */
+export function carimboDoEvento(corpo: unknown): string | null {
+  const bruto = (corpo as { dateCreated?: unknown } | null)?.dateCreated
+  if (typeof bruto !== "string") return null
+  const texto = bruto.trim()
+  if (texto === "") return null
+
+  // Já veio com fuso (ISO completo ou "Z")? Respeita o que o gateway disse.
+  const temFuso = /(?:Z|[+-]\d{2}:?\d{2})$/.test(texto)
+  // "2026-08-19 15:23:45" → "2026-08-19T15:23:45-03:00". A data pura
+  // ("2026-08-19") também é aceita: vira meia-noite de Brasília.
+  const normalizado = temFuso
+    ? texto.replace(" ", "T")
+    : `${texto.replace(" ", "T")}${texto.includes(":") ? "" : "T00:00:00"}${FUSO_ASAAS}`
+
+  const data = new Date(normalizado)
+  return Number.isNaN(data.getTime()) ? null : data.toISOString()
+}
+
 export interface CobrancaAsaas {
   id: string
   dataVencimento: string

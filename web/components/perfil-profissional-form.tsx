@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/avatar"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { removerFotoDePerfil, salvarPerfilComandante } from "@/lib/acoes/perfil-comandante"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { Confirmar } from "@/components/confirmar"
@@ -129,12 +130,37 @@ export function PerfilProfissionalForm({
           <Campo label="Cidade" id="cidade" name="cidade" defaultValue={perfil?.cidade ?? ""} placeholder="Rio de Janeiro" />
         </div>
 
-        <label className="flex items-center gap-2.5 text-sm">
-          <input type="checkbox" name="visivel" defaultChecked={perfil?.visivel ?? true} className="size-5 accent-[#d4af37]" />
+        {/* O ALVO AQUI É O `<label>`, NÃO A CAIXINHA.
+            Clicar no rótulo alterna a caixa — então quem tem que medir 44px é
+            esta linha inteira, e ela não declarava altura nenhuma: saía nos
+            ~21px da entrelinha do texto, menos da metade da régua. A caixa de
+            20px continua sendo o DESENHO (é a mesma separação de
+            `ALVO_ACAO`/`PILULA_ACAO`: quem carrega o alvo é o elemento
+            clicável em volta, não o que se vê dentro dele).
+            A altura vem do token e não de `min-h-11` cravado: é a régua mais
+            copiada do app, e número solto aqui é o começo da próxima altura
+            inventada. `.corpo` no lugar de `text-sm` pelos mesmos 14px, agora
+            com a voz declarada — isto é frase, não dado. */}
+        <label className="corpo flex min-h-[var(--altura-controle)] items-center gap-2.5">
+          {/* ONDA 94 — o último dourado cravado do app. Era o valor do tema
+            CLARO num app que abre no ESCURO, onde `--acao` é limão: a caixa
+            marcada saía com a cor de outro tema. Mesmo defeito que o passe de
+            19/08 corrigiu nas outras oito caixas de escolha; esta ficou pra
+            trás porque o teto de cor literal deste arquivo estava fixo em 1, e
+            zerar a cor sem baixar o teto reprovaria o teste. Baixei os dois. */}
+        <input type="checkbox" name="visivel" defaultChecked={perfil?.visivel ?? true} className="size-5 accent-[var(--acao)]" />
           Aparecer na lista de {rotuloLista} disponíveis
         </label>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar perfil</button>
+        {/* Era um `<button>` escrito à mão, e o que ele não tinha custava caro:
+            sem aviso de envio, salvar um perfil com foto não mudava nada na
+            tela, e o segundo toque de quem achou que não pegou gravava de novo.
+            `BotaoEnviar` entra como FILHO do `<form>` — que é a única posição
+            em que o `useFormStatus` dele enxerga este formulário — e traz junto
+            a altura de campo (48px, a mesma dos campos acima, que é o que faz a
+            coluna parecer uma coluna) no lugar do `rounded-xl` e do `py-3.5`,
+            dois valores que não eram token nem degrau da escala. */}
+        <BotaoEnviar rotulo="Salvar perfil" larguraCheia />
       </form>
 
       {fotoUrl && (

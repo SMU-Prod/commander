@@ -70,8 +70,23 @@ export const TOQUE =
 export const TOQUE_AMPLO =
   "transition-transform duration-100 active:scale-[.99] active:opacity-95 motion-reduce:transition-none motion-reduce:active:scale-100"
 
-/** A caixa de 44px em volta do desenho — vai no `<Link>`/`<button>`. */
-export const ALVO_ACAO = `group -my-[7px] inline-flex min-h-11 shrink-0 items-center ${TOQUE}`
+/**
+ * A caixa de 44px em volta do desenho — vai no `<Link>`/`<button>`.
+ *
+ * ONDA 94 — os 44 saem de `--altura-controle` em vez de `min-h-11` cravado.
+ * Era o último lugar do app onde a régua de toque estava escrita como número
+ * e não como token (o `min-h-11` sobreviveu à onda 91, que tokenizou
+ * `Chip`, `RedeNav`, `BotaoFicha` e `BotaoEnviar`) — e é a régua mais copiada
+ * que existe: um valor solto aqui é o começo da décima altura.
+ *
+ * OS `-my-[7px]` ACOMPANHAM O TOKEN E NÃO SÃO OUTRO NÚMERO: são (44 − 30) ÷ 2,
+ * a metade da folga entre o alvo e o desenho de `PILULA_ACAO`, devolvida ao
+ * layout pra o cabeçalho de seção não engordar 14px em ~35 telas. Ficam
+ * literais porque o Tailwind varre a classe escrita — `-my-[calc(...)]` com
+ * `var()` geraria CSS, mas amarraria o recuo a uma conta que ninguém lê na
+ * hora de mexer. Quem mudar `--altura-controle` mexe aqui também.
+ */
+export const ALVO_ACAO = `group -my-[7px] inline-flex min-h-[var(--altura-controle)] shrink-0 items-center ${TOQUE}`
 
 /**
  * O desenho da pílula de contorno — vai num `<span>` DENTRO do alvo.
@@ -95,6 +110,30 @@ export const PILULA_ACAO =
  * 30px sozinha no meio de um cartão de 150px lê como sobra, não como
  * convite. Os dois tamanhos moram neste arquivo justamente para a diferença
  * ser uma decisão declarada em vez de dois valores que ninguém comparou.
+ *
+ * OS 36px SÃO DESENHO, NÃO ALVO — E ISSO FOI MEDIDO ANTES DE FICAR (onda 94).
+ * ---------------------------------------------------------------------
+ * Uma varredura de régua leu `h-9` aqui e em `PILULA_ACAO_PRINCIPAL` como
+ * violação dos 44px. Não é, e engordar a pílula pra "consertar" quebraria a
+ * hierarquia que o parágrafo acima descreve. É a MESMA separação do
+ * `BotaoCirculo` e do par `ALVO_ACAO`/`PILULA_ACAO`: quem carrega o alvo é o
+ * elemento clicável em volta; a pílula é o que se vê dentro dele.
+ *
+ * Os quatro lugares que consomem estas duas constantes foram conferidos um a
+ * um, e nos quatro o elemento clicável já entrega 44px ou mais:
+ *
+ * | onde | o que embrulha |
+ * |---|---|
+ * | `components/ui/estado-vazio.tsx` (as duas ênfases, ~49 telas) | `<Link>` com `min-h-[var(--altura-controle)]` |
+ * | `app/(parceiro)/parceiro/conta` | `<Link>` com `min-h-11` |
+ * | `app/(app)/explorar` e `app/(app)/explorar/[id]` | `ALVO_ACAO` |
+ *
+ * Ou seja: o alvo cumpre a régua nos quatro, e o que faltava era isto estar
+ * ESCRITO aqui — a régua não se lê no `h-9` de quem desenha, se lê em quem
+ * embrulha. Se você usar estas constantes num lugar novo, o `<span>` da
+ * pílula NÃO pode ser o elemento clicável: ponha `ALVO_ACAO` (ou um
+ * `min-h-[var(--altura-controle)]` com `inline-flex items-center`) no
+ * `<Link>`/`<button>` de fora, senão o alvo vira 36px e aí sim é violação.
  */
 export const PILULA_ACAO_BLOCO =
   `inline-flex h-9 items-center whitespace-nowrap rounded-full border border-line bg-panel2 px-4 text-sm text-texto ${TOQUE}`
@@ -106,6 +145,56 @@ export const PILULA_ACAO_BLOCO =
  * aqui: uma tela cujo corpo INTEIRO é um estado vazio tem exatamente uma
  * coisa para se fazer nela. O aninhado — quatro cartões vazios na Início de
  * um barco novo — é quem usa `PILULA_ACAO_BLOCO`.
+ *
+ * Mesmos 36px de DESENHO do `PILULA_ACAO_BLOCO`, e pelo mesmo motivo: o alvo
+ * de 44px vem do elemento clicável em volta. A tabela de quem embrulha o quê
+ * está no comentário do `PILULA_ACAO_BLOCO`, logo acima — não repetida aqui
+ * pra não haver duas listas divergindo.
  */
 export const PILULA_ACAO_PRINCIPAL =
   `inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto ${TOQUE}`
+
+/**
+ * A AÇÃO QUE OCUPA A LINHA INTEIRA — e que, por isso, carrega o próprio alvo.
+ *
+ * Nasce do achado 5.2 da auditoria de 19/08/2026: "ação secundária" tinha
+ * NOVE vestidos no app, três declarados aqui e seis escritos à mão nas telas.
+ * Duas das seis eram a mesma coisa que este arquivo não sabia dizer — uma
+ * ação que precisa preencher a largura do bloco onde mora (o "Compartilhar"
+ * do rodapé da saída do Diário, o "Agora não" abaixo do formulário de horas):
+ * quem quis isso teve de inventar `rounded-xl border border-accent/40` e
+ * companhia, e foi assim que a contagem chegou a nove.
+ *
+ * O ALVO ESTÁ AQUI DENTRO, e é a diferença que separa esta constante das
+ * outras três. `PILULA_ACAO` e as duas de bloco são DESENHO dentro de um
+ * `ALVO_ACAO` porque são pequenas e a folga precisa voltar pro layout via
+ * margem negativa. Esta não é pequena: ela já é um bloco, com espaço próprio
+ * em volta, e não há folga nenhuma a devolver — então ela lê
+ * `--altura-controle` direto, como `Chip`, `RedeNav` e `BotaoFicha`. Vai no
+ * `<Link>`/`<button>`, sem `<span>` por dentro.
+ *
+ * QUANDO ESTICAR, E QUANDO NÃO. Estica quando a ação fecha um BLOCO que já
+ * tem teto próprio — rodapé de cartão, coluna de formulário, painel de
+ * detalhe: ali a largura cheia é o que faz a ação parecer o fim daquele
+ * bloco, e não mais um item solto dentro dele. O caso oposto — ação que mora
+ * numa coluna que CRESCE com o monitor — é `ACAO_NAO_ESTICA`, em
+ * `lib/ui/superficies.ts`, e o porquê está escrito lá (um botão atravessando
+ * 1265px não é ênfase, é layout de celular esticado); não vale repetir o
+ * argumento aqui, vale ler o de lá antes de escolher.
+ *
+ * `justify-center`: numa pílula estreita o rótulo é a peça inteira, numa de
+ * largura cheia ele boiaria à esquerda com um vazio à direita — que é o
+ * desenho de uma linha de lista, não o de um botão.
+ *
+ * `TOQUE_AMPLO` e não `TOQUE`, pela régua escrita na definição dos dois: a
+ * 390px esta pílula mede ~358px, e 3% de 358 são 11px — a tela inteira
+ * tremendo. `BotaoEnviar` faz o mesmo na variante de largura cheia.
+ *
+ * A COR NÃO ENTRA. Este é o vestido de contorno, o mesmo de
+ * `PILULA_ACAO_BLOCO`. A versão dourada de largura cheia já existe e não é
+ * aqui: é `BotaoEnviar variante="principal" larguraCheia`
+ * (`components/ui/botao-enviar.tsx`), que soma o aviso de envio — e ação
+ * dourada de largura cheia, no app, é quase sempre o submit de um formulário.
+ */
+export const PILULA_ACAO_LARGA =
+  `flex h-[var(--altura-controle)] w-full items-center justify-center gap-1.5 rounded-full border border-line bg-panel2 px-4 text-sm font-medium text-texto ${TOQUE_AMPLO}`

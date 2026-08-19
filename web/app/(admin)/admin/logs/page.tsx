@@ -43,6 +43,40 @@ export default async function AdminLogsPage() {
           />
         ) : (
           <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+            {/* POR QUE ESTA LINHA CONTINUA ESCRITA À MÃO.
+                O slot `chips` de `LinhaLista` (components/ui/linha-lista.tsx)
+                nasceu justamente pra fechar o buraco que fez esta tela desenhar
+                a própria linha de três níveis, e a migração óbvia seria:
+                `titulo` = a ação, `subtitulo` = quem · função, `chips` = os
+                `ChipDado` de entidade / id / transição. Foi medido antes de
+                descartar, e não fecha por duas razões — nenhuma delas estética.
+
+                1. O QUE O LOG GRAVA EM `status` NÃO É UM STATUS, É FRASE. O
+                   campo é texto livre e as actions escrevem nele o que couber:
+                   "sob consulta" → "R$ 199,90" (lib/acoes/publicidade.ts),
+                   "— → com região" (gold-admin), "— → commander_pro até
+                   2026-12-31" (suporte). `ChipDado` é pílula
+                   `whitespace-nowrap shrink-0`: não quebra, não encolhe, não
+                   trunca — ela VAZA. A 390px a coluna de texto de uma linha de
+                   lista tem ~220px e a última dessas frases pede mais de 330,
+                   com o nome da tabela (`taxonomia_solicitacoes`) pedindo
+                   quase o mesmo no chip de entidade. O `<p>` de hoje quebra em
+                   duas linhas e continua dentro do cartão.
+
+                2. O HORÁRIO NÃO TEM ONDE MORAR SEM MENTIR. Em `valor` ele sai
+                   14px branco semibold — mais alto que o rótulo da própria
+                   ação, e num registro o assunto é O QUE aconteceu; a hora é
+                   contexto. Em `trailing` ele preserva os 12px cinza, mas
+                   `LinhaLista` alinha pelo centro: a hora flutuaria no meio do
+                   bloco de três linhas em vez de ficar na base da primeira, que
+                   é a linha à qual ela pertence (por isso o `items-baseline`
+                   abaixo).
+
+                Não é defeito do slot: ele resolve chip CURTO ao lado de título
+                curto, que é o caso do Diário pra onde foi desenhado. Aqui o
+                dado é frase, e frase quer parágrafo. No dia em que as actions
+                gravarem código de status em vez de texto corrido, esta linha
+                vira `LinhaLista` em cinco minutos. */}
             {logs.map((l) => (
               <div key={l.id} className="border-b border-line py-3 last:border-0">
                 <div className="flex items-baseline justify-between gap-3">

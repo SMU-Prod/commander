@@ -1,10 +1,10 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { Logo } from "@/components/logo"
-import { Chip, ChipLinha } from "@/components/ui/chip"
 import { TOQUE } from "@/lib/ui/acoes"
 import { carregarMeuPartner } from "@/lib/consultas-partner"
 import { menuDoPartner, ROTULO_TIPO_PARTNER } from "@/lib/domain/partner"
+import { MenuParceiro } from "./menu-parceiro"
 
 /**
  * Layout do Commander Partner (PRD §13).
@@ -56,20 +56,17 @@ export default async function ParceiroLayout({ children }: { children: React.Rea
           mesmas cores —, só que com `px-3.5` (14px, fora da escala) e sem a
           confirmação de toque nem a máscara de rolagem que corta a fila com
           desvanecimento em vez de no meio da palavra. `Chip`/`ChipLinha` são a
-          peça; nenhum item entra como ativo porque este é um layout de
-          servidor e a rota atual não chega aqui — anotado no relatório. */}
-      {itens.length > 0 && (
-        <nav aria-label="Menu do parceiro">
-          <ChipLinha className="-mx-4 mb-5 px-4">
-            {itens.map((i) => (
-              <Chip key={i.href} href={i.href} ativo={false}>
-                <Icone nome={i.icone} className="size-4" />
-                {i.rotulo}
-              </Chip>
-            ))}
-          </ChipLinha>
-        </nav>
-      )}
+          peça.
+          A MARCAÇÃO DO ITEM ATUAL MORA EM `menu-parceiro.tsx`, e por isto:
+          este layout continua sendo de servidor (ele consulta o cadastro do
+          parceiro e é a casca de quatro telas), então a rota atual não chega
+          aqui. Em vez de virar cliente inteiro, ele entrega a lista JÁ
+          decidida por `menuDoPartner` — objetos simples `{ href, rotulo,
+          icone }`, serializáveis — a uma peça de cliente que só faz
+          `usePathname()`. É o mesmo arranjo de `bottom-nav`/`trilho-lateral`,
+          e a regra de qual tipo tem qual item continua onde sempre esteve, em
+          `lib/domain/partner.ts`. */}
+      {itens.length > 0 && <MenuParceiro itens={itens} />}
 
       {children}
     </div>

@@ -102,7 +102,18 @@ export default async function AdminAdministradoresPage({
                   <p className="corpo truncate font-medium">{a.nome}</p>
                   <p className="apoio text-dim">{ROTULO_PAPEL[a.papel.papel]}</p>
                 </div>
-                <label className="apoio inline-flex shrink-0 items-center gap-1.5 text-dim">
+                {/* O ALVO É O `<label>`, E ELE NÃO DECLARAVA ALTURA NENHUMA.
+                    A caixa desenhada tem 16px e o texto ao lado, 18 — o que o
+                    dedo encontrava era um alvo de ~18px para SUSPENDER a função
+                    de um administrador, que é das gravações mais sérias do
+                    Admin. `size-4` continua sendo o DESENHO da caixa; quem
+                    carrega a régua é o elemento clicável em volta, exatamente
+                    como `ALVO_ACAO` faz com a pílula de 30px
+                    (lib/ui/acoes.ts). `--altura-controle` e não um 44 cravado:
+                    a onda 94 tirou o último número solto do app justamente
+                    porque a régua copiada à mão é como se chega a nove alturas
+                    de alvo. */}
+                <label className="apoio inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1.5 text-dim">
                   <input type="checkbox" name="ativo" defaultChecked={a.papel.ativo} className="size-4 accent-[var(--acao)]" /> Ativa
                 </label>
               </div>
@@ -157,8 +168,12 @@ function Regioes({
     <fieldset className="rounded-[var(--raio-cartao)] border border-line bg-panel2 p-3">
       <legend className="rotulo px-1 text-dim">Regiões autorizadas (só para Vistoriador)</legend>
       <div className="mt-1 grid grid-cols-2 gap-1.5">
+        {/* Mesma régua do rótulo "Ativa" lá em cima, e aqui ela pesa mais: são
+            N caixas lado a lado num grid de duas colunas, o caso em que errar o
+            alvo marca a região do vizinho. Quem clica é o `<label>`, então é
+            ele que carrega os 44px. */}
         {regioes.map((r) => (
-          <label key={r.id} className="apoio inline-flex items-center gap-1.5">
+          <label key={r.id} className="apoio inline-flex min-h-[var(--altura-controle)] items-center gap-1.5">
             <input
               type="checkbox"
               name="regioes"

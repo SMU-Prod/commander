@@ -13,7 +13,9 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { abaDoEquipamento, abaDoItem, CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
-import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData, type StatusFarol } from "@/lib/domain/semaforo"
+import {
+  calcularSemaforo, formatarDataCurta, PESO, temInformacaoSuficiente, vencimentoPorData, type StatusFarol,
+} from "@/lib/domain/semaforo"
 import {
   carregarAcessoEmbarcacoes, carregarPainel, carregarVerified, hojeISO, itemMonitoradoToItemCalc,
 } from "@/lib/consultas"
@@ -52,14 +54,31 @@ export default async function BarcoPage({
   // continua liberado.
   const avisoPlano = acesso.ativaBloqueada ? mensagemDowngrade(acesso.divisao, acesso.limite) : null
 
-  const statusDoEquipamento = (eqId: string): StatusFarol =>
+  // O MESMO "verde por omissão" do `statusGeral` mora aqui, e este NÃO dá pra
+  // fechar sem tocar no componente: `Horimetro` pede `status: StatusFarol`
+  // (não aceita `null`), então um motor sem nenhum item monitorado continua
+  // com farol verde no mostrador. O certo é `StatusFarol | null` com o anel
+  // vazio que o Casco já desenha logo abaixo — `components/horimetro.tsx` é de
+  // outro agente nesta rodada, está no relatório.
+  // ONDA 94 — devolve `null` quando NÃO HÁ informação suficiente, e o
+  // `Horimetro` desenha o anel vazio. O `?? "ok"` que estava aqui era o mesmo
+  // verde falso que o escudo do herói acabou de perder: um motor sem item
+  // monitorado (ou com item sem intervalo nem data) acendia "em dia" sobre um
+  // motor de que o app não sabe nada.
+  // `temInformacaoSuficiente` é a MESMA régua que a Início usa desde a onda 7 —
+  // não é um segundo critério, é o critério.
+  const statusDoEquipamento = (eqId: string): StatusFarol | null =>
     itens
       .filter((i) => i.equipamento_id === eqId)
       .map((i) => {
         const eq = equipamentos.find((e) => e.id === eqId)
-        return calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje).status
+        const calc = itemMonitoradoToItemCalc(i)
+        return temInformacaoSuficiente(calc, eq?.horas_atuais ?? null)
+          ? calcularSemaforo(calc, eq?.horas_atuais ?? null, hoje).status
+          : null
       })
-      .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
+      .filter((s): s is StatusFarol => s !== null)
+      .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
 
   const motores = equipamentos.filter((e) => e.tipo === "motor")
   // Era contado duas vezes dentro do JSX da seção Elétrica; agora a aba de
@@ -72,13 +91,32 @@ export default async function BarcoPage({
   const documentos = itens.filter((i) => i.categoria === "documento")
   const outrasManutencoes = itens.filter((i) => i.categoria === null && i.equipamento_id === null)
 
-  const statusGeral: StatusFarol =
+  // ONDA 93 — O ESCUDO VERDE POR OMISSÃO ERA A PRIMEIRA COISA DA TELA, E ERA
+  // MENTIRA. O `?? "ok"` que estava aqui pintava "Em dia" no herói de um barco
+  // SEM NENHUM item monitorado, e um item sem intervalo nem data votava "ok"
+  // do mesmo jeito (é o que `calcularSemaforo` devolve quando não há régua
+  // nenhuma pra medir). Verde por ausência de dado é exatamente o que a regra
+  // de honestidade da onda 16 proíbe — está escrito em `seloDoFarol`: "null é
+  // equipamento sem nenhum item monitorado: neutro e 'Sem dados' — NUNCA verde
+  // por omissão". A ficha de equipamento (`statusFicha`) e a de item
+  // (`statusItem`) já faziam assim; a porta do barco, não.
+  //
+  // `temInformacaoSuficiente` é o mesmo filtro que /hoje e /barco/saude usam
+  // pra decidir quem entra na conta — nenhuma régua nova aqui.
+  //
+  // Sem nenhum item com dado real, `statusGeral` fica `null` e o escudo
+  // simplesmente NÃO é desenhado (`statusGeral` é opcional em
+  // `CardEmbarcacao`) — a mesma escolha do anel vazio do Casco, mais abaixo:
+  // ausência de farol lê como "ainda não sei", verde lê como "está tudo bem".
+  const statusGeral: StatusFarol | null =
     itens
-      .map((i) => {
+      .flatMap((i) => {
         const eq = equipamentos.find((e) => e.id === i.equipamento_id)
-        return calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje).status
+        const calc = itemMonitoradoToItemCalc(i)
+        const horas = eq?.horas_atuais ?? null
+        return temInformacaoSuficiente(calc, horas) ? [calcularSemaforo(calc, horas, hoje).status] : []
       })
-      .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
+      .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
 
   const supabase = await supabaseServer()
   const urlCapa = embarcacao.foto_capa_path
@@ -110,7 +148,7 @@ export default async function BarcoPage({
 
       <CardEmbarcacao
         embarcacao={embarcacao}
-        statusGeral={statusGeral}
+        statusGeral={statusGeral ?? undefined}
         urlCapa={urlCapa}
         podeEditarFotos={podeEditar(permissoes, "fotos")}
       />
@@ -159,11 +197,28 @@ export default async function BarcoPage({
           É o índice que a tela pedia, custa uma linha de 44px, e a resposta
           inteira continua a um scroll de distância.
 
-          O QUE FICA PENDENTE: os 457px de moldura continuam lá. Encolher isso
-          é `mt-4 mb-1` dentro do `SecaoPagina`, que é componente de outro
-          agente nesta rodada — está anotado no relatório, não remendado aqui
-          com `mt-*` no `className` (duas classes da mesma família no mesmo
-          elemento é loteria de ordem de CSS, ver `botao-ficha.tsx`). */}
+          O QUE FICOU PENDENTE E FECHA AGORA (onda 93): os 457px de moldura.
+          A prop `denso` de `SecaoPagina` (`mt-4 mb-1` no lugar de `mt-6 mb-2`)
+          nasceu na onda 91 pra este achado e passou a onda inteira sem
+          consumidor. As oito seções abaixo a pedem, e a conta medida é:
+
+            seção            antes   depois
+            com ação (5×)    62,0    50,5     (24 + 30 + 8 → 16 + 30 + 4)
+            sem ação (3×)    48,5    36,5     (24 + 16,5 + 8 → 16 + 16,5 + 4)
+            TOTAL            455,5   359,5
+
+          — 96px devolvidos, 12 por seção, sem esconder nada e sem tocar no
+          rótulo. (A linha do cabeçalho é 30px com ação — `ALVO_ACAO` é 44px de
+          toque com `-my-[7px]` devolvendo 14 ao layout — e 16,5px sem ela, que
+          é a entrelinha do `.rotulo`. O alvo de toque continua 44px: `denso`
+          mexe em margem, não no alvo.)
+
+          NÃO se resolve com `mt-*` no `className`: duas classes da mesma
+          família no mesmo elemento é loteria de ordem de CSS (ver
+          `botao-ficha.tsx`) — e o Tailwind emite `.mt-5` ANTES de `.mt-6`, ou
+          seja, o `mt-6` do componente vence sempre. Era o caso do
+          `className="mt-5"` de /barco/documentos, inerte desde que foi
+          escrito. */}
       <Abas
         className="mt-4"
         abas={[
@@ -184,6 +239,7 @@ export default async function BarcoPage({
 
       <SecaoPagina
         id="motores"
+        denso
         className="scroll-mt-4"
         icone="motor"
         acao={podeEditar(permissoes, "motores") ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Motor", icone: "mais" } : undefined}
@@ -210,7 +266,7 @@ export default async function BarcoPage({
         ))}
       </div>
 
-      <SecaoPagina id="eletrica" className="scroll-mt-4" icone="raio" acao={{ href: "/barco/eletrica", rotulo: "Ver tudo" }}>
+      <SecaoPagina id="eletrica" denso className="scroll-mt-4" icone="raio" acao={{ href: "/barco/eletrica", rotulo: "Ver tudo" }}>
         Elétrica
       </SecaoPagina>
       <LinhaLista
@@ -256,7 +312,7 @@ export default async function BarcoPage({
         />
       )}
 
-      <SecaoPagina id="casco" className="scroll-mt-4" icone="escudo">Casco</SecaoPagina>
+      <SecaoPagina id="casco" denso className="scroll-mt-4" icone="escudo">Casco</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {CATEGORIAS_CASCO.map((c) => {
           const doGrupo = itens.filter((i) => i.categoria === c)
@@ -293,7 +349,7 @@ export default async function BarcoPage({
         })}
       </div>
 
-      <SecaoPagina id="documentos" className="scroll-mt-4" icone="documento">Documentos</SecaoPagina>
+      <SecaoPagina id="documentos" denso className="scroll-mt-4" icone="documento">Documentos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {documentos.length === 0 && (
           <EstadoVazio
@@ -330,13 +386,19 @@ export default async function BarcoPage({
 
       <SecaoPagina
         id="outras"
+        denso
         className="scroll-mt-4"
         icone="ferramenta"
         acao={podeEditar(permissoes, "embarcacao") ? { href: "/barco/itens/novo", rotulo: "Manutenção", icone: "mais" } : undefined}
       >
         Outras manutenções
       </SecaoPagina>
-      <p className="apoio -mt-1 mb-2 text-dim">Vence, mas não é motor, elétrica, casco nem documento.</p>
+      {/* O `-mt-1` saiu junto com o `denso`, e não é descuido: margens de
+          irmãos adjacentes COLAPSAM, então os 8px do `mb-2` da seção mais os
+          -4px daqui davam 4px de folga. Com `denso` o `mb` já é 4 — manter o
+          negativo grudaria a frase no rótulo (0px). Sem ele, a folga continua
+          exatamente os mesmos 4px de antes. */}
+      <p className="apoio mb-2 text-dim">Vence, mas não é motor, elétrica, casco nem documento.</p>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {outrasManutencoes.length === 0 && (
           <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma outra manutenção cadastrada ainda" />
@@ -361,7 +423,7 @@ export default async function BarcoPage({
         })}
       </div>
 
-      <SecaoPagina id="ferramentas" className="scroll-mt-4" icone="imagem">Ferramentas do dia a dia</SecaoPagina>
+      <SecaoPagina id="ferramentas" denso className="scroll-mt-4" icone="imagem">Ferramentas do dia a dia</SecaoPagina>
       <div className="grid grid-cols-2 gap-2">
         {(
           [
@@ -390,7 +452,7 @@ export default async function BarcoPage({
           ))}
       </div>
 
-      <SecaoPagina id="selos" className="scroll-mt-4" icone="escudo" acao={{ href: "/barco/selos", rotulo: "Ver tudo" }}>
+      <SecaoPagina id="selos" denso className="scroll-mt-4" icone="escudo" acao={{ href: "/barco/selos", rotulo: "Ver tudo" }}>
         Selos Commander
       </SecaoPagina>
       <Link
@@ -442,12 +504,24 @@ export default async function BarcoPage({
           edição, não a uma lista. */}
       <SecaoPagina
         id="dados"
+        denso
         className="scroll-mt-4"
         icone="embarcacao"
         acao={papel === "PROP" ? { href: "/barco/editar", rotulo: "Editar" } : undefined}
       >
         Dados gerais
       </SecaoPagina>
+      {/* ALTERNATIVA DESCARTADA (onda 93): trocar este painel por `Cartao`
+          com `nivel="painel"`, que é o desenho declarado do painel de primeiro
+          nível (raio 16 + `.painel-lustro`). Ele É um painel de primeiro nível
+          e ganharia 8px com o `p-3`, mas os três painéis logo acima (Casco,
+          Documentos, Outras manutenções) NÃO podem seguir junto: são caixas de
+          `LinhaLista variant="grupo"`, que pedem `px-4` sem padding vertical
+          pra linha nenhuma perder o ritmo — o `p-3` de `Cartao` quebraria as
+          três. Promover só este deixaria dois raios diferentes no mesmo nível
+          da mesma tela, que é justamente a hierarquia achatada que o
+          `--raio-painel` existe pra desfazer. A promoção é da tela inteira, e
+          por isso vai no relatório em vez de meia. */}
       <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           {([

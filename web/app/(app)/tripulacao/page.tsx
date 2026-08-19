@@ -15,8 +15,16 @@ import { CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
-import { ROTULO_MODO_APROVACAO } from "@/lib/domain/enterprise"
+import {
+  EXPLICACAO_MODO_APROVACAO,
+  PRESET_ENTERPRISE,
+  ROTULO_MODO_APROVACAO,
+  ROTULO_PAPEL,
+  ehPapelEnterprise,
+} from "@/lib/domain/enterprise"
+import { normalizarPermissoes } from "@/lib/domain/permissoes"
 import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
+import { mesmoAcesso } from "./resumo-permissoes"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
 /**
@@ -37,6 +45,34 @@ import type { Convite, Vinculo } from "@/lib/db/types"
 function digitosTelefone(telefone: string | null): string | null {
   const d = (telefone ?? "").replace(/\D/g, "")
   return d.length >= 10 ? d : null
+}
+
+/**
+ * O QUE O CHIP "ACESSO" DIZ — e por que ele não pode sair só do `nivel`.
+ *
+ * `salvarMatriz` grava `nivel: "custom"` para QUALQUER matriz salva pela tela
+ * de detalhe, inclusive a que reproduz exatamente o preset do papel da pessoa
+ * (que é o caso comum agora que aplicar o perfil Enterprise passa por lá).
+ * Com o rótulo saindo só da coluna, um acesso que é o padrão do perfil
+ * aparecia como "Personalizado" — e "personalizado" é justamente a resposta
+ * oposta à pergunta que se faz varrendo esta lista: *alguém mexeu à mão neste
+ * acesso?*
+ *
+ * Por isso a última pergunta é feita à MATRIZ, não à coluna: se ela bate com
+ * `PRESET_ENTERPRISE` do papel do próprio vínculo, o acesso é o padrão. A
+ * comparação é contra o preset DESTE papel e não contra os cinco: uma matriz
+ * toda marcada bate com o preset de ADM Geral, e chamar de "ADM Geral" o
+ * acesso de um comandante seria trocar uma imprecisão por uma mentira.
+ */
+function rotuloDoAcesso(v: Vinculo): string {
+  if (v.nivel === "completo") return "Completo"
+  if (v.nivel === "operacional") return "Operacional"
+  const papel = v.papel
+  if (ehPapelEnterprise(papel)) {
+    const atual = normalizarPermissoes(v.permissoes)
+    if (mesmoAcesso(atual, PRESET_ENTERPRISE[papel])) return "Padrão do perfil"
+  }
+  return "Personalizado"
 }
 
 function PilulaKpi({ rotulo, valor }: { rotulo: string; valor: string }) {
@@ -189,8 +225,12 @@ export default async function TripulacaoPage({
       )}
       <div className="space-y-2">
         {listaVinculos.map((v) => {
-          const nome = nomePorId.get(v.usuario_id) || "Comandante"
-          const preset = v.nivel === "completo" ? "Completo" : v.nivel === "operacional" ? "Operacional" : "Personalizado"
+          // O fallback era "Comandante" cravado — o mesmo defeito do chip que
+          // a onda 69b tirou daqui, sobrevivendo no NOME: um cotista sem nome
+          // no perfil aparecia na lista como "Comandante". Quem não tem nome
+          // mostra a credencial que o banco tem, e nada além disso.
+          const nome = nomePorId.get(v.usuario_id) || ROTULO_PAPEL[v.papel]
+          const preset = rotuloDoAcesso(v)
           const usoDele = usoPorId.get(v.usuario_id)
           const telefone = digitosTelefone(telefonePorId.get(v.usuario_id) ?? null)
           return (
@@ -205,10 +245,13 @@ export default async function TripulacaoPage({
                     {/* Credencial em chip mono (canvas): só o papel — a
                         habilitação não existe no vínculo pra ser escrita.
                         Onda 69b: era "CMDT" cravado no JSX, o que mentiria
-                        pra qualquer papel Enterprise. Agora sai do dado. */}
+                        pra qualquer papel Enterprise. Agora sai do dado —
+                        e passa por `ROTULO_PAPEL`, porque "ADM_GERAL" é o
+                        valor da COLUNA, não uma palavra que alguém escreveria
+                        pra outra pessoa ler. */}
                     <span className="mt-1 inline-flex flex-wrap items-center gap-1.5">
                       <span className="rotulo inline-flex rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim-chip">
-                        {v.papel}
+                        {ROTULO_PAPEL[v.papel]}
                       </span>
                       {/* A régua de aprovação (§3) só aparece quando NÃO é a
                           padrão: "sem aprovação" é o normal e não merece
@@ -228,6 +271,18 @@ export default async function TripulacaoPage({
                         </span>
                       )}
                     </span>
+                    {/* O chip diz O QUE a régua é; esta linha diz o que ela
+                        FAZ — "Somente críticos" não significa nada pra quem
+                        não leu o §3, e quem administra a equipe é quem menos
+                        pode ficar adivinhando. Aparece sob a MESMA condição do
+                        chip (só quando o modo não é o padrão), porque a
+                        decisão é a mesma: explicar a exceção, não repetir a
+                        regra em toda linha até ninguém mais ler. */}
+                    {v.modo_aprovacao !== "sem_aprovacao" && (
+                      <span className="apoio mt-1 block text-dim">
+                        {EXPLICACAO_MODO_APROVACAO[v.modo_aprovacao]}
+                      </span>
+                    )}
                   </span>
                 </Link>
                 {telefone && (

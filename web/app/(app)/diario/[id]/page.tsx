@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { TrilhaMapa } from "@/components/mapa/trilha-mapa"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Cartao } from "@/components/ui/cartao"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { FaixaKpi, PastilhaKpi } from "@/components/ui/faixa-kpi"
 import { MigalhaPao } from "@/components/ui/migalha-pao"
@@ -224,14 +225,33 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
         </p>
       )}
 
+      {/* ONDA 93 — ISTO JÁ ERA UM `Cartao`, ESCRITO À MÃO. Painel com borda,
+          rótulo em `.rotulo` no topo, conteúdo embaixo: a anatomia do
+          componente, letra por letra, só que com `rounded-[14px]` e `p-4`
+          cravados. Adotá-lo traz três coisas de graça — o raio de painel de
+          primeiro nível (16px) com `.painel-lustro`, que é o que faz
+          profundidade significar alguma coisa (spec §3.2), o `p-3` da
+          referência densa, e o ÍCONE.
+          E traz o `subtitulo`, que aqui não é enfeite: o título antigo tinha
+          38 caracteres e, dentro do cabeçalho do `Cartao`, seria truncado. A
+          quebra em título + explicação é a anatomia da referência ("ícone +
+          título + subtítulo explicativo") e resolve uma ambiguidade real de
+          quem abre uma saída de semanas atrás — este número é o que estava no
+          mar naquele dia, não a previsão de agora.
+          `nivel` fica no padrão `painel` porque é isso que ele é: filho direto
+          da página, sem painel-mãe. */}
       {temMar && (
-        <div className="mt-4 rounded-[14px] border border-line bg-panel p-4">
-          <p className="rotulo text-dim">Condições do mar no momento do registro</p>
+        <Cartao
+          className="mt-4"
+          icone="vento"
+          titulo="Condições do mar"
+          subtitulo="Congeladas no registro da saída — não é a previsão de agora"
+        >
           {/* ONDA 87 — altura de onda e vento são leitura de instrumento:
               `.valor` no lugar do `text-sm` solto, e os rótulos colados neles
               passam a ser `.rotulo` de verdade (era 11px com tracking .12em
               escrito à mão — uma cópia do `.rotulo` que derivou). */}
-          <div className="mt-1.5 flex gap-4 font-mono-instr valor">
+          <div className="flex gap-4 font-mono-instr valor">
             <span>
               <span className="mr-1.5 rotulo text-dim">Onda</span>
               {e.mar_onda_m != null ? `${e.mar_onda_m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}
@@ -241,7 +261,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
               {e.mar_vento_kt != null ? `${Math.round(e.mar_vento_kt)} kt` : "—"}
             </span>
           </div>
-        </div>
+        </Cartao>
       )}
 
       {checklist.length > 0 && (

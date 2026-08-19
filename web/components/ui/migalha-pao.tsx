@@ -34,8 +34,27 @@ export function MigalhaPao({
         return (
           <span key={`${item.rotulo}-${i}`} className="flex shrink-0 items-center gap-1.5">
             {i > 0 && <Icone nome="chevron" className="size-3 shrink-0 text-dim" />}
+            {/* ONDA 94 — O ALVO QUE NÃO EXISTIA.
+                Estes links eram `.rotulo-dado` puro: 11px de fonte por 1,4 de
+                entrelinha, ou seja, **15px de alvo de toque** — um terço da
+                régua de 44px, e o menor alvo clicável que a varredura de
+                `components/ui/` encontrou. Num app usado com a mão molhada, no
+                sol, com o barco balançando, uma faixa de 15px é uma navegação
+                que só funciona parado no sofá.
+                A técnica é a mesma de `ALVO_ACAO` e `BotaoCirculo` (ver
+                `lib/ui/acoes.ts`): o ALVO lê `--altura-controle` e a margem
+                negativa devolve ao layout a folga que sobra, pra migalha
+                continuar sendo a linha fina que ela precisa ser — engordar a
+                trilha em 29px empurraria o título de cinco fichas pra baixo, e
+                a migalha viraria a peça mais alta do topo, que é o contrário
+                da hierarquia que ela serve.
+                Os 14px são (44 − 15) ÷ 2, arredondados pra baixo; literais e
+                não interpolados porque o Tailwind varre a classe escrita. */}
             {item.href && !ultimo ? (
-              <Link href={item.href} className="rotulo-dado text-dim hover:text-texto">
+              <Link
+                href={item.href}
+                className="rotulo-dado -my-[14px] inline-flex min-h-[var(--altura-controle)] items-center text-dim hover:text-texto"
+              >
                 {item.rotulo}
               </Link>
             ) : (

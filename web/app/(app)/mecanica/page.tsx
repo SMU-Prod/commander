@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -314,18 +315,14 @@ export default async function MecanicaPage({
                     ) : ehDono && votacao ? (
                       <form action={encerrarVotacao} className="mt-3">
                         <input type="hidden" name="votacao_id" value={votacao.id} />
-                        <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
-                          Encerrar votação
-                        </button>
+                        <BotaoEnviar variante="contorno" larguraCheia rotulo="Encerrar votação" />
                       </form>
                     ) : null}
                   </div>
                 ) : ehDono && !vencido ? (
                   <form action={abrirVotacao} className="mt-3">
                     <input type="hidden" name="orcamento_id" value={o.id} />
-                    <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
-                      Abrir votação dos cotistas
-                    </button>
+                    <BotaoEnviar variante="contorno" larguraCheia rotulo="Abrir votação dos cotistas" />
                   </form>
                 ) : null}
               </div>
@@ -586,9 +583,7 @@ function CartaoServico({
               </div>
             </fieldset>
           )}
-          <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
-            Salvar
-          </button>
+          <BotaoEnviar variante="contorno" larguraCheia rotulo="Salvar" />
         </form>
       )}
 

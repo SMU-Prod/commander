@@ -1,5 +1,6 @@
 import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { Campo } from "@/components/ui/campo"
 import { atualizarPrecoGold } from "@/lib/acoes/gold-admin"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarPrecosGold } from "@/lib/consultas-gold"
@@ -36,17 +37,31 @@ export default async function AdminPrecosGoldPage({
         {precos.map((p) => (
           <form
             key={p.faixa} action={atualizarPrecoGold}
-            className="sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
+            className="sombra-1 flex items-end gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
           >
             <input type="hidden" name="faixa" value={p.faixa} />
             <div className="min-w-0 flex-1">
               <p className="corpo font-medium">{p.rotulo}</p>
               <p className="apoio text-dim">Atual: {formatarPrecoGold(p.valor_centavos)}</p>
             </div>
-            <input
+            {/* A caixa media ~35px — `py-1.5` sobre `corpo` (14px) —, nove
+                abaixo da régua de toque, e é aqui que se digita o preço de uma
+                vistoria paga. `Campo` traz `--altura-campo` (48px) e um rótulo
+                de verdade no lugar de um campo mudo que só tinha placeholder.
+
+                `items-end` no lugar de `items-center` é consequência, não
+                gosto: com o rótulo ACIMA do controle, quem alinha a fileira é a
+                BASE — é o mesmo motivo escrito em `linhaCampos`
+                (lib/ui/form.ts). Alinhando pelo centro, o campo desceria
+                sozinho e a linha viraria escadinha, com o botão fora do eixo do
+                campo que ele salva. */}
+            <Campo
+              label="Novo valor"
+              id={`preco_${p.faixa}`}
               type="text" name="valor_reais" inputMode="decimal" placeholder="1990,00"
               defaultValue={p.valor_centavos != null ? (p.valor_centavos / 100).toFixed(2).replace(".", ",") : ""}
-              className="w-28 rounded-[var(--raio-controle)] border border-line bg-panel2 px-2 py-1.5 text-right corpo"
+              wrapperClassName="w-28 shrink-0"
+              className="text-right"
             />
             {/* Era uma caixa de 30px — 14px abaixo da régua de toque — e o
                 preço da vistoria é gravação de verdade. `contorno` é a única

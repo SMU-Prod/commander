@@ -169,7 +169,18 @@ export default async function DocumentosPage({
         </div>
       )}
 
-      <SecaoPagina icone="documento" className={destaque ? undefined : "mt-5"}>Todos os documentos</SecaoPagina>
+      {/* ONDA 93 — O `className="mt-5"` QUE ESTAVA AQUI NUNCA FEZ NADA.
+          `SecaoPagina` já escreve `mt-6` no mesmo elemento, e o Tailwind emite
+          `.mt-5` ANTES de `.mt-6` no CSS gerado: com a mesma especificidade,
+          quem vence é a última regra da folha, ou seja, o `mt-6` do
+          componente. A seção sempre teve 24px de topo, com e sem destaque — o
+          ternário era decoração. É o mesmo defeito que `botao-ficha.tsx`
+          documenta para `border-*`/`text-*`: duas utilitárias da mesma família
+          no mesmo elemento é loteria de ordem, não sobrescrita.
+          Espaçamento de `SecaoPagina` se resolve pela prop `denso`, que é a
+          única alavanca que o componente expõe — e aqui a folga larga é a
+          certa: esta seção vem depois do cartão de destaque. */}
+      <SecaoPagina icone="documento">Todos os documentos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {restantes.length === 0 && avulsos.length === 0 && (
           <EstadoVazio

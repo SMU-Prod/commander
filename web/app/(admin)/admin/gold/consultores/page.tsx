@@ -53,7 +53,12 @@ export default async function AdminConsultoresGoldPage({
               <input type="hidden" name="id" value={c.id} />
               <div className="flex items-center justify-between gap-2">
                 <p className="corpo font-medium">{c.nome}</p>
-                <label className="apoio inline-flex items-center gap-1.5 text-dim">
+                {/* O alvo é o `<label>`, não a caixa de 16px que ele desenha:
+                    sem altura declarada ele media ~18px. `--altura-controle` é
+                    a régua de toque do app (globals.css) e ela não se negocia —
+                    tirar um consultor do ar não pode depender de acertar um
+                    alvo de menos de meio dedo. */}
+                <label className="apoio inline-flex min-h-[var(--altura-controle)] items-center gap-1.5 text-dim">
                   <input type="checkbox" name="ativo" defaultChecked={c.ativo} className="size-4 accent-[var(--acao)]" /> Ativo
                 </label>
               </div>

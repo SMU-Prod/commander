@@ -39,7 +39,17 @@ export default async function ParceiroContaPage() {
       <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-baseline justify-between gap-3">
           <p className="titulo-card">{plano ? plano.rotulo : "Parceiro"}</p>
-          {planoId && <p className="corpo font-semibold">{precoEmTexto(planoId)}</p>}
+          {/* O preço é a coluna de dinheiro deste cartão, e `.valor` (14px) é
+              o degrau exato disso — o `corpo` que estava aqui dá os mesmos
+              14px e nada mais: nem tabular, nem a cor de dado que separa o
+              valor do rótulo ao lado.
+              SEM `font-mono-instr`, e é decisão e não esquecimento:
+              `precoEmTexto` devolve tanto "R$ 24,90/mês" quanto "Grátis",
+              "Grátis inicialmente" e "A definir". A fonte de instrumento
+              serve pra dígito em coluna; aplicada a palavra corrida ela vira
+              soletração — o mesmo argumento que `components/ui/chip.tsx`
+              registra pra não usá-la em rótulo. */}
+          {planoId && <p className="valor font-semibold">{precoEmTexto(planoId)}</p>}
         </div>
         {plano && <p className="apoio mt-1 text-dim">{plano.regra}</p>}
 

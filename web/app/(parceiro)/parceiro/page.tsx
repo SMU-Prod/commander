@@ -178,7 +178,15 @@ function Numero({
   const miolo = (
     <>
       <Icone nome={icone} className="size-5 text-accent-forte" />
-      <p className="mt-1.5 text-2xl font-semibold tabular-nums">{valor}</p>
+      {/* ONDA 87, o degrau do meio — `.valor-forte` (20px) é literalmente "o
+          número do cartão de KPI", e é isto aqui. O `text-2xl` que estava
+          escrito são 24px: nenhum dos três degraus declarados, ou seja, uma
+          oitava voz de número num app que passou a ter três. O tamanho é o
+          único que muda de dono — `font-semibold` continua escrito porque a
+          regra de baixa especificidade (`:where`) só entrega o peso 500 como
+          PADRÃO, e o cartão do painel sempre foi 600; `tabular-nums` sai por
+          redundância, o degrau já traz `font-variant-numeric`. */}
+      <p className="valor-forte mt-1.5 font-semibold">{valor}</p>
       <p className="apoio mt-0.5 text-dim">{rotulo}</p>
     </>
   )

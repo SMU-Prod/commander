@@ -76,7 +76,16 @@ function Cartao({ metrica }: { metrica: Metrica }) {
   return (
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{metrica.rotulo}</p>
-      <p className="font-mono-instr mt-1 text-lg font-semibold tabular-nums">{metrica.valor}</p>
+      {/* ONDA 87 — O DEGRAU SE ESCOLHE PELO PAPEL DO NÚMERO, NÃO PELO TAMANHO
+          QUE ELE TINHA. `text-lg` são 18px, e 18px não é degrau nenhum da
+          escala: é o tamanho que sobrou quando ninguém tinha declarado a voz do
+          número. Este aqui é o número de um cartão de KPI, e a escala tem
+          exatamente um degrau pra isso — `.valor-forte`, 20px (globals.css).
+          `font-semibold` continua escrito no elemento porque a regra de
+          especificidade zero só SUGERE peso 500, e o cartão de métrica já era
+          600; `tabular-nums` sai porque a classe traz o alinhamento de dígito
+          junto — mantê-lo à mão seria repetir o que o degrau já garante. */}
+      <p className="font-mono-instr valor-forte mt-1 font-semibold">{metrica.valor}</p>
       {metrica.apoio && <p className="apoio mt-0.5 text-dim">{metrica.apoio}</p>}
     </div>
   )
