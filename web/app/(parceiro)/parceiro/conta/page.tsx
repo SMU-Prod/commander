@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { PILULA_ACAO_PRINCIPAL } from "@/lib/ui/acoes"
 import { sair } from "@/lib/acoes/auth"
 import { carregarAssinatura } from "@/lib/consultas"
 import { carregarMeuPartner } from "@/lib/consultas-partner"
@@ -34,7 +36,7 @@ export default async function ParceiroContaPage() {
       <p className="apoio mt-1 text-dim">{ROTULO_TIPO_PARTNER[tipo]} · {meu.parceiro.nome}</p>
 
       <SecaoPagina icone="carteira">Seu plano</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-baseline justify-between gap-3">
           <p className="titulo-card">{plano ? plano.rotulo : "Parceiro"}</p>
           {planoId && <p className="corpo font-semibold">{precoEmTexto(planoId)}</p>}
@@ -45,7 +47,7 @@ export default async function ParceiroContaPage() {
             importa pra quem está do outro lado: uma é regra do plano, a outra
             é gratuidade de lançamento. Dizer isso agora evita a surpresa. */}
         {plano?.gratuitoInicialmente && (
-          <p className="apoio mt-2 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+          <p className="apoio mt-2 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
             Este tipo de perfil é gratuito no lançamento. Se passar a ser cobrado, você é avisado antes — nada
             é bloqueado sem aviso.
           </p>
@@ -62,11 +64,12 @@ export default async function ParceiroContaPage() {
                 <p className="apoio text-dim">
                   Seu perfil aparece no Explorar, mas as oportunidades do Marketplace são do plano pago.
                 </p>
-                <Link
-                  href="/assinar?perfil=partner"
-                  className="mt-2.5 inline-block rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
-                >
-                  Assinar {plano?.rotulo ?? "o plano"}
+                {/* Era um bloco de 40px com raio de 12 — dois valores fora
+                    das duas escalas. A anatomia do app para "pílula dentro de
+                    um alvo de 44px" já está escrita em `lib/ui/acoes.ts` e é
+                    a que `EstadoVazio` usa. */}
+                <Link href="/assinar?perfil=partner" className="mt-2 inline-flex min-h-11 items-center">
+                  <span className={PILULA_ACAO_PRINCIPAL}>Assinar {plano?.rotulo ?? "o plano"}</span>
                 </Link>
               </>
             )}
@@ -75,7 +78,7 @@ export default async function ParceiroContaPage() {
       </div>
 
       <SecaoPagina icone="mapa">Visibilidade</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="corpo inline-flex items-center gap-2">
           <Icone nome={meu.parceiro.visivel ? "selo" : "cadeado"} className="size-4 text-accent-forte" />
           {meu.parceiro.visivel ? "Seu perfil está visível no Explorar" : "Seu perfil está oculto"}
@@ -86,13 +89,13 @@ export default async function ParceiroContaPage() {
       </div>
 
       <SecaoPagina icone="pessoas">Conta</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {assinatura && <LinhaLista href="/menu/assinatura" titulo="Cobrança e faturas" />}
         <LinhaLista href="/parceiro/perfil" titulo="Editar meu perfil" />
       </div>
 
       <form action={sair} className="mt-6">
-        <button className="corpo h-12 w-full rounded-xl border border-line text-dim">Sair da conta</button>
+        <BotaoEnviar rotulo="Sair da conta" variante="contorno" larguraCheia />
       </form>
     </main>
   )

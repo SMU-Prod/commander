@@ -5,8 +5,15 @@ import { carregarPainel } from "@/lib/consultas"
 import { hojeISO } from "@/lib/consultas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeAbrirVotacao } from "@/lib/domain/mecanica"
-import { retirarDoEstoque, validarSaidaDoTanque } from "@/lib/domain/estoque-combustivel"
-import { converterEmAfazer } from "@/lib/domain/afazeres"
+import {
+  retirarDoEstoque, totalCentavosPorLitro, validarSaidaDoTanque,
+} from "@/lib/domain/estoque-combustivel"
+import { converterEmAfazer, ESTADOS_AFAZER, type EstadoAfazer } from "@/lib/domain/afazeres"
+import { valorAlancar } from "@/lib/domain/financeiro-frota"
+import {
+  exigeMotivoDeAjuste, podePublicarParaCotistas,
+  type ModoAprovacao, type Papel,
+} from "@/lib/domain/enterprise"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -49,6 +56,28 @@ async function contexto() {
   if (!painel) redirect("/onboarding")
   const { data: { user } } = await supabase.auth.getUser()
   return { supabase, painel, userId: user?.id ?? null }
+}
+
+/**
+ * A régua de confiança desta pessoa nesta unidade (§3).
+ *
+ * Consulta separada e não no `contexto()` porque só duas actions precisam
+ * dela — cobrar uma ida ao banco de toda ação do Enterprise pra servir duas
+ * seria pagar caro pela conveniência.
+ *
+ * Sem vínculo legível, o padrão é `tudo`: a régua mais apertada. Quem não
+ * consegue provar em que nível de confiança está não estreia no mais solto —
+ * essa é a diferença entre falhar fechado e falhar aberto, e num gesto que
+ * publica laudo para dez cotistas ela não é acadêmica.
+ */
+async function modoAprovacaoDe(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  embarcacaoId: string,
+  papel: string,
+): Promise<ModoAprovacao> {
+  const { data } = await supabase.from("vinculos").select("modo_aprovacao")
+    .eq("embarcacao_id", embarcacaoId).eq("papel", papel).maybeSingle()
+  return (data?.modo_aprovacao as ModoAprovacao | null) ?? "tudo"
 }
 
 // ---------------------------------------------------------------------------
@@ -149,8 +178,52 @@ export async function abrirServico(formData: FormData) {
   redirect(`/mecanica?ok=${encodeURIComponent("Serviço aberto")}`)
 }
 
+/**
+ * §12 — QUANTO ESTE SERVIÇO CUSTOU DE VERDADE, SEM CONTAR PEÇA DUAS VEZES.
+ *
+ * AUDITORIA 19/08, A11. `avisoDeDuplicidade` e `valorAlancar` existiam,
+ * testadas, sem nenhum consumidor — e a armadilha que elas evitam é real e
+ * silenciosa: o mecânico retira R$ 800 em peças do estoque (que já viraram
+ * custo da unidade, §10) e depois a oficina cobra R$ 2.000 pelo serviço,
+ * valor que na nota JÁ INCLUI as mesmas peças. A unidade fica com R$ 2.800 de
+ * custo tendo gasto R$ 2.000, e ninguém percebe porque os dois lançamentos
+ * estão certos separadamente.
+ *
+ * O app não pode adivinhar qual dos dois casos é. Ele pergunta — e só quando
+ * faz sentido perguntar: sem peça retirada PARA ESTE SERVIÇO
+ * (`estoque_movimentos.servico_id`), não há duplicidade possível e a pergunta
+ * seria ruído. Quem decide é quem tem a nota na mão.
+ */
+async function pecasJaLancadasDoServico(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  servicoId: string,
+): Promise<number> {
+  const { data } = await supabase
+    .from("estoque_movimentos")
+    .select("quantidade, estoque_itens(custo_unitario_centavos)")
+    .eq("servico_id", servicoId)
+    .eq("tipo", "retirada")
+  let total = 0
+  for (const m of (data ?? []) as { quantidade: number }[]) {
+    // Item sem custo unitário não entra na conta — e é por isso que a conta é
+    // um PISO, não um total. Estimar o que falta transformaria a pergunta ao
+    // ADM numa afirmação sobre um número que o app não tem.
+    //
+    // A relação é muitos-para-um e vem como objeto em runtime, mas os tipos
+    // gerados do PostgREST descrevem toda relação embutida como lista — as
+    // duas formas são aceitas aqui em vez de um `as unknown as` que passaria
+    // a mentir se a consulta mudar.
+    const rel = (m as { estoque_itens?: unknown }).estoque_itens
+    const alvo = Array.isArray(rel) ? rel[0] : rel
+    const unitario = (alvo as { custo_unitario_centavos?: number | null } | null | undefined)
+      ?.custo_unitario_centavos
+    if (unitario != null) total += Math.round(Number(m.quantidade) * unitario)
+  }
+  return total
+}
+
 export async function atualizarServico(formData: FormData) {
-  const { supabase } = await contexto()
+  const { supabase, painel, userId } = await contexto()
   const id = String(formData.get("servico_id") ?? "")
   const estado = String(formData.get("estado") ?? "")
   const { data, error } = await supabase.from("servicos_mecanica")
@@ -160,23 +233,64 @@ export async function atualizarServico(formData: FormData) {
       horas: num(formData, "horas"),
       conclusao_em: estado === "concluido" ? hojeISO() : null,
     })
-    .eq("id", id).select("id")
+    .eq("id", id).select("id, problema_informado")
   if (error || !data?.length) falhar("/mecanica", "Não deu pra atualizar o serviço.")
 
+  // §12, a linha "Mecânica → entrada automática no Financeiro" que faltava: o
+  // serviço concluído com valor informado vira custo da unidade, com
+  // procedência. Era a única das seis origens que nenhum insert produzia.
+  let sufixo = ""
+  const valorInformado = centavos(formData, "valor")
+  if (estado === "concluido" && valorInformado != null) {
+    const pecas = await pecasJaLancadasDoServico(supabase, id)
+    // A resposta do ADM ao aviso. Sem peça retirada pra este serviço a
+    // pergunta nem aparece na tela, e `jaInclui` chega falso — que é o valor
+    // certo: não há o que descontar.
+    const jaInclui = formData.get("ja_inclui") === "1"
+    const aLancar = valorAlancar(valorInformado, pecas, jaInclui)
+    sufixo = aLancar <= 0 && jaInclui
+      ? " · nada a lançar: as peças já cobriam o valor informado"
+      : sufixoDoLancamento(
+        await lancarCustoComOrigem(supabase, {
+          embarcacaoId: painel.embarcacao.id,
+          origem: "mecanica",
+          origemId: id,
+          categoria: "manutencao",
+          descricao: `Serviço na oficina — ${(data[0].problema_informado as string | null) ?? "conserto"}`,
+          valorCentavos: aLancar,
+          userId,
+        }),
+        "valor da oficina",
+      )
+  }
+
   revalidatePath("/mecanica")
-  redirect(`/mecanica?ok=${encodeURIComponent("Serviço atualizado")}`)
+  revalidatePath("/frota")
+  redirect(`/mecanica?ok=${encodeURIComponent(`Serviço atualizado${sufixo}`)}`)
 }
 
 /**
  * §7 e §25: "Mecânica NUNCA publica diretamente aos cotistas."
  *
- * Publicar é ato do dono da conta. A policy da migration 063 já esconde o
- * não-publicado de quem só vê Motores; esta action é o único jeito de a
- * coluna `publicado_em` ganhar valor, e ela exige PROP.
+ * AUDITORIA 19/08, B6 — esta action decidia com `painel.papel !== "PROP"`,
+ * escrito à mão, enquanto `podePublicarParaCotistas` (domínio, 12 casos de
+ * teste, conhece os sete papéis e a régua de confiança) não era chamada por
+ * ninguém. A diferença não é de estilo: a policy da migration 063
+ * ("quem edita motores atualiza") deixa o próprio mecânico gravar
+ * `publicado_em` — a única barreira entre o laudo cru e dez cotistas é esta
+ * decisão aqui. Ela tem dono agora.
+ *
+ * O motivo da recusa vem do domínio junto com a recusa, e não é um texto
+ * genérico: o mecânico precisa ler que a trava é do §7 e não um bug, senão
+ * ele tenta de novo achando que errou o botão.
  */
 export async function publicarServico(formData: FormData) {
   const { supabase, painel, userId } = await contexto()
-  if (painel.papel !== "PROP") falhar("/mecanica", "Só o proprietário publica laudo para os cotistas.")
+  const regua = podePublicarParaCotistas(
+    painel.papel as Papel,
+    await modoAprovacaoDe(supabase, painel.embarcacao.id, painel.papel),
+  )
+  if (!regua.pode) falhar("/mecanica", regua.motivo ?? "Você não publica laudo para os cotistas.")
   const id = String(formData.get("servico_id") ?? "")
 
   const publicadoEm = new Date().toISOString()
@@ -352,8 +466,16 @@ export async function movimentarEstoque(formData: FormData) {
   } else if (tipo === "entrada") {
     nova = Number(item.quantidade) + qtd
   } else {
-    // Ajuste grava o valor absoluto contado. §22: divergência exige motivo.
-    if (!texto(formData, "motivo")) falhar("/estoque", "Ajuste exige o motivo da diferença.")
+    // Ajuste grava o valor absoluto contado. §22: "ajustes de tanque/estoque
+    // exigem motivo QUANDO GERAREM DIVERGÊNCIA" — e a palavra que carrega a
+    // regra é "quando". A action exigia motivo em todo ajuste, inclusive no
+    // que confirma o saldo (contei 12, tinha 12): pedir justificativa pra
+    // "está certo" ensina a equipe a digitar ponto pra passar da tela, e
+    // motivo inventado é pior que motivo nenhum. `exigeMotivoDeAjuste` é quem
+    // sabe disso, com teste, e não era chamada por lugar nenhum (A7).
+    if (exigeMotivoDeAjuste(Number(item.quantidade), qtd) && !texto(formData, "motivo")) {
+      falhar("/estoque", "Este ajuste muda o saldo. Registre o motivo da diferença.")
+    }
     nova = qtd
   }
 
@@ -378,6 +500,13 @@ export async function movimentarEstoque(formData: FormData) {
     tipo,
     quantidade: qtd,
     embarcacao_id: destinoRetirada,
+    // §12, a armadilha da duplicidade — `servico_id` existe desde a migration
+    // 064 e NUNCA era preenchido (auditoria 19/08, A4). Sem ele não há como
+    // saber que a peça de R$ 800 que saiu da prateleira é a mesma que a
+    // oficina vai cobrar dentro do orçamento de R$ 2.000, e a unidade aparece
+    // com R$ 2.800 tendo gasto R$ 2.000. Opcional: retirada de almoxarifado
+    // que não é pra serviço nenhum é o caso comum.
+    servico_id: tipo === "retirada" ? texto(formData, "servico_id") : null,
     motivo: texto(formData, "motivo"),
     autor_id: userId,
   }).select("id").maybeSingle()
@@ -441,6 +570,16 @@ export async function movimentarTanque(formData: FormData) {
   const destinoUnidade = texto(formData, "destino_embarcacao_id")
   const destinoLivre = texto(formData, "destino_livre")
 
+  // §11: "valor total E/OU preço/litro". Quem abastece anota o que a bomba
+  // mostrou; o app completa o outro. O TOTAL ganha quando os dois vêm: ele é
+  // o que a nota fiscal diz, e o R$/L digitado pode estar arredondado.
+  // AUDITORIA 19/08, A10 — `totalCentavosPorLitro` existia e não tinha por
+  // onde entrar, porque o formulário não pedia R$/L.
+  const totalDigitado = centavos(formData, "valor")
+  const porLitro = centavos(formData, "preco_litro")
+  const valorCentavos = totalDigitado
+    ?? (porLitro == null ? null : totalCentavosPorLitro(porLitro, litros))
+
   if (tipo === "saida") {
     // §11: destino obrigatório. A regra mora no domínio.
     const erro = validarSaidaDoTanque(litros, destinoUnidade, destinoLivre)
@@ -462,7 +601,7 @@ export async function movimentarTanque(formData: FormData) {
     destino_embarcacao_id: tipo === "saida" ? destinoUnidade : null,
     destino_livre: tipo === "saida" ? destinoLivre : null,
     fornecedor: texto(formData, "fornecedor"),
-    valor_centavos: centavos(formData, "valor"),
+    valor_centavos: valorCentavos,
     motivo: texto(formData, "motivo"),
     autor_id: userId,
   }).select("id").maybeSingle()
@@ -472,30 +611,36 @@ export async function movimentarTanque(formData: FormData) {
   // no Jet". A saída com destino de frota vira abastecimento da unidade.
   let sufixo = ""
   if (tipo === "saida" && destinoUnidade) {
-    await supabase.from("abastecimentos").insert({
+    // AUDITORIA 19/08, A5 — este insert existia e NENHUMA tela lia a tabela.
+    // Agora /combustivel monta com ele o consumo por unidade do §11, e é por
+    // isso que o `.select()` passou a valer aqui: um abastecimento barrado
+    // pela policy sumia em silêncio e a unidade aparecia bebendo menos do que
+    // bebe. Falha não derruba o movimento do tanque (esse é fato do
+    // almoxarifado e já está gravado) — ela vira aviso na frase de sucesso.
+    const { data: abastecimento } = await supabase.from("abastecimentos").insert({
       embarcacao_id: destinoUnidade,
       tanque_movimento_id: data.id,
       litros,
-      valor_centavos: centavos(formData, "valor"),
+      valor_centavos: valorCentavos,
       responsavel_id: userId,
-    })
+    }).select("id").maybeSingle()
+    if (!abastecimento) sufixo += " · o consumo desta unidade NÃO registrou (confira seu acesso)"
 
     // §12 — e o abastecimento vira custo da unidade, com procedência
     // "combustivel". Sem valor informado não há lançamento: o litro do tanque
     // próprio custou o que a empresa pagou na compra, e essa conta o app não
-    // tem (ver A10 da auditoria — `precoPorLitroCentavos` existe no domínio e
-    // ainda não tem por onde entrar).
-    sufixo = sufixoDoLancamento(
+    // tem.
+    sufixo += sufixoDoLancamento(
       await lancarCustoComOrigem(supabase, {
         embarcacaoId: destinoUnidade,
         origem: "combustivel",
         origemId: data.id,
         categoria: "combustivel",
         descricao: `Abastecimento pelo tanque da base — ${litros.toLocaleString("pt-BR")} L`,
-        valorCentavos: centavos(formData, "valor"),
+        valorCentavos,
         userId,
       }),
-      "valor informado",
+      "valor nem preço por litro",
     )
   }
 
@@ -577,7 +722,16 @@ export async function criarAfazer(formData: FormData) {
 export async function mudarEstadoAfazer(formData: FormData) {
   const { supabase } = await contexto()
   const id = String(formData.get("afazer_id") ?? "")
-  const estado = String(formData.get("estado") ?? "")
+  // §27.2, a regra nos dois lados: o estado vinha do formulário e ia cru pro
+  // update. `ESTADOS_AFAZER` é o enum do domínio (e o `check` da migration
+  // 066) e não era conferido em lugar nenhum do app — um valor forjado
+  // dependia do banco recusar, e a tela mostraria "Não deu pra mudar" sem
+  // ninguém entender o quê.
+  const bruto = String(formData.get("estado") ?? "")
+  if (!(ESTADOS_AFAZER as readonly string[]).includes(bruto)) {
+    falhar("/afazeres", "Estado de tarefa desconhecido.")
+  }
+  const estado = bruto as EstadoAfazer
   const { data, error } = await supabase.from("afazeres")
     .update({ estado, concluido_em: estado === "concluido" ? new Date().toISOString() : null })
     .eq("id", id).select("id")

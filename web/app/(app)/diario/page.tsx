@@ -200,27 +200,42 @@ export default async function DiarioPage({
               const conteudo = (
                 <>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`flex size-[30px] shrink-0 items-center justify-center rounded-[var(--raio-controle)] ${
-                        ehSaida ? "bg-accent/10 text-accent-forte" : "bg-panel2 text-dim"
-                      }`}
-                    >
-                      <Icone nome={ICONE_TIPO[e.tipo] ?? "mais"} className="size-4" />
-                    </span>
+                    {/* ONDA 92 (eixo 1.1 da auditoria de 19/08) — A PASTILHA DE
+                        30px ERA QUEM MANDAVA NA ALTURA DA PRIMEIRA LINHA.
+                        O título de uma linha mede 20,25px (`.titulo-card`,
+                        15px × 1,35); a pastilha media 30. Ou seja: 10px por
+                        cartão gastos numa moldura decorativa que repetia o que
+                        o título já diz ("Docagem" com o ícone de âncora).
+                        Ícone de 20px na linha do título entrega a mesma
+                        leitura e devolve os 10px.
+                        O dourado da saída — "a atividade, o coração do feed" —
+                        continua, agora no traço em vez de num fundo: mesma
+                        distinção, uma superfície dourada a menos por cartão
+                        num feed que empilha dezenas deles. */}
+                    <Icone
+                      nome={ICONE_TIPO[e.tipo] ?? "mais"}
+                      className={`size-5 shrink-0 ${ehSaida ? "text-accent-forte" : "text-dim"}`}
+                    />
                     <p className="titulo-card min-w-0 flex-1 line-clamp-2">{titulo}</p>
                     <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">
                       {formatarDataCurta(e.data)}
                     </span>
                   </div>
                   {ehSaida && (
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    /* ONDA 92 — `mt-2` (8px, degrau da escala) no lugar de
+                       `mt-2.5` (10px, que não é degrau nenhum), e `py-1` (4px)
+                       no lugar de `py-[5px]`: a fileira de chips passa de 28,5
+                       para 26,5px sem apertar nada — quem manda na altura
+                       dentro do chip é a entrelinha do `.rotulo` (16,5px), não
+                       o padding. */
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                       {duracaoEvento != null && (
-                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
                           <span className="rotulo text-dim">No mar</span>
                           <span className="font-mono-instr text-xs font-semibold tabular-nums">{textoDuracao(duracaoEvento)}</span>
                         </span>
                       )}
-                      <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                      <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
                         <span className="rotulo text-dim">Trilha</span>
                         {trilhaResumo ? (
                           <span className="font-mono-instr text-xs font-semibold tabular-nums">
@@ -233,7 +248,7 @@ export default async function DiarioPage({
                         )}
                       </span>
                       {aBordo > 0 && (
-                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-[5px]">
+                        <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
                           <span className="rotulo text-dim">A bordo</span>
                           <span className="font-mono-instr text-xs font-semibold tabular-nums">{aBordo}</span>
                         </span>
@@ -241,7 +256,7 @@ export default async function DiarioPage({
                     </div>
                   )}
                   {ehSaida
-                    ? apoioSaida && <p className="apoio mt-2.5 text-dim">{apoioSaida}</p>
+                    ? apoioSaida && <p className="apoio mt-2 text-dim">{apoioSaida}</p>
                     : (e.horas_no_momento != null || e.contato_id || e.custo_centavos != null) && (
                         <p className="apoio mt-2 text-dim">
                           {e.contato_id && nomeContato.get(e.contato_id)}
@@ -280,6 +295,33 @@ export default async function DiarioPage({
                   )}
                 </>
               )
+              // ONDA 92 — A CONTA DA DENSIDADE, PARCELA POR PARCELA.
+              // O `p-3` (12px, degrau da escala e a decisão já tomada em
+              // `Cartao`: "a referência é densa") fica. Quem engordava o
+              // cartão era o resto:
+              //
+              //   parcela                          antes      depois
+              //   p-3 topo + base                  24         24
+              //   linha 1 (pastilha 30 → ícone 20) 30         20,25 (o título)
+              //   folga antes dos chips            10 (2.5)    8 (2)
+              //   fileira de chips                 28,5       26,5 (py-1)
+              //   folga antes do apoio             10 (2.5)    8 (2)
+              //   linha de apoio (.apoio)          18         18
+              //   TOTAL                            120,5      104,75
+              //
+              // Com o `gap-2` entre cartões, o passo da lista cai de 128,5
+              // para 112,75px. A referência faz o mesmo trabalho em ~64px;
+              // continuamos acima dela porque o nosso é um CARTÃO com borda e
+              // o dela é uma linha dentro de um painel.
+              //
+              // ALTERNATIVA DESCARTADA: a auditoria sugere levar a linha de
+              // apoio para dentro dos chips ("mar 0,8 m / 12 kt" é leitura,
+              // não prosa) e fechar em ~76px. Não fecha: `apoioSaida` é mar
+              // MAIS tripulação MAIS descrição — só o mar viraria chip, e a
+              // linha continuaria existindo nas saídas com gente ou texto,
+              // que são a maioria. E o chip do mar não cabe na primeira
+              // fileira em 390px: viraria uma segunda fileira de 26,5px, mais
+              // cara que a linha de apoio de 18px que ele veio substituir.
               const casca = "block rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
               return ehSaida ? (
                 <Link key={e.id} href={`/diario/${e.id}`} className={casca}>

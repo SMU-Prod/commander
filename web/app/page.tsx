@@ -5,7 +5,29 @@ import { Logo } from "@/components/logo"
 import { MockTelas } from "@/components/landing/mock-telas"
 import { formatarPreco, PLANOS } from "@/lib/domain/planos"
 import { LIMITES_FREE } from "@/lib/domain/plano-acesso"
+import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
 import { supabaseServer } from "@/lib/supabase/server"
+
+/**
+ * ONDA 93 — A LANDING PASSA A USAR O BOTÃO DO APP.
+ *
+ * As três chamadas desta página eram `rounded-xl` + `py-3.5`: 12px de raio,
+ * que não é nenhum dos três raios do docs/DESIGN.md §5, e 52px de altura, que
+ * é a sétima altura de botão que a auditoria de 19/08 catalogou. Agora elas
+ * repetem, classe por classe, o desenho `principal` de
+ * `components/ui/botao-enviar.tsx` — 48px, raio de controle, 15px semibold.
+ *
+ * Por que importa mais aqui do que em qualquer tela interna: quem toca em
+ * "Ver planos" encontra o MESMO botão em /assinar dois toques depois. Quando
+ * os dois são objetos diferentes, a passagem da vitrine para o produto lê
+ * como troca de site — e é exatamente nessa emenda que a percepção de "app
+ * caro" se ganha ou se perde.
+ *
+ * `<a>`/`<Link>` e não `<button>`: são navegação, e `BotaoEnviar` é peça de
+ * formulário (ele existe para o `useFormStatus`, que aqui não tem o que ler).
+ */
+const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`
+const CTA_CONTORNO = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] border border-line px-6 text-center text-[15px] font-semibold text-texto ${TOQUE_AMPLO}`
 
 // A página é dinâmica (o redirect de logado lê cookies), então não há ISR a
 // configurar — o contador de vagas é buscado a cada request e isso basta.
@@ -62,7 +84,11 @@ export default async function LandingPage() {
           <Logo compacto />
           <span className="rotulo text-accent">Commander</span>
         </div>
-        <Link href="/login" className="corpo font-medium text-dim hover:text-texto">Entrar</Link>
+        {/* `min-h-11`: era um texto de 21px de altura, e é a única saída do
+            topo da página que vende. */}
+        <Link href="/login" className={`corpo inline-flex min-h-11 items-center font-medium text-dim hover:text-texto ${TOQUE}`}>
+          Entrar
+        </Link>
       </header>
 
       {/* Hero */}
@@ -80,10 +106,14 @@ export default async function LandingPage() {
             Manutenção em dia, documentos alertados e um histórico que vale dinheiro na hora de vender.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#planos" className="sombra-2 rounded-xl bg-accent px-6 py-3.5 text-center font-semibold text-acao-texto">
+            <a href="#planos" className={`sombra-2 ${CTA}`}>
               Ver planos
             </a>
-            <Link href="/login" className="rounded-xl border border-white/15 px-6 py-3.5 text-center font-semibold text-texto">
+            {/* `border-line` no lugar de `border-white/15`: a página inteira
+                roda em `data-theme="dark"`, então o token já entrega a linha
+                do tema escuro — e passa a acompanhar a paleta quando ela
+                mudar, que é o que a cor à mão não faz. */}
+            <Link href="/login" className={CTA_CONTORNO}>
               Entrar
             </Link>
           </div>
@@ -95,7 +125,7 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
         <div className="grid gap-4 sm:grid-cols-3">
           {VALORES.map((v) => (
-            <div key={v.titulo} className="sombra-1 rounded-[14px] border border-line bg-panel p-5">
+            <div key={v.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-5">
               <span className="flex size-10 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
                 <Icone nome={v.icone} className="size-5" />
               </span>
@@ -133,8 +163,13 @@ export default async function LandingPage() {
           </p>
         </div>
 
+        {/* Os três cartões de plano eram `rounded-[16px]` cravado — o valor de
+            `--raio-painel`, escrito à mão. Pelo token, eles passam a dizer o
+            que a escala quer que digam: painel de primeiro nível (16) contra
+            os cartões de valor logo acima, que são `--raio-cartao` (14). É o
+            raio significando profundidade, que é o motivo de o token existir. */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="sombra-1 rounded-[16px] border border-line bg-panel p-5">
+          <div className="sombra-1 rounded-[var(--raio-painel)] border border-line bg-panel p-5">
             <p className="titulo-card">{PLANOS.proprietario_free.rotulo}</p>
             <p className="mt-3">
               <span className="text-3xl font-semibold">Grátis</span>
@@ -144,7 +179,7 @@ export default async function LandingPage() {
               conhecer.
             </p>
           </div>
-          <div className="sombra-2 relative rounded-[16px] border border-accent/50 bg-panel p-5">
+          <div className="sombra-2 relative rounded-[var(--raio-painel)] border border-accent/50 bg-panel p-5">
             <span className="absolute -top-3 right-4 rounded-full bg-accent px-2.5 py-1 font-mono-instr text-[11px] uppercase tracking-[.1em] text-acao-texto">
               Mais escolhido
             </span>
@@ -155,7 +190,7 @@ export default async function LandingPage() {
             </p>
             <p className="corpo mt-2 text-dim">{PLANOS.commander.regra}</p>
           </div>
-          <div className="sombra-1 rounded-[16px] border border-line bg-panel p-5">
+          <div className="sombra-1 rounded-[var(--raio-painel)] border border-line bg-panel p-5">
             <p className="titulo-card">{PLANOS.commander_pro.rotulo}</p>
             <p className="mt-3">
               <span className="text-3xl font-semibold">{formatarPreco(PLANOS.commander_pro.valorCentavos!)}</span>
@@ -175,10 +210,7 @@ export default async function LandingPage() {
         </ul>
 
         <div className="mt-8 text-center">
-          <Link
-            href="/login?volta=/assinar"
-            className="sombra-2 inline-block rounded-xl bg-accent px-8 py-3.5 font-semibold text-acao-texto"
-          >
+          <Link href="/login?volta=/assinar" className={`sombra-2 px-8 ${CTA}`}>
             Começar agora
           </Link>
         </div>

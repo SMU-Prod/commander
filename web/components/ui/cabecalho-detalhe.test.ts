@@ -34,12 +34,12 @@ describe("CabecalhoDetalhe — contrato antigo intacto", () => {
 })
 
 describe("CabecalhoDetalhe — a anatomia de ficha da imagem 2 (onda 60)", () => {
-  it("o selo sai COLADO ao título: mesmo contêiner de linha, título ainda truncável", () => {
+  it("o selo sai COLADO ao título: mesmo contêiner de linha, título ainda contido", () => {
     const saida = html({ voltarHref: "/barco", titulo: "Motor BB", selo: SELO })
     const linha = saida.match(/<div class="flex min-w-0 items-center gap-2">.*?<\/div>/)?.[0] ?? ""
     expect(linha).toContain(">Motor BB</h1>")
     expect(linha).toContain("selo-teste")
-    expect(linha).toContain("truncate")
+    expect(linha).toContain("line-clamp-2")
   })
 
   it("com acoes, o wrapper só vira flex de sm: pra cima — no celular a barra desce pra baixo do título", () => {
@@ -55,5 +55,58 @@ describe("CabecalhoDetalhe — a anatomia de ficha da imagem 2 (onda 60)", () =>
     const saida = html({ voltarHref: "/barco", selo: SELO, acoes: ACOES })
     expect(saida).not.toContain("selo-teste")
     expect(saida).not.toContain("acao-teste")
+  })
+})
+
+/**
+ * ONDA 91 — `titulo` passou de `string` a `ReactNode`. O caso que forçou: a
+ * ficha de uma ocorrência ANULADA precisa do título riscado, e ao adotar o
+ * componente padrão essa informação — a única marca de que o registro não vale
+ * mais — sumia da tela.
+ */
+describe("CabecalhoDetalhe — título rico", () => {
+  it("texto puro continua saindo igual: os ~46 consumidores não mexem", () => {
+    expect(html({ voltarHref: "/barco", titulo: "Motor BB" })).toContain(">Motor BB</h1>")
+  })
+
+  it("aceita marcação no título — é assim que a ocorrência anulada aparece riscada", () => {
+    const saida = html({
+      voltarHref: "/barco/ocorrencias",
+      titulo: createElement("s", null, "Vazamento na casa de máquinas"),
+    })
+    expect(saida).toContain("<s>Vazamento na casa de máquinas</s>")
+  })
+
+  it("o título continua contido mesmo com filho que não é texto puro", () => {
+    const saida = html({
+      voltarHref: "/x",
+      titulo: createElement("s", null, "Título muito longo que não cabe"),
+      selo: SELO,
+    })
+    // `min-w-0` explícito além do `line-clamp`: com selo o `<h1>` é item de
+    // uma fileira flex, e sem mínimo zerado um título longo empurraria o selo
+    // pra fora em vez de quebrar.
+    expect(saida).toContain('class="titulo-pagina min-w-0 line-clamp-2"')
+  })
+})
+
+/**
+ * ONDA 91 — o título de tela deixou de ser cortado em uma linha.
+ *
+ * `/admin/gold/precos` ("Preços da avaliação Commander Gold", 34 caracteres)
+ * ficava "Preços da avaliação Comm…" a 390px, e a tela preferiu não usar o
+ * componente. A régua da casa (`linha-lista.tsx`, onda 56): reticência serve
+ * quando o resto é dispensável, não quando o texto É a identificação.
+ */
+describe("CabecalhoDetalhe — o título cabe em duas linhas", () => {
+  it("nenhum `<h1>` sai com `truncate` — o teto agora é de duas linhas", () => {
+    for (const props of [
+      { voltarHref: "/x", titulo: "Preços da avaliação Commander Gold" },
+      { voltarHref: "/x", titulo: "Preços da avaliação Commander Gold", selo: SELO },
+      { voltarHref: "/x", titulo: "Preços da avaliação Commander Gold", acoes: ACOES },
+    ]) {
+      expect(html(props)).not.toMatch(/class="[^"]*\btruncate\b/)
+      expect(html(props)).toContain("line-clamp-2")
+    }
   })
 })

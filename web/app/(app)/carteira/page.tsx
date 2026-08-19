@@ -62,12 +62,12 @@ export default async function CarteiraPage({
       </p>
 
       {/* Texto obrigatório do PRD §9.4 — a primeira coisa que a tela diz. */}
-      <div className="mt-4 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+      <div className="mt-4 flex gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim">{AVISO_NAO_MOVIMENTA}</p>
       </div>
 
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <SecaoPagina
         icone="carteira"
@@ -75,7 +75,7 @@ export default async function CarteiraPage({
       >
         {ehProprietario ? "Carteiras liberadas" : "Sua carteira"}
       </SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {carteiras.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -120,7 +120,7 @@ export default async function CarteiraPage({
       {ehProprietario && (
         <Link
           href="/carteira/nova"
-          className="mt-6 flex h-12 items-center justify-center gap-1.5 rounded-xl border border-line bg-panel text-sm font-semibold"
+          className="mt-6 flex h-12 items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-line bg-panel text-sm font-semibold"
         >
           <Icone nome="mais" className="size-4" /> Liberar carteira
         </Link>

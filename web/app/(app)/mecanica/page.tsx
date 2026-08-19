@@ -12,12 +12,20 @@ import {
   publicarServico, votar,
 } from "@/lib/acoes/enterprise"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
+import { carregarComponentesDoMotor } from "@/lib/consultas-catalogo"
+import {
+  planoSugerido, ROTULO_SISTEMA, SISTEMAS_MOTOR, type SistemaMotor,
+} from "@/lib/domain/catalogo-motor"
 import {
   apurarVotacao, ESTADOS_SERVICO, linhaDaApuracao, orcamentoVencido,
-  ROTULO_ESTADO_SERVICO, ROTULO_SITUACAO_VOTACAO, situacaoDaVotacao, tomDoServico,
+  ROTULO_ESTADO_SERVICO, ROTULO_SITUACAO_VOTACAO, servicoAberto, situacaoDaVotacao, tomDoServico,
   type EstadoServico, type Voto,
 } from "@/lib/domain/mecanica"
+import {
+  podePublicarParaCotistas, type ModoAprovacao, type Papel,
+} from "@/lib/domain/enterprise"
 import { podeEditar } from "@/lib/domain/permissoes"
+import { avisoDeDuplicidade } from "@/lib/domain/financeiro-frota"
 import { formatarReais } from "@/lib/domain/gastos"
 import { supabaseServer } from "@/lib/supabase/server"
 import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
@@ -26,6 +34,22 @@ type Servico = {
   id: string; problema_informado: string | null; diagnostico: string | null
   conserto: string | null; horas: number | null; estado: EstadoServico
   publicado_em: string | null; criado_em: string
+}
+
+/**
+ * O custo unitário do item embutido no movimento de estoque.
+ *
+ * O relacionamento é muitos-para-um, então em runtime vem um objeto — mas os
+ * tipos gerados do PostgREST descrevem toda relação embutida como lista.
+ * Aceitar as duas formas aqui é mais barato (e mais seguro) que um
+ * `as unknown as` que passaria a mentir no dia em que a consulta mudar.
+ */
+function custoUnitarioDoItem(linha: unknown): number | null {
+  const rel = (linha as { estoque_itens?: unknown }).estoque_itens
+  const alvo = Array.isArray(rel) ? rel[0] : rel
+  const v = (alvo as { custo_unitario_centavos?: number | null } | null | undefined)
+    ?.custo_unitario_centavos
+  return v ?? null
 }
 
 /**
@@ -64,8 +88,10 @@ export default async function MecanicaPage({
   const hoje = hojeISO()
 
   const supabase = await supabaseServer()
-  const [{ data: servicos }, { data: orcamentos }, { data: votacoes }, { data: cotistas }] =
-    await Promise.all([
+  const [
+    { data: servicos }, { data: orcamentos }, { data: votacoes }, { data: cotistas },
+    { data: meuVinculo },
+  ] = await Promise.all([
       supabase.from("servicos_mecanica").select("*")
         .eq("embarcacao_id", painel.embarcacao.id).order("criado_em", { ascending: false }).limit(30),
       supabase.from("orcamentos").select("*")
@@ -74,7 +100,34 @@ export default async function MecanicaPage({
         .eq("embarcacao_id", painel.embarcacao.id).order("aberta_em", { ascending: false }).limit(10),
       supabase.from("vinculos").select("id")
         .eq("embarcacao_id", painel.embarcacao.id).eq("papel", "COTISTA").is("suspenso_em", null),
+      // A régua de confiança de quem abriu a tela (§3) — é ela, e não o
+      // `ehDono` do JSX, que decide quem publica laudo. Ver B6 abaixo.
+      supabase.from("vinculos").select("modo_aprovacao")
+        .eq("embarcacao_id", painel.embarcacao.id).eq("papel", painel.papel).maybeSingle(),
     ])
+
+  // AUDITORIA 19/08, B6 — A TRAVA DO §7 SAIU DO JSX.
+  //
+  // O botão "Publicar para os cotistas" era gated por `ehDono &&`, e a régua
+  // que conhece os sete papéis e a exceção sem exceção do §7 ("Mecânica nunca
+  // publica direto, nem com a confiança no máximo") não era chamada por
+  // ninguém. Quem for "ADM" ou "Operações" caía no `else` por acidente. Sem
+  // vínculo legível o padrão é `tudo`, a régua mais apertada — falhar fechado
+  // é o certo num gesto que fala com dez cotistas de uma vez.
+  const publicacao = podePublicarParaCotistas(
+    painel.papel as Papel,
+    (meuVinculo?.modo_aprovacao as ModoAprovacao | null) ?? "tudo",
+  )
+
+  // AUDITORIA 19/08, A1 — `motor_componentes` tinha ZERO referências no app.
+  // A tela mora aqui, e não na ficha do equipamento, porque a pergunta é da
+  // oficina: "que peças este motor tem, e o que eu peço no balcão". Vazia
+  // quando o motor da unidade não está ligado ao catálogo — que é o caso da
+  // maioria, e por isso a seção só aparece quando há o que mostrar.
+  const componentes = await carregarComponentesDoMotor(painel.embarcacao.id)
+  const porSistema = SISTEMAS_MOTOR
+    .map((s) => ({ sistema: s as SistemaMotor, itens: componentes.filter((c) => c.sistema === s) }))
+    .filter((g) => g.itens.length > 0)
 
   type Orcamento = {
     id: string; servico_proposto: string; fornecedor: string | null; pecas: string | null
@@ -85,12 +138,36 @@ export default async function MecanicaPage({
   const lista = (servicos ?? []) as Servico[]
   const orcs = (orcamentos ?? []) as Orcamento[]
   const vots = (votacoes ?? []) as Votacao[]
+
+  // §12, a armadilha da duplicidade (A11) — quanto já saiu do estoque PARA
+  // cada serviço. Sem este número o app não tem por que perguntar nada; com
+  // ele, a pergunta aparece só onde há risco real de contar duas vezes.
+  // `["-"]` quando não há serviço: `.in()` com lista vazia devolve tudo no
+  // PostgREST, e "tudo" aqui seria a retirada de todas as unidades da conta.
+  const { data: retiradas } = await supabase
+    .from("estoque_movimentos")
+    .select("servico_id, quantidade, estoque_itens(custo_unitario_centavos)")
+    .eq("tipo", "retirada")
+    .in("servico_id", lista.length > 0 ? lista.map((s) => s.id) : ["-"])
+  const pecasPorServico = new Map<string, number>()
+  for (const m of (retiradas ?? []) as { servico_id: string | null; quantidade: number }[]) {
+    // Item sem custo unitário fica de fora: o número é um PISO do que já foi
+    // lançado, e estimar o resto viraria uma afirmação sobre o que não se sabe.
+    const unitario = custoUnitarioDoItem(m)
+    if (m.servico_id == null || unitario == null) continue
+    pecasPorServico.set(
+      m.servico_id,
+      (pecasPorServico.get(m.servico_id) ?? 0) + Math.round(Number(m.quantidade) * unitario),
+    )
+  }
   // O total de votantes é o de cotistas ATIVOS — suspenso não vota (§13), e
   // contá-lo faria a votação nunca fechar em unanimidade.
   const totalCotistas = (cotistas ?? []).length
   const votacaoPorOrcamento = new Map(vots.map((v) => [v.orcamento_id, v]))
 
-  const abertos = lista.filter((s) => s.estado !== "concluido")
+  // B10 — `servicoAberto` em vez de `s.estado !== "concluido"` reescrito aqui
+  // e no cartão. A régua de "aberto" tem dono no domínio, com teste.
+  const abertos = lista.filter((s) => servicoAberto(s.estado))
   // Item escolhido pra o painel de detalhe (`?servico=<id>`). `undefined`
   // quando não há query (ninguém escolheu ainda) ou quando o id não bate
   // com nenhum serviço desta embarcação (item apagado, id de outro barco) —
@@ -124,12 +201,18 @@ export default async function MecanicaPage({
           lista={
             <div className="space-y-2">
               {lista.map((s) => (
-                <LinhaServico key={s.id} s={s} ativo={s.id === servico} ehDono={ehDono} editavel={editavel} />
+                <LinhaServico
+                  key={s.id} s={s} ativo={s.id === servico} publicacao={publicacao}
+                  editavel={editavel} pecasCentavos={pecasPorServico.get(s.id) ?? 0}
+                />
               ))}
             </div>
           }
           detalhe={selecionado && (
-            <CartaoServico s={selecionado} ehDono={ehDono} editavel={editavel} prefixoId="d" />
+            <CartaoServico
+              s={selecionado} publicacao={publicacao} editavel={editavel} prefixoId="d"
+              pecasCentavos={pecasPorServico.get(selecionado.id) ?? 0}
+            />
           )}
         />
       )}
@@ -251,6 +334,68 @@ export default async function MecanicaPage({
         </div>
       )}
 
+      {/* A1 — AS PEÇAS DO MOTOR, PELO CATÁLOGO.
+          Vem depois dos orçamentos porque é consulta de apoio: quem abre
+          /mecanica vem ver o que está na bancada, não estudar o motor. */}
+      {porSistema.length > 0 && (
+        <>
+          <SecaoPagina icone="ferramenta">Peças do motor</SecaoPagina>
+          <div className="space-y-3">
+            {porSistema.map((g) => (
+              <div key={g.sistema} className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+                <p className="rotulo border-b border-line py-3 text-dim">{ROTULO_SISTEMA[g.sistema]}</p>
+                {g.itens.map((c) => {
+                  // `planoSugerido` devolve `null` quando o componente não tem
+                  // nenhum intervalo — e hoje isso vale para o catálogo
+                  // inteiro. A linha diz isso em vez de desenhar "0 h", que
+                  // seria a mentira de sempre com outra roupa.
+                  const plano = planoSugerido(c)
+                  return (
+                    <div key={c.id} className="flex items-start justify-between gap-3 border-b border-line py-3 last:border-0">
+                      <span className="min-w-0">
+                        <span className="corpo block">{c.nome}</span>
+                        <span className="apoio block text-dim">
+                          {c.motor}
+                          {plano && (
+                            <>
+                              {" · troca a cada "}
+                              <span className="font-mono-instr tabular-nums">
+                                {[
+                                  plano.intervaloHoras != null ? `${plano.intervaloHoras} h` : null,
+                                  plano.intervaloMeses != null ? `${plano.intervaloMeses} meses` : null,
+                                ].filter(Boolean).join(" ou ")}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      </span>
+                      <span className="apoio shrink-0 text-right">
+                        {c.partNumberOem
+                          ? <span className="font-mono-instr">{c.partNumberOem}</span>
+                          : <span className="text-dim">sem código no catálogo</span>}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+          {/* A CONFISSÃO QUE ESTA SEÇÃO DEVE. O catálogo tem os 144
+              componentes e nenhum part number nem intervalo preenchido — e o
+              motivo de ele existir é justamente o código que o balconista
+              pede. Dizer isso na tela é o que impede o mecânico de concluir
+              que o app não sabe da peça (ele sabe: falta o código) e é o que
+              coloca o buraco na frente de quem pode preenchê-lo. */}
+          {componentes.every((c) => c.partNumberOem == null) && (
+            <p className="apoio mt-2 text-dim">
+              O catálogo conhece estas peças mas ainda não traz o part number OEM de nenhuma delas.
+              Quando você descobrir o código no balcão, guarde-o no item de manutenção da unidade
+              (Barco › Motores) — lá ele fica com a sua unidade e não se perde.
+            </p>
+          )}
+        </>
+      )}
+
       {editavel && (
         <>
           <SecaoPagina icone="mais">Novo orçamento</SecaoPagina>
@@ -289,19 +434,23 @@ export default async function MecanicaPage({
  * como saber isso em tempo de render.
  */
 function LinhaServico({
-  s, ativo, ehDono, editavel,
+  s, ativo, publicacao, editavel, pecasCentavos,
 }: {
   s: Servico
   /** O `id` bate com `?servico=` da URL — é o item que o painel da direita mostra. */
   ativo: boolean
-  ehDono: boolean
+  /** A resposta do domínio pra "esta pessoa publica laudo?" — decisão e
+   *  motivo juntos, ver `podePublicarParaCotistas`. */
+  publicacao: { pode: boolean; motivo: string | null }
   editavel: boolean
+  /** Quanto já saiu do estoque para este serviço (§12, duplicidade). */
+  pecasCentavos: number
 }) {
   const tom = tomDoServico(s.estado)
   return (
     <>
       <div className="lg:hidden">
-        <CartaoServico s={s} ehDono={ehDono} editavel={editavel} prefixoId="m" />
+        <CartaoServico s={s} publicacao={publicacao} editavel={editavel} prefixoId="m" pecasCentavos={pecasCentavos} />
       </div>
       <Link
         href={`/mecanica?servico=${s.id}`}
@@ -345,15 +494,19 @@ function LinhaServico({
  * com o campo ESCONDIDO da lista em vez do campo visível ao lado dele.
  */
 function CartaoServico({
-  s, ehDono, editavel, prefixoId,
+  s, publicacao, editavel, prefixoId, pecasCentavos,
 }: {
   s: Servico
-  ehDono: boolean
+  publicacao: { pode: boolean; motivo: string | null }
   editavel: boolean
   /** "m" (dentro da lista, celular) ou "d" (painel de detalhe, desktop). */
   prefixoId: string
+  pecasCentavos: number
 }) {
   const tom = tomDoServico(s.estado)
+  // §12 (A11) — `null` quando nenhuma peça saiu do estoque para este serviço:
+  // sem duplicidade possível, a pergunta seria ruído.
+  const duplicidade = avisoDeDuplicidade(pecasCentavos)
   return (
     <div
       className={`sombra-1 rounded-[var(--raio-cartao)] border bg-panel p-3.5 ${
@@ -377,7 +530,7 @@ function CartaoServico({
         {s.publicado_em ? "publicado aos cotistas" : "não publicado"}
       </p>
 
-      {editavel && s.estado !== "concluido" && (
+      {editavel && servicoAberto(s.estado) && (
         <form action={atualizarServico} className={`mt-3 space-y-2 ${TETO_FORMULARIO}`}>
           <input type="hidden" name="servico_id" value={s.id} />
           <div className="grid grid-cols-2 gap-2">
@@ -395,19 +548,65 @@ function CartaoServico({
             label="Conserto feito" id={`conserto-${prefixoId}-${s.id}`} name="conserto"
             defaultValue={s.conserto ?? ""}
           />
+          {/* §12 — "Origem → Entrada automática no Financeiro". Era a única
+              das seis origens que nenhuma action produzia: o serviço da
+              oficina não virava custo da unidade, e por isso "Mecânica" nunca
+              aparecia no gráfico "Em quê" de /frota. Opcional: serviço feito
+              em casa não tem nota. */}
+          <Campo
+            label="Valor da oficina (R$) — opcional"
+            id={`valor-${prefixoId}-${s.id}`}
+            name="valor"
+            inputMode="decimal"
+            className="font-mono-instr tabular-nums"
+            dica="Só entra no Financeiro quando o estado virar Concluído."
+          />
+          {duplicidade && (
+            /* A ARMADILHA DA DUPLICIDADE, §12 última linha. A pergunta e as
+               duas respostas vêm do domínio (`avisoDeDuplicidade`) — a ordem
+               das opções importa e está decidida lá: a primeira é a que evita
+               contar duas vezes, e é a mais comum, porque a nota da oficina
+               costuma vir com peça e mão de obra juntas. */
+            <fieldset className="rounded-[var(--raio-controle)] border border-aten/40 bg-panel2 p-3">
+              <legend className="rotulo px-1 text-warn">Atenção ao custo em dobro</legend>
+              <p className="apoio">{duplicidade.pergunta}</p>
+              <div className="mt-2 space-y-1.5">
+                {duplicidade.opcoes.map((rotulo, i) => (
+                  <label key={rotulo} className="flex min-h-11 cursor-pointer items-center gap-2.5">
+                    <input
+                      type="radio"
+                      name="ja_inclui"
+                      value={i === 0 ? "1" : "0"}
+                      defaultChecked={i === 0}
+                      className="size-4 shrink-0 accent-[var(--acento)]"
+                    />
+                    <span className="corpo">{rotulo}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
             Salvar
           </button>
         </form>
       )}
 
-      {ehDono && !s.publicado_em && s.estado === "concluido" && (
-        <form action={publicarServico} className="mt-2">
-          <input type="hidden" name="servico_id" value={s.id} />
-          <button className="h-11 w-full rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto">
-            Publicar para os cotistas
-          </button>
-        </form>
+      {!s.publicado_em && !servicoAberto(s.estado) && (
+        publicacao.pode ? (
+          <form action={publicarServico} className="mt-2">
+            <input type="hidden" name="servico_id" value={s.id} />
+            <button className="h-11 w-full rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto">
+              Publicar para os cotistas
+            </button>
+          </form>
+        ) : (
+          /* Antes, quem não podia publicar simplesmente não via botão nenhum
+             e ficava sem entender por que o laudo concluído não chegava aos
+             cotistas. O motivo vem do domínio junto com a recusa: o mecânico
+             precisa ler que a trava é o §7, não um defeito. */
+          publicacao.motivo && <p className="apoio mt-2 text-dim">{publicacao.motivo}</p>
+        )
       )}
     </div>
   )

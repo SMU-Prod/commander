@@ -438,8 +438,16 @@ export default async function EquipamentoPage({
           const dias = r.horasRestantes != null && r.horasRestantes >= 0 && media != null ? previsaoDias(r.horasRestantes, media) : null
           const venc = vencimentoPorData(calc)
           // Canvas tela-3c — item SEM informação suficiente não finge estado:
-          // ponto vazado (não o farol verde) e "Completar" no lugar da
-          // contagem. Ele não entra na conta da Saúde, nem a favor nem contra.
+          // ponto vazado (não o farol verde) no lugar do farol. Ele não entra
+          // na conta da Saúde, nem a favor nem contra.
+          //
+          // ONDA 92 (achado 6.2) — "Completar" era um `<span>` com verbo
+          // imperativo na cor de ação, sem `href` e sem `button`: prometia uma
+          // ação específica e entregava "abrir a ficha". Vira o estado que é.
+          // `neutro`, não `atencao`: um item que a régua se recusa a avaliar
+          // não pode receber uma cor de semáforo — "Sem dados" é a leitura
+          // certa, e é a que `neutro` carrega. Ver o gêmeo desta linha em
+          // `barco/documentos/page.tsx`.
           if (!temInfo) {
             return (
               <LinhaLista
@@ -448,7 +456,7 @@ export default async function EquipamentoPage({
                 leading={<span aria-label="sem informação suficiente" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
                 titulo={item.nome}
                 subtitulo={linhaDaRegra(calc)}
-                trailing={editavel ? <span className="apoio shrink-0 font-medium text-accent-forte">Completar</span> : undefined}
+                trailing={<Selo estado="neutro">Incompleto</Selo>}
               />
             )
           }

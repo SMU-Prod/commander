@@ -13,6 +13,7 @@ import {
 import { formatarReais } from "@/lib/domain/gastos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { LancamentoFinanceiro, RecorrenciaFinanceira } from "@/lib/db/types"
 
 /**
@@ -78,13 +79,13 @@ export default async function RecorrentesPage({
 
       <FinanceiroNav atual="recorrentes" className="mt-4" />
       <AcoesUniversais className="mt-3" />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <SecaoPagina icone="calendario">Vencimentos em aberto</SecaoPagina>
       <p className="apoio -mt-1 mb-2 text-dim">
         Nada aqui está pago até você marcar. O Commander não dá baixa sozinho.
       </p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {emAberto.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -110,8 +111,12 @@ export default async function RecorrentesPage({
                 <form action={marcarVencimentoPago} className="shrink-0">
                   <input type="hidden" name="recorrencia_id" value={rec.id} />
                   <input type="hidden" name="data" value={data} />
-                  <button className="rounded-lg border border-line px-3 py-2 text-xs font-semibold">
-                    {rec.tipo === "entrada" ? "Recebi" : "Paguei"}
+                  {/* Era uma caixa de 36px — 8px abaixo da régua — e o gesto
+                      mais consequente da tela (dar baixa em conta). Agora é
+                      o alvo de 44px com a pílula de 30px dentro, igual à
+                      ação de todo cabeçalho de seção. */}
+                  <button className={ALVO_ACAO}>
+                    <span className={PILULA_ACAO}>{rec.tipo === "entrada" ? "Recebi" : "Paguei"}</span>
                   </button>
                 </form>
               ) : (
@@ -128,7 +133,7 @@ export default async function RecorrentesPage({
       >
         Séries ativas
       </SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {ativas.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -153,7 +158,7 @@ export default async function RecorrentesPage({
       {encerradas.length > 0 && (
         <>
           <SecaoPagina>Encerradas</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {encerradas.map((r) => (
               <LinhaLista
                 key={r.id}
@@ -171,9 +176,13 @@ export default async function RecorrentesPage({
       {editavel && (
         <Link
           href="/financeiro/recorrentes/nova"
-          className="mt-6 flex h-12 items-center justify-center gap-1.5 rounded-xl border border-line bg-panel text-sm font-semibold"
+          className="mt-6 flex h-12 items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-line bg-panel text-sm font-semibold"
         >
-          <Icone nome="mais" className="size-4" /> Nova recorrente
+          {/* "Cadastrar recorrente", a mesma palavra do estado vazio logo
+              acima: duas frases para o mesmo destino na mesma tela é o
+              começo dos oito rótulos que a auditoria contou (DESIGN §6
+              regra 6). */}
+          <Icone nome="mais" className="size-4" /> Cadastrar recorrente
         </Link>
       )}
     </main>

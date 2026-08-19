@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarMapaTaxonomia, nomeDaRegiao } from "@/lib/consultas-marketplace"
 import { carregarElegibilidadeExplorar, urlFotoParceiro } from "@/lib/consultas-partner"
@@ -15,6 +16,7 @@ import {
   vagaTemConteudo,
 } from "@/lib/domain/partner"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO_PRINCIPAL } from "@/lib/ui/acoes"
 import type {
   ItemTaxonomiaDb,
   Parceiro,
@@ -50,15 +52,15 @@ export default async function PerfilParceiroPage({
         <Link href="/explorar" className="apoio inline-flex items-center gap-1 text-dim">
           <Icone nome="voltar" className="size-3.5" /> Explorar
         </Link>
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-5 text-center">
+        {/* `p-4`: 20px não é degrau da escala base-8 (DESIGN §5). */}
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 text-center">
           <Icone nome="cadeado" className="mx-auto size-6 text-dim" />
           <h1 className="titulo-card mt-2">{titulo}</h1>
           <p className="apoio mt-1 text-dim">{descricao}</p>
-          <Link
-            href="/assinar"
-            className="mt-4 inline-block rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
-          >
-            Ver planos
+          {/* Era 41px — 3 abaixo da régua — e é a única ação da tela de
+              bloqueio. Mesma pílula principal de `/explorar`. */}
+          <Link href="/assinar" className={`${ALVO_ACAO} mt-4`}>
+            <span className={PILULA_ACAO_PRINCIPAL}>Ver planos</span>
           </Link>
         </div>
       </main>
@@ -110,7 +112,7 @@ export default async function PerfilParceiroPage({
 
       <div className="mt-3 flex items-start gap-3">
         <div
-          className={`flex size-12 shrink-0 items-center justify-center rounded-full ${
+          className={`flex size-12 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] ${
             p.plano === "destaque" ? "ring-2 ring-[#D4AF37]" : "ring-2 ring-white"
           }`}
           style={{ backgroundColor: p.cor }}
@@ -131,7 +133,7 @@ export default async function PerfilParceiroPage({
         <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
           {fotos.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros
-            <img key={url} src={url} alt="" className="h-40 w-56 shrink-0 rounded-[12px] object-cover" loading="lazy" />
+            <img key={url} src={url} alt="" className="h-40 w-56 shrink-0 rounded-[var(--raio-cartao)] object-cover" loading="lazy" />
           ))}
         </div>
       )}
@@ -144,7 +146,7 @@ export default async function PerfilParceiroPage({
       {(servicos.length > 0 || produtos.length > 0 || marcas.length > 0 || combustiveis.length > 0) && (
         <>
           <SecaoPagina icone="ferramenta">O que atende</SecaoPagina>
-          <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <Fichas titulo="Serviços" itens={servicos} />
             <Fichas titulo="Produtos" itens={produtos} />
             <Fichas titulo="Marcas" itens={marcas} />
@@ -159,7 +161,7 @@ export default async function PerfilParceiroPage({
           <SecaoPagina icone="ancora">Vagas</SecaoPagina>
           <div className="space-y-2.5">
             {vagas.map((v) => (
-              <div key={v.tipo} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+              <div key={v.tipo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="titulo-card">{ROTULO_TIPO_VAGA[v.tipo]}</p>
                   {v.disponiveis != null && (
@@ -193,7 +195,7 @@ export default async function PerfilParceiroPage({
           {/* §13.3, palavra por palavra: "Informação de disponibilidade é
               declarada pela Marina; não é estoque/reserva transacional."
               Precisa estar NA TELA, não só no código. */}
-          <p className="apoio mt-2 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+          <p className="apoio mt-2 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
             {AVISO_DISPONIBILIDADE_MARINA}
           </p>
         </>
@@ -203,7 +205,7 @@ export default async function PerfilParceiroPage({
       {(p.acesso_nautico || p.estrutura || p.atracacao || p.calado_max_m != null || p.tem_combustivel) && (
         <>
           <SecaoPagina icone="embarcacao">Chegada e estrutura</SecaoPagina>
-          <div className="sombra-1 corpo space-y-2 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 corpo space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             {p.acesso_nautico && <p><span className="text-dim">Acesso náutico:</span> {p.acesso_nautico}</p>}
             {p.calado_max_m != null && (
               <p>
@@ -231,7 +233,7 @@ export default async function PerfilParceiroPage({
           !perfilTem(p.categoria, "acomodacoes"))) && (
         <>
           <SecaoPagina icone="cifrao">Preços</SecaoPagina>
-          <div className="sombra-1 corpo space-y-1 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 corpo space-y-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             {p.preco_diesel_centavos != null && (
               <p>
                 Combustível: <span className="font-mono-instr tabular-nums">{formatarReais(p.preco_diesel_centavos)}</span>/L
@@ -262,13 +264,20 @@ export default async function PerfilParceiroPage({
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4" style={{ scrollbarWidth: "none" }}>
               {cardapio.map((url) => (
                 // eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros
-                <img key={url} src={url} alt="Página do cardápio" className="h-56 w-40 shrink-0 rounded-[12px] object-cover" loading="lazy" />
+                <img key={url} src={url} alt="Página do cardápio" className="h-56 w-40 shrink-0 rounded-[var(--raio-cartao)] object-cover" loading="lazy" />
               ))}
             </div>
           ) : (
-            <p className="apoio rounded-[14px] border border-line bg-panel p-4 text-dim">
-              Este restaurante ainda não publicou o cardápio.
-            </p>
+            // `EstadoVazio` no lugar de um `<p>` emoldurado à mão: mesmo
+            // conteúdo, a forma que as outras 81 telas usam. Sem ação de
+            // propósito — quem publica o cardápio é o restaurante, não quem
+            // está lendo, e oferecer botão aqui seria prometer o que a
+            // pessoa não pode fazer.
+            <EstadoVazio
+              icone="imagem"
+              titulo="Cardápio ainda não publicado"
+              descricao="Quando o restaurante enviar as fotos do cardápio, elas aparecem aqui — dá para ver os pratos e os preços antes de atracar."
+            />
           )}
           {p.culinaria && <p className="corpo mt-2">Cozinha: {p.culinaria}</p>}
           {p.vaga_cortesia && <p className="corpo mt-1">Vaga de carro cortesia</p>}
@@ -280,7 +289,7 @@ export default async function PerfilParceiroPage({
         <>
           <SecaoPagina icone="inicio">Acomodações</SecaoPagina>
           {acomodacoes.length > 0 ? (
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {acomodacoes.map((a) => (
                 <div key={a.id} className="border-b border-line py-3 last:border-b-0">
                   <div className="flex items-baseline justify-between gap-3">
@@ -298,9 +307,11 @@ export default async function PerfilParceiroPage({
               ))}
             </div>
           ) : (
-            <p className="apoio rounded-[14px] border border-line bg-panel p-4 text-dim">
-              Esta pousada ainda não cadastrou as acomodações.
-            </p>
+            <EstadoVazio
+              icone="inicio"
+              titulo="Acomodações ainda não cadastradas"
+              descricao="Quando a pousada cadastrar os quartos, cada um aparece aqui com capacidade e diária. Reserva e pagamento continuam direto com ela."
+            />
           )}
           {(p.check_in || p.check_out) && (
             <p className="corpo mt-2">
@@ -317,7 +328,7 @@ export default async function PerfilParceiroPage({
       )}
 
       <SecaoPagina icone="chat">Contato</SecaoPagina>
-      <div className="sombra-1 corpo space-y-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 corpo space-y-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         {p.horario && <p><span className="text-dim">Horário:</span> {p.horario}</p>}
         {p.email && (
           <a href={`mailto:${p.email}`} className="block break-all text-accent-forte">{p.email}</a>
@@ -329,7 +340,7 @@ export default async function PerfilParceiroPage({
         {p.telefone && (
           <a
             href={`tel:${telefoneLimpo}`}
-            className="corpo flex h-12 flex-1 items-center justify-center rounded-xl border border-line"
+            className="corpo flex h-12 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line"
           >
             Ligar
           </a>
@@ -338,13 +349,13 @@ export default async function PerfilParceiroPage({
           href={`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="corpo flex h-12 flex-1 items-center justify-center rounded-xl border border-line"
+          className="corpo flex h-12 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line"
         >
           Como chegar
         </a>
         <Link
           href={`/navegar?destino_la=${p.lat}&destino_lo=${p.lng}&destino_nome=${encodeURIComponent(p.nome)}`}
-          className="flex h-12 flex-1 items-center justify-center rounded-xl bg-accent font-semibold text-acao-texto"
+          className="flex h-12 flex-1 items-center justify-center rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto"
         >
           Traçar rumo
         </Link>
@@ -362,7 +373,7 @@ function Fichas({ titulo, itens }: { titulo: string; itens: readonly ItemTaxonom
       <p className="rotulo text-dim">{titulo}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {itens.map((i) => (
-          <span key={i.id} className="apoio rounded-full border border-line bg-panel2 px-2.5 py-1">
+          <span key={i.id} className="apoio rounded-[var(--raio-pilula)] border border-line bg-panel2 px-2.5 py-1">
             {i.nome}
           </span>
         ))}

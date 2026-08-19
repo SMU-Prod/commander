@@ -1,8 +1,11 @@
-import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { Campo } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { atualizarItemTaxonomia, criarItemTaxonomia } from "@/lib/acoes/admin-taxonomia"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { ROTULO_TIPO_TAXONOMIA, TIPOS_TAXONOMIA, type TipoTaxonomia } from "@/lib/domain/marketplace"
@@ -37,31 +40,31 @@ export default async function AdminTaxonomiaPage({
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Conteúdo padronizado</h1>
-      <p className="apoio mt-1 text-dim">
-        O vocabulário do produto. Marketplace, Explorar e os cadastros escolhem daqui — por isso não há campo de
-        texto livre neles, e por isso um item errado aqui aparece errado em todo lugar.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Conteúdo padronizado"
+        descricao="O vocabulário do produto. Marketplace, Explorar e os cadastros escolhem daqui — por isso não há campo de texto livre neles, e por isso um item errado aqui aparece errado em todo lugar."
+      />
 
-      <Link
+      {/* Era uma linha de lista escrita à mão dentro de um cartão-de-um-item.
+          `LinhaLista variant="cartao"` é exatamente essa peça — inclusive a
+          confirmação de toque, que a cópia não tinha. */}
+      <LinhaLista
+        variant="cartao"
+        className="mt-4"
         href="/admin/taxonomia/solicitacoes"
-        className="sombra-1 mt-4 flex items-center gap-3 rounded-[14px] border border-line bg-panel px-4 py-3"
-      >
-        <Icone nome="chat" className="size-5 shrink-0 text-accent-forte" />
-        <span className="min-w-0 flex-1">
-          <span className="corpo block font-medium">Pedidos de inclusão</span>
-          <span className="apoio block text-dim">
-            {pendentes === 0 ? "Nenhum pedido pendente" : `${pendentes} pedido${pendentes > 1 ? "s" : ""} aguardando decisão`}
-          </span>
-        </span>
-        <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-      </Link>
+        leading={<Icone nome="chat" className="size-5 shrink-0 text-accent-forte" />}
+        titulo="Pedidos de inclusão"
+        subtitulo={
+          pendentes === 0
+            ? "Nenhum pedido pendente"
+            : `${pendentes} pedido${pendentes > 1 ? "s" : ""} aguardando decisão`
+        }
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <ChipLinha quebra className="mt-5">
         {TIPOS_TAXONOMIA.map((t) => (
@@ -71,8 +74,8 @@ export default async function AdminTaxonomiaPage({
         ))}
       </ChipLinha>
 
-      <p className="rotulo mt-6 mb-2 text-dim">Novo item em {ROTULO_TIPO_TAXONOMIA[tipoAtivo]}</p>
-      <form action={criarItemTaxonomia} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <SecaoPagina>Novo item em {ROTULO_TIPO_TAXONOMIA[tipoAtivo]}</SecaoPagina>
+      <form action={criarItemTaxonomia} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <input type="hidden" name="tipo" value={tipoAtivo} />
         <Campo label="Nome" id="nome" name="nome" required placeholder="Como aparece para quem escolhe" />
         {tipoAtivo === "regiao" && (
@@ -86,18 +89,18 @@ export default async function AdminTaxonomiaPage({
           defaultValue={0}
           dica="Menor aparece primeiro. Empate desempata pelo nome."
         />
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Criar item</button>
+        <BotaoEnviar rotulo="Criar item" larguraCheia />
       </form>
 
-      <p className="rotulo mt-8 mb-2 text-dim">
+      <SecaoPagina className="mt-8">
         {ROTULO_TIPO_TAXONOMIA[tipoAtivo]} · {itens.length} item{itens.length === 1 ? "" : "s"}
-      </p>
+      </SecaoPagina>
       {itens.length === 0 ? (
         <EstadoVazio icone="guardado" titulo="Nada cadastrado neste tipo" descricao="Crie o primeiro item no formulário acima." />
       ) : (
         <div className="space-y-2">
           {itens.map((i) => (
-            <form key={i.id} action={atualizarItemTaxonomia} className="sombra-1 space-y-2 rounded-[14px] border border-line bg-panel p-4">
+            <form key={i.id} action={atualizarItemTaxonomia} className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <input type="hidden" name="id" value={i.id} />
               <div className="flex items-center justify-between gap-2">
                 <p className="apoio min-w-0 flex-1 truncate text-dim">
@@ -112,7 +115,7 @@ export default async function AdminTaxonomiaPage({
                 <Campo label="Nome" id={`nome_${i.id}`} name="nome" defaultValue={i.nome} required />
                 <Campo label="Ordem" id={`ordem_${i.id}`} name="ordem" type="number" defaultValue={i.ordem} />
               </div>
-              <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">Salvar</button>
+              <BotaoEnviar rotulo="Salvar" variante="contorno" larguraCheia />
             </form>
           ))}
         </div>

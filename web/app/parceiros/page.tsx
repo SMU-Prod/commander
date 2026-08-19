@@ -2,6 +2,14 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { Logo } from "@/components/logo"
+import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
+
+/** O MESMO desenho de `app/page.tsx` e de `BotaoEnviar variante="principal"`.
+ *  As duas páginas de venda tinham `rounded-xl`/`py-3.5` — 12px de raio e
+ *  52px de altura, nenhum dos dois na escala do docs/DESIGN.md §5 — e quem
+ *  vem da landing para cá via rodapé encontrava dois botões diferentes para
+ *  o mesmo gesto. */
+const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`
 
 // Onda 25 (auditoria CMO P0) — página pública de vendas pro parceiro
 // comercial (marina, posto, pousada, restaurante). Antes só existia
@@ -67,7 +75,7 @@ export default function ParceirosPage() {
           <Logo compacto />
           <span className="rotulo text-accent">Commander</span>
         </div>
-        <Link href="/parceiro" className="corpo font-medium text-dim hover:text-texto">
+        <Link href="/parceiro" className={`corpo inline-flex min-h-11 items-center font-medium text-dim hover:text-texto ${TOQUE}`}>
           Já é parceiro? Entrar
         </Link>
       </header>
@@ -87,7 +95,7 @@ export default function ParceirosPage() {
           Autoatendimento, sem mensalidade de agência.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/parceiro" className="sombra-2 rounded-xl bg-accent px-6 py-3.5 text-center font-semibold text-acao-texto">
+          <Link href="/parceiro" className={`sombra-2 ${CTA}`}>
             Cadastrar meu negócio
           </Link>
         </div>
@@ -106,7 +114,7 @@ export default function ParceirosPage() {
         <p className="rotulo text-center text-accent">O que você ganha</p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {GANHOS.map((g) => (
-            <div key={g.titulo} className="sombra-1 rounded-[14px] border border-line bg-panel p-5">
+            <div key={g.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-5">
               <span className="flex size-10 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
                 <Icone nome={g.icone} className="size-5" />
               </span>
@@ -140,7 +148,7 @@ export default function ParceirosPage() {
           Sem contrato, sem mensalidade de agência — você mesmo cadastra e atualiza, direto no seu painel.
         </p>
         <div className="mt-8">
-          <Link href="/parceiro" className="sombra-2 inline-block rounded-xl bg-accent px-8 py-3.5 font-semibold text-acao-texto">
+          <Link href="/parceiro" className={`sombra-2 px-8 ${CTA}`}>
             Cadastrar meu negócio
           </Link>
         </div>

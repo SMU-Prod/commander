@@ -8,6 +8,7 @@ import { resolvedorDeFotoDePerfil } from "@/lib/consultas-captain"
 import { carregarMapaTaxonomia } from "@/lib/consultas-marketplace"
 import { ESPECIALIDADES_PRESTADOR, ICONE_POR_ESPECIALIDADE, type EspecialidadePrestador } from "@/lib/domain/prestadores"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { PerfilComandante } from "@/lib/db/types"
 
 /** Onda 39 (PRD upgrade2-master §50) — vitrine de Prestadores: mecânico,
@@ -73,18 +74,21 @@ export default async function PrestadoresPage({
       </p>
       <p className="apoio mt-1 text-dim">
         São PESSOAS. Marinas, postos, pousadas e restaurantes ficam em{" "}
-        <Link href="/explorar" className="text-accent-forte">Explorar</Link>, no mapa.
+        {/* A EXCEÇÃO que continua texto: link no meio de frase corrida. O
+            sublinhado é o affordance certo aqui — pílula no meio de um
+            parágrafo seria pior que o problema. */}
+        <Link href="/explorar" className="text-accent-forte underline">Explorar</Link>, no mapa.
       </p>
       <RedeNav atual="prestadores" className="mt-4" />
 
       {/* Vindo da antiga aba Serviços (onda 46): achar quem resolve um
           problema começando pela categoria, não pelo nome de quem atende. */}
       <p className="rotulo mt-6 mb-2 text-dim">Por especialidade</p>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         <Link
           href="/prestadores"
           aria-current={categoria === null ? "page" : undefined}
-          className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[14px] border px-3 py-4 text-center ${
+          className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[var(--raio-cartao)] border px-3 py-4 text-center ${
             categoria === null ? "border-accent bg-accent/10" : "border-line bg-panel"
           }`}
         >
@@ -96,7 +100,7 @@ export default async function PrestadoresPage({
             key={c}
             href={`/prestadores?categoria=${encodeURIComponent(c)}`}
             aria-current={categoria === c ? "page" : undefined}
-            className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[14px] border px-3 py-4 text-center ${
+            className={`sombra-1 flex flex-col items-center gap-1.5 rounded-[var(--raio-cartao)] border px-3 py-4 text-center ${
               categoria === c ? "border-accent bg-accent/10" : "border-line bg-panel"
             }`}
           >
@@ -131,9 +135,18 @@ export default async function PrestadoresPage({
         ))}
       </div>
 
-      <Link href="/prestadores/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
-        <Icone nome="ferramenta" className="size-3.5" /> É prestador de serviço? Toque aqui para criar seu perfil.
-      </Link>
+      {/* Era uma frase inteira virada link, de 18px e vestida de `text-dim` —
+          ou seja, com o vestido que o app usa pro que NÃO se toca. E o rótulo
+          dizia "Toque aqui", que descreve o gesto em vez do que acontece.
+          Agora a pergunta é texto e a ação é pílula, com o verbo certo. */}
+      <div className="mt-6">
+        <p className="apoio text-dim">É prestador de serviço?</p>
+        <Link href="/prestadores/perfil" className={`${ALVO_ACAO} mt-1`}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="ferramenta" className="size-3.5" /> Criar meu perfil
+          </span>
+        </Link>
+      </div>
     </main>
   )
 }

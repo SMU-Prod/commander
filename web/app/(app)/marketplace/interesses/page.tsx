@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -14,6 +15,7 @@ import {
   TIPOS_TAXONOMIA,
 } from "@/lib/domain/marketplace"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { InteresseMarketplace } from "@/lib/db/types"
 
 /**
@@ -64,11 +66,11 @@ export default async function InteressesPage({
         titulo="O que eu quero receber"
         descricao="Escolha as regiões e as áreas que você atende. Só chegam pedidos que combinam com isso."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
-      {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 
       <SecaoPagina icone="sinal">Seus interesses</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {interesses.length === 0 ? (
           <EstadoVazio
             variant="linha"
@@ -95,7 +97,9 @@ export default async function InteressesPage({
                 </div>
                 <form action={removerInteresse} className="shrink-0">
                   <input type="hidden" name="interesse_id" value={i.id} />
-                  <Confirmar mensagem="Parar de receber?" rotulo="Remover" />
+                  <Confirmar mensagem="Parar de receber?" rotulo="Remover" className={ALVO_ACAO}>
+                    <span className={PILULA_ACAO}>Remover</span>
+                  </Confirmar>
                 </form>
               </div>
             )
@@ -112,7 +116,7 @@ export default async function InteressesPage({
         ))}
       </ChipLinha>
 
-      <form action={salvarInteresse} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={salvarInteresse} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <input type="hidden" name="tipo_demanda" value={tipo} />
 
         <CampoSelect label="Região que você atende" id="regiao_id" name="regiao_id" required defaultValue="">
@@ -158,9 +162,7 @@ export default async function InteressesPage({
           />
         )}
 
-        <button className="h-11 w-full rounded-xl bg-accent text-sm font-semibold text-acao-texto">
-          Adicionar
-        </button>
+        <BotaoEnviar rotulo="Adicionar interesse" larguraCheia />
       </form>
 
       {/* §21.2 — a saída pra quem não achou a sua região/categoria na lista.
@@ -169,7 +171,7 @@ export default async function InteressesPage({
       <div id="pedir">
         <SecaoPagina icone="chat">Está faltando alguma opção?</SecaoPagina>
       </div>
-      <form action={solicitarTaxonomia} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={solicitarTaxonomia} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <input type="hidden" name="volta" value="/marketplace/interesses" />
         <p className="apoio text-dim">
           As listas são padronizadas pra que os pedidos cheguem em quem realmente atende. Se faltou a sua
@@ -182,7 +184,7 @@ export default async function InteressesPage({
         </CampoSelect>
         <Campo label="Nome que está faltando" id="nome" name="nome" required placeholder="Ex.: Guarapari — ES" />
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={2} maxLength={300} />
-        <button className="h-11 w-full rounded-xl border border-line text-sm font-medium">Pedir inclusão</button>
+        <BotaoEnviar rotulo="Pedir inclusão" variante="contorno" larguraCheia />
       </form>
     </main>
   )

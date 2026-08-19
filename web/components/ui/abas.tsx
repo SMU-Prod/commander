@@ -59,7 +59,7 @@ export function Abas({
             key={a.valor}
             href={a.href}
             aria-current={ehAtiva ? "page" : undefined}
-            className={`flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium ${
+            className={`flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium ${
               ehAtiva ? "border-accent-forte text-texto" : "border-transparent text-dim"
             }`}
           >

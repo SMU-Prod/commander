@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -12,6 +13,7 @@ import {
 import { formatarReais } from "@/lib/domain/gastos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { LancamentoFinanceiro } from "@/lib/db/types"
 
 /** Detalhe de um lançamento: confirmar pagamento/recebimento, corrigir e
@@ -52,11 +54,14 @@ export default async function LancamentoPage({
         titulo={l.descricao}
         descricao={`${ROTULO_CATEGORIA[l.categoria]} · ${formatarDataBr(l.data)}`}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">{l.tipo === "entrada" ? "Entrada" : "Despesa"}</p>
-        <p className={`mt-1 font-mono-instr text-3xl tabular-nums ${l.tipo === "entrada" ? "text-ok" : ""}`}>
+        {/* O valor É o assunto desta ficha — `.valor-instrumento`, o terceiro
+            degrau do número (onda 87). `text-3xl` (30px) não era degrau de
+            escala nenhuma. */}
+        <p className={`mt-1 font-mono-instr valor-instrumento ${l.tipo === "entrada" ? "text-ok" : ""}`}>
           {formatarReais(l.valor_centavos)}
         </p>
         <p className="apoio mt-1 text-dim">{rotuloStatus(l.tipo, l.status)}</p>
@@ -79,10 +84,11 @@ export default async function LancamentoPage({
           </div>
         )}
 
+        {/* Era texto dourado de 21px de alvo dentro do cartão — a régua da
+            casa é 44px e quem diz "aqui se toca" é a forma (acoes.ts). */}
         {urlComprovante && (
-          <a href={urlComprovante} target="_blank" rel="noopener noreferrer"
-            className="corpo mt-3 inline-block text-accent-forte">
-            Abrir comprovante
+          <a href={urlComprovante} target="_blank" rel="noopener noreferrer" className={`${ALVO_ACAO} mt-3`}>
+            <span className={PILULA_ACAO}>Abrir comprovante</span>
           </a>
         )}
 
@@ -110,7 +116,7 @@ export default async function LancamentoPage({
         <form action={alternarStatusLancamento} className="mt-3">
           <input type="hidden" name="lancamento_id" value={l.id} />
           <input type="hidden" name="status" value={l.status === "pago" ? "pendente" : "pago"} />
-          <button className={`w-full rounded-xl py-3 text-sm font-semibold ${
+          <button className={`w-full rounded-[var(--raio-controle)] py-3 text-sm font-semibold ${
             l.status === "pago" ? "border border-line" : "bg-accent text-acao-texto"
           }`}>
             {l.status === "pago" ? "Voltar para pendente" : rotuloAcaoConfirmar(l.tipo)}
@@ -121,7 +127,7 @@ export default async function LancamentoPage({
       {editavel && !daCarteira && (
         <>
           <SecaoPagina icone="ferramenta">Corrigir</SecaoPagina>
-          <form action={salvarLancamento} className="space-y-4 rounded-[14px] border border-line bg-panel p-4">
+          <form action={salvarLancamento} className="space-y-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <input type="hidden" name="lancamento_id" value={l.id} />
             <CampoSelect label="Tipo" id="tipo" name="tipo" defaultValue={l.tipo}>
               <option value="despesa">Despesa</option>
@@ -141,7 +147,7 @@ export default async function LancamentoPage({
               <Campo label="Data" id="data" name="data" type="date" required defaultValue={l.data} />
             </div>
             <label className="flex items-center gap-3">
-              <input type="checkbox" name="pago" defaultChecked={l.status === "pago"} className="size-5 accent-[#d4af37]" />
+              <input type="checkbox" name="pago" defaultChecked={l.status === "pago"} className="size-5 accent-[var(--acao)]" />
               <span className="corpo">{l.tipo === "entrada" ? "Já foi recebido" : "Já foi pago"}</span>
             </label>
             <Campo
@@ -155,16 +161,22 @@ export default async function LancamentoPage({
               ))}
             </CampoSelect>
             <CampoTextarea label="Observação" id="observacao" name="observacao" rows={3} defaultValue={l.observacao ?? ""} />
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar</button>
+            {/* ONDA 85 — o padding vertical de 14px escrito à mão dava a
+                sétima altura de controle do app (52px) e o botão não dizia
+                que estava salvando. `BotaoEnviar` traz as duas coisas de uma
+                vez: a régua de 48px e o aviso de envio. */}
+            <BotaoEnviar rotulo="Salvar" />
           </form>
 
+          {/* O vermelho fica no PASSO DA CONFIRMAÇÃO, que o `Confirmar` já
+              desenha — aqui a ação é uma pílula de contorno como as outras.
+              Texto vermelho de 21px lia como mensagem de erro, não como
+              alvo, e ficava 23px abaixo da régua de toque. */}
           <form action={excluirLancamento} className="mt-6 flex justify-center">
             <input type="hidden" name="lancamento_id" value={l.id} />
-            <Confirmar
-              mensagem="Excluir este lançamento?"
-              rotulo="Excluir lançamento"
-              className="text-sm font-semibold text-crit"
-            />
+            <Confirmar mensagem="Excluir este lançamento?" rotulo="Excluir lançamento" className={ALVO_ACAO}>
+              <span className={PILULA_ACAO}>Excluir lançamento</span>
+            </Confirmar>
           </form>
         </>
       )}

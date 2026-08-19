@@ -16,6 +16,7 @@ import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 export function SecaoPagina({
   icone,
   acao,
+  denso = false,
   children,
   className = "",
   id,
@@ -24,6 +25,24 @@ export function SecaoPagina({
   icone?: NomeIcone
   /** Ação à direita, ex.: `{ href: "/barco/itens/novo", rotulo: "Manutenção", icone: "mais" }`. */
   acao?: { href: string; rotulo: string; icone?: NomeIcone }
+  /** ONDA 91 (achado 1.3) — A MOLDURA DE SEÇÃO PARA DE COMER A TELA.
+   *
+   *  `/barco` empilha OITO seções numa tela só, cinco delas com ação, e a
+   *  conta da moldura fixa deste componente (24 + 8 = 32px por seção) mais as
+   *  linhas dá **457px** — 61% de uma tela de 390×844 gasta em cabeçalho de
+   *  seção, antes de qualquer conteúdo. `denso` desce para 16 + 4 = 20px e
+   *  devolve ~96px, sem esconder nada e sem tocar no rótulo.
+   *
+   *  POR QUE É PROP E NÃO `className`: duas classes `mt-*` no mesmo elemento
+   *  é loteria de ordem no CSS gerado — quem vence depende de como o Tailwind
+   *  ordenou as utilitárias, não de quem escreveu por último. É o mesmo
+   *  motivo que `botao-ficha.tsx` documenta para `border-*`/`text-*`.
+   *
+   *  Padrão `false`: nenhum dos ~35 consumidores atuais muda de aparência.
+   *  E isto NÃO é a correção completa do achado — `/barco` ter oito seções é
+   *  um índice fingindo de ficha, e o remédio de verdade é `Abas` (onda 92).
+   *  Isto é o respiro até lá. */
+  denso?: boolean
   children: ReactNode
   className?: string
   /** Âncora (`#id`) — pra ação no topo da tela apontar pra seção certa
@@ -36,7 +55,12 @@ export function SecaoPagina({
     // direita deixou de ser um texto e virou um alvo de toque de 44px (ver
     // abaixo), e alinhar pela BASE um texto de 14px com uma caixa de 44px
     // empurrava o rótulo da seção para o topo da linha.
-    <div id={id} className={`mt-6 mb-2 flex items-center justify-between gap-2 ${className}`}>
+    // Os dois pares são degraus da escala base-8 do `docs/DESIGN.md` §5
+    // (24/8 e 16/4) — a versão densa aperta, não sai da régua.
+    <div
+      id={id}
+      className={`${denso ? "mt-4 mb-1" : "mt-6 mb-2"} flex items-center justify-between gap-2 ${className}`}
+    >
       <p className="rotulo inline-flex items-center gap-1.5 text-dim">
         {icone && <Icone nome={icone} className="size-3.5" />}
         {children}

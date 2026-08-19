@@ -17,10 +17,12 @@ import { TOQUE } from "@/lib/ui/acoes"
  *
  * Duas decisões de acabamento embutidas aqui:
  *
- * 1. ALTURA `h-11` (44px), a MESMA de `RedeNav`/`FinanceiroNav`. O app passa a
- *    ter uma única altura de pílula, ponto. Escolher 40px "porque passa na
- *    régua da varredura" só criaria um terceiro tamanho ao lado dos 44px que
- *    a navegação já usa.
+ * 1. ALTURA `--altura-controle` (44px), a MESMA de `RedeNav`/`FinanceiroNav`.
+ *    O app passa a ter uma única altura de pílula, ponto. Escolher 40px
+ *    "porque passa na régua da varredura" só criaria um terceiro tamanho ao
+ *    lado dos 44px que a navegação já usa. (Onda 91, achado 5.10: era `h-11`
+ *    cravado; o número virou token em `globals.css`, porque cravar a régua em
+ *    cada arquivo é como o app chegou a nove alturas de alvo.)
  *
  * 2. TIPOGRAFIA `text-sm` sans, não `font-mono-instr ... tracking-wide`. A
  *    fonte mono é o mostrador de instrumento — serve pra NÚMERO (horímetro,
@@ -65,7 +67,7 @@ export function Chip({
     <Link
       href={href}
       aria-current={ativo ? "true" : undefined}
-      className={`flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm ${TOQUE} ${estilo}`}
+      className={`flex h-[var(--altura-controle)] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm ${TOQUE} ${estilo}`}
     >
       {children}
       {contagem != null && (
@@ -105,5 +107,35 @@ export function ChipLinha({
     >
       {children}
     </div>
+  )
+}
+
+/**
+ * CHIP DE DADO — rótulo colado no valor, dentro de uma pílula. É o terceiro
+ * chip da referência ("2 linhas de texto + 3 chips em ~64px", spec §3 item 6)
+ * e o formato único que o achado 5.7 cobra: a contagem/medida mora DENTRO do
+ * chip, nunca como número mono solto ao lado de um título.
+ *
+ * ONDA 91 — promovido da mão do Diário (`app/(app)/diario/page.tsx`, os chips
+ * "No mar", "Trilha" e "A bordo" do cartão de saída), que é onde este desenho
+ * nasceu e onde ele já tinha derivado: `px-2.5` e `py-[5px]` são pixels
+ * escolhidos no olho, fora da escala base-8 que o `docs/DESIGN.md` §5 declara.
+ * Aqui viram `px-2`/`py-1`, os degraus vizinhos.
+ *
+ * NÃO É O `Chip` acima, e a diferença é funcional, não de tamanho: aquele é um
+ * `<Link>` de filtro (44px de alvo, muda o que a tela mostra); este é LEITURA,
+ * não se toca — mesma isenção declarada em `PastilhaKpi`, e pelo mesmo motivo.
+ *
+ * O valor sai em `.valor` (14px) e não nos 12px que o Diário escrevia: a onda
+ * 87 declarou três degraus para o número e este é o de lista. Doze px ao lado
+ * de um rótulo de 11px liam como a mesma voz, que é exatamente o achatamento
+ * que a régua de hierarquia existe pra evitar.
+ */
+export function ChipDado({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line px-2 py-1">
+      <span className="rotulo text-dim">{rotulo}</span>
+      <span className="font-mono-instr valor font-semibold tabular-nums">{children}</span>
+    </span>
   )
 }

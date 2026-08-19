@@ -23,6 +23,7 @@ import {
   ROTULO_TIPO_PARTNER,
   TIPOS_PARTNER,
 } from "@/lib/domain/partner"
+import { ALVO_ACAO, PILULA_ACAO, PILULA_ACAO_PRINCIPAL } from "@/lib/ui/acoes"
 import { campo, rot } from "@/lib/ui/form"
 
 /**
@@ -118,17 +119,18 @@ export default async function ExplorarPage({
         ) : (
           <>
             <CardsParceiros cards={cards} bloqueado />
-            <div className="sombra-1 mt-4 rounded-[14px] border border-accent/30 bg-accent/5 p-4 text-center">
+            <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-accent/30 bg-accent/5 p-4 text-center">
               <p className="corpo font-medium">Você está vendo uma amostra</p>
               <p className="apoio mt-1 text-dim">
                 No plano gratuito o Explorar mostra alguns parceiros só com foto e nome. Perfil completo,
                 categoria, região e contato são do plano Commander.
               </p>
-              <Link
-                href="/assinar"
-                className="mt-3 inline-block rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-acao-texto"
-              >
-                Ver planos
+              {/* Era uma caixa de 37px — 7 abaixo da régua — e é a ÚNICA
+                  ação da amostra gratuita. `PILULA_ACAO_PRINCIPAL` é o
+                  vestido declarado pra isso (acoes.ts): cheia e dourada, com
+                  o alvo de 44px vindo por fora. */}
+              <Link href="/assinar" className={`${ALVO_ACAO} mt-3`}>
+                <span className={PILULA_ACAO_PRINCIPAL}>Ver planos</span>
               </Link>
             </div>
           </>
@@ -207,7 +209,7 @@ export default async function ExplorarPage({
               key={valor}
               href={hrefTipo(valor)}
               aria-current={ativo ? "true" : undefined}
-              className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm ${
+              className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm ${
                 ativo ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
               }`}
             >
@@ -219,7 +221,7 @@ export default async function ExplorarPage({
 
       {/* Região e categoria/atividade são listas longas demais pra chip —
           entram num GET simples, que continua funcionando sem JavaScript. */}
-      <form method="get" action="/explorar" className="sombra-1 mt-3 rounded-[14px] border border-line bg-panel p-3">
+      <form method="get" action="/explorar" className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
         {filtroTipo !== FILTRO_TODOS && <input type="hidden" name="tipo" value={filtroTipo} />}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -242,11 +244,15 @@ export default async function ExplorarPage({
           </div>
         </div>
         <div className="mt-3 flex items-center gap-3">
-          <button className="h-11 flex-1 rounded-xl bg-accent text-sm font-semibold text-acao-texto">
+          <button className="h-11 flex-1 rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto">
             Aplicar filtros
           </button>
+          {/* "Limpar" era texto cinza de 21px ao lado de um botão de 44px —
+              o vestido do que NÃO se toca, na mesma linha da ação da tela. */}
           {comFiltro && (
-            <Link href="/explorar" className="corpo shrink-0 text-dim">Limpar</Link>
+            <Link href="/explorar" className={`${ALVO_ACAO} shrink-0`}>
+              <span className={PILULA_ACAO}>Limpar</span>
+            </Link>
           )}
         </div>
       </form>
@@ -289,7 +295,7 @@ function Cabecalho({ noMapa }: { noMapa: boolean }) {
       </div>
       <Link
         href={noMapa ? "/explorar" : "/explorar?vista=mapa"}
-        className="corpo inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-line bg-panel px-3 text-dim"
+        className="corpo inline-flex h-11 shrink-0 items-center gap-1.5 rounded-[var(--raio-controle)] border border-line bg-panel px-3 text-dim"
       >
         <Icone nome={noMapa ? "marketplace" : "mapa"} className="size-4" />
         {noMapa ? "Vitrine" : "Mapa"}

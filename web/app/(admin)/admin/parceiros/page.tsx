@@ -1,6 +1,9 @@
 import Link from "next/link"
-import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { Selo } from "@/components/ui/selo"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { definirVisibilidadeParceiro } from "@/lib/acoes/publicidade"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarCampanhas } from "@/lib/consultas-publicidade"
@@ -78,17 +81,15 @@ export default async function AdminParceirosPage({
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Partners</h1>
-      <p className="apoio mt-1 text-dim">
-        Carteira comercial. Suspender tira o perfil do Explorar na hora e não apaga nada — o cadastro, as
-        fotos e o histórico continuam do Partner.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Partners"
+        descricao="Carteira comercial. Suspender tira o perfil do Explorar na hora e não apaga nada — o cadastro, as fotos e o histórico continuam do Partner."
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <div className="mt-5 space-y-3">
         {parceiros.length === 0 ? (
@@ -102,7 +103,7 @@ export default async function AdminParceirosPage({
             const doParceiro = campanhasDe(p.id)
             const noAr = doParceiro.filter((c) => campanhaVigente(c.campanha as CampanhaParaExibicao, hoje))
             return (
-              <div key={p.id} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+              <div key={p.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="corpo truncate font-medium">{p.nome}</p>
@@ -111,13 +112,11 @@ export default async function AdminParceirosPage({
                       {ROTULO_PLANO[p.plano] ?? p.plano}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] ${
-                      p.visivel ? "border-ok/40 bg-ok/10" : "border-line bg-panel2"
-                    }`}
-                  >
-                    {p.visivel ? "No Explorar" : "Suspenso"}
-                  </span>
+                  {/* Era pílula à mão a 10px — abaixo do piso de 11px que o
+                      globals.css declara — e com o tracking derivado (.1em
+                      contra os .09em do componente). `Selo` é a mesma peça,
+                      medida uma vez. */}
+                  <Selo estado={p.visivel ? "ok" : "neutro"}>{p.visivel ? "No Explorar" : "Suspenso"}</Selo>
                 </div>
 
                 {/* Destaques vigentes — é o que o §21 chama de "destaques".
@@ -140,12 +139,16 @@ export default async function AdminParceirosPage({
                   <form action={definirVisibilidadeParceiro}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="visivel" value={p.visivel ? "nao" : "sim"} />
-                    <button className="apoio rounded-lg border border-line bg-panel2 px-3 py-1.5 font-medium">
-                      {p.visivel ? "Suspender do Explorar" : "Reativar no Explorar"}
-                    </button>
+                    {/* 30px de altura para a ação que tira um Partner do ar.
+                        `contorno` é a pílula de 44px do app e avisa o envio. */}
+                    <BotaoEnviar
+                      rotulo={p.visivel ? "Suspender do Explorar" : "Reativar no Explorar"}
+                      variante="contorno"
+                      className="whitespace-nowrap"
+                    />
                   </form>
-                  <Link href="/admin/publicidade" className="apoio text-accent-forte">
-                    Campanhas e destaques
+                  <Link href="/admin/publicidade" className={ALVO_ACAO}>
+                    <span className={PILULA_ACAO}>Campanhas e destaques</span>
                   </Link>
                 </div>
 

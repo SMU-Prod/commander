@@ -52,19 +52,30 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   "components/explorar/cards-parceiros.tsx": 4,
   "components/landing/mock-telas.tsx": 4,
   "components/selos/selo-gold.tsx": 4,
-  "app/opengraph-image.tsx": 3,
+  // ONDA 93 — caiu de 3 para 2 quando o card de compartilhamento parou de
+  // redesenhar a marca à mão (o `<path>` dourado copiado de `logo.tsx`) e
+  // passou a LER `public/logo-commander.svg`. Os dois que sobram são o navy
+  // do fundo e o claro do texto — o card é uma imagem gerada fora do
+  // documento, então ele não tem `var()` pra ler: o Satori resolve estilo
+  // sem CSS custom property. É a exceção legítima do mapa.
+  "app/opengraph-image.tsx": 2,
   "components/farol.tsx": 3,
-  "app/(app)/carteira/[id]/page.tsx": 2,
-  "app/(app)/tripulacao/[id]/page.tsx": 2,
-  "app/(app)/carteira/nova/page.tsx": 1,
+  // As oito caixas de escolha que cravavam o dourado da marca em hexadecimal
+  // (`accent-[...]` em dinheiro, gente e rede) passaram a ler `var(--acao)`
+  // no passe de design de 19/08. Não era só deriva de token: o valor cravado
+  // é o dourado do tema CLARO, e o app abre no ESCURO, onde `--acao` é limão
+  // — a caixa marcada saía com a cor de outro tema. Seis arquivos zeraram e
+  // saíram deste mapa; `explorar/[id]` fica com 1 porque o anel dourado dele
+  // é o selo do plano Gold, que é outra cor e outro assunto.
   "app/(app)/explorar/[id]/page.tsx": 1,
-  "app/(app)/financeiro/lancamentos/[id]/page.tsx": 1,
-  "app/(app)/financeiro/novo/page.tsx": 1,
-  "app/(app)/marketplace/[id]/page.tsx": 1,
   "app/(auth)/login/page.tsx": 1,
   "app/(auth)/nova-senha/page.tsx": 1,
   "app/layout.tsx": 1,
-  "components/logo.tsx": 1,
+  // `components/logo.tsx` SAIU do mapa na onda 93, e a razão é boa: ele
+  // desenhava o monograma provisório com o dourado cravado no `fill`. Agora
+  // a marca é um arquivo (`public/logo-commander.svg`) e o componente não
+  // conhece cor nenhuma — as cores da marca vivem no asset, que é onde elas
+  // devem viver.
   "components/perfil-profissional-form.tsx": 1,
 }
 

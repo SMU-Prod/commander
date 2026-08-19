@@ -54,14 +54,19 @@ function caminhoSuave(pts: { x: number; y: number }[]): string {
 
 export function GraficoArea({
   pontos,
-  cor = "var(--acao)",
+  cor = "var(--dado)",
   alturaClasse = "h-[140px] sm:h-[200px]",
   rotulo,
   sufixo = "",
   className = "",
 }: {
   pontos: PontoArea[]
-  /** Cor do dado. Padrão: o dourado da marca. */
+  /** Cor do dado — `--dado`, a família que o `docs/DESIGN.md` §5 reserva pra
+   *  série. ONDA 91 (achado 5.5): o padrão era `var(--acao)`, o dourado de
+   *  ação/marca. Este componente tem ZERO consumidores hoje, então aqui o
+   *  conserto é preventivo — era o irmão de `GraficoBarras` esperando pra
+   *  repassar o mesmo defeito ao primeiro que o usasse, pela terceira vez
+   *  (a onda 63 já o tinha corrigido no gráfico antigo). */
   cor?: string
   /** Spec §5: 140px no celular, 200px no desktop. */
   alturaClasse?: string
@@ -105,7 +110,10 @@ export function GraficoArea({
           <span
             key={marca.pos}
             style={{ top: `${marca.pos}%` }}
-            className="absolute right-0 -translate-y-1/2 font-mono-instr text-[10px] leading-none tabular-nums text-dim sm:text-[11px]"
+            // ONDA 91 (achado 5.6, mesmo conserto do eixo X de
+            // `GraficoBarras`): 11px é o piso declarado em `globals.css`, e
+            // `text-[10px]` no celular ficava um pixel abaixo dele.
+            className="absolute right-0 -translate-y-1/2 font-mono-instr text-[11px] leading-none tabular-nums text-dim"
           >
             {marca.texto}
             {sufixo}
@@ -181,7 +189,7 @@ export function GraficoArea({
               <span
                 key={`${p.rotulo}-${i}`}
                 style={{ left: `${x}%` }}
-                className={`absolute top-0 whitespace-nowrap font-mono-instr text-[10px] leading-none tabular-nums text-dim sm:text-[11px] ${ancora} ${raleiaNoCelular ? "max-sm:invisible" : ""}`}
+                className={`absolute top-0 whitespace-nowrap font-mono-instr text-[11px] leading-none tabular-nums text-dim ${ancora} ${raleiaNoCelular ? "max-sm:invisible" : ""}`}
               >
                 {p.rotulo}
               </span>

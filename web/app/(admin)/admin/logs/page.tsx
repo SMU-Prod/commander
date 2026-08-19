@@ -1,5 +1,4 @@
-import Link from "next/link"
-import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarLogsAdmin } from "@/lib/consultas-admin"
@@ -24,15 +23,16 @@ export default async function AdminLogsPage() {
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Logs administrativos</h1>
-      <p className="apoio mt-1 text-dim">
-        {tudo
-          ? "Todas as ações administrativas registradas. O registro não é editável nem apagável — nem por você."
-          : "As suas ações administrativas. O registro não é editável nem apagável."}
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Logs administrativos"
+        descricao={
+          tudo
+            ? "Todas as ações administrativas registradas. O registro não é editável nem apagável — nem por você."
+            : "As suas ações administrativas. O registro não é editável nem apagável."
+        }
+      />
 
       <div className="mt-5">
         {logs.length === 0 ? (
@@ -42,7 +42,7 @@ export default async function AdminLogsPage() {
             descricao="Conceder função, editar taxonomia e decidir um pedido aparecem aqui assim que acontecerem."
           />
         ) : (
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {logs.map((l) => (
               <div key={l.id} className="border-b border-line py-3 last:border-0">
                 <div className="flex items-baseline justify-between gap-3">

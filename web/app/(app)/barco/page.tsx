@@ -8,6 +8,7 @@ import { SeloGold } from "@/components/selos/selo-gold"
 import { SeloVerified } from "@/components/selos/selo-verified"
 import { SituacaoVerified } from "@/components/selos/situacao-verified"
 import { PatrocinioDashboard } from "@/components/publicidade/patrocinio-dashboard"
+import { Abas } from "@/components/ui/abas"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -61,6 +62,10 @@ export default async function BarcoPage({
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
   const motores = equipamentos.filter((e) => e.tipo === "motor")
+  // Era contado duas vezes dentro do JSX da seção Elétrica; agora a aba de
+  // salto lê o MESMO número, e ele passa a existir uma vez só.
+  const eletricos = equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica")
+  const itensDoCasco = itens.filter((i) => (CATEGORIAS_CASCO as readonly string[]).includes(i.categoria ?? ""))
   // Duas coisas diferentes que moravam na mesma seção: documentos (categoria
   // "documento") e itens gerais da embarcação, sem motor/elétrica/casco/
   // documento — o item "Embarcação (geral)" do formulário cai aqui.
@@ -131,7 +136,58 @@ export default async function BarcoPage({
         />
       )}
 
-      <SecaoPagina icone="motor" acao={podeEditar(permissoes, "motores") ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Motor", icone: "mais" } : undefined}>
+      {/* ONDA 92 — `Abas` EM /barco, MAS COMO ÂNCORA, NÃO COMO RECORTE.
+          ------------------------------------------------------------------
+          A auditoria de 19/08 (achado 1.3) mede o problema certo: oito
+          `SecaoPagina` gastam 457px — 61% de uma tela de 390×844 — só em
+          cabeçalho, e propõe `Abas` pra quebrar isso. A proposta foi avaliada
+          e aceita PELA METADE, e é a metade que importa.
+
+          O QUE NÃO ENTRA: aba que RECORTA conteúdo. Esta é a tela que
+          responde "como está meu barco". Recortar em oito abas esconde sete
+          oitavos da resposta atrás de um toque e transforma uma rolagem em
+          oito navegações — e como o estado de `Abas` mora na URL, cada uma é
+          uma ida ao servidor. Pior: o que o dono precisa VER (o farol vermelho
+          de um item do Casco, o documento vencido) passaria a depender de ele
+          adivinhar em qual aba mora. `Abas` tem `contagem`, mas contagem não é
+          farol — "Casco 6" não diz que um dos seis está vencido. Esconder
+          semáforo atrás de número é exatamente a troca que este app não faz.
+
+          O QUE ENTRA: a mesma leitura da referência — a ficha de equipamento
+          já usa `Abas` com `href="#seção"` e `ativa=""`, rolagem contínua,
+          nada escondido (onda 79, "isto é atalho, não recorte de conteúdo").
+          É o índice que a tela pedia, custa uma linha de 44px, e a resposta
+          inteira continua a um scroll de distância.
+
+          O QUE FICA PENDENTE: os 457px de moldura continuam lá. Encolher isso
+          é `mt-4 mb-1` dentro do `SecaoPagina`, que é componente de outro
+          agente nesta rodada — está anotado no relatório, não remendado aqui
+          com `mt-*` no `className` (duas classes da mesma família no mesmo
+          elemento é loteria de ordem de CSS, ver `botao-ficha.tsx`). */}
+      <Abas
+        className="mt-4"
+        abas={[
+          { valor: "motores", rotulo: "Motores", href: "#motores", contagem: motores.length },
+          { valor: "eletrica", rotulo: "Elétrica", href: "#eletrica", contagem: eletricos.length },
+          { valor: "casco", rotulo: "Casco", href: "#casco", contagem: itensDoCasco.length },
+          { valor: "documentos", rotulo: "Documentos", href: "#documentos", contagem: documentos.length },
+          { valor: "outras", rotulo: "Manutenções", href: "#outras", contagem: outrasManutencoes.length },
+          // Sem `contagem` de propósito nas três últimas: elas não são coleção
+          // de nada. Um número ali teria de ser inventado, e `Abas` documenta
+          // que aba sem número diz "não sei contar isto" — que é a verdade.
+          { valor: "ferramentas", rotulo: "Ferramentas", href: "#ferramentas" },
+          { valor: "selos", rotulo: "Selos", href: "#selos" },
+          { valor: "dados", rotulo: "Dados gerais", href: "#dados" },
+        ]}
+        ativa=""
+      />
+
+      <SecaoPagina
+        id="motores"
+        className="scroll-mt-4"
+        icone="motor"
+        acao={podeEditar(permissoes, "motores") ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Motor", icone: "mais" } : undefined}
+      >
         Motores
       </SecaoPagina>
       {motores.length === 0 && (
@@ -154,18 +210,14 @@ export default async function BarcoPage({
         ))}
       </div>
 
-      <SecaoPagina icone="raio" acao={{ href: "/barco/eletrica", rotulo: "Ver tudo" }}>
+      <SecaoPagina id="eletrica" className="scroll-mt-4" icone="raio" acao={{ href: "/barco/eletrica", rotulo: "Ver tudo" }}>
         Elétrica
       </SecaoPagina>
       <LinhaLista
         href="/barco/eletrica"
         variant="cartao"
         leading={<Icone nome="raio" className="size-5 shrink-0 text-dim" />}
-        titulo={
-          equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica").length === 0
-            ? "Cadastre gerador e baterias"
-            : `${equipamentos.filter((e) => abaDoEquipamento(e.tipo) === "eletrica").length} equipamentos`
-        }
+        titulo={eletricos.length === 0 ? "Cadastre gerador e baterias" : `${eletricos.length} equipamentos`}
         subtitulo="Manutenção do gerador, troca das baterias e painel de bordo"
       />
 
@@ -204,7 +256,7 @@ export default async function BarcoPage({
         />
       )}
 
-      <SecaoPagina icone="escudo">Casco</SecaoPagina>
+      <SecaoPagina id="casco" className="scroll-mt-4" icone="escudo">Casco</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {CATEGORIAS_CASCO.map((c) => {
           const doGrupo = itens.filter((i) => i.categoria === c)
@@ -241,7 +293,7 @@ export default async function BarcoPage({
         })}
       </div>
 
-      <SecaoPagina icone="documento">Documentos</SecaoPagina>
+      <SecaoPagina id="documentos" className="scroll-mt-4" icone="documento">Documentos</SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
         {documentos.length === 0 && (
           <EstadoVazio
@@ -276,7 +328,12 @@ export default async function BarcoPage({
         })}
       </div>
 
-      <SecaoPagina icone="ferramenta" acao={podeEditar(permissoes, "embarcacao") ? { href: "/barco/itens/novo", rotulo: "Manutenção", icone: "mais" } : undefined}>
+      <SecaoPagina
+        id="outras"
+        className="scroll-mt-4"
+        icone="ferramenta"
+        acao={podeEditar(permissoes, "embarcacao") ? { href: "/barco/itens/novo", rotulo: "Manutenção", icone: "mais" } : undefined}
+      >
         Outras manutenções
       </SecaoPagina>
       <p className="apoio -mt-1 mb-2 text-dim">Vence, mas não é motor, elétrica, casco nem documento.</p>
@@ -304,7 +361,7 @@ export default async function BarcoPage({
         })}
       </div>
 
-      <SecaoPagina icone="imagem">Ferramentas do dia a dia</SecaoPagina>
+      <SecaoPagina id="ferramentas" className="scroll-mt-4" icone="imagem">Ferramentas do dia a dia</SecaoPagina>
       <div className="grid grid-cols-2 gap-2">
         {(
           [
@@ -333,7 +390,7 @@ export default async function BarcoPage({
           ))}
       </div>
 
-      <SecaoPagina icone="escudo" acao={{ href: "/barco/selos", rotulo: "Ver tudo" }}>
+      <SecaoPagina id="selos" className="scroll-mt-4" icone="escudo" acao={{ href: "/barco/selos", rotulo: "Ver tudo" }}>
         Selos Commander
       </SecaoPagina>
       <Link
@@ -380,7 +437,15 @@ export default async function BarcoPage({
         <p className="apoio mt-0.5 text-dim">Conectividade NMEA 2000 pro diário automático.</p>
       </Link>
 
-      <SecaoPagina icone="embarcacao" acao={papel === "PROP" ? { href: "/barco/editar", rotulo: "Editar" } : undefined}>
+      {/* "Editar" fica: é a exceção declarada do rótulo único (achado 6.1) —
+          o verbo muda o que acontece de verdade, porque leva a uma tela de
+          edição, não a uma lista. */}
+      <SecaoPagina
+        id="dados"
+        className="scroll-mt-4"
+        icone="embarcacao"
+        acao={papel === "PROP" ? { href: "/barco/editar", rotulo: "Editar" } : undefined}
+      >
         Dados gerais
       </SecaoPagina>
       <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">

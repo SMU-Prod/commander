@@ -34,10 +34,11 @@ describe("BarraFerramentas", () => {
     expect(saida).toContain("Pendentes")
   })
 
-  it("a acao tem altura minima de 44px (min-h-11)", () => {
+  it("a acao tem altura minima de 44px (--altura-controle)", () => {
     const saida = html({ href: "/diario/novo", rotulo: "Novo registro" })
     const link = saida.match(/<a[^>]*href="\/diario\/novo"[^>]*>/)?.[0] ?? ""
-    expect(link).toContain("min-h-11")
+    // ONDA 91 — o 44 saiu do arquivo e virou token (achado 5.10).
+    expect(link).toContain("min-h-[var(--altura-controle)]")
   })
 
   it("no celular a acao fica ACIMA da fila, e so a partir de lg divide a linha", () => {

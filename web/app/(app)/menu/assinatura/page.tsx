@@ -15,6 +15,7 @@ import { mensagemDowngrade, ROTULO_SITUACAO } from "@/lib/domain/assinatura-cicl
 import { formatarPreco, PLANOS, planosDoPerfil, proximoUpgrade } from "@/lib/domain/planos"
 import { BENEFICIOS_PAGOS, O_QUE_O_FREE_FAZ, ehPago } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 /**
  * MINHA CONTA › ASSINATURA (onda 47 — PRD FINAL §2, §23).
@@ -113,7 +114,7 @@ export default async function AssinaturaPage({
       <main>
         <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Assinatura" />
 
-        <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="titulo-card">A assinatura da embarcação é do proprietário</p>
           <p className="apoio mt-1 text-dim">
             Cobrança e plano do barco ficam vinculados a quem é PROP nesta embarcação — fale com o
@@ -122,11 +123,11 @@ export default async function AssinaturaPage({
         </div>
 
         {trilha === "captain" && (
-          <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="titulo-card">{PLANOS[planoCarreira].rotulo}</p>
               <span
-                className={`rotulo rounded-full px-2.5 py-1 ${
+                className={`rotulo rounded-[var(--raio-pilula)] px-2.5 py-1 ${
                   temPro ? "bg-accent/15 text-accent-forte" : "bg-panel2 text-dim"
                 }`}
               >
@@ -148,7 +149,7 @@ export default async function AssinaturaPage({
             </ul>
 
             {vivaPropria ? (
-              <div className="mt-4 rounded-lg border border-line bg-panel2 p-3">
+              <div className="mt-4 rounded-[var(--raio-controle)] border border-line bg-panel2 p-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="corpo font-medium">{formatarPreco(minha.valor_centavos)} /mês</p>
                   <p className="apoio text-dim">{meuCiclo ? ROTULO_SITUACAO[meuCiclo.situacao] : ""}</p>
@@ -157,13 +158,16 @@ export default async function AssinaturaPage({
                   <Confirmar
                     rotulo="Cancelar assinatura"
                     mensagem="Cancelar? Seu perfil sai da vitrine, mas nada do que você registrou é apagado."
-                  />
+                    className={ALVO_ACAO}
+                  >
+                    <span className={PILULA_ACAO}>Cancelar assinatura</span>
+                  </Confirmar>
                 </form>
               </div>
             ) : (
               <Link
                 href="/assinar?perfil=captain"
-                className="mt-4 block w-full rounded-xl bg-accent py-3.5 text-center font-semibold text-acao-texto"
+                className="mt-4 block w-full rounded-[var(--raio-controle)] bg-accent py-3 text-center font-semibold text-acao-texto"
               >
                 Assinar o {PLANOS.captain_pro.rotulo} — {formatarPreco(PLANOS.captain_pro.valorCentavos!)}/mês
               </Link>
@@ -197,15 +201,15 @@ export default async function AssinaturaPage({
   return (
     <main>
       <CabecalhoDetalhe voltarHref="/menu" voltarRotulo="Menu" titulo="Assinatura" />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 
       {/* §23: "durante tolerância, avisar claramente ANTES de bloquear". O
           aviso vem primeiro na tela justamente por isso — antes do plano,
           antes das faturas. */}
       {ciclo?.aviso && ciclo.situacao !== "ativa" && (
         <p
-          className={`corpo mt-3 rounded-lg border px-3 py-2 ${
+          className={`corpo mt-3 rounded-[var(--raio-controle)] border px-3 py-2 ${
             ciclo.acessoPago ? "border-aten/40 bg-aten/10" : "border-crit/40 bg-crit/10"
           }`}
         >
@@ -214,11 +218,11 @@ export default async function AssinaturaPage({
       )}
 
       {/* Plano vigente — sempre visível primeiro, com o que ele libera. */}
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="titulo-card">{PLANOS[plano].rotulo}</p>
           <span
-            className={`rotulo rounded-full px-2.5 py-1 ${
+            className={`rotulo rounded-[var(--raio-pilula)] px-2.5 py-1 ${
               ehPago(nivel) ? "bg-accent/15 text-accent-forte" : "bg-panel2 text-dim"
             }`}
           >
@@ -240,7 +244,7 @@ export default async function AssinaturaPage({
         </ul>
 
         {promocao && (
-          <p className="apoio mt-3 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2">
+          <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-accent/30 bg-accent/5 px-3 py-2">
             Você está com uma condição promocional até {dataBr(promocao.validoAte)}
             {promocao.valorCentavos > 0 ? ` — ${formatarPreco(promocao.valorCentavos)}/mês` : " — sem cobrança"}.
             Depois desse período, a cobrança volta ao valor normal do plano.
@@ -252,19 +256,22 @@ export default async function AssinaturaPage({
 
       {/* §23, downgrade Pro → Commander: barco excedente fica pausado, nunca apagado. */}
       {avisoDowngrade && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-aten/40 bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-aten/40 bg-panel p-4">
           <p className="titulo-card">Embarcações acima do plano</p>
           <p className="apoio mt-1 text-dim">{avisoDowngrade}</p>
+          {/* Era texto dourado de 18px dentro de um cartão de aviso — a única
+              saída de um estado que BLOQUEIA gestão de barco, vestida como o
+              apoio ao lado dela. */}
           {acesso.divisao.precisaEscolher && (
-            <Link href="/menu" className="apoio mt-3 inline-block font-semibold text-accent-forte">
-              Escolher a embarcação ativa
+            <Link href="/menu" className={`${ALVO_ACAO} mt-3`}>
+              <span className={PILULA_ACAO}>Escolher a embarcação ativa</span>
             </Link>
           )}
         </div>
       )}
 
       {!temAssinaturaViva ? (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="titulo-card">
             {assinatura?.status === "cancelada" ? "Sua assinatura está cancelada" : "Você ainda não é assinante"}
           </p>
@@ -273,12 +280,12 @@ export default async function AssinaturaPage({
             {formatarPreco(PLANOS.commander_pro.valorCentavos!)}/mês. Nada do que você já registrou é apagado em
             nenhum dos casos.
           </p>
-          <Link href="/assinar" className="mt-3 block w-full rounded-xl bg-accent py-3.5 text-center font-semibold text-acao-texto">
+          <Link href="/assinar" className="mt-3 block w-full rounded-[var(--raio-controle)] bg-accent py-3 text-center font-semibold text-acao-texto">
             Ver planos
           </Link>
         </div>
       ) : (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <div className="flex items-baseline justify-between gap-3">
             <p className="titulo-card">Cobrança</p>
             <p className="apoio text-dim">{ciclo ? ROTULO_SITUACAO[ciclo.situacao] : ""}</p>
@@ -294,7 +301,7 @@ export default async function AssinaturaPage({
             <p className="apoio mt-1 text-dim">Forma de pagamento: {ROTULO_FORMA_PAGAMENTO[formaPagamento] ?? formaPagamento}</p>
           )}
           {!chaveAsaas && (
-            <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+            <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
               O ambiente de pagamento não está configurado agora — próxima cobrança, forma de
               pagamento e faturas podem não aparecer mesmo com a assinatura ativa. Isso é uma
               limitação deste ambiente, não da sua assinatura.
@@ -302,13 +309,17 @@ export default async function AssinaturaPage({
           )}
 
           {upgrade && assinatura.status !== "pendente" && (
-            <form action={trocarPlano} className="mt-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
+            <form action={trocarPlano} className="mt-4 rounded-[var(--raio-controle)] border border-accent/30 bg-accent/5 p-3">
               <input type="hidden" name="plano" value={upgrade} />
               <p className="corpo font-medium">Passe para o {PLANOS[upgrade].rotulo}</p>
               <p className="apoio mt-0.5 text-dim">
                 {PLANOS[upgrade].regra} — {formatarPreco(PLANOS[upgrade].valorCentavos!)}/mês.
               </p>
-              <button className="apoio mt-2 font-semibold text-accent-forte">Fazer upgrade</button>
+              {/* Era um `<button>` de 18px sem forma nenhuma — o gesto que
+                  MUDA O PLANO PAGO, com o vestido do texto de apoio. */}
+              <button className={`${ALVO_ACAO} mt-2`}>
+                <span className={PILULA_ACAO}>Fazer upgrade</span>
+              </button>
             </form>
           )}
 
@@ -318,14 +329,22 @@ export default async function AssinaturaPage({
           {downgrade && assinatura.status !== "pendente" && (
             <form action={trocarPlano} className="mt-3">
               <input type="hidden" name="plano" value={downgrade} />
+              {/* As três ações do fim desta tela — descer de plano, cancelar
+                  e a de upgrade lá em cima — tinham TRÊS vestidos diferentes
+                  (cinza 21px, vermelho 21px, dourado 18px) para o mesmo gesto
+                  "mexer na assinatura". Agora são a mesma pílula, e a
+                  gravidade de cada uma continua onde ela pesa: no texto da
+                  confirmação. */}
               <Confirmar
                 rotulo={`Voltar para o ${PLANOS[downgrade].rotulo}`}
                 mensagem={
                   `Voltar para o ${PLANOS[downgrade].rotulo}? As embarcações acima do limite não são apagadas — ` +
                   "a gestão delas fica pausada até você voltar para o Pro."
                 }
-                className="text-sm text-dim"
-              />
+                className={ALVO_ACAO}
+              >
+                <span className={PILULA_ACAO}>Voltar para o {PLANOS[downgrade].rotulo}</span>
+              </Confirmar>
             </form>
           )}
 
@@ -333,15 +352,17 @@ export default async function AssinaturaPage({
             <Confirmar
               rotulo="Cancelar assinatura"
               mensagem="Cancelar a assinatura? Nada é apagado — o dossiê do barco continua guardado e volta inteiro se você reativar."
-              className="text-sm text-crit"
-            />
+              className={ALVO_ACAO}
+            >
+              <span className={PILULA_ACAO}>Cancelar assinatura</span>
+            </Confirmar>
           </form>
         </div>
       )}
 
       {/* §23: "Histórico de faturas/cobranças disponível em Minha Conta." */}
       {cobrancas.length > 0 && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           <p className="rotulo pt-4 text-dim">Faturas</p>
           {cobrancas.map((c) => (
             <LinhaLista
@@ -352,9 +373,13 @@ export default async function AssinaturaPage({
               subtitulo={`${dataBr(c.dataVencimento)} · ${ROTULO_COBRANCA[c.status] ?? "Fale com a equipe sobre esta fatura"}`}
               trailing={
                 c.invoiceUrl ? (
-                  <a href={c.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-accent-forte">
-                    <Icone nome="documento" className="size-4" /> Ver
+                  // "Ver" a fatura era texto dourado de 21px na coluna da
+                  // direita de cada linha — o mesmo lugar onde o resto do app
+                  // põe VALOR, ou seja, o lugar do que não se toca.
+                  <a href={c.invoiceUrl} target="_blank" rel="noopener noreferrer" className={ALVO_ACAO}>
+                    <span className={PILULA_ACAO}>
+                      <Icone nome="documento" className="size-4" /> Ver
+                    </span>
                   </a>
                 ) : undefined
               }
@@ -367,10 +392,10 @@ export default async function AssinaturaPage({
       {planosDoPerfil("proprietario")
         .filter((p) => p.disponibilidade === "em_breve")
         .map((p) => (
-          <div key={p.id} className="mt-4 rounded-[14px] border border-line bg-panel2 p-4">
+          <div key={p.id} className="mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel2 p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="titulo-card text-dim">{p.rotulo}</p>
-              <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">Em breve</span>
+              <span className="rotulo rounded-[var(--raio-pilula)] bg-panel px-2.5 py-1 text-dim-chip">Em breve</span>
             </div>
             <p className="apoio mt-1 text-dim">
               Para frotas e operações maiores. Ainda estamos definindo o formato — se é o seu caso, fale com a

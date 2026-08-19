@@ -9,6 +9,7 @@ import { carregarAvaliacoesDe, nomePublicoDoUsuario } from "@/lib/consultas-aval
 import { carregarTrabalhosConfirmados } from "@/lib/consultas-captain"
 import { calcularReputacao } from "@/lib/domain/avaliacoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 /**
  * O "perfil" do §14: média, quantidade e a indicação "Negócio confirmado pelo
@@ -53,7 +54,7 @@ export default async function PerfilAvaliacoesPage({
       </div>
 
       {trabalhos > 0 && (
-        <p className="apoio mt-2 rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+        <p className="apoio mt-2 rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
           {trabalhos === 1
             ? "1 trabalho confirmado pelos dois lados dentro do Commander."
             : `${trabalhos} trabalhos confirmados pelos dois lados dentro do Commander.`}
@@ -61,7 +62,7 @@ export default async function PerfilAvaliacoesPage({
       )}
 
       {souEu && reputacao.ocultadas > 0 && (
-        <p className="apoio mt-2 rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+        <p className="apoio mt-2 rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
           As avaliações ocultadas por violação aparecem abaixo só para você — quem visita este perfil não as
           vê, e elas não entram na média.
         </p>
@@ -76,7 +77,7 @@ export default async function PerfilAvaliacoesPage({
           icone="estrela"
           titulo="Nenhuma avaliação ainda"
           descricao="No Commander, só avalia quem fechou negócio e confirmou o fechamento — por isso a primeira demora."
-          acao={{ href: "/marketplace", rotulo: "Ver o Marketplace" }}
+          acao={{ href: "/marketplace", rotulo: "Ir para o Marketplace" }}
         />
       ) : (
         <div className="space-y-3">
@@ -86,12 +87,16 @@ export default async function PerfilAvaliacoesPage({
         </div>
       )}
 
+      {/* ONDA 82 — a ação sozinha no fim da tela era um `<p>` com link
+          dourado dentro: 18px de alvo e o mesmo vestido do texto de apoio
+          logo acima. Não é link no meio de frase (aí o sublinhado seria o
+          affordance certo) — é um botão, e botão tem forma. */}
       {souEu && (
-        <p className="apoio mt-6">
-          <Link href="/avaliacoes" className="text-accent-forte">
-            Responder, contestar ou marcar como solucionado
+        <div className="mt-6">
+          <Link href="/avaliacoes" className={ALVO_ACAO}>
+            <span className={PILULA_ACAO}>Responder, contestar ou marcar como solucionado</span>
           </Link>
-        </p>
+        </div>
       )}
     </main>
   )

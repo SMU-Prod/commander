@@ -6,8 +6,10 @@ import { SeloReputacao } from "@/components/avaliacoes/reputacao"
 import { Confirmar } from "@/components/confirmar"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { publicarAvaliacao } from "@/lib/acoes/avaliacoes"
 import { adicionarNegocioAoFinanceiro } from "@/lib/acoes/financeiro"
@@ -53,6 +55,7 @@ import {
 import { podeEditar } from "@/lib/domain/permissoes"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type {
   Demanda, DemandaContato, Negocio, NegocioConfirmacao, Proposta,
 } from "@/lib/db/types"
@@ -162,15 +165,15 @@ export default async function DemandaPage({
   return (
     <main>
       <CabecalhoDetalhe voltarHref="/marketplace" voltarRotulo="Marketplace" />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
-      {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 
       {/* --- O cartão gerado pelo Commander (§11.2) --- */}
-      <div className="sombra-1 mt-3 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-start justify-between gap-2">
           <h1 className="titulo-pagina">{tituloDeDemanda(mapa, demanda)}</h1>
           <span
-            className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
+            className={`rotulo shrink-0 rounded-[var(--raio-pilula)] border px-2 py-0.5 ${
               viva ? "border-ok/40 text-ok" : "border-line text-dim"
             }`}
           >
@@ -211,13 +214,13 @@ export default async function DemandaPage({
       </div>
 
       {/* --- Onde estamos na esteira (§11.6) --- */}
-      <p className="apoio mt-3 rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+      <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
         <span className="rotulo">Situação</span> · {ROTULO_ETAPA_COMERCIAL[etapa]}
       </p>
 
       {/* --- Contato liberado (§22) --- */}
       {contato && (contato.telefone || contato.email) && (
-        <div className="sombra-1 mt-3 rounded-[14px] border border-ok/40 bg-ok/10 p-4">
+        <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-ok/40 bg-ok/10 p-4">
           <p className="titulo-card">{ehAutor ? "Seu contato neste pedido" : "Contato liberado"}</p>
           {!ehAutor && (
             <p className="apoio mt-0.5 text-dim">
@@ -229,13 +232,13 @@ export default async function DemandaPage({
               <a
                 href={`https://wa.me/55${contato.telefone.replace(/\D/g, "")}`}
                 target="_blank" rel="noopener noreferrer"
-                className="rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok"
+                className="rounded-[var(--raio-controle)] border border-ok/40 px-2.5 py-1.5 text-xs text-ok"
               >
                 WhatsApp {contato.telefone}
               </a>
             )}
             {contato.email && (
-              <a href={`mailto:${contato.email}`} className="rounded-lg border border-line px-2.5 py-1.5 text-xs">
+              <a href={`mailto:${contato.email}`} className="rounded-[var(--raio-controle)] border border-line px-2.5 py-1.5 text-xs">
                 {contato.email}
               </a>
             )}
@@ -249,18 +252,21 @@ export default async function DemandaPage({
           <form action={atualizarStatusDemanda} className="flex-1">
             <input type="hidden" name="demanda_id" value={demanda.id} />
             <input type="hidden" name="status" value="fechada" />
-            <button className="h-11 w-full rounded-lg border border-line text-sm font-medium text-dim">
-              Já resolvi — encerrar
-            </button>
+            <BotaoEnviar rotulo="Já resolvi — encerrar" rotuloEnviando="Encerrando…" variante="contorno" larguraCheia />
           </form>
           <form action={atualizarStatusDemanda} className="flex-1">
             <input type="hidden" name="demanda_id" value={demanda.id} />
             <input type="hidden" name="status" value="cancelada" />
+            {/* O vermelho fica no passo da confirmação, que o `Confirmar` já
+                desenha — as duas ações desta linha são o mesmo gesto
+                (encerrar) e agora têm o mesmo vestido. */}
             <Confirmar
               mensagem="Cancelar este pedido? Quem já respondeu deixa de poder falar com você."
               rotulo="Cancelar pedido"
-              className="flex h-11 w-full items-center justify-center rounded-lg border border-crit/40 text-sm font-medium text-crit"
-            />
+              className={`${ALVO_ACAO} w-full justify-center`}
+            >
+              <span className={`${PILULA_ACAO} w-full justify-center`}>Cancelar pedido</span>
+            </Confirmar>
           </form>
         </div>
       )}
@@ -297,14 +303,20 @@ export default async function DemandaPage({
           <p className="rotulo mt-6 mb-2 text-dim">
             {propostas.length} {propostas.length === 1 ? substantivo : `${substantivo}s`}
           </p>
+          {/* Era um parágrafo centrado fingindo de cartão — o mesmo conteúdo
+              que `EstadoVazio` desenha em 81 lugares, escrito à mão sem
+              ícone e sem forma. A frase ganhou o que o §6 regra 4 cobra:
+              o que acontece a seguir, e por que a espera é normal. */}
           {propostas.length === 0 ? (
-            <p className="apoio rounded-[14px] border border-line bg-panel p-4 text-center text-dim">
-              Ninguém respondeu ainda. Quem atende essa categoria na sua região já foi avisado.
-            </p>
+            <EstadoVazio
+              icone="chat"
+              titulo="Ninguém respondeu ainda"
+              descricao="Quem atende essa categoria na sua região já foi avisado. As respostas chegam aqui com o preço e o prazo de cada um — e você escolhe com quem falar."
+            />
           ) : (
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {propostas.map((p) => (
-                <div key={p.id} className="border-b border-line py-3.5 last:border-0">
+                <div key={p.id} className="border-b border-line py-3 last:border-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="titulo-card inline-flex flex-wrap items-center gap-2">
                       {p.autor_nome}
@@ -327,27 +339,27 @@ export default async function DemandaPage({
                         <input type="hidden" name="demanda_id" value={demanda.id} />
                         <input type="hidden" name="proposta_id" value={p.id} />
                         <input type="hidden" name="decisao" value="aceita" />
-                        <button className="h-10 w-full rounded-lg border border-ok/40 text-sm font-medium text-ok">
-                          Aceitar e liberar meu contato
-                        </button>
+                        {/* Eram 40px, 4 abaixo da régua — e é a decisão mais
+                            consequente da tela (libera o telefone). */}
+                        <BotaoEnviar rotulo="Aceitar e liberar meu contato" variante="contorno" larguraCheia />
                       </form>
                       <form action={responderProposta} className="flex-1">
                         <input type="hidden" name="demanda_id" value={demanda.id} />
                         <input type="hidden" name="proposta_id" value={p.id} />
                         <input type="hidden" name="decisao" value="recusada" />
-                        <button className="h-10 w-full rounded-lg border border-line text-sm font-medium text-dim">
-                          Recusar
-                        </button>
+                        <BotaoEnviar rotulo="Recusar" variante="contorno" larguraCheia />
                       </form>
                     </div>
                   )}
+                  {/* Era 32px, e é o alvo que fecha o negócio. O verde saiu:
+                      `--ok` é ESTADO no sistema (DESIGN §5), não cor de ação. */}
                   {p.status === "aceita" && p.telefone && (
                     <a
                       href={`https://wa.me/55${p.telefone.replace(/\D/g, "")}`}
                       target="_blank" rel="noopener noreferrer"
-                      className="mt-2 inline-block rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok"
+                      className={`${ALVO_ACAO} mt-2`}
                     >
-                      WhatsApp {p.telefone}
+                      <span className={PILULA_ACAO}>WhatsApp {p.telefone}</span>
                     </a>
                   )}
                 </div>
@@ -356,7 +368,7 @@ export default async function DemandaPage({
           )}
         </>
       ) : minhaProposta ? (
-        <div className="mt-6 rounded-[14px] border border-line bg-panel p-4">
+        <div className="mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="titulo-card">
             Sua {substantivo} — {minhaProposta.status === "enviada" ? "aguardando resposta" : minhaProposta.status}
           </p>
@@ -372,7 +384,7 @@ export default async function DemandaPage({
       ) : podePropor ? (
         <FormProposta demanda={demanda} />
       ) : (
-        <p className="apoio mt-6 rounded-[14px] border border-line bg-panel p-4 text-center text-dim">
+        <p className="apoio mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 text-center text-dim">
           Este pedido não está mais aceitando resposta.
         </p>
       )}
@@ -416,7 +428,7 @@ function FormNegocioRealizado({
   fornecedorId: string
 }) {
   return (
-    <form action={marcarNegocioRealizado} className="sombra-1 mt-3 rounded-[14px] border border-line bg-panel p-4">
+    <form action={marcarNegocioRealizado} className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
       <input type="hidden" name="demanda_id" value={demandaId} />
       <input type="hidden" name="proposta_id" value={propostaId} />
       <input type="hidden" name="cliente_id" value={clienteId} />
@@ -434,9 +446,7 @@ function FormNegocioRealizado({
         />
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={2} maxLength={300} />
       </div>
-      <button className="mt-3 h-11 w-full rounded-xl bg-accent text-sm font-semibold text-acao-texto">
-        Marcar como realizado
-      </button>
+      <BotaoEnviar rotulo="Marcar como realizado" larguraCheia className="mt-3" />
     </form>
   )
 }
@@ -470,7 +480,7 @@ function BlocoNegocio({
 
   return (
     <div
-      className={`sombra-1 mt-3 rounded-[14px] border p-4 ${
+      className={`sombra-1 mt-3 rounded-[var(--raio-cartao)] border p-4 ${
         estado === "confirmado" ? "border-ok/40 bg-ok/10" : estado === "negado" ? "border-crit/40 bg-crit/10" : "border-line bg-panel"
       }`}
     >
@@ -485,17 +495,13 @@ function BlocoNegocio({
             <input type="hidden" name="demanda_id" value={demandaId} />
             <input type="hidden" name="negocio_id" value={negocio.id} />
             <input type="hidden" name="decisao" value="confirmado" />
-            <button className="h-11 w-full rounded-lg border border-ok/40 text-sm font-medium text-ok">
-              Confirmo que aconteceu
-            </button>
+            <BotaoEnviar rotulo="Confirmo que aconteceu" rotuloEnviando="Confirmando…" variante="contorno" larguraCheia />
           </form>
           <form action={responderConfirmacaoNegocio} className="flex-1">
             <input type="hidden" name="demanda_id" value={demandaId} />
             <input type="hidden" name="negocio_id" value={negocio.id} />
             <input type="hidden" name="decisao" value="negado" />
-            <button className="h-11 w-full rounded-lg border border-crit/40 text-sm font-medium text-crit">
-              Não reconheço
-            </button>
+            <BotaoEnviar rotulo="Não reconheço" rotuloEnviando="Enviando…" variante="contorno" larguraCheia />
           </form>
         </div>
       )}
@@ -527,13 +533,13 @@ function BlocoNegocio({
                     : undefined
                 }
               />
-              <p className="apoio mt-2">
-                <Link href="/avaliacoes" className="text-accent-forte">
+              <Link href="/avaliacoes" className={`${ALVO_ACAO} mt-2`}>
+                <span className={PILULA_ACAO}>
                   {avaliacao.avaliacao.avaliado_id === usuarioId
                     ? "Responder, contestar ou marcar como solucionado"
                     : "Ver e editar em Avaliações"}
-                </Link>
-              </p>
+                </span>
+              </Link>
             </>
           ) : posso ? (
             <FormAvaliacao demandaId={demandaId} negocioId={negocio.id} />
@@ -577,7 +583,9 @@ function BlocoAdicionarAoFinanceiro({
     return (
       <p className="apoio text-dim">
         Este negócio já está no Financeiro.{" "}
-        <Link href={`/financeiro/lancamentos/${lancamentoId}`} className="text-accent-forte">
+        {/* Link dentro de frase corrida — a exceção que fica em texto, com o
+            sublinhado que é o affordance certo aí. */}
+        <Link href={`/financeiro/lancamentos/${lancamentoId}`} className="text-accent-forte underline">
           Ver o lançamento
         </Link>
       </p>
@@ -609,9 +617,7 @@ function BlocoAdicionarAoFinanceiro({
         />
         <Campo label="Data" id="data_financeiro" name="data" type="date" defaultValue={negocio.criado_em.slice(0, 10)} />
       </div>
-      <button className="h-11 w-full rounded-xl border border-accent/40 text-sm font-semibold text-accent-forte">
-        Adicionar ao Financeiro
-      </button>
+      <BotaoEnviar rotulo="Adicionar ao Financeiro" variante="contorno" larguraCheia />
     </form>
   )
 }
@@ -635,9 +641,7 @@ function FormAvaliacao({ demandaId, negocioId }: { demandaId: string; negocioId:
         label="Comentário (opcional)" id="comentario" name="comentario" rows={3} maxLength={800}
         placeholder="O que funcionou, o que não funcionou."
       />
-      <button className="h-11 w-full rounded-xl bg-accent text-sm font-semibold text-acao-texto">
-        Publicar avaliação
-      </button>
+      <BotaoEnviar rotulo="Publicar avaliação" larguraCheia />
     </form>
   )
 }
@@ -662,7 +666,7 @@ function FormProposta({ demanda }: { demanda: Demanda }) {
       <p className="rotulo text-dim">Enviar {substantivo}</p>
 
       {usa("perfil_profissional") && (
-        <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+        <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
           Quem publicou vê o seu perfil profissional junto da candidatura. Mantenha-o atualizado em Prestadores.
         </p>
       )}
@@ -732,7 +736,7 @@ function FormProposta({ demanda }: { demanda: Demanda }) {
         <>
           <Campo label="Valor (R$)" id="valor" name="valor" inputMode="decimal" placeholder="850,00" />
           <label className="apoio flex items-center gap-2 text-dim">
-            <input type="checkbox" name="valor_a_combinar" value="sim" className="size-4 accent-[#d4af37]" />
+            <input type="checkbox" name="valor_a_combinar" value="sim" className="size-4 accent-[var(--acao)]" />
             Prefiro combinar o valor depois
           </label>
         </>
@@ -776,9 +780,7 @@ function FormProposta({ demanda }: { demanda: Demanda }) {
         dica="Aparece para quem publicou quando ele aceitar a sua resposta."
       />
 
-      <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-        Enviar {substantivo}
-      </button>
+      <BotaoEnviar rotulo={`Enviar ${substantivo}`} />
     </form>
   )
 }

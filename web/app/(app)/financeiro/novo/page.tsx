@@ -11,7 +11,7 @@ import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, ROTULO_CATEGORIA, ROTULO_FORMA_PAGAMENTO,
 } from "@/lib/domain/financeiro"
 import { podeEditar } from "@/lib/domain/permissoes"
-import { rot } from "@/lib/ui/form"
+import { campo, rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
 import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
@@ -44,7 +44,7 @@ export default async function NovoLancamentoPage({
     return (
       <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/financeiro" voltarRotulo="Financeiro" titulo="Novo lançamento" />
-        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-5" />
+        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-6" />
       </main>
     )
   }
@@ -76,16 +76,16 @@ export default async function NovoLancamentoPage({
           ? "Dinheiro que entrou por causa do barco — fretamento, venda de equipamento, reembolso."
           : "Só gasto efetivado ou confirmado. Orçamento e proposta não são despesa."}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {evento && (
-        <p className="apoio mt-4 rounded-[12px] border border-line bg-panel2 px-3.5 py-3 text-dim">
+        <p className="apoio mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-3 py-3 text-dim">
           Vindo do Diário: {evento.descricao ?? "registro sem descrição"} ({evento.data.split("-").reverse().join("/")}).
           Este lançamento fica ligado àquele registro — não é uma cópia, e ele não entra duas vezes.
         </p>
       )}
 
-      <form action={criarLancamento} className="mt-5 space-y-4" encType="multipart/form-data">
+      <form action={criarLancamento} className="mt-6 space-y-4" encType="multipart/form-data">
         <GuardaFormulario chave="financeiro:novo" />
         <input type="hidden" name="tipo" value={tipo} />
         {eventoId && <input type="hidden" name="evento_id" value={eventoId} />}
@@ -122,8 +122,8 @@ export default async function NovoLancamentoPage({
           <Campo label="Data" id="data" name="data" type="date" required defaultValue={evento?.data ?? hojeISO()} />
         </div>
 
-        <label className="flex items-start gap-3 rounded-[12px] border border-line bg-panel px-3.5 py-3">
-          <input type="checkbox" name="pago" defaultChecked className="mt-0.5 size-5 accent-[#d4af37]" />
+        <label className="flex items-start gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-3 py-3">
+          <input type="checkbox" name="pago" defaultChecked className="mt-0.5 size-5 accent-[var(--acao)]" />
           <span>
             <span className="corpo block font-medium">{ehEntrada ? "Já foi recebido" : "Já foi pago"}</span>
             <span className="apoio block text-dim">
@@ -153,7 +153,9 @@ export default async function NovoLancamentoPage({
             type="file"
             name="comprovante"
             accept="application/pdf,image/jpeg,image/png,image/webp"
-            className="corpo w-full rounded-[10px] border border-line bg-campo px-3 py-2.5"
+            // `campo` e não uma cópia à mão: o `py-2.5` que morava aqui era a
+            // única altura de campo desta tela fora da régua dos outros seis.
+            className={campo}
           />
           <p className="apoio mt-1 text-dim">
             Nota fiscal ou recibo, em PDF ou foto. Até 10 MB. Se algo der errado no envio, o navegador não
@@ -168,7 +170,7 @@ export default async function NovoLancamentoPage({
             `multipart/form-data` com comprovante de até 10 MB. É o caminho
             mais longo que existe aqui e o botão não mudava um pixel — e o
             duplo-toque num formulário de dinheiro grava a despesa duas vezes.
-            Sai também o `py-3.5`/`rounded-xl`, altura e raio fora da escala. */}
+            Sai também o `py-3` e o raio de 12px, altura e raio fora da escala. */}
         <BotaoEnviar rotulo={ehEntrada ? "Registrar entrada" : "Registrar despesa"} />
       </form>
     </main>

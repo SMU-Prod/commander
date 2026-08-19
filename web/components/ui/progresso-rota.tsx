@@ -53,14 +53,14 @@ export function ProgressoRota({
       </div>
 
       <div
-        className="mt-2 h-1 w-full overflow-hidden rounded-full bg-line"
+        className="mt-2 h-1 w-full overflow-hidden rounded-[var(--raio-pilula)] bg-line"
         role="progressbar"
         aria-label={`Progresso de ${origem} até ${destino}`}
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-[var(--raio-pilula)] bg-accent" style={{ width: `${pct}%` }} />
       </div>
 
       {/* Empilha no celular. Numa linha só a 390px o ETA e o "restantes"

@@ -232,6 +232,55 @@ export function exigeAprovacao(
   }
 }
 
+/**
+ * §7 E §25 NA PERGUNTA QUE A TELA E A ACTION REALMENTE FAZEM.
+ *
+ * AUDITORIA 19/08, B6 e A7. A trava de "Mecânica nunca publica direto para
+ * cotistas" era um `ehDono &&` escrito no JSX de /mecanica e um
+ * `painel.papel !== "PROP"` na action — enquanto a régua que conhece os sete
+ * papéis, tem 12 casos de teste e mora aqui não era chamada por ninguém. Quem
+ * for "ADM" ou "Operações" caía no `else` por acidente, não por decisão.
+ *
+ * Vale lembrar por que isso é grave e não estético: a policy da migration 063
+ * ("servicos_mecanica: quem edita motores atualiza") deixa QUALQUER pessoa com
+ * `motores.editar` escrever `publicado_em` — e o mecânico tem essa permissão
+ * no preset. A única coisa que impede o laudo de ir cru aos dez cotistas é
+ * esta decisão, no app. Ela não podia continuar sendo um `&&` no meio do JSX.
+ *
+ * `exigeAprovacao` responde "entra direto ou fica pendente?"; esta função
+ * traduz isso para o gesto de publicar, que é o único do app sem fila de
+ * pendência — aqui "fica pendente" significa "não é você quem publica".
+ */
+const MOTIVO_SO_ADM = "Publicar laudo para os cotistas é ato da administradora."
+const MOTIVO_MECANICA =
+  "Laudo da Mecânica sempre passa pelo ADM antes de ir aos cotistas — mesmo com a régua de " +
+  "confiança em “sem aprovação”."
+const MOTIVO_APROVACAO =
+  "Seu acesso está com aprovação do ADM ligada para esta ação. Peça a ele para publicar."
+
+export function podePublicarParaCotistas(
+  papel: Papel,
+  modo: ModoAprovacao,
+): { pode: boolean; motivo: string | null } {
+  // A régua de confiança governa a EQUIPE de uma conta empresarial. PROP e
+  // CMDT são o Commander individual e não têm preset Enterprise — fora do
+  // Enterprise, publicar é do dono da conta e de mais ninguém.
+  if (!ehPapelEnterprise(papel)) {
+    return papel === "PROP" ? { pode: true, motivo: null } : { pode: false, motivo: MOTIVO_SO_ADM }
+  }
+  // Dentro do Enterprise a pergunta é a da régua — e ela já conhece a exceção
+  // sem exceção do §7.
+  if (exigeAprovacao(modo, "publicar_para_cotistas", papel)) {
+    return { pode: false, motivo: papel === "MECANICA" ? MOTIVO_MECANICA : MOTIVO_APROVACAO }
+  }
+  // Sobrou quem É a administradora. Operações e Cotista não editam laudo pelo
+  // `PRESET_ENTERPRISE` e não deveriam chegar aqui com serviço na mão — mas a
+  // régua não é o lugar de contar com isso.
+  return papel === "ADM" || papel === "ADM_GERAL"
+    ? { pode: true, motivo: null }
+    : { pode: false, motivo: MOTIVO_SO_ADM }
+}
+
 // ---------------------------------------------------------------------------
 // §22 — auditoria
 // ---------------------------------------------------------------------------

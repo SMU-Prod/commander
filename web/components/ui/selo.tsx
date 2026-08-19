@@ -33,8 +33,21 @@ export function Selo({ estado, children }: { estado: EstadoSelo; children?: Reac
     // no MESMO branch, a 10px — fora da escala `11·12·14·16·20·26·34` — e
     // substituiu a pílula escrita à mão do boletim do mar, que estava a 11px:
     // o selo de estado ficou MENOR do que a coisa que ele veio padronizar.
+    //
+    // ONDA 91 (achado 5.12) — `.rotulo` no lugar de `text-[11px] uppercase
+    // tracking-[.09em]`. Os três juntos eram uma cópia à mão da voz de rótulo
+    // que derivou: o app tinha ONZE valores de tracking para o mesmo gesto
+    // "palavra em caixa alta, rastreada", e o `.16em` que `.rotulo` declara
+    // era só o sexto mais usado. A classe traz também a família mono, que é o
+    // que o `docs/DESIGN.md` §5 define para etiqueta de instrumento — e um
+    // selo de estado é etiqueta, não frase (a ressalva do `Chip` sobre mono
+    // virar soletração vale para rótulo corrido de filtro, de até 17
+    // caracteres; aqui a palavra mais longa tem 9).
+    // `font-bold` fica fora da classe de propósito: `.rotulo` não declara
+    // peso, e este é o único rótulo do app que precisa segurar sozinho um
+    // estado crítico.
     <span
-      className={`inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[.09em] ${COR[estado]}`}
+      className={`rotulo inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 font-bold ${COR[estado]}`}
     >
       {children ?? ROTULO[estado]}
     </span>

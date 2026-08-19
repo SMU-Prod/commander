@@ -4,9 +4,11 @@ import Link from "next/link"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { Logo } from "@/components/logo"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { concluirOnboarding } from "@/lib/acoes/onboarding"
 import { ROTULO_TIPO_EMBARCACAO, TIPOS_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
+import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
 import { linhaCampos, rot } from "@/lib/ui/form"
 
 /**
@@ -114,12 +116,12 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
           <button
             type="button"
             onClick={() => setPasso((p) => Math.max(p - 1, 0))}
-            className="rotulo inline-flex h-11 items-center gap-1 text-accent-forte"
+            className={`rotulo inline-flex h-11 items-center gap-1 text-accent-forte ${TOQUE}`}
           >
             <Icone nome="voltar" className="size-4" /> Voltar
           </button>
         ) : jaTemBarco ? (
-          <Link href="/menu" className="rotulo inline-flex h-11 items-center gap-1 text-accent-forte">
+          <Link href="/menu" className={`rotulo inline-flex h-11 items-center gap-1 text-accent-forte ${TOQUE}`}>
             <Icone nome="voltar" className="size-4" /> Menu
           </Link>
         ) : null}
@@ -156,7 +158,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
           ? "Ela vira a embarcação ativa — você troca a qualquer momento pelo nome no topo da tela Início."
           : sub}
       </p>
-      {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form ref={formRef} action={concluirOnboarding} onKeyDown={aoTeclar} className="mt-6 flex flex-1 flex-col">
         {/* O erro de limite do plano volta com `?erro=` e antes apagava tudo
@@ -185,7 +187,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
               {TIPOS_EMBARCACAO.map((t) => (
                 <label
                   key={t}
-                  className="flex h-11 cursor-pointer items-center rounded-full border border-line px-4 text-sm text-dim has-[:checked]:border-accent has-[:checked]:font-semibold has-[:checked]:text-accent-forte has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50"
+                  className={`flex h-11 cursor-pointer items-center rounded-full border border-line px-4 text-sm text-dim has-[:checked]:border-accent has-[:checked]:font-semibold has-[:checked]:text-accent-forte has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 ${TOQUE}`}
                 >
                   <input type="radio" name="tipo" value={t} className="sr-only" />
                   {ROTULO_TIPO_EMBARCACAO[t]}
@@ -248,17 +250,24 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
             type="button"
             hidden={passo === TOTAL_PASSOS - 1}
             onClick={avancar}
-            className="h-12 w-full rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto"
+            className={`h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`}
           >
             Continuar
           </button>
-          <button
-            type="submit"
-            hidden={passo !== TOTAL_PASSOS - 1}
-            className="h-12 w-full rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto"
-          >
-            {jaTemBarco ? "Cadastrar embarcação" : "Criar meu painel de bordo"}
-          </button>
+          {/* O submit vira `BotaoEnviar` — o `hidden` sobe para um invólucro
+              porque a prop não existe no componente, e a alternância continua
+              entre DOIS NÓS FIXOS, que é o que o comentário acima protege: um
+              `<button>` e um `<div><button>`, nunca o mesmo nó trocando de
+              `type` dentro do evento de clique.
+              Vale o incômodo: era exatamente aqui que o duplo-toque criava a
+              embarcação duas vezes, e a prova visual já pegou três barcos
+              fantasmas em produção por outro caminho. */}
+          <div hidden={passo !== TOTAL_PASSOS - 1}>
+            <BotaoEnviar
+              rotulo={jaTemBarco ? "Cadastrar embarcação" : "Criar meu painel de bordo"}
+              larguraCheia
+            />
+          </div>
           {teaser && <p className="apoio text-center text-dim">Depois: {teaser}</p>}
         </div>
       </form>

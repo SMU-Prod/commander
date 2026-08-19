@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   CATEGORIAS_ESTOQUE,
+  consolidarConsumo,
   consumoPorHora,
   divergenciaDoTanque,
   estadoDoItem,
@@ -154,6 +155,72 @@ describe("combustível (§11)", () => {
 
     it("litro é sempre inteiro na tela", () => {
       expect(formatarLitros(1249.6)).toBe("1.250 L")
+    })
+  })
+
+  // AUDITORIA 19/08, A5 e A10 — `abastecimentos` era write-only e
+  // `consumoPorHora` não tinha consumidor. Este é o relatório que junta as
+  // duas pontas: "qual unidade bebe mais".
+  describe("consumo por unidade (§11)", () => {
+    const frota = [{ id: "a", nome: "Jet 1" }, { id: "b", nome: "Jet 2" }, { id: "c", nome: "Lancha" }]
+
+    it("ordena por L/h, do que mais bebe pro que menos", () => {
+      const r = consolidarConsumo(
+        frota,
+        [{ embarcacaoId: "a", litros: 90 }, { embarcacaoId: "b", litros: 60 }],
+        [{ embarcacaoId: "a", horas: 4.5 }, { embarcacaoId: "b", horas: 6 }],
+      )
+      expect(r.map((u) => u.nome)).toEqual(["Jet 1", "Jet 2"])
+      expect(r[0].litrosPorHora).toBe(20)
+      expect(r[1].litrosPorHora).toBe(10)
+    })
+
+    it("unidade sem abastecimento pelo tanque NÃO aparece com zero", () => {
+      // Ausência aqui quer dizer "não abasteceu pela base" — pode ter enchido
+      // no posto. "0 L" afirmaria que ela não consumiu nada.
+      const r = consolidarConsumo(frota, [{ embarcacaoId: "a", litros: 90 }], [])
+      expect(r.map((u) => u.embarcacaoId)).toEqual(["a"])
+    })
+
+    it("sem horímetro anotado, mostra os litros e confessa o resto", () => {
+      const r = consolidarConsumo(frota, [{ embarcacaoId: "a", litros: 90 }], [])
+      expect(r[0].litros).toBe(90)
+      expect(r[0].horas).toBeNull()
+      expect(r[0].litrosPorHora).toBeNull()
+      expect(r[0].frase).toContain("sem horímetro")
+      expect(r[0].frase).toContain("90 L")
+    })
+
+    it("quem não tem L/h vai pro fim, nunca no meio da ordem", () => {
+      // "Não dá pra comparar" não é "bebe pouco". Misturar os dois faria a
+      // lista mentir pela ordenação.
+      const r = consolidarConsumo(
+        frota,
+        [{ embarcacaoId: "a", litros: 10 }, { embarcacaoId: "b", litros: 500 }],
+        [{ embarcacaoId: "a", horas: 5 }],
+      )
+      expect(r.map((u) => u.nome)).toEqual(["Jet 1", "Jet 2"])
+      expect(r[1].litrosPorHora).toBeNull()
+    })
+
+    it("soma os abastecimentos e as horas do período", () => {
+      const r = consolidarConsumo(
+        frota,
+        [{ embarcacaoId: "a", litros: 40 }, { embarcacaoId: "a", litros: 50 }],
+        [{ embarcacaoId: "a", horas: 2 }, { embarcacaoId: "a", horas: 2.5 }],
+      )
+      expect(r[0].litros).toBe(90)
+      expect(r[0].horas).toBe(4.5)
+      expect(r[0].litrosPorHora).toBe(20)
+    })
+
+    it("hora negativa gravada no banco não vira base de cálculo", () => {
+      const r = consolidarConsumo(
+        frota,
+        [{ embarcacaoId: "a", litros: 90 }],
+        [{ embarcacaoId: "a", horas: -3 }],
+      )
+      expect(r[0].litrosPorHora).toBeNull()
     })
   })
 })

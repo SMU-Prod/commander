@@ -17,7 +17,10 @@ import {
   type PerfilPlano,
 } from "@/lib/domain/planos"
 import { BENEFICIOS_PAGOS } from "@/lib/domain/plano-acesso"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo } from "@/components/ui/campo"
+import { Chip, ChipLinha } from "@/components/ui/chip"
+import { ALVO_ACAO, PILULA_ACAO, TOQUE_AMPLO } from "@/lib/ui/acoes"
 import { supabaseServer } from "@/lib/supabase/server"
 
 /**
@@ -131,23 +134,19 @@ export default async function AssinarPage({
             "qualquer plano. O que muda é quanto você gerencia."}
       </p>
 
-      <nav
-        aria-label="Tipo de conta"
-        className="-mx-4 mt-4 flex gap-1.5 overflow-x-auto px-4 pb-1"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {PERFIS.map((p) => (
-          <Link
-            key={p.valor}
-            href={`/assinar?perfil=${p.valor}`}
-            aria-current={perfil === p.valor ? "true" : undefined}
-            className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm font-medium ${
-              perfil === p.valor ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel text-dim"
-            }`}
-          >
-            {p.rotulo}
-          </Link>
-        ))}
+      {/* A fila de perfis era o `Chip` do app copiado à mão — mesma altura,
+          mesmo raio, mesmas duas cores — só que sem a confirmação de toque e
+          sem a máscara de rolagem, então a fila era cortada em seco no meio
+          da palavra. O `<nav>` fica por fora para não perder o rótulo de
+          navegação para o leitor de tela. */}
+      <nav aria-label="Tipo de conta">
+        <ChipLinha className="-mx-4 mt-4 px-4">
+          {PERFIS.map((p) => (
+            <Chip key={p.valor} href={`/assinar?perfil=${p.valor}`} ativo={perfil === p.valor}>
+              {p.rotulo}
+            </Chip>
+          ))}
+        </ChipLinha>
       </nav>
 
       {perfil === "partner" && (
@@ -158,7 +157,7 @@ export default async function AssinarPage({
       )}
 
       {promocao && (
-        <p className="apoio mt-3 inline-flex items-start gap-1.5 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2">
+        <p className="apoio mt-3 inline-flex items-start gap-1.5 rounded-[var(--raio-controle)] border border-accent/40 bg-accent/5 px-3 py-2">
           <Icone nome="estrela" className="mt-0.5 size-3.5 shrink-0 text-accent-forte" />
           <span>
             {PROMOCOES[promocao.promocao].rotulo} ativa até{" "}
@@ -168,7 +167,7 @@ export default async function AssinarPage({
         </p>
       )}
 
-      {erro && <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={assinar} className="mt-5 space-y-4">
         <div className="space-y-2.5">
@@ -188,7 +187,7 @@ export default async function AssinarPage({
                     ? "Seu plano hoje"
                     : precoEmTexto(p.id)
               return (
-                <div key={p.id} className="rounded-[14px] border border-line bg-panel2 p-4">
+                <div key={p.id} className="rounded-[var(--raio-cartao)] border border-line bg-panel2 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className="titulo-card text-dim">{p.rotulo}</span>
                     <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">{etiqueta}</span>
@@ -211,8 +210,8 @@ export default async function AssinarPage({
                   {/* Partner gratuito não tem o que pagar: o caminho dele é
                       publicar o perfil, e o link vai direto pra lá. */}
                   {p.perfil === "partner" && p.valorCentavos === 0 && (
-                    <Link href="/parceiro/perfil" className="apoio mt-2 inline-block text-accent-forte">
-                      Criar perfil gratuito
+                    <Link href="/parceiro/perfil" className={`${ALVO_ACAO} mt-1`}>
+                      <span className={PILULA_ACAO}>Criar perfil gratuito</span>
                     </Link>
                   )}
                 </div>
@@ -220,9 +219,12 @@ export default async function AssinarPage({
             }
 
             return (
+              // O cartão de plano é O alvo desta tela e não dava retorno
+              // nenhum ao dedo — `TOQUE_AMPLO` (3% numa superfície grande, não
+              // os 3% de pílula) confirma antes de o rádio marcar.
               <label
                 key={p.id}
-                className="sombra-1 block cursor-pointer rounded-[14px] border border-line bg-panel p-4 has-[:checked]:border-accent"
+                className={`sombra-1 block cursor-pointer rounded-[var(--raio-cartao)] border border-line bg-panel p-4 has-[:checked]:border-accent ${TOQUE_AMPLO}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="titulo-card">{p.rotulo}</span>
@@ -248,7 +250,7 @@ export default async function AssinarPage({
         </div>
 
         {perfil === "proprietario" && (
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">O que o plano pago libera</p>
             <ul className="mt-2 space-y-1.5">
               {BENEFICIOS_PAGOS.map((b) => (
@@ -266,7 +268,7 @@ export default async function AssinarPage({
             barco, nada que o Captain Pro entregue. Mostrar aquela lista aqui
             seria prometer o que a assinatura não dá. */}
         {perfil === "captain" && (
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">O que o {PLANOS.captain_pro.rotulo} libera</p>
             <ul className="mt-2 space-y-1.5">
               {O_QUE_O_CAPTAIN_PRO_LIBERA.map((b) => (
@@ -276,7 +278,7 @@ export default async function AssinarPage({
                 </li>
               ))}
             </ul>
-            <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+            <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
               O que ela <strong>não</strong> muda: o acesso às embarcações que você opera. Isso vem do convite
               do proprietário e das permissões que ele deu — assinar não abre nem fecha nenhuma porta a bordo.
             </p>
@@ -285,7 +287,7 @@ export default async function AssinarPage({
 
         {primeiroContratavel && (
           <>
-            <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <Campo label="Nome completo" id="nome" name="nome" required minLength={5} autoComplete="name" />
               <Campo
                 label="CPF"
@@ -298,9 +300,11 @@ export default async function AssinarPage({
               />
             </div>
 
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-              Continuar para o pagamento
-            </button>
+            {/* A tela que VENDE, e o botão dela não avisava nada: 52px de
+                altura (a sétima do app) e nenhum sinal de envio numa ação que
+                fala com o gateway de cobrança. Segundo toque aqui é segunda
+                cobrança tentada. */}
+            <BotaoEnviar rotulo="Continuar para o pagamento" larguraCheia />
             <p className="apoio text-center text-dim">
               Cartão ou Pix, direto na página segura do Asaas. Nada de cartão aqui no app.
             </p>
@@ -314,7 +318,7 @@ export default async function AssinarPage({
             ainda não está ligada. Sem isto, a tela seria um checkout que
             fracassa sempre — ver o comentário em `primeiroContratavel`. */}
         {!cobrancaLigada && planoCobravel && (
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="titulo-card">A contratação abre em breve</p>
             <p className="apoio mt-1 text-dim">
               Os planos acima já estão definidos, mas o pagamento ainda não está aberto. Enquanto

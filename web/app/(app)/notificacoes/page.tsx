@@ -71,12 +71,12 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
   return (
     <Link
       href={n.href}
-      className={`sombra-1 flex items-center gap-3 rounded-[14px] border border-l-2 border-line bg-panel p-3.5 ${estilo.cartao}`}
+      className={`sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-l-2 border-line bg-panel p-3 ${estilo.cartao}`}
     >
       {/* O desenho da ÁREA de origem, não um sino repetido (canvas tela-1e):
           documento vencido mostra a folha, extintor o escudo, revisão o motor
           — `iconeDoAviso` deriva de categoria+aba, nada gravado à parte. */}
-      <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${estilo.icone}`}>
+      <span className={`flex size-8 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] ${estilo.icone}`}>
         <Icone nome={iconeDoAviso(n)} className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -100,7 +100,7 @@ function CartaoNotificacao({ n }: { n: NotificacaoAgrupada }) {
       {/* 11px, não 10.5: o piso tipográfico do app (DESIGN §5) vale também
           pro chip de nível — o canvas (tela-1e) escreve o chip exatamente
           no piso. */}
-      <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.08em] ${estilo.chip}`}>
+      <span className={`rotulo shrink-0 rounded-[var(--raio-pilula)] border px-2 py-0.5 ${estilo.chip}`}>
         {ROTULO_NIVEL_NOTIFICACAO[n.nivel]}
       </span>
     </Link>
@@ -126,7 +126,10 @@ function NivelRecolhido({
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium text-dim [&::-webkit-details-marker]:hidden">
         <Icone nome="chevron" className="size-4 transition-transform group-open:rotate-90" />
         {rotulo}
-        <span className="font-mono-instr text-[11px] tabular-nums">{itens.length}</span>
+        {/* `.valor` — a contagem é DADO, e o degrau dela é 14px, o mesmo do
+            rótulo ao lado (onda 87). Em 11px o número lia como legenda do
+            texto em vez de o número dele. */}
+        <span className="font-mono-instr valor">{itens.length}</span>
       </summary>
       <div className="mt-2 space-y-2">
         {itens.map((n) => <CartaoNotificacao key={n.id} n={n} />)}
@@ -244,7 +247,10 @@ export default async function NotificacoesPage({
           {enviados.map((a) => (
             <div key={a.id} className="border-b border-line py-3 last:border-0">
               <p className="titulo-card">{a.titulo}</p>
-              <p className="mt-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+              {/* `.rotulo-dado` — mesmo piso de 11px, pela escala: é legenda
+                  de um valor dentro de um cartão, que é exatamente o papel
+                  que a onda 79 criou essa classe para cobrir. */}
+              <p className="rotulo-dado mt-0.5 font-mono-instr tabular-nums">
                 {formatarCarimbo(a.enviado_em)}
               </p>
             </div>

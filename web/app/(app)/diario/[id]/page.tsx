@@ -6,6 +6,8 @@ import { TrilhaMapa } from "@/components/mapa/trilha-mapa"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { FaixaKpi, PastilhaKpi } from "@/components/ui/faixa-kpi"
+import { MigalhaPao } from "@/components/ui/migalha-pao"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
@@ -103,6 +105,24 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
     ? await supabase.from("ocorrencias").select("id, aba").eq("evento_id", id)
     : { data: [] as { id: string; aba: string }[] }
 
+  // ONDA 92 — o título da saída sai de dentro do JSX porque agora ele é lido
+  // em dois lugares: o `<h1>` do cabeçalho e o último degrau da migalha.
+  const titulo =
+    e.local_saida && e.destino ? `${e.local_saida} → ${e.destino}`
+      : e.destino ? `Saída — ${e.destino}`
+      : e.local_saida ? `Saída de ${e.local_saida}`
+      : "Saída"
+
+  // ONDA 92 (spec §3 item 1) — as parcelas da faixa de KPI. Cada uma é `null`
+  // quando o dado NÃO existe, e pastilha nenhuma é desenhada nesse caso: o §7
+  // do spec ("onde o dado não existe, o instrumento não entra") vale para a
+  // pastilha exatamente como vale para o medidor. Uma saída sem GPS não ganha
+  // "Distância: 0 MN"; ela ganha uma pastilha a menos.
+  const distanciaTexto = r ? `${r.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN` : null
+  const duracaoTexto = duracaoH != null ? textoDuracao(duracaoH) : null
+  const aBordo = tripulantes.length + e.passageiros.length
+  const temFaixaKpi = distanciaTexto != null || duracaoTexto != null || aBordo > 0 || checklist.length > 0
+
   const texto = textoCompartilharSaida({
     distanciaNm: r?.distanciaNm ?? null,
     duracaoH,
@@ -114,16 +134,41 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
 
   return (
     <main>
+      {/* ONDA 92 (eixo 2.2 da auditoria de 19/08) — A ANATOMIA DA FICHA DE
+          EQUIPAMENTO CHEGA À SAÍDA. Migalha (onde eu estou na hierarquia) +
+          faixa de KPI (o resumo numérico, acima de tudo) + barra de ações no
+          cabeçalho. É replicação, não desenho novo: a ficha de equipamento é
+          a prova de que a peça funciona nas duas larguras. */}
+      <MigalhaPao itens={[{ rotulo: "Diário", href: "/diario" }, { rotulo: titulo }]} />
+
+      {/* Distância e Duração repetem os dois primeiros mostradores do painel
+          logo abaixo, e isso é deliberado — é o mesmo que a ficha de
+          equipamento faz com o Horímetro: a faixa é o resumo de relance da
+          tela inteira, o painel é a leitura detalhada. O que a faixa
+          acrescenta é o que NÃO tem número em lugar nenhum hoje: quanta gente
+          estava a bordo e quantos hubs foram conferidos na saída. */}
+      {temFaixaKpi && (
+        <FaixaKpi className="mt-2">
+          {distanciaTexto && <PastilhaKpi icone="mapa" rotulo="Distância" valor={distanciaTexto} />}
+          {duracaoTexto && <PastilhaKpi icone="relogio" rotulo="Duração" valor={duracaoTexto} />}
+          {aBordo > 0 && <PastilhaKpi icone="pessoas" rotulo="A bordo" valor={String(aBordo)} />}
+          {checklist.length > 0 && (
+            <PastilhaKpi icone="guardado" rotulo="Checklist" valor={String(checklist.length)} />
+          )}
+        </FaixaKpi>
+      )}
+
       <CabecalhoDetalhe
+        className="mt-3"
         voltarHref="/diario"
         voltarRotulo="Diário"
-        titulo={
-          e.local_saida && e.destino ? `${e.local_saida} → ${e.destino}`
-            : e.destino ? `Saída — ${e.destino}`
-            : e.local_saida ? `Saída de ${e.local_saida}`
-            : "Saída"
-        }
-        descricao={`${e.data.split("-").reverse().join("/")}${duracaoH != null ? ` · ${textoDuracao(duracaoH)}` : ""}${retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) ? " · retorno no dia seguinte" : ""}`}
+        titulo={titulo}
+        descricao={`${e.data.split("-").reverse().join("/")}${duracaoTexto ? ` · ${duracaoTexto}` : ""}${retornoNoDiaSeguinte(e.hora_saida, e.hora_retorno) ? " · retorno no dia seguinte" : ""}`}
+        // A única ação de nível "ficha" que uma saída tem. Ela subiu do rodapé
+        // pra barra de ações (spec §3 item 3) — e SÓ ela: o convite de
+        // upgrade, quando o plano não libera, continua sendo um bloco de
+        // corpo, porque é texto que explica, não botão que faz.
+        acoes={compartilharLiberado ? <CompartilharBotao texto={texto} /> : undefined}
       />
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
           vivo pelo app, e o dono precisa saber disso olhando a tela. */}
@@ -145,13 +190,14 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Distância</p>
-          <p className={valorInstrumento}>
-            {r ? `${r.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN` : "—"}
-          </p>
+          {/* O mesmo texto da pastilha do topo, escrito uma vez só — dois
+              lugares formatando a mesma milha era como as telas passavam a
+              discordar do mesmo dado. */}
+          <p className={valorInstrumento}>{distanciaTexto ?? "—"}</p>
         </div>
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Duração</p>
-          <p className={valorInstrumento}>{duracaoH != null ? textoDuracao(duracaoH) : "—"}</p>
+          <p className={valorInstrumento}>{duracaoTexto ?? "—"}</p>
         </div>
         <div className={instrumento}>
           <p className={rotuloInstrumento}>Em movimento</p>
@@ -248,13 +294,11 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      <div className="mt-6">
-        {compartilharLiberado ? (
-          <CompartilharBotao texto={texto} />
-        ) : (
+      {!compartilharLiberado && (
+        <div className="mt-6">
           <BloqueioPremium {...mensagemBloqueio("compartilhar_saida")} />
-        )}
-      </div>
+        </div>
+      )}
     </main>
   )
 }

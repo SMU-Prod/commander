@@ -19,6 +19,7 @@ import {
   type InteresseParaMatching,
 } from "@/lib/domain/marketplace"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { Demanda, InteresseMarketplace, Proposta } from "@/lib/db/types"
 
 /**
@@ -116,7 +117,9 @@ export default async function MarketplacePage({
         className="sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
       >
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.08em] text-dim-chip">
+          {/* `.rotulo` no lugar de `text-[11px] uppercase tracking-[.08em]`:
+              o mesmo desenho, escrito à mão e com o tracking derivado. */}
+          <span className="rotulo rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim-chip">
             {ROTULO_CURTO_TIPO_DEMANDA[d.tipo]}
           </span>
           <span className="flex-1" />
@@ -140,27 +143,41 @@ export default async function MarketplacePage({
         Diga o que você precisa — profissional, tripulação, peça, vaga ou caminhão de combustível — e quem
         atende a sua região responde por aqui.
       </p>
-      {aviso && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{aviso}</p>}
+      {aviso && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{aviso}</p>}
       <RedeNav atual="marketplace" className="mt-4" />
 
       <Link
         href="/marketplace/nova"
-        className="sombra-1 mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-acao-texto"
+        className="sombra-1 mt-4 flex h-11 items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
       >
         <Icone nome="mais" className="size-4" /> Publicar um pedido
       </Link>
 
-      <div className="mt-3 flex flex-wrap gap-3">
-        <Link href="/marketplace/interesses" className="apoio inline-flex items-center gap-1 text-accent-forte">
-          <Icone nome="sinal" className="size-4" /> O que eu quero receber
+      {/* ONDA 82 — as três portas laterais do Marketplace eram texto dourado
+          de 18px em fila, exatamente o que o dono descreveu como "clicável e
+          não perceptível, parecendo um texto comum". Três pílulas de contorno
+          em fila: o dourado continua reservado ao "Publicar um pedido" logo
+          acima, que é a ação principal da tela.
+          `gap-2` e não `gap-3`: o alvo de 44px já traz folga própria
+          (`-my-[7px]` em `ALVO_ACAO`), e a fila com o respiro antigo passava
+          a ler como três blocos soltos em vez de um grupo. */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href="/marketplace/interesses" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="sinal" className="size-4" /> O que eu quero receber
+          </span>
         </Link>
-        <Link href="/marketplace/disponibilidades" className="apoio inline-flex items-center gap-1 text-accent-forte">
-          <Icone nome="pessoas" className="size-4" /> Profissionais disponíveis
+        <Link href="/marketplace/disponibilidades" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="pessoas" className="size-4" /> Profissionais disponíveis
+          </span>
         </Link>
         {/* §14 — a avaliação nasce do negócio fechado aqui, então a porta de
             entrada dela é esta tela, não um item solto no menu. */}
-        <Link href="/avaliacoes" className="apoio inline-flex items-center gap-1 text-accent-forte">
-          <Icone nome="estrela" className="size-4" /> Avaliações
+        <Link href="/avaliacoes" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="estrela" className="size-4" /> Avaliações
+          </span>
         </Link>
       </div>
 
@@ -195,7 +212,7 @@ export default async function MarketplacePage({
       {minhasPropostas.length > 0 && (
         <>
           <SecaoPagina icone="chat">Suas respostas</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {minhasPropostas.map((p) => {
               const d = demandaPorId.get(p.demanda_id)
               return (
@@ -265,7 +282,7 @@ export default async function MarketplacePage({
 
       {/* Canvas tela-3i: "a ressalva de responsabilidade fecha a lista, não
           abre". É a mesma frase honesta que abria a tela — só mudou de lugar. */}
-      <div className="mt-4 flex gap-2.5 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
+      <div className="mt-4 flex gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim-chip">
           O Commander apresenta as partes e não cobra comissão. Contrato, pagamento e responsabilidade

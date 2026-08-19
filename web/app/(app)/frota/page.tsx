@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -166,7 +167,18 @@ export default async function FrotaPage({
 
       <SecaoPagina icone="embarcacao">Por unidade</SecaoPagina>
       {r.unidades.length === 0 ? (
-        <EstadoVazio variant="linha" icone="embarcacao" titulo="Nenhuma unidade cadastrada" />
+        <EstadoVazio
+          variant="linha"
+          icone="embarcacao"
+          titulo="Nenhuma unidade cadastrada"
+          // A PORTA DA IMPORTAÇÃO (§21, A9). Ela mora aqui e não no Menu de
+          // propósito: quem tem a planilha de 40 unidades na mão está sem
+          // NENHUMA cadastrada, e é este estado vazio que ele encontra
+          // primeiro. Um item permanente no Menu para uma ação que se faz uma
+          // vez na vida da conta custaria mais atenção do que vale. O link
+          // repetido embaixo cobre quem já tem frota e vai crescer.
+          acao={{ href: "/frota/importar", rotulo: "Importar planilha" }}
+        />
       ) : (
         <div className="space-y-2">
           {r.unidades.map((u) => (
@@ -215,6 +227,15 @@ export default async function FrotaPage({
             </div>
           ))}
         </div>
+      )}
+
+      {r.unidades.length > 0 && (
+        <Link
+          href="/frota/importar"
+          className="mt-3 flex min-h-11 items-center justify-center rounded-[var(--raio-controle)] border border-line px-4 text-sm font-medium"
+        >
+          Importar mais unidades de uma planilha
+        </Link>
       )}
 
       <p className="apoio mt-4 text-dim">

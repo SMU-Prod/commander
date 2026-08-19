@@ -4,6 +4,10 @@ import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
 import { EscolherPonto } from "@/components/mapa/escolher-ponto"
 import { EscolherPinoParceiro } from "@/components/mapa/escolher-pino-parceiro"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
   adicionarAcomodacao,
   excluirAcomodacao,
@@ -29,7 +33,8 @@ import {
   type TipoPartner,
 } from "@/lib/domain/partner"
 import { ROTULO_TIPO_TAXONOMIA } from "@/lib/domain/marketplace"
-import { campo, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { numeroParaCampoPtBr, rot } from "@/lib/ui/form"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { COR_PADRAO, ICONE_PADRAO_POR_CATEGORIA } from "@/lib/mapa/pino-parceiro"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { ParceiroVaga } from "@/lib/db/types"
@@ -50,6 +55,11 @@ import type { ParceiroVaga } from "@/lib/db/types"
 function precoParaCampo(centavos: number | null): string {
   return centavos == null ? "" : (centavos / 100).toFixed(2).replace(".", ",")
 }
+
+/** Campo que recebe NÚMERO — vaga, calado, preço, quantidade. Mono tabular,
+ *  como todo dígito do app (docs/DESIGN.md §5): sem isso a coluna de preços
+ *  desalinha a vírgula e a comparação vira leitura de texto. */
+const NUMERO = "font-mono-instr tabular-nums"
 
 export default async function ParceiroPerfilPage({
   searchParams,
@@ -92,22 +102,27 @@ export default async function ParceiroPerfilPage({
           ? "É isto que os proprietários veem no Explorar. Você mesmo atualiza, sem chamar ninguém."
           : "Escolha o tipo do seu negócio e publique. Você aparece no Explorar assim que salvar."}
       </p>
-      <Link href="/parceiros" className="apoio mt-2 inline-flex items-center gap-1 text-dim hover:text-texto">
-        <Icone nome="voltar" className="size-3.5" /> Ver a página pública de apresentação
+      {/* Era texto cinza de 17px de altura — o vestido que o app usa para o
+          que NÃO se toca (`lib/ui/acoes.ts`). Vira pílula de contorno dentro
+          do alvo de 44px. */}
+      <Link href="/parceiros" className={`${ALVO_ACAO} mt-3`}>
+        <span className={PILULA_ACAO}>
+          <Icone nome="voltar" className="size-3.5" /> Ver a página pública de apresentação
+        </span>
       </Link>
 
-      {ok && <p className="corpo mt-4 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <form action={salvarParceiro} className="mt-5 space-y-5">
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Tipo do seu negócio</p>
           <div className="grid grid-cols-2 gap-2.5">
             {TIPOS_PARTNER.map((t) => (
               <label
                 key={t}
                 htmlFor={`cat-${t}`}
-                className="sombra-1 flex cursor-pointer flex-col items-center gap-1.5 rounded-[14px] border border-line bg-panel px-3 py-4 text-center has-[:checked]:border-accent"
+                className="sombra-1 flex cursor-pointer flex-col items-center gap-1.5 rounded-[var(--raio-cartao)] border border-line bg-panel px-3 py-4 text-center has-[:checked]:border-accent"
               >
                 <Icone nome={ICONE_TIPO_PARTNER[t]} className="size-6 text-accent-forte" />
                 <span className="titulo-card">{ROTULO_TIPO_PARTNER[t]}</span>
@@ -127,33 +142,35 @@ export default async function ParceiroPerfilPage({
           </p>
         </section>
 
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Identificação</p>
-          <div>
-            <label className={rot} htmlFor="nome">Nome</label>
-            <input id="nome" name="nome" required minLength={3} defaultValue={p?.nome ?? ""} className={campo} />
-          </div>
-          <div>
-            <label className={rot} htmlFor="regiao_id">Região onde você atua</label>
-            <select id="regiao_id" name="regiao_id" required defaultValue={p?.regiao_id ?? ""} className={campo}>
-              <option value="" disabled>Escolha a região</option>
-              {regioes.map((r) => (
-                <option key={r.id} value={r.id}>{r.uf ? `${r.nome} · ${r.uf}` : r.nome}</option>
-              ))}
-            </select>
-            {/* §10/§21.2 — a mesma lista do Marketplace, pra "Angra" ser sempre
-                a mesma Angra dos dois lados. */}
-            <p className="apoio mt-1 text-dim">
-              É por aqui que os pedidos do Marketplace chegam até você, e é o filtro de região do Explorar.
-            </p>
-          </div>
+          {/* ONDA 93 — os campos desta tela eram `label` + `input` montados à
+              mão, com as classes de `lib/ui/form.ts`. `Campo` é essa casca
+              (rótulo, controle, dica, erro) e existe justamente para o texto
+              de apoio não ficar preso a um `<p>` avulso em cada tela. */}
+          <Campo label="Nome" id="nome" name="nome" required minLength={3} defaultValue={p?.nome ?? ""} />
+          {/* §10/§21.2 — a mesma lista do Marketplace, pra "Angra" ser sempre
+              a mesma Angra dos dois lados. */}
+          <CampoSelect
+            label="Região onde você atua"
+            id="regiao_id"
+            name="regiao_id"
+            required
+            defaultValue={p?.regiao_id ?? ""}
+            dica="É por aqui que os pedidos do Marketplace chegam até você, e é o filtro de região do Explorar."
+          >
+            <option value="" disabled>Escolha a região</option>
+            {regioes.map((r) => (
+              <option key={r.id} value={r.id}>{r.uf ? `${r.nome} · ${r.uf}` : r.nome}</option>
+            ))}
+          </CampoSelect>
           <div>
             <p className={rot}>Ponto no mapa</p>
             <EscolherPonto lat={p?.lat ?? null} lng={p?.lng ?? null} />
           </div>
         </section>
 
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Pino no mapa</p>
           <EscolherPinoParceiro
             iconeInicial={p?.icone ?? ICONE_PADRAO_POR_CATEGORIA[tipo]}
@@ -164,7 +181,7 @@ export default async function ParceiroPerfilPage({
 
         {/* §13.1 "Também vendo produtos" / §13.2 "Também presto serviços" */}
         {(toggles.tambem_vende_produtos || toggles.tambem_presta_servicos) && (
-          <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Atividade complementar</p>
             {toggles.tambem_vende_produtos && (
               <label className="corpo flex items-center gap-2.5">
@@ -199,7 +216,7 @@ export default async function ParceiroPerfilPage({
           const itens = taxonomia.filter((t) => t.tipo === tipoTax)
           if (itens.length === 0) return null
           return (
-            <section key={tipoTax} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <section key={tipoTax} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <p className="rotulo text-dim">{ROTULO_TIPO_TAXONOMIA[tipoTax]}</p>
               <div className="flex flex-wrap gap-1.5">
                 {itens.map((i) => (
@@ -227,43 +244,28 @@ export default async function ParceiroPerfilPage({
 
         {/* §13.3 — vagas da Marina */}
         {perfilTem(tipo, "vagas") && (
-          <section className="sombra-1 space-y-4 rounded-[14px] border border-line bg-panel p-4">
+          <section className="sombra-1 space-y-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Vagas</p>
             {TIPOS_VAGA_MARINA.map((tv) => {
               const v = vagaPorTipo.get(tv)
               return (
-                <div key={tv} className="space-y-2.5 rounded-[12px] border border-line bg-panel2 p-3">
+                <div key={tv} className="space-y-2.5 rounded-[var(--raio-cartao)] border border-line bg-panel2 p-3">
                   <p className="titulo-card">{ROTULO_TIPO_VAGA[tv]}</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className={rot} htmlFor={`vaga_${tv}_total`}>Total</label>
-                      <input id={`vaga_${tv}_total`} name={`vaga_${tv}_total`} inputMode="numeric"
-                        defaultValue={v?.total ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
-                    </div>
-                    <div>
-                      <label className={rot} htmlFor={`vaga_${tv}_disponiveis`}>Livres</label>
-                      <input id={`vaga_${tv}_disponiveis`} name={`vaga_${tv}_disponiveis`} inputMode="numeric"
-                        defaultValue={v?.disponiveis ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
-                    </div>
-                    <div>
-                      <label className={rot} htmlFor={`vaga_${tv}_porte`}>Porte (pés)</label>
-                      <input id={`vaga_${tv}_porte`} name={`vaga_${tv}_porte`} inputMode="numeric"
-                        defaultValue={v?.porte_max_pes ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
-                    </div>
+                    <Campo label="Total" id={`vaga_${tv}_total`} name={`vaga_${tv}_total`} inputMode="numeric"
+                      defaultValue={v?.total ?? ""} className={NUMERO} />
+                    <Campo label="Livres" id={`vaga_${tv}_disponiveis`} name={`vaga_${tv}_disponiveis`} inputMode="numeric"
+                      defaultValue={v?.disponiveis ?? ""} className={NUMERO} />
+                    <Campo label="Porte (pés)" id={`vaga_${tv}_porte`} name={`vaga_${tv}_porte`} inputMode="numeric"
+                      defaultValue={v?.porte_max_pes ?? ""} className={NUMERO} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={rot} htmlFor={`vaga_${tv}_diaria`}>Diária</label>
-                      <input id={`vaga_${tv}_diaria`} name={`vaga_${tv}_diaria`} inputMode="decimal" placeholder="150,00"
-                        defaultValue={precoParaCampo(v?.preco_diaria_centavos ?? null)}
-                        className={`${campo} font-mono-instr tabular-nums`} />
-                    </div>
-                    <div>
-                      <label className={rot} htmlFor={`vaga_${tv}_mensal`}>Mensal</label>
-                      <input id={`vaga_${tv}_mensal`} name={`vaga_${tv}_mensal`} inputMode="decimal" placeholder="2.400,00"
-                        defaultValue={precoParaCampo(v?.preco_mensal_centavos ?? null)}
-                        className={`${campo} font-mono-instr tabular-nums`} />
-                    </div>
+                    <Campo label="Diária" id={`vaga_${tv}_diaria`} name={`vaga_${tv}_diaria`} inputMode="decimal"
+                      placeholder="150,00" defaultValue={precoParaCampo(v?.preco_diaria_centavos ?? null)}
+                      className={NUMERO} />
+                    <Campo label="Mensal" id={`vaga_${tv}_mensal`} name={`vaga_${tv}_mensal`} inputMode="decimal"
+                      placeholder="2.400,00" defaultValue={precoParaCampo(v?.preco_mensal_centavos ?? null)}
+                      className={NUMERO} />
                   </div>
                   <label className="corpo flex items-center gap-2.5">
                     <input type="checkbox" name={`vaga_${tv}_sob_consulta`} defaultChecked={v?.sob_consulta ?? false}
@@ -274,7 +276,7 @@ export default async function ParceiroPerfilPage({
               )
             })}
             {/* §13.3, na tela dos dois lados — aqui e no perfil público. */}
-            <p className="apoio rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+            <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
               {AVISO_DISPONIBILIDADE_MARINA} Deixe um bloco totalmente em branco para não publicar aquele tipo
               de vaga.
             </p>
@@ -283,39 +285,27 @@ export default async function ParceiroPerfilPage({
 
         {(perfilTem(tipo, "acesso_nautico") || perfilTem(tipo, "estrutura") || perfilTem(tipo, "atracacao") ||
           perfilTem(tipo, "calado") || perfilTem(tipo, "combustivel") || perfilTem(tipo, "poita")) && (
-          <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Chegada e estrutura</p>
             {perfilTem(tipo, "acesso_nautico") && (
-              <div>
-                <label className={rot} htmlFor="acesso_nautico">Acesso pelo mar</label>
-                <textarea id="acesso_nautico" name="acesso_nautico" rows={2}
-                  placeholder="Canal balizado, entrada pelo sul, profundidade na barra…"
-                  defaultValue={p?.acesso_nautico ?? ""} className={campo} />
-              </div>
+              <CampoTextarea label="Acesso pelo mar" id="acesso_nautico" name="acesso_nautico" rows={2}
+                placeholder="Canal balizado, entrada pelo sul, profundidade na barra…"
+                defaultValue={p?.acesso_nautico ?? ""} />
             )}
             {perfilTem(tipo, "calado") && (
-              <div>
-                <label className={rot} htmlFor="calado_max_m">Calado máximo (m)</label>
-                <input id="calado_max_m" name="calado_max_m" inputMode="decimal" placeholder="1,80"
-                  defaultValue={numeroParaCampoPtBr(p?.calado_max_m ?? null)}
-                  className={`${campo} font-mono-instr tabular-nums`} />
-              </div>
+              <Campo label="Calado máximo (m)" id="calado_max_m" name="calado_max_m" inputMode="decimal"
+                placeholder="1,80" defaultValue={numeroParaCampoPtBr(p?.calado_max_m ?? null)}
+                className={NUMERO} />
             )}
             {perfilTem(tipo, "atracacao") && (
-              <div>
-                <label className={rot} htmlFor="atracacao">Atracação</label>
-                <textarea id="atracacao" name="atracacao" rows={2}
-                  placeholder="Píer flutuante, finger, poitas, cais de espera…"
-                  defaultValue={p?.atracacao ?? ""} className={campo} />
-              </div>
+              <CampoTextarea label="Atracação" id="atracacao" name="atracacao" rows={2}
+                placeholder="Píer flutuante, finger, poitas, cais de espera…"
+                defaultValue={p?.atracacao ?? ""} />
             )}
             {perfilTem(tipo, "estrutura") && (
-              <div>
-                <label className={rot} htmlFor="estrutura">Estrutura</label>
-                <textarea id="estrutura" name="estrutura" rows={2}
-                  placeholder="Água e energia no píer, travel lift, rampa, oficina, banheiros…"
-                  defaultValue={p?.estrutura ?? ""} className={campo} />
-              </div>
+              <CampoTextarea label="Estrutura" id="estrutura" name="estrutura" rows={2}
+                placeholder="Água e energia no píer, travel lift, rampa, oficina, banheiros…"
+                defaultValue={p?.estrutura ?? ""} />
             )}
             {tipo === "marina" && (
               <label className="corpo flex items-center gap-2.5">
@@ -325,16 +315,13 @@ export default async function ParceiroPerfilPage({
               </label>
             )}
             {tipo === "posto" && (
-              <div>
-                <label className={rot} htmlFor="preco_diesel">Preço do combustível (por litro)</label>
-                <input id="preco_diesel" name="preco_diesel" inputMode="decimal" placeholder="6,20"
-                  defaultValue={precoParaCampo(p?.preco_diesel_centavos ?? null)}
-                  className={`${campo} font-mono-instr tabular-nums`} />
-                <p className="apoio mt-1 text-dim">
-                  Opcional. O preço pode ser atualizado uma vez por dia, e o Explorar mostra a data da última
-                  atualização.
-                </p>
-              </div>
+              <Campo
+                label="Preço do combustível (por litro)" id="preco_diesel" name="preco_diesel"
+                inputMode="decimal" placeholder="6,20"
+                defaultValue={precoParaCampo(p?.preco_diesel_centavos ?? null)}
+                className={NUMERO}
+                dica="Opcional. O preço pode ser atualizado uma vez por dia, e o Explorar mostra a data da última atualização."
+              />
             )}
             {perfilTem(tipo, "poita") && (
               <>
@@ -343,11 +330,8 @@ export default async function ParceiroPerfilPage({
                     className="size-5 accent-[var(--acao)]" />
                   Tem poita disponível
                 </label>
-                <div>
-                  <label className={rot} htmlFor="qtd_poitas">Quantas poitas</label>
-                  <input id="qtd_poitas" name="qtd_poitas" inputMode="numeric" placeholder="4"
-                    defaultValue={p?.qtd_poitas ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
-                </div>
+                <Campo label="Quantas poitas" id="qtd_poitas" name="qtd_poitas" inputMode="numeric"
+                  placeholder="4" defaultValue={p?.qtd_poitas ?? ""} className={NUMERO} />
               </>
             )}
           </section>
@@ -355,13 +339,10 @@ export default async function ParceiroPerfilPage({
 
         {/* §13.5 — o que é do Restaurante além do cardápio */}
         {perfilTem(tipo, "restaurante_extra") && (
-          <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Restaurante</p>
-            <div>
-              <label className={rot} htmlFor="culinaria">Culinária</label>
-              <input id="culinaria" name="culinaria" placeholder="Frutos do mar, brasileira…"
-                defaultValue={p?.culinaria ?? ""} className={campo} />
-            </div>
+            <Campo label="Culinária" id="culinaria" name="culinaria" placeholder="Frutos do mar, brasileira…"
+              defaultValue={p?.culinaria ?? ""} />
             <label className="corpo flex items-center gap-2.5">
               <input type="checkbox" name="vaga_cortesia" defaultChecked={p?.vaga_cortesia ?? false}
                 className="size-5 accent-[var(--acao)]" />
@@ -372,17 +353,13 @@ export default async function ParceiroPerfilPage({
 
         {/* §13.6 — check-in/out e traslado da Pousada/Hotel */}
         {perfilTem(tipo, "check_in_out") && (
-          <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <p className="rotulo text-dim">Hospedagem</p>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={rot} htmlFor="check_in">Check-in</label>
-                <input id="check_in" name="check_in" type="time" defaultValue={p?.check_in?.slice(0, 5) ?? ""} className={campo} />
-              </div>
-              <div>
-                <label className={rot} htmlFor="check_out">Check-out</label>
-                <input id="check_out" name="check_out" type="time" defaultValue={p?.check_out?.slice(0, 5) ?? ""} className={campo} />
-              </div>
+              <Campo label="Check-in" id="check_in" name="check_in" type="time"
+                defaultValue={p?.check_in?.slice(0, 5) ?? ""} />
+              <Campo label="Check-out" id="check_out" name="check_out" type="time"
+                defaultValue={p?.check_out?.slice(0, 5) ?? ""} />
             </div>
             {perfilTem(tipo, "traslado") && (
               <label className="corpo flex items-center gap-2.5">
@@ -397,30 +374,18 @@ export default async function ParceiroPerfilPage({
           </section>
         )}
 
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Contato</p>
-          <div>
-            <label className={rot} htmlFor="horario">Horário de funcionamento</label>
-            <input id="horario" name="horario" placeholder="Todos os dias, 8h às 22h"
-              defaultValue={p?.horario ?? ""} className={campo} />
-          </div>
+          <Campo label="Horário de funcionamento" id="horario" name="horario"
+            placeholder="Todos os dias, 8h às 22h" defaultValue={p?.horario ?? ""} />
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={rot} htmlFor="telefone">Telefone / WhatsApp</label>
-              <input id="telefone" name="telefone" inputMode="tel" placeholder="21 99999-0000"
-                defaultValue={p?.telefone ?? ""} className={campo} />
-            </div>
-            <div>
-              <label className={rot} htmlFor="email">E-mail</label>
-              <input id="email" name="email" type="email" placeholder="contato@exemplo.com"
-                defaultValue={p?.email ?? ""} className={campo} />
-            </div>
+            <Campo label="Telefone / WhatsApp" id="telefone" name="telefone" inputMode="tel"
+              placeholder="21 99999-0000" defaultValue={p?.telefone ?? ""} />
+            <Campo label="E-mail" id="email" name="email" type="email"
+              placeholder="contato@exemplo.com" defaultValue={p?.email ?? ""} />
           </div>
-          <div>
-            <label className={rot} htmlFor="sobre">Sobre</label>
-            <textarea id="sobre" name="sobre" rows={3} placeholder="O que faz o seu lugar ser a parada certa…"
-              defaultValue={p?.sobre ?? ""} className={campo} />
-          </div>
+          <CampoTextarea label="Sobre" id="sobre" name="sobre" rows={3}
+            placeholder="O que faz o seu lugar ser a parada certa…" defaultValue={p?.sobre ?? ""} />
         </section>
 
         <label className="corpo flex items-center gap-2.5">
@@ -428,9 +393,10 @@ export default async function ParceiroPerfilPage({
           Visível no Explorar
         </label>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-          {p ? "Salvar alterações" : "Publicar perfil"}
-        </button>
+        {/* `py-3.5` dava 52px — a sétima altura de botão do app, e nenhuma
+            delas avisava que estava enviando. Este formulário tem ~25 campos
+            e sobe fotos: é o caminho mais longo da área do Partner. */}
+        <BotaoEnviar rotulo={p ? "Salvar alterações" : "Publicar perfil"} larguraCheia />
       </form>
 
       {p && (
@@ -460,53 +426,46 @@ export default async function ParceiroPerfilPage({
       )}
 
       {p && perfilTem(tipo, "acomodacoes") && (
-        <section className="mt-6">
-          <p className={rot}>Acomodações</p>
+        <section>
+          <SecaoPagina>Acomodações</SecaoPagina>
           {(meu?.acomodacoes ?? []).length > 0 && (
-            <div className="sombra-1 mt-2 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {(meu?.acomodacoes ?? []).map((a) => (
-                <div key={a.id} className="flex items-center gap-3 border-b border-line py-3 last:border-b-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="corpo font-medium">{a.nome}</p>
-                    <p className="apoio text-dim">
-                      {a.capacidade != null && `Até ${a.capacidade} ${a.capacidade === 1 ? "pessoa" : "pessoas"}`}
-                      {a.capacidade != null && a.valor_diaria_centavos != null ? " · " : ""}
-                      {a.valor_diaria_centavos != null && formatarReais(a.valor_diaria_centavos)}
-                    </p>
-                  </div>
-                  <form action={excluirAcomodacao} className="shrink-0">
-                    <input type="hidden" name="id" value={a.id} />
-                    <Confirmar mensagem="Excluir acomodação?" rotulo="Excluir"
-                      className="apoio flex h-11 items-center text-crit" />
-                  </form>
-                </div>
+                <LinhaLista
+                  key={a.id}
+                  titulo={a.nome}
+                  subtitulo={
+                    [
+                      a.capacidade != null
+                        ? `Até ${a.capacidade} ${a.capacidade === 1 ? "pessoa" : "pessoas"}`
+                        : null,
+                      a.valor_diaria_centavos != null ? formatarReais(a.valor_diaria_centavos) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
+                  trailing={
+                    <form action={excluirAcomodacao} className="shrink-0">
+                      <input type="hidden" name="id" value={a.id} />
+                      <Confirmar mensagem="Excluir acomodação?" rotulo="Excluir"
+                        className="apoio flex h-11 items-center text-crit" />
+                    </form>
+                  }
+                />
               ))}
             </div>
           )}
-          <form action={adicionarAcomodacao} className="sombra-1 mt-3 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-            <div>
-              <label className={rot} htmlFor="acom_nome">Nome</label>
-              <input id="acom_nome" name="nome" required minLength={2} placeholder="Suíte vista mar" className={campo} />
-            </div>
+          <form action={adicionarAcomodacao} className="sombra-1 mt-3 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+            <Campo label="Nome" id="acom_nome" name="nome" required minLength={2} placeholder="Suíte vista mar" />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={rot} htmlFor="acom_capacidade">Capacidade</label>
-                <input id="acom_capacidade" name="capacidade" inputMode="numeric" placeholder="2"
-                  className={`${campo} font-mono-instr tabular-nums`} />
-              </div>
-              <div>
-                <label className={rot} htmlFor="acom_valor">Diária (opcional)</label>
-                <input id="acom_valor" name="valor_diaria" inputMode="decimal" placeholder="450,00"
-                  className={`${campo} font-mono-instr tabular-nums`} />
-              </div>
+              <Campo label="Capacidade" id="acom_capacidade" name="capacidade" inputMode="numeric"
+                placeholder="2" className={NUMERO} />
+              <Campo label="Diária (opcional)" id="acom_valor" name="valor_diaria" inputMode="decimal"
+                placeholder="450,00" className={NUMERO} />
             </div>
-            <div>
-              <label className={rot} htmlFor="acom_descricao">Descrição</label>
-              <input id="acom_descricao" name="descricao" placeholder="Ar, varanda, café da manhã incluso" className={campo} />
-            </div>
-            <button className="h-11 w-full rounded-xl border border-line text-sm font-semibold">
-              Adicionar acomodação
-            </button>
+            <Campo label="Descrição" id="acom_descricao" name="descricao"
+              placeholder="Ar, varanda, café da manhã incluso" />
+            <BotaoEnviar rotulo="Adicionar acomodação" variante="contorno" larguraCheia />
           </form>
         </section>
       )}
@@ -531,12 +490,12 @@ function Galeria({
   alt: string
 }) {
   return (
-    <section className="mt-6">
-      <p className={rot}>{titulo}</p>
+    <section>
+      <SecaoPagina>{titulo}</SecaoPagina>
       {fotos.length > 0 && (
-        <div className="mt-2 grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {fotos.map((f) => (
-            <div key={f.path} className="sombra-1 overflow-hidden rounded-[12px] border border-line bg-panel">
+            <div key={f.path} className="sombra-1 overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-panel">
               {/* eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros */}
               <img src={f.url} alt={alt} className="aspect-square w-full object-cover" loading="lazy" />
               <form action={excluirFotoParceiro} className="p-1.5">
@@ -550,10 +509,13 @@ function Galeria({
         </div>
       )}
       {cabe && (
-        <form action={subirFotoParceiro} className="sombra-1 mt-3 flex items-center gap-2 rounded-[14px] border border-line bg-panel p-3">
+        <form action={subirFotoParceiro} className="sombra-1 mt-3 flex items-center gap-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
           <input type="hidden" name="album" value={album} />
           <input name="foto" type="file" accept="image/jpeg,image/png,image/webp" required className="corpo min-w-0 flex-1" />
-          <button className="shrink-0 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-acao-texto">Enviar</button>
+          {/* Subir foto é a espera mais longa da tela e o botão media 32px.
+              `contorno` dá os 44px e o aviso de envio — sem gastar dourado,
+              que aqui já está no "Salvar alterações" logo acima. */}
+          <BotaoEnviar rotulo="Enviar" variante="contorno" className="shrink-0" />
         </form>
       )}
     </section>

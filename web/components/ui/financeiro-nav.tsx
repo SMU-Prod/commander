@@ -42,17 +42,24 @@ export function FinanceiroNav({ atual, className = "" }: { atual: SubabaFinancei
  * tela certa.
  */
 export function AcoesUniversais({ className = "" }: { className?: string }) {
+  // ONDA 91 (achados 5.9 e 5.10) — duas trocas de forma, nenhuma de desenho.
+  // `rounded-xl` são 12px, e 12 não é token nenhum: era o quinto raio de
+  // facto do app, com 129 usos, e a auditoria pediu que cada um deles fosse
+  // decidido como controle (8px) ou cartão (14px). O critério desta onda:
+  // quem se TOCA é controle, quem CONTÉM conteúdo é cartão — estes dois são
+  // botão. O `h-11` cravado vira `--altura-controle`: os mesmos 44px, agora
+  // ditos num lugar só.
   return (
     <div className={`flex gap-2 ${className}`}>
       <Link
         href="/financeiro/novo?tipo=despesa"
-        className="flex h-11 flex-1 items-center justify-center rounded-xl bg-accent text-sm font-semibold text-acao-texto"
+        className="flex h-[var(--altura-controle)] flex-1 items-center justify-center rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto"
       >
         + Despesa
       </Link>
       <Link
         href="/financeiro/novo?tipo=entrada"
-        className="flex h-11 flex-1 items-center justify-center rounded-xl border border-line bg-panel text-sm font-semibold"
+        className="flex h-[var(--altura-controle)] flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line bg-panel text-sm font-semibold"
       >
         + Entrada
       </Link>

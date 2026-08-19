@@ -4,6 +4,7 @@ import { CartaoAvaliacao } from "@/components/avaliacoes/cartao-avaliacao"
 import { SeletorNota } from "@/components/avaliacoes/estrelas"
 import { ResumoReputacao } from "@/components/avaliacoes/reputacao"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { Chip, ChipLinha } from "@/components/ui/chip"
@@ -22,8 +23,22 @@ import {
   podeEditarAvaliacao, respostasParaNota,
 } from "@/lib/domain/avaliacoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 const VOLTA = "/avaliacoes"
+
+/**
+ * ONDA 82/88 — O `<summary>` É UM ALVO, E ESTAVA COM 18px.
+ *
+ * As três gavetas desta tela ("Marcar como solucionado", "Contestar",
+ * "Editar minha avaliação") são o gesto mais consequente que o avaliado tem,
+ * e vestiam `apoio` puro: 12px de texto, altura de linha, nenhuma forma. A
+ * régua da casa é 44px e não se negocia — `min-h-11` no summary, e o `py-2`
+ * sai do `<details>` porque a altura nova já traz o respiro que ele dava.
+ * É a mesma correção que `notificacoes/page.tsx` já tinha no `NivelRecolhido`.
+ */
+const GAVETA = "rounded-[var(--raio-controle)] border px-3"
+const RESUMO_GAVETA = "apoio flex min-h-11 cursor-pointer items-center"
 
 /**
  * Avaliações (onda 49, PRD §14) — as três coisas que uma pessoa faz aqui:
@@ -65,14 +80,16 @@ export default async function AvaliacoesPage({
         descricao="Avaliação só existe depois que os dois lados confirmam o negócio no Commander. É o que faz a nota valer alguma coisa."
       />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <div className="mt-4">
         <ResumoReputacao reputacao={reputacao} />
+        {/* Era texto dourado de 18px sob o resumo de reputação — indistinguível
+            do apoio ao lado. Ação tem forma (acoes.ts). */}
         {reputacao.quantidade > 0 && (
-          <Link href={`/avaliacoes/${user.id}`} className="apoio mt-2 inline-block text-accent-forte">
-            Ver como aparece no seu perfil
+          <Link href={`/avaliacoes/${user.id}`} className={`${ALVO_ACAO} mt-2`}>
+            <span className={PILULA_ACAO}>Ver como aparece no seu perfil</span>
           </Link>
         )}
       </div>
@@ -80,12 +97,12 @@ export default async function AvaliacoesPage({
       {pendentes.length > 0 && (
         <>
           <SecaoPagina icone="estrela">Prontos para avaliar</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {pendentes.map((p) => (
               <Link
                 key={p.negocioId}
                 href={`/marketplace/${p.demandaId}`}
-                className="flex items-center gap-3 border-b border-line py-3.5 last:border-0"
+                className="flex items-center gap-3 border-b border-line py-3 last:border-0"
               >
                 <Icone nome="estrela" className="size-4 shrink-0 text-accent-forte" />
                 <span className="min-w-0 flex-1">
@@ -99,7 +116,7 @@ export default async function AvaliacoesPage({
         </>
       )}
 
-      <ChipLinha className="mt-5">
+      <ChipLinha className="mt-6">
         <Chip href="/avaliacoes" ativo={aba === "recebidas"}>Recebidas</Chip>
         <Chip href="/avaliacoes?ver=enviadas" ativo={aba === "enviadas"}>Enviadas</Chip>
       </ChipLinha>
@@ -171,15 +188,13 @@ function AcoesDoAvaliado({ item }: { item: AvaliacaoCompleta }) {
             <option value="" disabled>Escolha a resposta</option>
             {respostas.map((r) => <option key={r.codigo} value={r.codigo}>{r.texto}</option>)}
           </CampoSelect>
-          <button className="h-11 w-full rounded-lg border border-line text-sm font-medium">
-            Publicar resposta
-          </button>
+          <BotaoEnviar rotulo="Publicar resposta" variante="contorno" larguraCheia />
         </form>
       )}
 
       {!solucao && (
-        <details className="rounded-lg border border-line px-3 py-2">
-          <summary className="apoio cursor-pointer text-dim">Marcar como “problema solucionado”</summary>
+        <details className={`${GAVETA} border-line`}>
+          <summary className={`${RESUMO_GAVETA} text-dim`}>Marcar como “problema solucionado”</summary>
           <form action={marcarProblemaSolucionado} className="mt-2 space-y-2">
             <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
             <input type="hidden" name="volta" value={VOLTA} />
@@ -188,16 +203,14 @@ function AcoesDoAvaliado({ item }: { item: AvaliacaoCompleta }) {
               maxLength={300} placeholder="Refizemos o serviço sem custo em 12/08."
               dica="O cliente confirma ou nega. A nota não muda por causa disso — se ele quiser mudá-la, edita a própria avaliação."
             />
-            <button className="h-11 w-full rounded-lg border border-line text-sm font-medium">
-              Registrar solução
-            </button>
+            <BotaoEnviar rotulo="Registrar solução" variante="contorno" larguraCheia />
           </form>
         </details>
       )}
 
       {podeContestar(avaliacao.nota) && !contestacao && (
-        <details className="rounded-lg border border-crit/40 px-3 py-2">
-          <summary className="apoio cursor-pointer text-crit">Contestar avaliação</summary>
+        <details className={`${GAVETA} border-crit/40`}>
+          <summary className={`${RESUMO_GAVETA} text-crit`}>Contestar avaliação</summary>
           <form action={contestarAvaliacao} className="mt-2 space-y-2">
             <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
             <input type="hidden" name="volta" value={VOLTA} />
@@ -215,9 +228,11 @@ function AcoesDoAvaliado({ item }: { item: AvaliacaoCompleta }) {
               label="Detalhe (obrigatório em “Outro motivo”)" id={`detalhe-${avaliacao.id}`} name="detalhe"
               rows={3} maxLength={600}
             />
-            <button className="h-11 w-full rounded-lg border border-crit/40 text-sm font-medium text-crit">
-              Enviar contestação
-            </button>
+            {/* A gaveta inteira já é vermelha — repetir o vermelho no botão
+                dentro dela não acrescenta sinal, e o `BotaoEnviar` traz o
+                aviso de envio que uma contestação (análise humana, sem volta)
+                justifica mais que qualquer outro botão desta tela. */}
+            <BotaoEnviar rotulo="Enviar contestação" variante="contorno" larguraCheia />
           </form>
         </details>
       )}
@@ -244,25 +259,21 @@ function AcoesDoCliente({ item }: { item: AvaliacaoCompleta }) {
               <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
               <input type="hidden" name="volta" value={VOLTA} />
               <input type="hidden" name="resposta" value="confirmado" />
-              <button className="h-11 w-full rounded-lg border border-ok/40 text-sm font-medium text-ok">
-                Sim, foi resolvido
-              </button>
+              <BotaoEnviar rotulo="Sim, foi resolvido" variante="contorno" larguraCheia />
             </form>
             <form action={responderProblemaSolucionado} className="flex-1">
               <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
               <input type="hidden" name="volta" value={VOLTA} />
               <input type="hidden" name="resposta" value="negado" />
-              <button className="h-11 w-full rounded-lg border border-line text-sm font-medium text-dim">
-                Não foi
-              </button>
+              <BotaoEnviar rotulo="Não foi" rotuloEnviando="Enviando…" variante="contorno" larguraCheia />
             </form>
           </div>
         </div>
       )}
 
       {podeEditar ? (
-        <details className="rounded-lg border border-line px-3 py-2">
-          <summary className="apoio cursor-pointer text-dim">
+        <details className={`${GAVETA} border-line`}>
+          <summary className={`${RESUMO_GAVETA} text-dim`}>
             Editar minha avaliação · {dias === 0 ? "último dia" : `${dias} dias restantes`}
           </summary>
           <form action={editarAvaliacao} className="mt-2 space-y-3">
@@ -273,9 +284,7 @@ function AcoesDoCliente({ item }: { item: AvaliacaoCompleta }) {
               label="Comentário (opcional)" id={`comentario-${avaliacao.id}`} name="comentario"
               rows={3} maxLength={800} defaultValue={avaliacao.comentario ?? ""}
             />
-            <button className="h-11 w-full rounded-lg bg-accent text-sm font-semibold text-acao-texto">
-              Salvar alteração
-            </button>
+            <BotaoEnviar rotulo="Salvar alteração" larguraCheia />
           </form>
         </details>
       ) : (

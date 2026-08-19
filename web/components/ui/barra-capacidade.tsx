@@ -85,8 +85,8 @@ export function BarraCapacidade({
           não uma faixa cortada. `aria-hidden` porque o número acima já diz o
           mesmo, e um leitor de tela lendo "progressbar 65" logo depois de
           "65%" é repetição, não acessibilidade. */}
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line" aria-hidden="true">
-        <div className={`h-full rounded-full ${FUNDO_TOM[tom]}`} style={{ width: `${pct}%` }} />
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-[var(--raio-pilula)] bg-line" aria-hidden="true">
+        <div className={`h-full rounded-[var(--raio-pilula)] ${FUNDO_TOM[tom]}`} style={{ width: `${pct}%` }} />
       </div>
 
       <p className="rotulo mt-1.5 truncate text-dim">{rotulo}</p>

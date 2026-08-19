@@ -1,7 +1,9 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { GradeRotuloValor } from "@/components/ui/grade-rotulo-valor"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarFichaEmbarcacao } from "@/lib/consultas-suporte"
 import { carregarMapaTaxonomia, nomeDe } from "@/lib/consultas-marketplace"
@@ -56,28 +58,25 @@ export default async function AdminFichaEmbarcacaoPage({
 
   return (
     <main>
-      <Link href="/admin/usuarios" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Usuários
-      </Link>
-      <h1 className="titulo-pagina mt-3">{e.nome}</h1>
-      <p className="apoio mt-1 text-dim">
-        Cadastro da embarcação, somente leitura. Cadastrada em {formatarData(e.created_at)}.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin/usuarios"
+        voltarRotulo="Usuários"
+        titulo={e.nome}
+        descricao={`Cadastro da embarcação, somente leitura. Cadastrada em ${formatarData(e.created_at)}.`}
+      />
 
-      <p className="rotulo mt-8 mb-2 text-dim">Dados gerais</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-          {CAMPOS.map(([rotulo, valor]) => (
-            <div key={rotulo}>
-              <dt className="rotulo text-dim">{rotulo}</dt>
-              <dd className="corpo mt-0.5">{valor ?? <span className="text-dim">—</span>}</dd>
-            </div>
-          ))}
-        </dl>
+      <SecaoPagina className="mt-8">Dados gerais</SecaoPagina>
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+        {/* O `<dl>` à mão daqui era a mesma anatomia que a ficha de
+            equipamento já tinha extraído para `GradeRotuloValor` — inclusive
+            o travessão de campo sem dado. Trocar traz junto o `.rotulo-dado`
+            (caixa de frase), que é a voz que a referência usa para legenda de
+            valor dentro de cartão. */}
+        <GradeRotuloValor itens={CAMPOS} />
       </div>
 
-      <p className="rotulo mt-8 mb-2 text-dim">Quem tem acesso</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <SecaoPagina className="mt-8">Quem tem acesso</SecaoPagina>
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {ficha.acessos.map((a) => (
           <LinhaLista
             key={a.usuarioId}

@@ -1,7 +1,10 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { Selo } from "@/components/ui/selo"
+import { TOQUE_AMPLO } from "@/lib/ui/acoes"
 import {
   aprovarSolicitacaoGold, atualizarAgendamentoGold, criarAgendamentoGold, definirRegiaoGold, iniciarAnaliseGold,
   reprovarSolicitacaoGold,
@@ -46,26 +49,27 @@ export default async function AdminDetalheGoldPage({
 
   return (
     <main>
-      <Link href="/admin/gold" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Commander Gold
-      </Link>
-      <h1 className="titulo-pagina mt-3">{nomeEmbarcacao}</h1>
-      <p className="apoio mt-1 text-dim">
-        {ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]} · {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]}
-        {!solicitacao.embarcacao_id && " · embarcação sem cadastro no Commander"}
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin/gold"
+        voltarRotulo="Commander Gold"
+        titulo={nomeEmbarcacao}
+        descricao={
+          `${ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]} · ${ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]}` +
+          (solicitacao.embarcacao_id ? "" : " · embarcação sem cadastro no Commander")
+        }
+      />
       {solicitacao.embarcacao_externa_local && (
         <p className="apoio text-dim">Local informado: {solicitacao.embarcacao_externa_local}</p>
       )}
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* Região da vistoria (onda 48, §21) — não é etiqueta, é a chave do
           escopo: a RLS libera esta solicitação exatamente pros vistoriadores
           autorizados nesta região. Sem região, nenhum vistoriador enxerga. */}
       {podeDefinirRegiao && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Região da vistoria</p>
           <form action={definirRegiaoGold} className="space-y-2">
             <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
@@ -79,20 +83,20 @@ export default async function AdminDetalheGoldPage({
               Define quem enxerga esta vistoria: só vistoriadores autorizados nesta região. Sem região, nenhum
               vistoriador tem acesso.
             </p>
-            <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">Salvar região</button>
+            <BotaoEnviar rotulo="Salvar região" variante="contorno" larguraCheia />
           </form>
         </div>
       )}
 
       {pagamento && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-1 text-dim">Pagamento</p>
           <p className="corpo">Status: {pagamento.status} · {pagamento.quem_paga === "proprio" ? "pelo solicitante" : "por interessado (link)"}</p>
         </div>
       )}
 
       {agendamento && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Agendamento</p>
           <form action={atualizarAgendamentoGold} className="space-y-2">
             <input type="hidden" name="id" value={agendamento.id} />
@@ -116,13 +120,13 @@ export default async function AdminDetalheGoldPage({
               <option value="cancelado">Cancelado</option>
             </CampoSelect>
             <CampoTextarea label="Observações" id="obs_ag" name="observacoes" rows={2} defaultValue={agendamento.observacoes ?? ""} />
-            <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">Salvar agendamento</button>
+            <BotaoEnviar rotulo="Salvar agendamento" variante="contorno" larguraCheia />
           </form>
         </div>
       )}
 
       {solicitacao.estado === "aguardando_agendamento" && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Agendar avaliação presencial</p>
           {consultores.length === 0 && (
             <p className="apoio mb-2 text-dim">
@@ -142,13 +146,13 @@ export default async function AdminDetalheGoldPage({
             </div>
             <Campo label="Local" id="local" name="local" />
             <CampoTextarea label="Observações" id="observacoes" name="observacoes" rows={2} />
-            <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Confirmar agendamento</button>
+            <BotaoEnviar rotulo="Confirmar agendamento" larguraCheia />
           </form>
         </div>
       )}
 
       {avaliacao && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Protocolo Commander</p>
           <div className="divide-y divide-line">
             {HUBS_PROTOCOLO_GOLD.map((hub) => {
@@ -156,11 +160,14 @@ export default async function AdminDetalheGoldPage({
               const estado = item?.estado ?? "na"
               return (
                 <div key={hub} className="py-2">
-                  <div className="flex items-center justify-between">
-                    <p className="corpo">{ROTULO_HUB_GOLD[hub]}</p>
-                    <p className={`apoio font-medium ${estado === "avaliado" ? "text-ok" : estado === "atencao" ? "text-warn" : "text-dim"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="corpo min-w-0 truncate">{ROTULO_HUB_GOLD[hub]}</p>
+                    {/* Era texto colorido — estado só por cor, que o
+                        docs/DESIGN.md §6 regra 3 proíbe (daltônico não vê o
+                        farol). `Selo` já é a pílula com palavra E cor. */}
+                    <Selo estado={estado === "avaliado" ? "ok" : estado === "atencao" ? "atencao" : "neutro"}>
                       {ROTULO_ESTADO_ITEM[estado]}
-                    </p>
+                    </Selo>
                   </div>
                   {item?.observacao && <p className="apoio text-dim">{item.observacao}</p>}
                 </div>
@@ -174,26 +181,36 @@ export default async function AdminDetalheGoldPage({
       {solicitacao.estado === "avaliacao_realizada" && (
         <form action={iniciarAnaliseGold} className="mt-4">
           <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Abrir análise</button>
+          <BotaoEnviar rotulo="Abrir análise" larguraCheia />
         </form>
       )}
 
       {solicitacao.estado === "em_analise" && (
         <div className="mt-4 space-y-3">
-          <form action={aprovarSolicitacaoGold} className="sombra-1 space-y-2 rounded-[14px] border border-ok/40 bg-panel p-4">
+          <form action={aprovarSolicitacaoGold} className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-ok/40 bg-panel p-4">
             <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
             <p className="corpo font-medium">Aprovar Commander Gold</p>
             <CampoSelect label="Validade do selo" id="validade_meses" name="validade_meses" defaultValue="12">
               <option value="6">6 meses</option>
               <option value="12">12 meses</option>
             </CampoSelect>
-            <button className="w-full rounded-xl bg-ok py-2.5 font-semibold text-white">Aprovar</button>
+            {/* ANOTAÇÃO (não é conserto): estes dois são os únicos botões do
+                Admin que não puderam virar `BotaoEnviar` — ele só conhece as
+                variantes `principal` (dourada) e `contorno`, e aprovar/reprovar
+                Gold carregam a cor de estado, que é o que a pessoa confere
+                antes de tocar. Ficaram com o raio em token e a confirmação de
+                toque; o aviso de "enviando" depende de uma variante nova. */}
+            <button className={`h-11 w-full rounded-[var(--raio-controle)] bg-ok font-semibold text-white ${TOQUE_AMPLO}`}>
+              Aprovar
+            </button>
           </form>
-          <form action={reprovarSolicitacaoGold} className="sombra-1 space-y-2 rounded-[14px] border border-crit/40 bg-panel p-4">
+          <form action={reprovarSolicitacaoGold} className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-crit/40 bg-panel p-4">
             <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
             <p className="corpo font-medium">Reprovar</p>
             <CampoTextarea label="Motivo (opcional)" id="motivo" name="motivo" rows={2} />
-            <button className="w-full rounded-xl border border-crit/60 py-2.5 font-semibold text-crit">Reprovar</button>
+            <button className={`h-11 w-full rounded-[var(--raio-controle)] border border-crit/60 font-semibold text-crit ${TOQUE_AMPLO}`}>
+              Reprovar
+            </button>
           </form>
         </div>
       )}

@@ -58,7 +58,7 @@ export function RedeNav({
             key={d.valor}
             href={d.href}
             aria-current={ativo ? "page" : undefined}
-            className={`flex h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm font-medium ${
+            className={`flex h-[var(--altura-controle)] shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 text-sm font-medium ${
               ativo
                 ? "border-accent bg-accent text-acao-texto"
                 : variant === "mapa"

@@ -26,6 +26,9 @@ describe("BotaoFicha", () => {
   })
 
   it("alvo de 44px sempre — é ação, não pastilha informativa", () => {
-    expect(html({ href: "/x", children: "Editar" })).toContain("min-h-11")
+    // ONDA 91 — a régua passou a ser lida do token `--altura-controle`; o
+    // teste segue o token, e não um `min-h-11` que agora seria a régua
+    // escrita num segundo lugar (achado 5.10).
+    expect(html({ href: "/x", children: "Editar" })).toContain("min-h-[var(--altura-controle)]")
   })
 })

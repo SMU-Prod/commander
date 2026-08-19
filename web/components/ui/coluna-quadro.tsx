@@ -37,9 +37,9 @@ export function ColunaQuadro({
   return (
     <section className={`w-[280px] shrink-0 rounded-[var(--raio-cartao)] border border-line bg-panel p-3 ${className}`}>
       <header className="flex items-center gap-2">
-        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${FUNDO_TOM[tom]}`} />
+        <span aria-hidden="true" className={`size-2 shrink-0 rounded-[var(--raio-pilula)] ${FUNDO_TOM[tom]}`} />
         <h2 className="titulo-card min-w-0 flex-1 truncate">{titulo}</h2>
-        <span className="rotulo-dado shrink-0 rounded-full bg-panel2 px-2 py-0.5 text-dim">{contagem}</span>
+        <span className="rotulo-dado shrink-0 rounded-[var(--raio-pilula)] bg-panel2 px-2 py-0.5 text-dim">{contagem}</span>
       </header>
       {subtitulo && <p className="apoio mt-0.5 truncate text-dim">{subtitulo}</p>}
       <div className="mt-3 flex flex-col gap-2">{children}</div>

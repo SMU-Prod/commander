@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation"
 import { aplicarPreset, removerCmdt, salvarMatriz } from "@/lib/acoes/vinculos"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel } from "@/lib/consultas"
 import { ABAS, ROTULO_ABA, normalizarPermissoes } from "@/lib/domain/permissoes"
@@ -41,53 +42,57 @@ export default async function MatrizPage({
         titulo={nome}
         descricao="Defina, área por área, o que este comandante vê e edita."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
-      {salvo && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 text-sm">Permissões salvas.</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {salvo && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2">Permissões salvas.</p>}
 
+      {/* Os dois atalhos de preset tinham 39px — 5px abaixo da régua — e
+          reescreviam à mão a pílula de contorno que `BotaoEnviar` já
+          desenha. `larguraCheia` porque cada um divide a linha ao meio. */}
       <div className="mt-4 flex gap-2">
         <form action={aplicarPreset} className="flex-1">
           <input type="hidden" name="vinculo_id" value={v.id} />
           <input type="hidden" name="preset" value="operacional" />
-          <button className="w-full rounded-lg border border-line py-2 text-sm">Aplicar Operacional</button>
+          <BotaoEnviar rotulo="Aplicar Operacional" variante="contorno" larguraCheia />
         </form>
         <form action={aplicarPreset} className="flex-1">
           <input type="hidden" name="vinculo_id" value={v.id} />
           <input type="hidden" name="preset" value="completo" />
-          <button className="w-full rounded-lg border border-line py-2 text-sm">Aplicar Completo</button>
+          <BotaoEnviar rotulo="Aplicar Completo" variante="contorno" larguraCheia />
         </form>
       </div>
 
       <form action={salvarMatriz} className="mt-4">
         <input type="hidden" name="vinculo_id" value={v.id} />
-        <div className="rounded-[14px] border border-line bg-panel px-4">
-          <div className="flex items-center gap-3 border-b border-line py-2.5">
-            <span className="flex-1 font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Área</span>
-            <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Ver</span>
-            <span className="w-12 text-center font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim">Editar</span>
+        <div className="rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+          {/* `.rotulo` no lugar de `text-[11px] uppercase tracking-[.14em]`:
+              é o MESMO desenho escrito à mão, e `.14em` era mais um dos onze
+              trackings que a auditoria contou pro mesmo gesto (achado 5.12). */}
+          <div className="flex items-center gap-3 border-b border-line py-2">
+            <span className="rotulo flex-1 text-dim">Área</span>
+            <span className="rotulo w-12 text-center text-dim">Ver</span>
+            <span className="rotulo w-12 text-center text-dim">Editar</span>
           </div>
           {ABAS.map((aba) => (
             <div key={aba} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-              <span className="flex-1 text-sm">{ROTULO_ABA[aba]}</span>
+              <span className="corpo flex-1">{ROTULO_ABA[aba]}</span>
               <span className="flex w-12 justify-center">
                 <input type="checkbox" name={`${aba}_ver`} defaultChecked={permissoes[aba].ver}
-                  aria-label={`Ver ${ROTULO_ABA[aba]}`} className="size-5 accent-[#d4af37]" />
+                  aria-label={`Ver ${ROTULO_ABA[aba]}`} className="size-5 accent-[var(--acao)]" />
               </span>
               <span className="flex w-12 justify-center">
                 <input type="checkbox" name={`${aba}_editar`} defaultChecked={permissoes[aba].editar}
-                  aria-label={`Editar ${ROTULO_ABA[aba]}`} className="size-5 accent-[#d4af37]" />
+                  aria-label={`Editar ${ROTULO_ABA[aba]}`} className="size-5 accent-[var(--acao)]" />
               </span>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-dim">Marcar &quot;Editar&quot; libera &quot;Ver&quot; automaticamente ao salvar.</p>
-        <button className="mt-3 w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-          Salvar permissões
-        </button>
+        <p className="apoio mt-2 text-dim">Marcar &quot;Editar&quot; libera &quot;Ver&quot; automaticamente ao salvar.</p>
+        <BotaoEnviar rotulo="Salvar permissões" className="mt-3" />
       </form>
 
       <form action={removerCmdt} className="mt-6">
         <input type="hidden" name="vinculo_id" value={v.id} />
-        <button className="w-full rounded-xl border border-crit/40 py-3 text-sm font-semibold text-crit">
+        <button className="w-full rounded-[var(--raio-controle)] border border-crit/40 py-3 text-sm font-semibold text-crit">
           Remover da tripulação
         </button>
       </form>

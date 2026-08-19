@@ -1,9 +1,12 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { Selo } from "@/components/ui/selo"
 import { concederCortesia, registrarAtendimento } from "@/lib/acoes/suporte"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarFichaUsuario } from "@/lib/consultas-suporte"
@@ -63,22 +66,23 @@ export default async function AdminFichaUsuarioPage({
 
   return (
     <main>
-      <Link href="/admin/usuarios" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Usuários
-      </Link>
-      <h1 className="titulo-pagina mt-3">{ficha.perfil.nome}</h1>
-      <p className="apoio mt-1 text-dim">
-        Conta criada em {formatarData(ficha.perfil.created_at)}
-        {ficha.perfil.telefone ? ` · ${ficha.perfil.telefone}` : ""}
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin/usuarios"
+        voltarRotulo="Usuários"
+        titulo={ficha.perfil.nome}
+        descricao={
+          `Conta criada em ${formatarData(ficha.perfil.created_at)}` +
+          (ficha.perfil.telefone ? ` · ${ficha.perfil.telefone}` : "")
+        }
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* --- Plano e status (§21: "planos/status") ---------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Plano e assinatura</p>
+      <SecaoPagina className="mt-8">Plano e assinatura</SecaoPagina>
       {ficha.assinaturas.length === 0 ? (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="corpo font-medium">Sem assinatura</p>
           <p className="apoio mt-1 text-dim">
             A conta está no nível gratuito. Nada foi cancelado — nunca houve cobrança.
@@ -99,7 +103,7 @@ export default async function AdminFichaUsuarioPage({
               hoje,
             })
             return (
-              <div key={a.id} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+              <div key={a.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="corpo truncate font-medium">{rotuloPlano(a.plano)}</p>
@@ -107,9 +111,11 @@ export default async function AdminFichaUsuarioPage({
                       {formatarReais(a.valor_centavos)} · desde {formatarData(a.criado_em)}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full border border-line bg-panel2 px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em]">
-                    {ROTULO_SITUACAO[ciclo.situacao]}
-                  </span>
+                  {/* Terceira cópia à mão da mesma pílula de 10px no Admin
+                      (as outras duas em /admin/parceiros e /admin/publicidade).
+                      Aqui ela é sempre neutra: a situação do ciclo já vem
+                      escrita por extenso e quem julga é quem atende. */}
+                  <Selo estado="neutro">{ROTULO_SITUACAO[ciclo.situacao]}</Selo>
                 </div>
                 {ciclo.aviso && <p className="apoio mt-2 text-dim">{ciclo.aviso}</p>}
               </div>
@@ -119,11 +125,11 @@ export default async function AdminFichaUsuarioPage({
       )}
 
       {/* --- Concessões (cortesia, Gold, migração) --------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Acessos concedidos</p>
+      <SecaoPagina className="mt-8">Acessos concedidos</SecaoPagina>
       {ficha.concessoes.length === 0 ? (
         <p className="apoio text-dim">Nenhum acesso de cortesia, Gold ou promoção nesta conta.</p>
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {ficha.concessoes.map((c) => (
             <LinhaLista
               key={c.id}
@@ -137,7 +143,7 @@ export default async function AdminFichaUsuarioPage({
       )}
 
       {/* --- Embarcações vinculadas ------------------------------------ */}
-      <p className="rotulo mt-8 mb-2 text-dim">Embarcações vinculadas</p>
+      <SecaoPagina className="mt-8">Embarcações vinculadas</SecaoPagina>
       {ficha.embarcacoes.length === 0 ? (
         <EstadoVazio
           icone="embarcacao"
@@ -145,7 +151,7 @@ export default async function AdminFichaUsuarioPage({
           descricao="Esta conta não é proprietária nem tem acesso de tripulação a nenhum barco."
         />
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {ficha.embarcacoes.map((e) => (
             <LinhaLista
               key={e.id}
@@ -159,8 +165,8 @@ export default async function AdminFichaUsuarioPage({
       )}
 
       {/* --- Cortesia (§21) -------------------------------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Conceder cortesia</p>
-      <form action={concederCortesia} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <SecaoPagina className="mt-8">Conceder cortesia</SecaoPagina>
+      <form action={concederCortesia} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <input type="hidden" name="usuario_id" value={ficha.perfil.id} />
         <p className="apoio text-dim">
           Libera os recursos de um plano até a data escolhida, sem criar cobrança nenhuma. Quando vence, a
@@ -183,14 +189,12 @@ export default async function AdminFichaUsuarioPage({
           placeholder="Compensação por indisponibilidade de 3 dias"
           dica="Fica gravado no log administrativo, junto de quem concedeu."
         />
-        <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">
-          Conceder cortesia
-        </button>
+        <BotaoEnviar rotulo="Conceder cortesia" variante="contorno" larguraCheia />
       </form>
 
       {/* --- Atendimento ------------------------------------------------ */}
-      <p className="rotulo mt-8 mb-2 text-dim">Registrar atendimento</p>
-      <form action={registrarAtendimento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <SecaoPagina className="mt-8">Registrar atendimento</SecaoPagina>
+      <form action={registrarAtendimento} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <input type="hidden" name="usuario_id" value={ficha.perfil.id} />
         <Campo label="Assunto" id="assunto" name="assunto" maxLength={120} placeholder="Dúvida sobre cobrança" />
         <CampoTextarea
@@ -202,9 +206,7 @@ export default async function AdminFichaUsuarioPage({
           maxLength={1000}
           dica="Vai pro log administrativo, que não é editável nem apagável — nem pelo CEO."
         />
-        <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">
-          Registrar no log
-        </button>
+        <BotaoEnviar rotulo="Registrar no log" variante="contorno" larguraCheia />
       </form>
 
       <p className="apoio mt-6 text-dim">

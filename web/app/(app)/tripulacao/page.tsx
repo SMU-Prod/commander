@@ -9,12 +9,14 @@ import { Avatar } from "@/components/avatar"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { ROTULO_MODO_APROVACAO } from "@/lib/domain/enterprise"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { Convite, Vinculo } from "@/lib/db/types"
 
 /**
@@ -39,9 +41,13 @@ function digitosTelefone(telefone: string | null): string | null {
 
 function PilulaKpi({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <span className="flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1.5">
-      <span className="font-mono-instr text-[11px] uppercase tracking-[.12em] text-dim-chip">{rotulo}</span>
-      <span className="font-mono-instr text-xs font-semibold tabular-nums">{valor}</span>
+    // `.rotulo` + `.valor` no lugar de `text-[11px] tracking-[.12em]` +
+    // `text-xs`: é a MESMA dupla rótulo-cinza / valor-branco que
+    // `PastilhaKpi` desenha, agora escrita com as classes da escala em vez
+    // de dois tamanhos avulsos que ninguém comparou (onda 87).
+    <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1.5">
+      <span className="rotulo text-dim-chip">{rotulo}</span>
+      <span className="font-mono-instr valor font-semibold">{valor}</span>
     </span>
   )
 }
@@ -88,7 +94,17 @@ export default async function TripulacaoPage({
   const avatarPathPorId = new Map(
     (perfis ?? []).map((p: { id: string; avatar_path: string | null }) => [p.id, p.avatar_path]),
   )
-  const usoPorId = usoPorTripulante((saidas ?? []) as SaidaParaTripulante[])
+  const listaSaidas = (saidas ?? []) as SaidaParaTripulante[]
+  const usoPorId = usoPorTripulante(listaSaidas)
+  // AUDITORIA 19/08 — `null` NÃO VIRA ZERO DESENHADO (o padrão é
+  // `lib/domain/patio.ts`). A consulta acima tem `limit(300)`: quando ela
+  // ENCHE, "não achei saída desta pessoa" pode significar duas coisas
+  // diferentes — ela nunca saiu, ou as saídas dela ficaram fora da janela.
+  // O chip mostrava "0" nos dois casos, ou seja, afirmava um currículo vazio
+  // que o app não tinha como saber. Com a janela cheia o certo é "—", a
+  // mesma marca que `horasNoMarCurto` já usa pra hora não registrada; com a
+  // janela folgada o "0" é fato e continua sendo escrito.
+  const janelaDeSaidasCheia = listaSaidas.length >= 300
   // Mesmo padrão da Início (onda 57): assina só o que vai aparecer — a
   // Tripulação é curta por natureza (§19, no máximo poucas vagas por
   // embarcação), então dá pra assinar a foto de todo mundo sem paginar.
@@ -120,18 +136,22 @@ export default async function TripulacaoPage({
         titulo="Tripulação"
         descricao="Quem tem acesso a esta embarcação, e com qual permissão."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {criado && (
-        <div className="mt-4 rounded-[14px] border border-ok/40 bg-panel p-4">
-          <p className="text-sm font-semibold">Convite criado</p>
+        <div className="mt-4 rounded-[var(--raio-cartao)] border border-ok/40 bg-panel p-4">
+          <p className="titulo-card">Convite criado</p>
           <p className="mt-1 break-all font-mono-instr text-xs text-dim">{linkConvite(criado)}</p>
+          {/* Era uma caixa de 37px — 7px abaixo da régua — com o verde do
+              cartão vazando pro alvo. O verde continua na BORDA do cartão,
+              que é onde ele significa "deu certo"; a ação veste a pílula de
+              contorno como toda ação secundária do app. */}
           <a
             href={`https://wa.me/?text=${encodeURIComponent(`Entre na tripulação da ${painel.embarcacao.nome} no Commander: ${linkConvite(criado)}`)}`}
             target="_blank" rel="noopener noreferrer"
-            className="mt-3 inline-block rounded-lg border border-ok/40 px-3 py-2 text-sm text-ok"
+            className={`${ALVO_ACAO} mt-3`}
           >
-            Compartilhar no WhatsApp
+            <span className={PILULA_ACAO}>Compartilhar no WhatsApp</span>
           </a>
         </div>
       )}
@@ -142,7 +162,7 @@ export default async function TripulacaoPage({
           PRD §16 reserva o vermelho pra alerta crítico, e isto é
           orientação, não alarme. O texto encurtou pro do canvas (tela-1f):
           mesma orientação, metade das palavras. */}
-      <div className="mt-4 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+      <div className="mt-4 flex gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim">
           Dê acesso de edição só a quem cuida do barco. Tripulante que só embarca não precisa
@@ -158,7 +178,7 @@ export default async function TripulacaoPage({
         Quem tem acesso{listaVinculos.length > 0 ? ` — ${listaVinculos.length}` : ""}
       </SecaoPagina>
       {listaVinculos.length === 0 && (
-        <div className="rounded-[14px] border border-line bg-panel px-4">
+        <div className="rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           <EstadoVazio
             variant="linha"
             icone="pessoas"
@@ -187,7 +207,7 @@ export default async function TripulacaoPage({
                         Onda 69b: era "CMDT" cravado no JSX, o que mentiria
                         pra qualquer papel Enterprise. Agora sai do dado. */}
                     <span className="mt-1 inline-flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] tracking-[.06em] text-dim-chip">
+                      <span className="rotulo inline-flex rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim-chip">
                         {v.papel}
                       </span>
                       {/* A régua de aprovação (§3) só aparece quando NÃO é a
@@ -195,7 +215,7 @@ export default async function TripulacaoPage({
                           chip — chip em todo mundo vira ruído e some com a
                           exceção, que é justamente o que o ADM precisa ver. */}
                       {v.modo_aprovacao !== "sem_aprovacao" && (
-                        <span className="inline-flex rounded-full border border-aten/40 px-2 py-0.5 text-[11px] text-warn">
+                        <span className="rotulo-dado inline-flex rounded-[var(--raio-pilula)] border border-aten/40 px-2 py-0.5 text-warn">
                           {ROTULO_MODO_APROVACAO[v.modo_aprovacao]}
                         </span>
                       )}
@@ -203,7 +223,7 @@ export default async function TripulacaoPage({
                           visível possível: quem está suspenso não aparece
                           igual a quem tem acesso. */}
                       {v.suspenso_em && (
-                        <span className="inline-flex rounded-full border border-crit/40 px-2 py-0.5 text-[11px] text-crit">
+                        <span className="rotulo-dado inline-flex rounded-[var(--raio-pilula)] border border-crit/40 px-2 py-0.5 text-crit">
                           Acesso suspenso
                         </span>
                       )}
@@ -216,14 +236,17 @@ export default async function TripulacaoPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Chamar ${nome} no WhatsApp`}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line"
                   >
                     <Icone nome="telefone" className="size-4" />
                   </a>
                 )}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <PilulaKpi rotulo="Saídas" valor={String(usoDele?.saidas ?? 0)} />
+                <PilulaKpi
+                  rotulo="Saídas"
+                  valor={usoDele != null ? String(usoDele.saidas) : janelaDeSaidasCheia ? "—" : "0"}
+                />
                 {usoDele != null && usoDele.saidas > 0 && (
                   <PilulaKpi rotulo="No mar" valor={horasNoMarCurto(usoDele)} />
                 )}
@@ -237,19 +260,37 @@ export default async function TripulacaoPage({
       <SecaoPagina>
         {listaConvites.length === 1 ? "Convite pendente — 1" : `Convites pendentes${listaConvites.length > 0 ? ` — ${listaConvites.length}` : ""}`}
       </SecaoPagina>
-      <div className="rounded-[14px] border border-line bg-panel px-4">
+      <div className="rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+        {/* DESIGN §6 regra 4 — o estado vazio explica o valor da área. Só o
+            título dizia que não havia nada; agora ele diz o que um convite
+            pendente é, que é a dúvida real de quem chega aqui ("mandei o
+            link e sumiu?"). */}
         {listaConvites.length === 0 && (
-          <EstadoVazio variant="linha" icone="pessoas" titulo="Nenhum convite aguardando" />
+          <EstadoVazio
+            variant="linha"
+            icone="pessoas"
+            titulo="Nenhum convite aguardando"
+            descricao="Convite criado e ainda não aceito aparece aqui, com o código e a data em que expira — e ocupa uma vaga do plano até ser usado ou revogado."
+          />
         )}
         {listaConvites.map((c) => (
           <LinhaLista
             key={c.id}
-            titulo={<span className="font-mono-instr tracking-[.06em] tabular-nums">{c.codigo}</span>}
+            // Sem `tracking` avulso: a mono já é larga o bastante para o
+            // código ser lido letra a letra, e `.06em` era mais um dos onze
+            // trackings à mão que a auditoria contou (achado 5.12).
+            titulo={<span className="font-mono-instr tabular-nums">{c.codigo}</span>}
             subtitulo={`${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
             trailing={
               <form action={revogarConvite}>
                 <input type="hidden" name="convite_id" value={c.id} />
-                <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className="flex h-11 items-center text-sm font-medium text-crit" />
+                {/* O vermelho fica no passo da confirmação, que o `Confirmar`
+                    já desenha. Texto vermelho de 14px é o vestido de MENSAGEM
+                    de erro no resto do app — usá-lo pra alvo é dizer duas
+                    coisas com a mesma tinta. */}
+                <Confirmar mensagem="Revogar convite?" rotulo="Revogar" className={ALVO_ACAO}>
+                  <span className={PILULA_ACAO}>Revogar</span>
+                </Confirmar>
               </form>
             }
           />
@@ -263,11 +304,11 @@ export default async function TripulacaoPage({
           silenciosamente". A mesma conta roda na action e no banco. */}
       {vagas.cabeMais ? (
         <>
-          <p className="corpo mt-5 text-dim">
+          <p className="corpo mt-6 text-dim">
             {vagas.restantes === 1 ? (
-              <>Resta <span className="font-mono-instr tabular-nums text-texto">1</span> vaga no seu plano.</>
+              <>Resta <span className="font-mono-instr valor">1</span> vaga no seu plano.</>
             ) : (
-              <>Restam <span className="font-mono-instr tabular-nums text-texto">{vagas.restantes}</span> vagas no seu plano.</>
+              <>Restam <span className="font-mono-instr valor">{vagas.restantes}</span> vagas no seu plano.</>
             )}{" "}
             Convite aguardando resposta também ocupa vaga.
           </p>
@@ -284,17 +325,15 @@ export default async function TripulacaoPage({
             </CampoSelect>
             {/* A ÚNICA dourada da tela (DESIGN §5) — e com o verbo do canvas:
                 convidar é o que acontece, "criar convite" era o mecanismo. */}
-            <button className="h-11 rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto">
-              Convidar comandante
-            </button>
+            <BotaoEnviar rotulo="Convidar comandante" />
           </form>
         </>
       ) : vagas.total === 0 ? (
-        <div className="mt-5">
+        <div className="mt-6">
           <BloqueioPremium {...mensagemBloqueio("tripulacao_adicionar")} />
         </div>
       ) : (
-        <div className="mt-5 rounded-[14px] border border-line bg-panel p-4">
+        <div className="mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="titulo-card">Vagas de tripulação preenchidas</p>
           <p className="apoio mt-1 text-dim">
             Esta embarcação já usa as {vagas.total} vagas do plano, somando comandantes com acesso e convites

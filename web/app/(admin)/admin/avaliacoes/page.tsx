@@ -1,6 +1,7 @@
-import Link from "next/link"
 import { Estrelas } from "@/components/avaliacoes/estrelas"
-import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { TOQUE } from "@/lib/ui/acoes"
 import { moderarAvaliacao } from "@/lib/acoes/avaliacoes-admin"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarContestacoesPendentes } from "@/lib/consultas-avaliacoes"
@@ -32,25 +33,27 @@ export default async function AdminAvaliacoesPage({
 
   return (
     <main>
-      <Link href="/admin" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin
-      </Link>
-      <h1 className="titulo-pagina mt-3">Contestações de avaliação</h1>
-      <p className="apoio mt-1 text-dim">
-        Manter ou ocultar por violação. A nota que o cliente deu nunca é alterada — nem aqui, nem no banco.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin"
+        titulo="Contestações de avaliação"
+        descricao="Manter ou ocultar por violação. A nota que o cliente deu nunca é alterada — nem aqui, nem no banco."
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {fila.length === 0 ? (
-        <p className="apoio mt-6 rounded-[14px] border border-line bg-panel p-4 text-center text-dim">
-          Nenhuma contestação aguardando análise.
-        </p>
+        <EstadoVazio
+          className="mt-6"
+          icone="estrela"
+          titulo="Nenhuma contestação aguardando análise"
+          descricao="Quando um Partner contestar uma avaliação, ela aparece aqui para decisão."
+        />
       ) : (
         <div className="mt-4 space-y-3">
           {fila.map(({ contestacao, avaliacao }) => (
-            <div key={contestacao.id} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+            <div key={contestacao.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <div className="flex items-center justify-between gap-2">
                 <Estrelas nota={avaliacao.nota} />
                 <span className="apoio text-dim">
@@ -61,7 +64,7 @@ export default async function AdminAvaliacoesPage({
                 {avaliacao.avaliador_nome} avaliou {avaliacao.avaliado_nome}
               </p>
               {avaliacao.comentario && (
-                <p className="corpo mt-2 whitespace-pre-line rounded-lg border border-line bg-panel2 px-3 py-2">
+                <p className="corpo mt-2 whitespace-pre-line rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2">
                   {avaliacao.comentario}
                 </p>
               )}
@@ -75,18 +78,23 @@ export default async function AdminAvaliacoesPage({
                 <textarea
                   name="nota_admin" rows={2} maxLength={600}
                   placeholder="Motivo da decisão (obrigatório para ocultar)"
-                  className="w-full rounded-[10px] border border-line bg-campo px-3 py-2 text-base"
+                  className="w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 text-base"
                 />
+                {/* Os dois botões carregam `name`/`value` — é o par que diz à
+                    action QUAL decisão foi tomada —, e `BotaoEnviar` não
+                    repassa esses atributos. Por isso aqui não entra o aviso de
+                    envio; o que dá pra trazer do sistema é a forma (pílula de
+                    contorno, `lib/ui/acoes.ts`) e a confirmação de toque. */}
                 <div className="flex gap-2">
                   <button
                     name="decisao" value="manter"
-                    className="h-11 flex-1 rounded-lg border border-line text-sm font-medium"
+                    className={`h-11 flex-1 rounded-full border border-line bg-panel2 text-sm font-medium ${TOQUE}`}
                   >
                     Manter
                   </button>
                   <button
                     name="decisao" value="ocultar"
-                    className="h-11 flex-1 rounded-lg border border-crit/40 text-sm font-medium text-crit"
+                    className={`h-11 flex-1 rounded-full border border-crit/40 text-sm font-medium text-crit ${TOQUE}`}
                   >
                     Ocultar por violação
                   </button>

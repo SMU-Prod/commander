@@ -27,19 +27,34 @@ export type PontoBarra = {
 
 export function GraficoBarras({
   pontos,
-  cor = "var(--acao)",
+  cor = "var(--dado)",
   metrica = "Valor",
   sufixo = "",
-  alturaClasse = "h-[140px] sm:h-[180px]",
+  alturaClasse = "h-[140px] sm:h-[200px]",
   rotulo,
   className = "",
 }: {
   pontos: PontoBarra[]
+  /** ONDA 91 (achado 5.5) — O PADRÃO INVERTIDO: dourado é AÇÃO/MARCA, nunca
+   *  dado (`docs/DESIGN.md` §5 reserva `--dado`/`--dado-2` para série).
+   *  O componente nascia em `var(--acao)` e os QUATRO consumidores corrigiam
+   *  à mão; dois deles escreveram comentário explicando que precisavam
+   *  sobrescrever, citando que a onda 63 já tinha consertado esse mesmo erro
+   *  no gráfico antigo. Quando 4 de 4 contornam o padrão, o errado é o
+   *  padrão — e o próximo a usar herdava o defeito de graça. Nenhum pixel
+   *  muda hoje: os quatro continuam passando o mesmo valor que já passavam. */
   cor?: string
   /** Nome da métrica principal dentro do tooltip. */
   metrica?: string
   /** Vai colado no número ("%", " h", " mi"). */
   sufixo?: string
+  /** ONDA 91 (achado 5.4) — 200px no desktop, não 180. O spec §5 declara
+   *  "altura fixa por breakpoint (140px celular / 200px desktop)";
+   *  `GraficoArea`, o irmão deste, obedecia e documentava, e este usava 180
+   *  sem justificativa nenhuma. Dois gráficos lado a lado com dois desktops
+   *  diferentes é o achado 5.9 em outra medida. Três dos quatro consumidores
+   *  passam altura própria (72px e 110px, contextos compactos justificados);
+   *  quem herda o padrão é o gráfico de `/financeiro`. */
   alturaClasse?: string
   rotulo?: string
   className?: string
@@ -100,11 +115,18 @@ export function GraficoBarras({
         })}
       </ul>
 
+      {/* ONDA 91 (achado 5.6) — 11px também no celular. Era `text-[10px]` com
+          `sm:text-[11px]`, ou seja o rótulo de mês da Início saía UM pixel
+          abaixo do piso que o `globals.css` declara ("nada abaixo de 11px") —
+          e saía justamente na largura onde ler é mais difícil. Não aperta a
+          fila: a 390px este eixo já esconde um rótulo sim, um não
+          (`max-sm:invisible`), então cada rótulo visível tem duas fatias de
+          largura pra ocupar. */}
       <div className="mt-2 flex gap-1 sm:gap-1.5" aria-hidden="true">
         {pontos.map((p, i) => (
           <span
             key={`${p.rotulo}-${i}`}
-            className={`min-w-0 flex-1 truncate text-center font-mono-instr text-[10px] leading-none tabular-nums text-dim sm:text-[11px] ${i % 2 === 1 && i !== pontos.length - 1 ? "max-sm:invisible" : ""}`}
+            className={`min-w-0 flex-1 truncate text-center font-mono-instr text-[11px] leading-none tabular-nums text-dim ${i % 2 === 1 && i !== pontos.length - 1 ? "max-sm:invisible" : ""}`}
           >
             {p.rotulo}
           </span>

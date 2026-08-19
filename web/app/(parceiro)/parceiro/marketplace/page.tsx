@@ -94,7 +94,7 @@ export default async function ParceiroMarketplacePage() {
           acao={{ href: "/parceiro/perfil", rotulo: `Ajustar ${ROTULO_MEU_PERFIL[tipo].toLowerCase()}` }}
         />
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {compativeis.map((d) => {
             const dias = diasAteExpirar(d.expira_em, hoje)
             const prazo = dias <= 0 ? "Vence hoje" : dias <= 3 ? `Vence em ${dias} dia${dias === 1 ? "" : "s"}` : null
@@ -120,7 +120,7 @@ export default async function ParceiroMarketplacePage() {
           descricao="Abra um pedido acima e responda com disponibilidade, prazo e valor."
         />
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {propostas.map((pr) => {
             const d = demandaPorId.get(pr.demanda_id)
             return (

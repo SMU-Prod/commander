@@ -1,7 +1,10 @@
-import Link from "next/link"
-import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { Selo } from "@/components/ui/selo"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import {
   atualizarPrecoPublicidade,
   criarCampanha,
@@ -70,20 +73,18 @@ export default async function AdminPublicidadePage({
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Publicidade e destaques</h1>
-      <p className="apoio mt-1 text-dim">
-        Regra única para qualquer Commander Partner, pago ou gratuito. Publicidade não altera a nota nem a
-        posição do Partner nas avaliações.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Publicidade e destaques"
+        descricao="Regra única para qualquer Commander Partner, pago ou gratuito. Publicidade não altera a nota nem a posição do Partner nas avaliações."
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* --- Preços (§20: "não deve ser hardcoded") --------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Preços dos produtos</p>
+      <SecaoPagina className="mt-8">Preços dos produtos</SecaoPagina>
       <p className="apoio -mt-1 mb-3 text-dim">
         Deixe em branco para marcar como &quot;sob consulta&quot; — sem preço definido, nada é cobrado
         automaticamente.
@@ -93,7 +94,7 @@ export default async function AdminPublicidadePage({
           <form
             key={p.produto}
             action={atualizarPrecoPublicidade}
-            className="sombra-1 rounded-[14px] border border-line bg-panel p-4"
+            className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
           >
             <input type="hidden" name="produto" value={p.produto} />
             <p className="corpo font-medium">{ROTULO_PRODUTO[p.produto]}</p>
@@ -113,18 +114,16 @@ export default async function AdminPublicidadePage({
                     ? (p.preco_mensal_centavos / 100).toFixed(2).replace(".", ",")
                     : ""
                 }
-                className="corpo w-28 rounded-lg border border-line bg-panel2 px-2 py-1.5 text-right"
+                className="corpo w-28 rounded-[var(--raio-controle)] border border-line bg-panel2 px-2 py-1.5 text-right"
               />
-              <button className="apoio rounded-lg border border-line bg-panel2 px-3 py-1.5 font-medium">
-                Salvar
-              </button>
+              <BotaoEnviar rotulo="Salvar" variante="contorno" className="shrink-0 whitespace-nowrap" />
             </div>
           </form>
         ))}
       </div>
 
       {/* --- Nova campanha --------------------------------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Nova campanha</p>
+      <SecaoPagina className="mt-8">Nova campanha</SecaoPagina>
       {anunciantes.length === 0 ? (
         <EstadoVazio
           icone="ancora"
@@ -132,7 +131,7 @@ export default async function AdminPublicidadePage({
           descricao="Campanha precisa de um anunciante. Assim que o primeiro Partner criar o perfil, ele aparece aqui."
         />
       ) : (
-        <form action={criarCampanha} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <form action={criarCampanha} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <CampoSelect label="Partner" id="parceiro_id" name="parceiro_id" required defaultValue="">
             <option value="" disabled>Escolha…</option>
             {anunciantes.map((a) => (
@@ -182,9 +181,7 @@ export default async function AdminPublicidadePage({
             dica="Frase curta exibida no anúncio. Sem link: o clique leva ao perfil do Partner."
           />
 
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
-            Criar como rascunho
-          </button>
+          <BotaoEnviar rotulo="Criar como rascunho" larguraCheia />
           <p className="apoio text-dim">
             A campanha nasce em rascunho. Colocar no ar é uma segunda decisão, registrada no log.
           </p>
@@ -192,7 +189,7 @@ export default async function AdminPublicidadePage({
       )}
 
       {/* --- Campanhas -------------------------------------------------- */}
-      <p className="rotulo mt-8 mb-2 text-dim">Campanhas</p>
+      <SecaoPagina className="mt-8">Campanhas</SecaoPagina>
       <p className="apoio -mt-1 mb-3 text-dim">
         No Dashboard do proprietário aparece {ROTULO_PATROCINADO.toLowerCase()}: uma unidade por vez, até{" "}
         {MAX_PATROCINADORES_DASHBOARD} no carrossel, sempre abaixo da área operacional.
@@ -210,13 +207,13 @@ export default async function AdminPublicidadePage({
             const noAr = campanhaVigente(campanha as CampanhaParaExibicao, hoje)
             const taxa = taxaDeClique(impressoes, cliques)
             return (
-              <div key={campanha.id} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+              <div key={campanha.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="corpo truncate font-medium">{parceiroNome}</p>
                     <p className="apoio text-dim">{ROTULO_PRODUTO[campanha.produto]}</p>
                   </div>
-                  <Selo status={campanha.status} noAr={noAr} />
+                  <SeloCampanha status={campanha.status} noAr={noAr} />
                 </div>
 
                 <p className="apoio mt-2 text-dim">
@@ -235,7 +232,7 @@ export default async function AdminPublicidadePage({
                 </p>
 
                 {campanha.status === "ativa" && !noAr && (
-                  <p className="apoio mt-2 rounded-lg border border-aten/40 bg-aten/10 px-2.5 py-1.5">
+                  <p className="apoio mt-2 rounded-[var(--raio-controle)] border border-aten/40 bg-aten/10 px-2.5 py-1.5">
                     Marcada como ativa, mas fora do período — não está sendo exibida.
                   </p>
                 )}
@@ -247,7 +244,13 @@ export default async function AdminPublicidadePage({
                 </div>
 
                 <details className="mt-3">
-                  <summary className="apoio cursor-pointer text-accent-forte">Ajustar veiculação</summary>
+                  {/* Era texto dourado de 18px — a mesma "ação parecendo texto
+                      comum" da onda 82, e o único jeito de editar a campanha.
+                      `inline-flex` do `ALVO_ACAO` já apaga o triângulo nativo
+                      do `<summary>`, então a pílula fica sozinha na linha. */}
+                  <summary className={`${ALVO_ACAO} cursor-pointer list-none`}>
+                    <span className={PILULA_ACAO}>Ajustar veiculação</span>
+                  </summary>
                   <form action={editarCampanha} className="mt-3 space-y-3">
                     <input type="hidden" name="id" value={campanha.id} />
                     <div className="grid grid-cols-2 gap-3">
@@ -288,9 +291,7 @@ export default async function AdminPublicidadePage({
                       maxLength={120}
                       defaultValue={campanha.chamada ?? ""}
                     />
-                    <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">
-                      Salvar veiculação
-                    </button>
+                    <BotaoEnviar rotulo="Salvar veiculação" variante="contorno" larguraCheia />
                   </form>
                 </details>
               </div>
@@ -368,21 +369,17 @@ function BotaoStatus({
     <form action={mudarStatusCampanha}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="status" value={para} />
-      <button className="apoio rounded-lg border border-line bg-panel2 px-3 py-1.5 font-medium">{rotulo}</button>
+      {/* 30px de altura numa fileira de três — a campanha entra e sai do ar
+          por aqui. `contorno` traz os 44px e o aviso de envio. */}
+      <BotaoEnviar rotulo={rotulo} variante="contorno" className="whitespace-nowrap" />
     </form>
   )
 }
 
-function Selo({ status, noAr }: { status: StatusCampanha; noAr: boolean }) {
-  const cor =
-    status === "ativa" && noAr
-      ? "border-ok/40 bg-ok/10"
-      : status === "encerrada"
-        ? "border-line bg-panel2"
-        : "border-aten/40 bg-aten/10"
-  return (
-    <span className={`shrink-0 rounded-full border px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] ${cor}`}>
-      {ROTULO_STATUS_CAMPANHA[status]}
-    </span>
-  )
+/** A pílula de estado da campanha. O desenho era escrito aqui à mão, a 10px
+ *  (abaixo do piso de 11px do globals.css) e com tracking derivado; agora só
+ *  o MAPEAMENTO status → estado mora nesta tela, e a forma vem do `Selo`. */
+function SeloCampanha({ status, noAr }: { status: StatusCampanha; noAr: boolean }) {
+  const estado = status === "ativa" && noAr ? "ok" : status === "encerrada" ? "neutro" : "atencao"
+  return <Selo estado={estado}>{ROTULO_STATUS_CAMPANHA[status]}</Selo>
 }

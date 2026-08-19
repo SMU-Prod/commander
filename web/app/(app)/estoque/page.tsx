@@ -40,9 +40,17 @@ export default async function EstoquePage({
   // rastro, /estoque respondia só "quanto tem", e não "para onde foram os 8
   // litros de óleo que sumiram este mês" — que é a pergunta que justifica ter
   // controle de estoque.
-  const [{ data }, { data: brutosMovimentos }] = await Promise.all([
+  const [{ data }, { data: brutosMovimentos }, { data: servicosAbertos }] = await Promise.all([
     supabase.from("estoque_itens").select("*").order("nome"),
     supabase.from("estoque_movimentos").select("*")
+      .order("criado_em", { ascending: false }).limit(20),
+    // §12 — a peça que sai pra um serviço da oficina precisa dizer PARA QUAL,
+    // senão não há como perguntar depois se o orçamento já inclui essa peça
+    // (`avisoDeDuplicidade`). Só serviços em aberto: ninguém retira peça pra
+    // um conserto que já terminou, e listar os concluídos faria o select
+    // crescer sem parar.
+    supabase.from("servicos_mecanica").select("id, problema_informado")
+      .eq("embarcacao_id", painel.embarcacao.id).neq("estado", "concluido")
       .order("criado_em", { ascending: false }).limit(20),
   ])
 
@@ -60,6 +68,7 @@ export default async function EstoquePage({
   const emOrdem = comEstado.filter((i) => !precisaRepor(i.estado))
 
   const movimentos = (brutosMovimentos ?? []) as Movimento[]
+  const servicos = (servicosAbertos ?? []) as { id: string; problema_informado: string | null }[]
   const itemPorId = new Map(itens.map((i) => [i.id, i]))
   const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
   const ROTULO_MOVIMENTO: Record<string, string> = {
@@ -120,6 +129,27 @@ export default async function EstoquePage({
             <option key={e.id} value={e.id}>{e.nome}</option>
           ))}
         </CampoSelect>
+        {/* §12 e A4 — `estoque_movimentos.servico_id` existia e nunca era
+            preenchido. É ele que permite ao app perguntar, na conclusão do
+            serviço, se o valor da oficina já inclui estas peças; sem isso a
+            unidade acumula o custo duas vezes e ninguém percebe, porque os
+            dois lançamentos estão certos separadamente. Fica em branco por
+            padrão: retirada que não é pra serviço nenhum é o caso comum. */}
+        {servicos.length > 0 && (
+          <CampoSelect
+            label="Para qual serviço"
+            id={`servico-${i.id}`}
+            name="servico_id"
+            wrapperClassName="min-w-[9rem] flex-1"
+            defaultValue=""
+            dica="Só na retirada."
+          >
+            <option value="">Nenhum serviço</option>
+            {servicos.map((s) => (
+              <option key={s.id} value={s.id}>{s.problema_informado ?? "Serviço"}</option>
+            ))}
+          </CampoSelect>
+        )}
         <Campo
           label="Motivo"
           id={`motivo-${i.id}`}

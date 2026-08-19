@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { LinhaLista } from "@/components/ui/linha-lista"
@@ -17,6 +18,7 @@ import { horaCurta, podeVerAgenda, ROTULO_VISIBILIDADE, rotuloDia, visibilidadeE
 import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { AgendaEvento, AgendaParticipante } from "@/lib/db/types"
 
 /**
@@ -96,9 +98,9 @@ export default async function CompromissoPage({
   return (
     <main>
       <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo={compromisso.titulo} />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="sombra-1 mt-4 space-y-2 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-4 space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="corpo inline-flex items-center gap-2">
           <Icone nome="calendario" className="size-4 text-dim" />
           {rotuloDia(compromisso.data)}{hora ? ` · ${hora}` : " · dia inteiro"}
@@ -122,7 +124,7 @@ export default async function CompromissoPage({
       {compromisso.item_monitorado_id && (
         <>
           <SecaoPagina icone="ferramenta">Ligado a</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {item ? (
               <LinhaLista
                 href={`/barco/itens/${item.id}/editar`}
@@ -142,7 +144,7 @@ export default async function CompromissoPage({
       )}
 
       <SecaoPagina icone="pessoas">Com quem está compartilhado</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {participantes.length === 0 ? (
           <p className="apoio py-3 text-dim">Só você. Este compromisso não aparece na agenda de mais ninguém.</p>
         ) : (
@@ -159,8 +161,10 @@ export default async function CompromissoPage({
                     <Confirmar
                       mensagem={p.usuario_id === user?.id ? "Sair deste compromisso?" : "Remover?"}
                       rotulo={p.usuario_id === user?.id ? "Sair" : "Remover"}
-                      className="flex h-11 items-center text-xs text-crit"
-                    />
+                      className={ALVO_ACAO}
+                    >
+                      <span className={PILULA_ACAO}>{p.usuario_id === user?.id ? "Sair" : "Remover"}</span>
+                    </Confirmar>
                   </form>
                 ) : undefined
               }
@@ -170,7 +174,7 @@ export default async function CompromissoPage({
       </div>
 
       {souCriador && disponiveis.length > 0 && (
-        <form action={compartilharCompromisso} className="sombra-1 mt-3 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <form action={compartilharCompromisso} className="sombra-1 mt-3 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <input type="hidden" name="compromisso_id" value={compromisso.id} />
           <CampoSelect label="Compartilhar com" id="usuario_id" name="usuario_id" required defaultValue="">
             <option value="">Selecione</option>
@@ -182,16 +186,14 @@ export default async function CompromissoPage({
             <input type="checkbox" name="responsavel" value="1" className="size-4" />
             <span className="apoio">Atribuir — essa pessoa fica como responsável</span>
           </label>
-          <button className="w-full rounded-xl border border-accent/40 py-3 text-sm font-semibold text-accent-forte">
-            Compartilhar
-          </button>
+          <BotaoEnviar rotulo="Compartilhar" variante="contorno" larguraCheia />
         </form>
       )}
 
       {souCriador && (
         <>
           <SecaoPagina icone="ferramenta">Editar</SecaoPagina>
-          <form action={salvarCompromisso} className="sombra-1 space-y-4 rounded-[14px] border border-line bg-panel p-4">
+          <form action={salvarCompromisso} className="sombra-1 space-y-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <input type="hidden" name="compromisso_id" value={compromisso.id} />
             <Campo label="O quê" id="titulo" name="titulo" required defaultValue={compromisso.titulo} />
             <div className="flex gap-3">
@@ -199,7 +201,7 @@ export default async function CompromissoPage({
               <Campo label="Hora" id="hora" name="hora" type="time" defaultValue={hora ?? ""} wrapperClassName="flex-1" dica="Em branco = dia inteiro" />
             </div>
             <CampoTextarea label="Observação" id="descricao" name="descricao" rows={3} defaultValue={compromisso.descricao ?? ""} />
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar</button>
+            <BotaoEnviar rotulo="Salvar" />
           </form>
 
           <div className="mt-4 space-y-3">
@@ -208,17 +210,20 @@ export default async function CompromissoPage({
             <form action={concluirCompromisso}>
               <input type="hidden" name="compromisso_id" value={compromisso.id} />
               {concluido && <input type="hidden" name="reabrir" value="1" />}
-              <button className="w-full rounded-xl border border-line py-3 text-sm font-semibold">
-                {concluido ? "Reabrir compromisso" : "Marcar como realizado"}
-              </button>
+              <BotaoEnviar
+                rotulo={concluido ? "Reabrir compromisso" : "Marcar como realizado"}
+                variante="contorno"
+                larguraCheia
+              />
             </form>
             <form action={excluirCompromisso} className="flex justify-center">
               <input type="hidden" name="compromisso_id" value={compromisso.id} />
-              <Confirmar
-                mensagem="Excluir este compromisso?"
-                rotulo="Excluir compromisso"
-                className="py-2 text-sm text-crit"
-              />
+              {/* O vermelho fica no passo da confirmação, que o `Confirmar`
+                  já desenha; aqui a ação veste a pílula de contorno como as
+                  outras. Era 35px de alvo, 9 abaixo da régua. */}
+              <Confirmar mensagem="Excluir este compromisso?" rotulo="Excluir compromisso" className={ALVO_ACAO}>
+                <span className={PILULA_ACAO}>Excluir compromisso</span>
+              </Confirmar>
             </form>
           </div>
         </>

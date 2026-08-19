@@ -32,10 +32,16 @@ import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
  * com a pílula de filtro — seis alturas para o mesmo gesto, documentado em
  * `chip.tsx`. Aqui a régua é a que já existia:
  *
- * - `principal` → **h-12** (48px), o botão do canvas, já em `/login`,
- *   `/nova-senha`, `/barco/ocorrencias/nova` e no formulário do Diário;
- * - `contorno` → **h-11** (44px), a ÚNICA altura de pílula do app (`Chip`,
- *   `RedeNav`, `FinanceiroNav`).
+ * - `principal` → **--altura-campo** (48px), o botão do canvas, já em
+ *   `/login`, `/nova-senha`, `/barco/ocorrencias/nova` e no formulário do
+ *   Diário — e é a MESMA altura do campo que está logo acima dele, que é o
+ *   que faz a coluna do formulário parecer uma coluna;
+ * - `contorno` → **--altura-controle** (44px), a ÚNICA altura de pílula do
+ *   app (`Chip`, `RedeNav`, `FinanceiroNav`).
+ *
+ * ONDA 91 (achado 5.10) — os dois números viraram token em `globals.css`.
+ * Eram `h-12`/`h-11` cravados; cravar a régua em cada arquivo é exatamente
+ * como o app chegou a nove alturas de alvo.
  *
  * As duas passam com folga no alvo de toque de 44px, que não se negocia. O
  * que some junto é o `py-3.5` (52px) que `/barco/editar` e `/financeiro/novo`
@@ -85,10 +91,46 @@ export function enviandoPadrao(rotulo: string): string {
  * tela inteira, e a ÚNICA dourada da tela (DESIGN §5).
  * `contorno`: a pílula secundária, contida na própria largura. Quem diz "aqui
  * se toca" é a forma, não a cor (ver `lib/ui/acoes.ts`).
+ *
+ * ONDA 91 — `ok` E `critico`, AS DUAS GRAVAÇÕES MAIS SÉRIAS DO PRODUTO.
+ * ---------------------------------------------------------------------
+ * "Aprovar" um selo e "Reprovar" uma avaliação paga (Commander Gold) ficavam
+ * sem aviso de envio porque o componente só oferecia dourado ou neutro, e
+ * nenhum dos dois serve: pintar de dourado uma reprovação diria que ela é a
+ * marca, e pintar de cinza diria que ela é secundária.
+ *
+ * A COR VEM DO SEMÁFORO, NÃO DO ACENTO. `--ok`/`--crit` são estado
+ * (DESIGN §5), então estes botões NÃO gastam o orçamento de dois dourados por
+ * tela — é o mesmo raciocínio que deixa o `Selo` colorido conviver com a ação
+ * principal. E a cor ACOMPANHA, nunca substitui: quem não distingue verde de
+ * vermelho lê "Aprovar" e "Reprovar", que é a regra 3 do DESIGN §6.
+ *
+ * O VOCABULÁRIO É O DO `Selo` (`ok`/`critico`) e não o do token (`--crit`):
+ * quem escreve a tela pensa em estado, não em nome de variável CSS.
+ *
+ * MUDA SÓ A FAMÍLIA DE COR — a forma é a de `contorno`, letra por letra
+ * (mesma altura, mesmo raio, mesmo peso, mesmo respiro). O caso fundador da
+ * deriva neste app foi seis alturas para a mesma pílula; uma ação de estado
+ * continua sendo uma ação, e inventar um desenho novo para ela seria abrir a
+ * sétima.
+ *
+ * `bg-panel` E NÃO O `bg-panel2` DO `contorno`, e isto é medido, não gosto:
+ * no tema CLARO o par `--ok` sobre `--superficie-2` dá 4,43:1 e `--crit` dá
+ * 4,26:1 — os dois abaixo do 4,5:1 de AA. Sobre `--superficie` (branco) sobem
+ * para 5,02:1 e 4,82:1. É a mesma armadilha que obrigou a criar
+ * `--texto-dim-chip`, e aqui ela se resolve escolhendo a superfície certa em
+ * vez de criar um sexto token de cor.
  */
+const CONTORNO = `h-[var(--altura-controle)] rounded-[var(--raio-pilula)] border px-5 text-sm font-medium ${TOQUE}`
+
 const DESENHO = {
-  principal: `h-12 rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`,
-  contorno: `h-11 rounded-full border border-line bg-panel2 px-5 text-sm font-medium text-texto ${TOQUE}`,
+  principal: `h-[var(--altura-campo)] rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`,
+  contorno: `${CONTORNO} border-line bg-panel2 text-texto`,
+  // Borda a 60% e não os 40% do `Selo`: o selo é etiqueta e só precisa ser
+  // lido, este precisa ser ACHADO pelo dedo — a forma visível é o que a onda
+  // 82 identificou como o que separa "aqui se toca" de "isto é texto".
+  ok: `${CONTORNO} border-ok/60 bg-panel text-ok`,
+  critico: `${CONTORNO} border-crit/60 bg-panel text-crit`,
 } as const
 
 export type VarianteEnvio = keyof typeof DESENHO
@@ -97,6 +139,8 @@ export function BotaoEnviar({
   rotulo,
   rotuloEnviando,
   variante = "principal",
+  name,
+  value,
   larguraCheia = false,
   className = "",
 }: {
@@ -105,6 +149,20 @@ export function BotaoEnviar({
   /** Só quando o gerúndio automático não servir. */
   rotuloEnviando?: string
   variante?: VarianteEnvio
+  /** ONDA 91 — O FORMULÁRIO DE DOIS BOTÕES.
+   *
+   *  Quando um `<form>` tem dois submits que se distinguem pelo par
+   *  `name`/`value` — "Manter" e "Ocultar por violação" em `/admin/avaliacoes`,
+   *  "Confirmar" em `/consultor/[id]` — a action lê qual foi tocado pelo
+   *  `FormData`. Sem repassar esses dois atributos, essas telas simplesmente
+   *  não podiam usar o componente, e ficavam sem aviso de envio: justo as que
+   *  gravam decisão de moderação, onde o duplo-toque é mais caro.
+   *
+   *  O `disabled` que entra durante o envio NÃO come o valor: o navegador
+   *  recolhe o `FormData` (e o submitter dentro dele) no instante do submit, e
+   *  a re-renderização que desabilita o botão vem depois. */
+  name?: string
+  value?: string
   /**
    * O botão preenche a linha em QUALQUER largura, em vez de parar de esticar a
    * partir de `sm`.
@@ -121,12 +179,16 @@ export function BotaoEnviar({
 }) {
   const { pending } = useFormStatus()
   // A pílula de contorno é uma ação CONTIDA por natureza (é assim que ela diz
-  // "sou a secundária"), então ela não ganha largura por padrão.
+  // "sou a secundária"), e as de estado também: "Aprovar"/"Reprovar" andam em
+  // par na mesma linha, e duas ações de largura cheia empilhadas transformam
+  // uma escolha entre duas coisas em duas decisões separadas.
   const largura = larguraCheia ? "w-full" : variante === "principal" ? ACAO_NAO_ESTICA : ""
 
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={pending}
       aria-busy={pending}
       // O `disabled` aqui não bloqueia o primeiro envio — ele só existe DEPOIS
@@ -138,7 +200,7 @@ export function BotaoEnviar({
       {pending && (
         <span
           aria-hidden="true"
-          className="size-1.5 shrink-0 animate-pulse rounded-full bg-current"
+          className="size-1.5 shrink-0 animate-pulse rounded-[var(--raio-pilula)] bg-current"
         />
       )}
     </button>

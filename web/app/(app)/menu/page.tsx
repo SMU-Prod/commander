@@ -120,7 +120,7 @@ export default async function MenuPage({
         <Logo compacto />
       </div>
       {/* Outras telas redirecionam pra cá com ?erro= — o toast fica. */}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* Onda 56 — as linhas do Menu não têm ícone à ESQUERDA de propósito:
           a coluna de títulos alinha, o chevron da direita é a única marca de

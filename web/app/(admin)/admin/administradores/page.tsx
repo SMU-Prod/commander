@@ -1,7 +1,8 @@
-import Link from "next/link"
-import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { atualizarPapelAdmin, conceberPapelAdmin } from "@/lib/acoes/admin-papeis"
 import { exigirCeo } from "@/lib/admin"
 import { carregarAdministradores, carregarCandidatosAdmin } from "@/lib/consultas-admin"
@@ -34,20 +35,22 @@ export default async function AdminAdministradoresPage({
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Administradores</h1>
-      <p className="apoio mt-1 text-dim">
-        Cada função abre exatamente o que o PRD descreve — nada além. Suspender uma função corta o acesso na hora
-        e mantém o histórico de quem teve acesso a quê.
-      </p>
+      {/* ONDA 93 — o "Voltar" desta tela era um `<Link>` de 16px de altura: a
+          onda 54 já tinha consertado exatamente isso nas ~46 telas de `(app)`
+          pelo `CabecalhoDetalhe`, mas o Admin nunca entrou na varredura (o
+          usuário de teste não é admin) e ficou com a cópia antiga. */}
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Administradores"
+        descricao="Cada função abre exatamente o que o PRD descreve — nada além. Suspender uma função corta o acesso na hora e mantém o histórico de quem teve acesso a quê."
+      />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <p className="rotulo mt-6 mb-2 text-dim">Conceder função</p>
-      <form action={conceberPapelAdmin} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <SecaoPagina>Conceder função</SecaoPagina>
+      <form action={conceberPapelAdmin} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <CampoSelect label="Pessoa" id="usuario_id" name="usuario_id" required defaultValue="">
           <option value="" disabled>Escolha…</option>
           {candidatos.map((c) => (
@@ -62,7 +65,7 @@ export default async function AdminAdministradoresPage({
           ))}
         </CampoSelect>
 
-        <div className="rounded-xl border border-line bg-panel2 p-3">
+        <div className="rounded-[var(--raio-cartao)] border border-line bg-panel2 p-3">
           <p className="rotulo mb-1.5 text-dim">O que cada função abre</p>
           <ul className="space-y-1.5">
             {PAPEIS_ADMIN.map((p) => (
@@ -76,10 +79,13 @@ export default async function AdminAdministradoresPage({
         <Regioes regioes={regioes} />
 
         <Campo label="Observação (opcional)" id="observacao" name="observacao" placeholder="Por que esta pessoa recebeu a função" />
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Conceder função</button>
+        {/* Conceder papel é a gravação mais séria do Admin, e o botão não
+            mudava um pixel ao ser tocado: quem achasse que não pegou tocava
+            de novo e a action rodava duas vezes. */}
+        <BotaoEnviar rotulo="Conceder função" larguraCheia />
       </form>
 
-      <p className="rotulo mt-8 mb-2 text-dim">Funções concedidas</p>
+      <SecaoPagina className="mt-8">Funções concedidas</SecaoPagina>
       {administradores.length === 0 ? (
         <EstadoVazio
           icone="pessoas"
@@ -89,7 +95,7 @@ export default async function AdminAdministradoresPage({
       ) : (
         <div className="space-y-3">
           {administradores.map((a) => (
-            <form key={a.papel.id} action={atualizarPapelAdmin} className="sombra-1 space-y-2 rounded-[14px] border border-line bg-panel p-4">
+            <form key={a.papel.id} action={atualizarPapelAdmin} className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <input type="hidden" name="id" value={a.papel.id} />
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -126,7 +132,7 @@ export default async function AdminAdministradoresPage({
                 name="observacao"
                 defaultValue={a.papel.observacao ?? ""}
               />
-              <button className="w-full rounded-xl border border-line bg-panel2 py-2.5 font-semibold">Salvar</button>
+              <BotaoEnviar rotulo="Salvar" variante="contorno" larguraCheia />
             </form>
           ))}
         </div>
@@ -148,7 +154,7 @@ function Regioes({
   id?: string
 }) {
   return (
-    <fieldset className="rounded-xl border border-line bg-panel2 p-3">
+    <fieldset className="rounded-[var(--raio-cartao)] border border-line bg-panel2 p-3">
       <legend className="rotulo px-1 text-dim">Regiões autorizadas (só para Vistoriador)</legend>
       <div className="mt-1 grid grid-cols-2 gap-1.5">
         {regioes.map((r) => (

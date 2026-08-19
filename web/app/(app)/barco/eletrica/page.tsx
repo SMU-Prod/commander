@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
@@ -105,12 +106,18 @@ export default async function EletricaPage() {
 
       {podeVerContatos && (
         <>
-          <div className="mt-6 mb-2 flex items-baseline justify-between">
-            <p className="rotulo flex items-center gap-1.5 text-dim">
-              <Icone nome="pessoas" className="size-3.5" /> Suporte e peças
-            </p>
-            <Link href="/barco/contatos" className="corpo text-accent-forte">Cadastrar contato</Link>
-          </div>
+          {/* ONDA 92 (achado 5.2) — era um `SecaoPagina` reescrito à mão, com
+              a ação em texto dourado de 14px: um dos seis vestidos de "ação
+              secundária" que a auditoria mediu, e justamente o vestido que a
+              onda 82 baniu (texto pelado não diz "aqui se toca"; quem diz é a
+              forma). Passa a ser o componente, com a pílula de contorno e o
+              alvo de 44px que ele já garante nas outras ~35 telas. */}
+          <SecaoPagina
+            icone="pessoas"
+            acao={{ href: "/barco/contatos", rotulo: "Cadastrar contato", icone: "mais" }}
+          >
+            Suporte e peças
+          </SecaoPagina>
           <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
             {contatosEletrica.length === 0 && (
               <p className="corpo py-4 text-dim">

@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
@@ -16,7 +18,8 @@ import {
 import { CATEGORIAS_FINANCEIRAS, ROTULO_CATEGORIA, formatarDataBr } from "@/lib/domain/financeiro"
 import { formatarReais } from "@/lib/domain/gastos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
-import { rot } from "@/lib/ui/form"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
+import { campo, rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { Carteira, CarteiraMovimento } from "@/lib/db/types"
 
@@ -87,25 +90,30 @@ export default async function CarteiraDetalhePage({
         titulo={ehProprietario ? nomeTripulante : "Sua carteira"}
         descricao={`${ROTULO_MODO[carteira.modo]} · ${carteira.exige_comprovante ? "comprovante obrigatório" : "comprovante opcional"}${carteira.ativa ? "" : " · encerrada"}`}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">{leitura.rotulo}</p>
-        <p className={`mt-1 font-mono-instr text-3xl tabular-nums ${leitura.critico ? "text-crit" : ""}`}>
+        {/* ONDA 87 — o saldo é o assunto da tela (`.valor-instrumento`); as
+            três parcelas embaixo são valor de linha (`.valor`). Antes eram
+            `text-3xl` e `text-sm`: o primeiro fora de qualquer escala, o
+            segundo dando 14px SEM peso, SEM cor e SEM tabular — o mesmo cinza
+            do rótulo logo acima, que é o que apagava a hierarquia. */}
+        <p className={`mt-1 font-mono-instr valor-instrumento ${leitura.critico ? "text-crit" : ""}`}>
           {formatarReais(s.saldoCentavos)}
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-line pt-3">
           <div>
             <p className="rotulo text-dim">Repassado</p>
-            <p className="mt-0.5 font-mono-instr text-sm tabular-nums">{formatarReais(s.repassadoCentavos)}</p>
+            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.repassadoCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Gasto</p>
-            <p className="mt-0.5 font-mono-instr text-sm tabular-nums">{formatarReais(s.gastoCentavos)}</p>
+            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.gastoCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Devolvido</p>
-            <p className="mt-0.5 font-mono-instr text-sm tabular-nums">{formatarReais(s.devolvidoCentavos)}</p>
+            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.devolvidoCentavos)}</p>
           </div>
         </div>
         {s.aguardandoQtd > 0 && (
@@ -117,7 +125,7 @@ export default async function CarteiraDetalhePage({
         {carteira.observacao && <p className="apoio mt-3 text-dim">{carteira.observacao}</p>}
       </div>
 
-      <div className="mt-3 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+      <div className="mt-3 flex gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim">{AVISO_NAO_MOVIMENTA}</p>
       </div>
@@ -129,7 +137,7 @@ export default async function CarteiraDetalhePage({
             {pendentes.map((m) => {
               const url = urlPorMovimento.get(m.id)
               return (
-                <div key={m.id} className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+                <div key={m.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="titulo-card">{m.descricao}</p>
@@ -138,30 +146,31 @@ export default async function CarteiraDetalhePage({
                         {m.categoria && ` · ${ROTULO_CATEGORIA[m.categoria]}`}
                       </p>
                     </div>
-                    <p className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
+                    <p className="shrink-0 font-mono-instr valor font-semibold">
                       {formatarReais(m.valor_centavos)}
                     </p>
                   </div>
                   {m.observacao && <p className="apoio mt-2 text-dim">{m.observacao}</p>}
+                  {/* Era texto dourado de 18px de alvo. Aqui NÃO é link no
+                      meio de frase (esse caso fica sublinhado, e é o
+                      "comprovante" do extrato lá embaixo) — é a ação do
+                      cartão, e ação tem forma. */}
                   {url && (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="apoio mt-2 inline-block text-accent-forte">
-                      Abrir comprovante
+                    <a href={url} target="_blank" rel="noopener noreferrer" className={`${ALVO_ACAO} mt-2`}>
+                      <span className={PILULA_ACAO}>Abrir comprovante</span>
                     </a>
                   )}
                   <form action={decidirMovimento} className="mt-3 space-y-2">
                     <input type="hidden" name="carteira_id" value={carteira.id} />
                     <input type="hidden" name="movimento_id" value={m.id} />
-                    <input
-                      name="motivo" placeholder="Motivo, se for recusar (opcional)"
-                      className="w-full rounded-[10px] border border-line bg-campo px-3 py-2.5 text-base"
-                    />
+                    <input name="motivo" placeholder="Motivo, se for recusar (opcional)" className={campo} />
                     <div className="flex gap-2">
                       <button name="decisao" value="aprovado"
-                        className="h-11 flex-1 rounded-xl bg-accent text-sm font-semibold text-acao-texto">
+                        className="h-11 flex-1 rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto">
                         Confirmar
                       </button>
                       <button name="decisao" value="recusado"
-                        className="h-11 flex-1 rounded-xl border border-crit/40 text-sm font-semibold text-crit">
+                        className="h-11 flex-1 rounded-[var(--raio-controle)] border border-crit/40 text-sm font-semibold text-crit">
                         Recusar
                       </button>
                     </div>
@@ -202,7 +211,7 @@ export default async function CarteiraDetalhePage({
               responsabilidade do tripulante" (PRD §9.4) — e a tela diz isso,
               porque a pessoa que entrega R$ 2.000 espera ver isso no gasto do
               mês se ninguém explicar. */}
-          <form action={registrarRepasse} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <form action={registrarRepasse} className="space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             {/* Quatro formulários dividem esta URL e o mesmo `?erro=`; por
                 isso cada um tem chave própria — uma só faria o rascunho de
                 um sobrescrever o do outro. */}
@@ -217,9 +226,11 @@ export default async function CarteiraDetalhePage({
               Repasse não é despesa do barco. Vira saldo sob responsabilidade de {nomeTripulante} — a despesa
               nasce quando o dinheiro for gasto.
             </p>
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-              Registrar repasse
-            </button>
+            {/* ONDA 85 — os quatro formulários desta tela mexem em dinheiro, e
+                nenhum deles dizia que estava enviando: o duplo-toque gravava
+                o repasse duas vezes. `BotaoEnviar` traz junto a altura da
+                régua (48px) no lugar do `py-3` de 52px. */}
+            <BotaoEnviar rotulo="Registrar repasse" />
           </form>
         </>
       )}
@@ -227,7 +238,7 @@ export default async function CarteiraDetalhePage({
       {podeMovimentar && carteira.ativa && (
         <>
           <SecaoPagina icone="cifrao">Registrar gasto</SecaoPagina>
-          <form action={registrarGasto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4" encType="multipart/form-data">
+          <form action={registrarGasto} className="space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4" encType="multipart/form-data">
             <GuardaFormulario chave="carteira:gasto" />
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <Campo label="No que foi gasto" id="descricao_gasto" name="descricao" required placeholder="Diesel no posto da marina" />
@@ -249,7 +260,7 @@ export default async function CarteiraDetalhePage({
                 id="comprovante_gasto" type="file" name="comprovante"
                 accept="application/pdf,image/jpeg,image/png,image/webp"
                 required={carteira.exige_comprovante}
-                className="corpo w-full rounded-[10px] border border-line bg-campo px-3 py-2.5"
+                className={campo}
               />
               <p className="apoio mt-1 text-dim">
                 {carteira.exige_comprovante ? "Esta carteira exige comprovante em todo gasto. " : ""}
@@ -262,13 +273,11 @@ export default async function CarteiraDetalhePage({
               O gasto reduz o saldo em mãos e entra como despesa da embarcação no Financeiro
               {!ehProprietario && carteira.modo === "aprovacao" ? ", depois que o proprietário confirmar." : "."}
             </p>
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-              Registrar gasto
-            </button>
+            <BotaoEnviar rotulo="Registrar gasto" />
           </form>
 
           <SecaoPagina icone="transferir">Devolver saldo</SecaoPagina>
-          <form action={registrarDevolucao} className="space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <form action={registrarDevolucao} className="space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <GuardaFormulario chave="carteira:devolucao" />
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <div className="grid grid-cols-2 gap-3">
@@ -280,17 +289,30 @@ export default async function CarteiraDetalhePage({
               Devolução não é entrada do barco — é o dinheiro voltando para quem repassou.
               {!ehProprietario && " O proprietário confirma o recebimento."}
             </p>
-            <button className="w-full rounded-xl border border-line py-3.5 font-semibold">
-              Registrar devolução
-            </button>
+            {/* `contorno` e não `principal`: devolver saldo é a secundária de
+                quem já tem "Registrar gasto" acima como ação da tela. */}
+            <BotaoEnviar rotulo="Registrar devolução" variante="contorno" />
           </form>
         </>
       )}
 
       <SecaoPagina icone="relatorio">Extrato</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+        {/* Era "Nenhum movimento ainda." — uma lápide (DESIGN §6 regra 4): a
+            frase encerrava o assunto sem explicar o que a área faz nem o que
+            fazer a seguir. `EstadoVazio` é o mesmo desenho que as outras 80
+            telas usam, e aqui ele diz para que serve o extrato. */}
         {movimentos.length === 0 && (
-          <p className="apoio py-6 text-center text-dim">Nenhum movimento ainda.</p>
+          <EstadoVazio
+            variant="linha"
+            icone="relatorio"
+            titulo="Nenhum movimento ainda"
+            descricao={
+              podeMovimentar
+                ? "Repasse, gasto e devolução aparecem aqui em ordem, com comprovante e status — é o extrato que os dois lados olham juntos."
+                : "Assim que houver repasse, gasto ou devolução nesta carteira, cada movimento aparece aqui com data, valor e comprovante."
+            }
+          />
         )}
         {movimentos.map((m) => {
           const url = urlPorMovimento.get(m.id)
@@ -304,8 +326,14 @@ export default async function CarteiraDetalhePage({
                   {m.categoria && ` · ${ROTULO_CATEGORIA[m.categoria]}`}
                   {m.status !== "aprovado" && ` · ${ROTULO_STATUS_MOVIMENTO[m.status]}`}
                   {m.status === "recusado" && m.motivo_recusa && ` (${m.motivo_recusa})`}
+                  {/* A EXCEÇÃO que continua sendo texto: link dentro de frase
+                      corrida ("Gasto · 12/08 · Combustível · comprovante").
+                      Pílula no meio de uma linha de subtítulo seria pior que
+                      o problema; o sublinhado é o affordance certo aqui, e
+                      o DESIGN §5 já isenta link de parágrafo da régua de
+                      alvo isolado. */}
                   {url && (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="ml-2 text-accent-forte">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="ml-2 text-accent-forte underline">
                       comprovante
                     </a>
                   )}
@@ -323,7 +351,7 @@ export default async function CarteiraDetalhePage({
       {ehProprietario && (
         <>
           <SecaoPagina icone="ferramenta">Regras desta carteira</SecaoPagina>
-          <form action={salvarRegrasCarteira} className="space-y-4 rounded-[14px] border border-line bg-panel p-4">
+          <form action={salvarRegrasCarteira} className="space-y-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <input type="hidden" name="carteira_id" value={carteira.id} />
             <CampoSelect label="Como o gasto entra" id="modo" name="modo" defaultValue={carteira.modo}>
               {MODOS_CARTEIRA.map((m) => (
@@ -332,18 +360,18 @@ export default async function CarteiraDetalhePage({
             </CampoSelect>
             <label className="flex items-center gap-3">
               <input type="checkbox" name="exige_comprovante" defaultChecked={carteira.exige_comprovante}
-                className="size-5 accent-[#d4af37]" />
+                className="size-5 accent-[var(--acao)]" />
               <span className="corpo">Exigir comprovante em todo gasto</span>
             </label>
             <label className="flex items-center gap-3">
-              <input type="checkbox" name="ativa" defaultChecked={carteira.ativa} className="size-5 accent-[#d4af37]" />
+              <input type="checkbox" name="ativa" defaultChecked={carteira.ativa} className="size-5 accent-[var(--acao)]" />
               <span className="corpo">Carteira ativa</span>
             </label>
             <CampoTextarea label="Observação" id="observacao" name="observacao" rows={2} defaultValue={carteira.observacao ?? ""} />
             <p className="apoio text-dim">
               Encerrar a carteira só impede novos movimentos — o extrato continua aqui, inteiro.
             </p>
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Salvar regras</button>
+            <BotaoEnviar rotulo="Salvar regras" />
           </form>
         </>
       )}

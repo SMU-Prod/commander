@@ -1,7 +1,9 @@
-import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoTextarea } from "@/components/ui/campo"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { TOQUE } from "@/lib/ui/acoes"
 import {
   atualizarStatusAgendamentoConsultor, concluirAvaliacaoGold, iniciarAvaliacaoGold, salvarItemProtocolo,
 } from "@/lib/acoes/gold-consultor"
@@ -39,22 +41,21 @@ export default async function ConsultorProtocoloPage({
 
   return (
     <main>
-      <Link href="/consultor" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Sua agenda
-      </Link>
-      <h1 className="titulo-pagina mt-3">{nomeEmbarcacao}</h1>
-      <p className="apoio mt-1 text-dim">
-        {ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]} · {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]}
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/consultor"
+        voltarRotulo="Sua agenda"
+        titulo={nomeEmbarcacao}
+        descricao={`${ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]} · ${ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]}`}
+      />
       {(embarcacao?.marina || solicitacao.embarcacao_externa_local) && (
         <p className="apoio text-dim">Local: {embarcacao?.marina ?? solicitacao.embarcacao_externa_local}</p>
       )}
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {agendamento && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-1 text-dim">Agendamento</p>
           <p className="corpo">
             {new Date(agendamento.data_hora).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" })}
@@ -64,7 +65,14 @@ export default async function ConsultorProtocoloPage({
             <input type="hidden" name="id" value={agendamento.id} />
             <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
             {agendamento.status !== "confirmado" && (
-              <button name="status" value="confirmado" className="rounded-lg border border-line bg-panel2 px-3 py-1.5 apoio font-medium">
+              // Mesma limitação de `/admin/avaliacoes`: `name`/`value` levam a
+              // decisão à action e `BotaoEnviar` não os repassa. O que dá pra
+              // trazer é a altura de pílula do app (44px — eram 30) e a
+              // confirmação de toque.
+              <button
+                name="status" value="confirmado"
+                className={`h-11 rounded-full border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}
+              >
                 Confirmar
               </button>
             )}
@@ -75,20 +83,18 @@ export default async function ConsultorProtocoloPage({
       {!avaliacao ? (
         <form action={iniciarAvaliacaoGold} className="mt-4">
           <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
-            Abrir Protocolo Commander
-          </button>
+          <BotaoEnviar rotulo="Abrir Protocolo Commander" larguraCheia />
         </form>
       ) : (
         <>
-          <p className="rotulo mt-6 mb-2 text-dim">Protocolo Commander</p>
+          <SecaoPagina>Protocolo Commander</SecaoPagina>
           <div className="space-y-3">
             {HUBS_PROTOCOLO_GOLD.map((hub) => {
               const item = itens.find((i) => i.hub === hub)
               return (
                 <form
                   key={hub} action={salvarItemProtocolo}
-                  className="sombra-1 space-y-2 rounded-[14px] border border-line bg-panel p-4"
+                  className="sombra-1 space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
                 >
                   <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
                   <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
@@ -96,9 +102,13 @@ export default async function ConsultorProtocoloPage({
                   <p className="corpo font-medium">{ROTULO_HUB_GOLD[hub]}</p>
                   <div className="flex gap-2">
                     {ESTADOS_ITEM.map((estado) => (
+                      // 30px de altura para o controle mais tocado da vistoria
+                      // — o consultor marca isto seis vezes por barco, em pé
+                      // no píer. `h-11` é a régua, e não custa layout: o
+                      // ladrilho já ocupava a linha inteira em três colunas.
                       <label
                         key={estado}
-                        className="has-[:checked]:border-accent-forte has-[:checked]:text-accent-forte flex-1 cursor-pointer rounded-lg border border-line px-2 py-1.5 text-center apoio"
+                        className={`has-[:checked]:border-accent-forte has-[:checked]:text-accent-forte flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[var(--raio-controle)] border border-line px-2 text-center apoio ${TOQUE}`}
                       >
                         <input
                           type="radio" name="estado" value={estado} defaultChecked={(item?.estado ?? "na") === estado}
@@ -112,23 +122,21 @@ export default async function ConsultorProtocoloPage({
                     label="Observação (opcional)" id={`obs_${hub}`} name="observacao" rows={2}
                     defaultValue={item?.observacao ?? ""}
                   />
-                  <button className="w-full rounded-lg border border-line bg-panel2 py-2 apoio font-medium">Salvar {ROTULO_HUB_GOLD[hub]}</button>
+                  <BotaoEnviar rotulo={`Salvar ${ROTULO_HUB_GOLD[hub]}`} variante="contorno" larguraCheia />
                 </form>
               )
             })}
           </div>
 
           {avaliacao.status === "em_andamento" ? (
-            <form action={concluirAvaliacaoGold} className="sombra-1 mt-4 space-y-2 rounded-[14px] border border-line bg-panel p-4">
+            <form action={concluirAvaliacaoGold} className="sombra-1 mt-4 space-y-2 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <input type="hidden" name="avaliacao_id" value={avaliacao.id} />
               <p className="corpo font-medium">Concluir avaliação presencial</p>
               <CampoTextarea label="Observações gerais (opcional)" id="observacoes_gerais" name="observacoes_gerais" rows={3} />
-              <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
-                Concluir e enviar para análise
-              </button>
+              <BotaoEnviar rotulo="Concluir e enviar para análise" larguraCheia />
             </form>
           ) : (
-            <p className="apoio mt-4 rounded-[14px] border border-line bg-panel p-4 text-dim">
+            <p className="apoio mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 text-dim">
               Avaliação concluída — a equipe Commander está analisando o resultado.
             </p>
           )}

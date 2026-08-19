@@ -1,14 +1,53 @@
-/* Marca provisória — monograma "MM espelhado" fiel ao conceito aprovado.
-   Substituir o <svg> pelo asset final quando o Erick fornecer. */
+/* eslint-disable @next/next/no-img-element */
+
+/**
+ * A MARCA DO COMMANDER.
+ *
+ * ONDA 93 — O ASSET DEFINITIVO CHEGOU. Até aqui este arquivo desenhava um
+ * monograma provisório à mão (um "MM espelhado" em dourado cravado), com um
+ * comentário pedindo pra ser substituído quando o dono entregasse o arquivo
+ * final. Entregou: `public/logo-commander.svg`.
+ *
+ * O ASSET É UM QUADRADO COM FUNDO PRÓPRIO — navy escuro, com a marca em
+ * quase-branco por cima. Isso muda o tratamento, e a decisão merece estar
+ * escrita porque o caminho ingênuo produz dois defeitos:
+ *
+ *   · arrancar o fundo e pintar só o traço com `currentColor` faria a marca
+ *     mudar de cor por tela (dourada no menu, cinza no rodapé). Marca que
+ *     troca de cor conforme o vizinho não é marca;
+ *   · usar o quadrado cru, sem raio, deixa um selo colado no texto — lê como
+ *     imagem que alguém esqueceu de recortar.
+ *
+ * Então ele entra como BADGE: quadrado com raio pequeno, do tamanho da linha
+ * de texto ao lado. É o mesmo tratamento que qualquer app dá ao próprio ícone
+ * quando ele aparece dentro da interface, e funciona nos dois temas sem
+ * exceção — a marca carrega o próprio fundo, então não depende do que está
+ * atrás dela. No tema escuro o navy quase some contra o fundo e sobra o traço
+ * claro flutuando; no claro, o quadrado se afirma. Os dois estão certos.
+ *
+ * `<img>` E NÃO SVG INLINE, de propósito: o traço tem ~9 KB de dados de
+ * caminho, e ele aparece em 15 telas. Inline, esses 9 KB entrariam no HTML de
+ * cada uma delas; como arquivo, o navegador baixa uma vez e reusa em todas.
+ * Por isso o `eslint-disable` do `next/image` no topo: `next/image` existe pra
+ * otimizar bitmap (redimensionar, converter formato, servir por tamanho de
+ * tela), e um SVG vetorial não ganha nada disso — ganharia só uma volta a mais
+ * pelo otimizador.
+ *
+ * `aria-hidden` porque o wordmark ao lado já diz "Commander" em texto; no modo
+ * compacto o `alt` assume, senão a marca ficaria muda pra quem usa leitor de
+ * tela.
+ */
 export function Logo({ compacto = false }: { compacto?: boolean }) {
   return (
-    <span className="inline-flex items-baseline gap-2">
-      <svg viewBox="0 0 48 34" className="h-[1.05em] w-auto self-center" aria-hidden="true">
-        <path
-          d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z"
-          fill="#d4af37"
-        />
-      </svg>
+    <span className="inline-flex items-center gap-2">
+      <img
+        src="/logo-commander.svg"
+        alt={compacto ? "Commander" : ""}
+        aria-hidden={compacto ? undefined : true}
+        width={40}
+        height={40}
+        className="h-[1.6em] w-[1.6em] shrink-0 rounded-[var(--raio-controle)]"
+      />
       {!compacto && (
         <span className="font-semibold uppercase tracking-[.28em] text-texto">Commander</span>
       )}

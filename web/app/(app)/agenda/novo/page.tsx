@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarCompromisso } from "@/lib/acoes/agenda"
@@ -15,7 +16,7 @@ import {
 import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 /**
  * "Marcar compromisso" — o caso de uso literal do PRD §8: o proprietário
@@ -46,7 +47,7 @@ export default async function NovoCompromissoPage({
     return (
       <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo="Marcar compromisso" />
-        <BloqueioPremium {...mensagemBloqueio("agenda_criar")} className="mt-5" />
+        <BloqueioPremium {...mensagemBloqueio("agenda_criar")} className="mt-6" />
       </main>
     )
   }
@@ -71,9 +72,9 @@ export default async function NovoCompromissoPage({
   return (
     <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref="/agenda" voltarRotulo="Agenda" titulo="Marcar compromisso" />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={criarCompromisso} className="mt-5 space-y-4">
+      <form action={criarCompromisso} className="mt-6 space-y-4">
         {/* Inclui as caixas de quem recebe o compromisso: perder a lista
             de participantes num erro era o pior desperdício desta tela. */}
         <GuardaFormulario chave="agenda:novo" />
@@ -106,7 +107,7 @@ export default async function NovoCompromissoPage({
         {tripulacao.length > 0 ? (
           <div>
             <p className={rot}>Compartilhar com</p>
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {tripulacao.map((t) => (
                 <label key={t.id} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
                   <input type="checkbox" name="participantes" value={t.id} className="size-4 shrink-0" />
@@ -148,7 +149,7 @@ export default async function NovoCompromissoPage({
           </CampoSelect>
         )}
 
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Marcar compromisso</button>
+        <BotaoEnviar rotulo="Marcar compromisso" />
       </form>
     </main>
   )

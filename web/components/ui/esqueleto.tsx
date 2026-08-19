@@ -38,15 +38,18 @@
  * exports, essa garantia vira três lugares de onde esquecer; com um, ela é
  * estrutural e o `forma` só escolhe o miolo.
  *
- * SOBRE O RAIO: tudo vem de token (`--raio-cartao`, `--raio-controle`,
- * `--raio-pilula`) — o `loading.tsx` antigo misturava `rounded-[16px]`,
- * `rounded`, `rounded-[14px]` e `rounded-[10px]`, e dois deles não eram token
- * nenhum. `--raio-painel` (16px) existe e está sem consumidor (achado 2.3), mas
- * NÃO entra aqui: hoje `Cartao`, `LinhaLista` e todo painel do app desenham em
- * `--raio-cartao`, e um esqueleto arredondado diferente do que chega é a mesma
- * mentira da foto de 176px, só que com 2px de largura. Quando os painéis de
- * primeiro nível subirem para `--raio-painel`, este arquivo sobe junto, na
- * mesma mudança.
+ * SOBRE O RAIO: tudo vem de token (`--raio-painel`, `--raio-cartao`,
+ * `--raio-controle`, `--raio-pilula`) — o `loading.tsx` antigo misturava
+ * `rounded-[16px]`, `rounded`, `rounded-[14px]` e `rounded-[10px]`, e dois
+ * deles não eram token nenhum.
+ *
+ * ONDA 91 — `--raio-painel` ENTROU, exatamente como a onda 86 escreveu aqui
+ * que entraria ("quando os painéis de primeiro nível subirem para
+ * `--raio-painel`, este arquivo sobe junto"). Quem subiu foi `Cartao`, via o
+ * `nivel` novo. E por isso o raio aqui virou DOIS e não um: um esqueleto que
+ * arredonda diferente do que chega é a mesma mentira da foto de 176px, só que
+ * com 2px de largura — então cada bloco copia o raio da peça REAL que ele
+ * promete, e não um raio "de esqueleto".
  */
 
 /** Barra de texto — a unidade de tudo que é palavra num esqueleto.
@@ -54,12 +57,19 @@
  *  botão pequeno" é o parente mais próximo de uma linha de texto curta. */
 const TEXTO = "rounded-[var(--raio-controle)] bg-panel2"
 
-/** A moldura de painel/cartão do app, cópia literal de `Cartao` e do wrapper de
- *  lista que as telas escrevem à mão (`sombra-1 rounded-[...] border
- *  border-line bg-panel`). A borda e a sombra são REAIS no esqueleto — elas
- *  também chegam com o conteúdo, e desenhá-las agora é o que faz o bloco
- *  parecer o mesmo bloco depois. */
+/** A moldura do wrapper de lista que as telas escrevem à mão (`sombra-1
+ *  rounded-[var(--raio-cartao)] border border-line bg-panel`). A borda e a
+ *  sombra são REAIS no esqueleto — elas também chegam com o conteúdo, e
+ *  desenhá-las agora é o que faz o bloco parecer o mesmo bloco depois. */
 const PAINEL = "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel"
+
+/** A moldura de `Cartao`, que desde a onda 91 desenha em `--raio-painel`
+ *  (16px) e ganha o lustro do §3.1 do spec. São dois tokens diferentes de
+ *  propósito: `PAINEL` acima copia um painel escrito à mão nas telas, que
+ *  continua em 14px, e este copia o componente. Quando as telas adotarem
+ *  `Cartao`, os dois viram um — enquanto forem duas coisas, mentir que são
+ *  uma reintroduz o salto que este arquivo existe pra matar. */
+const PAINEL_PRIMEIRO_NIVEL = "sombra-1 raio-painel painel-lustro border border-line bg-panel"
 
 function repetir(quantos: number) {
   return Array.from({ length: Math.max(1, quantos) }, (_, i) => i)
@@ -150,14 +160,14 @@ function FormaLista({ itens }: { itens: number }) {
 
       {/* Medidas de `BarraFerramentas`: no celular a ação fica ACIMA e alinhada
           à direita, a fila de chips usa a largura inteira, e a partir de `lg`
-          os dois trocam de lugar numa linha só. Chip é `h-11` (44px, a altura
-          única do app) em `--raio-pilula`. */}
+          os dois trocam de lugar numa linha só. Chip é `--altura-controle`
+          (44px, a altura única do app) em `--raio-pilula`. */}
       <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div className="h-11 w-32 shrink-0 self-end rounded-[var(--raio-pilula)] bg-panel2 lg:order-2 lg:self-auto" />
+        <div className="h-[var(--altura-controle)] w-32 shrink-0 self-end rounded-[var(--raio-pilula)] bg-panel2 lg:order-2 lg:self-auto" />
         <div className="flex gap-1.5 pb-1 lg:order-1 lg:min-w-0 lg:flex-1">
-          <div className="h-11 w-20 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
-          <div className="h-11 w-28 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
-          <div className="h-11 w-16 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
+          <div className="h-[var(--altura-controle)] w-20 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
+          <div className="h-[var(--altura-controle)] w-28 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
+          <div className="h-[var(--altura-controle)] w-16 shrink-0 rounded-[var(--raio-pilula)] bg-panel2" />
         </div>
       </div>
 
@@ -193,9 +203,9 @@ function FormaLista({ itens }: { itens: number }) {
  * rótulo/valor.
  *
  * A régua de altura do cabeçalho não é óbvia e por isso está escrita: o link
- * "Voltar" tem `min-h-11` (alvo de 44px) com `-my-2.5`, ou seja devolve 20px ao
- * layout e OCUPA 24px. Copiar o 44 aqui empurraria o título 20px para baixo em
- * toda ficha do app.
+ * "Voltar" tem `--altura-controle` (alvo de 44px) com `-my-2.5`, ou seja
+ * devolve 20px ao layout e OCUPA 24px. Copiar o 44 aqui empurraria o título
+ * 20px para baixo em toda ficha do app.
  */
 function FormaFicha({ itens }: { itens: number }) {
   return (
@@ -206,8 +216,9 @@ function FormaFicha({ itens }: { itens: number }) {
 
       <div className="mt-4 space-y-3">
         {repetir(itens).map((i) => (
-          // `Cartao`: `p-3` (12px, o degrau da escala) e cabeçalho com `mb-3`.
-          <div key={i} className={`p-3 ${PAINEL}`}>
+          // `Cartao`: `p-3` (12px, o degrau da escala), cabeçalho com `mb-3` e
+          // — desde a onda 91 — raio de primeiro nível com lustro.
+          <div key={i} className={`p-3 ${PAINEL_PRIMEIRO_NIVEL}`}>
             <div className={`mb-3 h-4 w-28 ${TEXTO}`} />
             {/* `GradeRotuloValor`: duas colunas, `gap-x-4 gap-y-3`, rótulo de
                 16px (`.rotulo-dado`, 11px × 1.4) e valor de 21px (`.corpo`,
@@ -261,8 +272,10 @@ function FormaPainel({ itens, saudacao }: { itens: number; saudacao: boolean }) 
           (`overflow-hidden`), não tem linha em volta. */}
       <div className="h-44 rounded-[var(--raio-cartao)] bg-panel2 lg:h-64" />
 
+      {/* As bandas da Início são `Cartao`, e por isso é o raio de PRIMEIRO
+          NÍVEL que entra aqui — elas moram direto no fundo da página. */}
       {repetir(itens).map((i) => (
-        <div key={i} className={`p-3 ${PAINEL}`}>
+        <div key={i} className={`p-3 ${PAINEL_PRIMEIRO_NIVEL}`}>
           <div className={`mb-3 h-4 w-28 ${TEXTO}`} />
           <div className={`h-5 w-3/5 ${TEXTO}`} />
           <div className={`mt-2 h-[18px] w-2/5 ${TEXTO}`} />
@@ -271,8 +284,8 @@ function FormaPainel({ itens, saudacao }: { itens: number; saudacao: boolean }) 
 
       {/* Os instrumentos da Início: grade de dois, `gap-2`, cartões baixos. */}
       <div className="grid grid-cols-2 gap-2">
-        <div className={`h-16 ${PAINEL}`} />
-        <div className={`h-16 ${PAINEL}`} />
+        <div className={`h-16 ${PAINEL_PRIMEIRO_NIVEL}`} />
+        <div className={`h-16 ${PAINEL_PRIMEIRO_NIVEL}`} />
       </div>
     </div>
   )

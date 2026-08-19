@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { carregarNivelPlano } from "@/lib/consultas"
@@ -59,12 +60,12 @@ export default async function NovaDemandaPage({
           titulo="O que você precisa?"
           descricao="Escolha o tipo — cada um pergunta só o que faz sentido e vai para quem realmente atende."
         />
-        <div className="mt-5 space-y-2">
+        <div className="mt-6 space-y-2">
           {TIPOS_DEMANDA.map((t) => (
             <Link
               key={t}
               href={`/marketplace/nova?tipo=${t}`}
-              className="sombra-1 flex items-start gap-3 rounded-[14px] border border-line bg-panel p-4"
+              className="sombra-1 flex items-start gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
             >
               <Icone nome={ICONE_TIPO_DEMANDA[t]} className="mt-0.5 size-5 shrink-0 text-accent-forte" />
               <span className="min-w-0 flex-1">
@@ -98,9 +99,9 @@ export default async function NovaDemandaPage({
         titulo={ROTULO_TIPO_DEMANDA[tipo]}
         descricao={`Vai para: ${QUEM_RECEBE_TIPO_DEMANDA[tipo]}`}
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={publicarDemanda} className="mt-5 space-y-4">
+      <form action={publicarDemanda} className="mt-6 space-y-4">
         {/* §24 — o que foi preenchido sobrevive ao erro e ao paywall. A
             cópia de `mensagemBloqueio("marketplace_publicar")` promete
             literalmente "o que você preencheu não se perde"; até a onda 52
@@ -186,7 +187,7 @@ export default async function NovaDemandaPage({
           dica="O anúncio é montado pelos campos acima; isto entra como complemento."
         />
 
-        <fieldset className="rounded-[14px] border border-line bg-panel p-4">
+        <fieldset className="rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <legend className="rotulo px-1 text-dim">Seu contato</legend>
           <p className="apoio text-dim">
             Fica guardado e só aparece para quem você aceitar. Ninguém vê o seu telefone só por ler o pedido.
@@ -204,7 +205,7 @@ export default async function NovaDemandaPage({
             A action repete a checagem — esta aqui é pra pessoa não descobrir
             o limite depois de digitar tudo. */}
         {podePublicar ? (
-          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar pedido</button>
+          <BotaoEnviar rotulo="Publicar pedido" />
         ) : (
           <BloqueioPremium {...mensagemBloqueio("marketplace_publicar")} />
         )}
@@ -212,7 +213,9 @@ export default async function NovaDemandaPage({
 
       <p className="apoio mt-4 text-center text-dim">
         Não achou a sua região ou categoria?{" "}
-        <Link href="/marketplace/interesses#pedir" className="text-accent-forte">Peça a inclusão</Link>.
+        {/* Link dentro de frase corrida — a exceção que continua texto, com o
+            sublinhado que é o affordance certo aí. */}
+        <Link href="/marketplace/interesses#pedir" className="text-accent-forte underline">Peça a inclusão</Link>.
       </p>
     </main>
   )

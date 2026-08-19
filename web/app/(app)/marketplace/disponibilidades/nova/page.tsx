@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { publicarDisponibilidade } from "@/lib/acoes/marketplace"
@@ -50,9 +51,9 @@ export default async function NovaDisponibilidadePage({
         titulo="Estou disponível"
         descricao="Diga o que você faz, onde e quando. Proprietários da região veem e chamam."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={publicarDisponibilidade} className="mt-5 space-y-4">
+      <form action={publicarDisponibilidade} className="mt-6 space-y-4">
         <CampoSelect label="Função" id="funcao_id" name="funcao_id" required defaultValue="">
           <option value="" disabled>Escolha a função</option>
           {funcoes.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
@@ -99,7 +100,7 @@ export default async function NovaDisponibilidadePage({
         />
 
         {temCaptainPro ? (
-          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Publicar</button>
+          <BotaoEnviar rotulo="Publicar disponibilidade" />
         ) : (
           // Onda 50 — o texto do cadeado saiu daqui e virou fonte única em
           // `mensagemCarreiraBloqueada` (lib/domain/captain.ts), e o botão

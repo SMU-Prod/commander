@@ -37,9 +37,9 @@ export function BotaoCirculo({
   onClick?: () => void
   className?: string
 }) {
-  const alvo = `group grid size-11 shrink-0 place-items-center rounded-full -m-[7px] ${TOQUE} ${className}`
+  const alvo = `group grid size-11 shrink-0 place-items-center rounded-[var(--raio-pilula)] -m-[7px] ${TOQUE} ${className}`
   const desenho = (
-    <span className="grid size-[30px] place-items-center rounded-full border border-line bg-panel2 text-dim transition-colors group-hover:border-accent/40 group-hover:bg-panel group-hover:text-texto">
+    <span className="grid size-[30px] place-items-center rounded-[var(--raio-pilula)] border border-line bg-panel2 text-dim transition-colors group-hover:border-accent/40 group-hover:bg-panel group-hover:text-texto">
       <Icone nome={icone} className="size-3.5" />
     </span>
   )

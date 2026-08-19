@@ -1,5 +1,6 @@
-import Link from "next/link"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { exigirAdmin } from "@/lib/admin"
 import { carregarFontesDashboard } from "@/lib/consultas-admin"
 import { grupoVazio, montarDashboard, type Metrica } from "@/lib/domain/admin-metricas"
@@ -39,7 +40,7 @@ async function PainelCeo() {
   const grupos = montarDashboard(await carregarFontesDashboard())
   return (
     <>
-      <p className="rotulo mt-8 mb-2 text-dim">Métricas executivas</p>
+      <SecaoPagina className="mt-8">Métricas executivas</SecaoPagina>
       {grupos.map((g) => (
         <section key={g.titulo} className="mt-4 first:mt-0">
           <p className="corpo mb-2 font-medium">{g.titulo}</p>
@@ -47,7 +48,7 @@ async function PainelCeo() {
             // Um grupo inteiro sem fonte vira UMA frase, não cinco cartões
             // repetindo a mesma explicação — o painel fica legível e a
             // ausência continua explícita.
-            <div className="sombra-1 rounded-[14px] border border-dashed border-line bg-panel px-4 py-3">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-dashed border-line bg-panel px-4 py-3">
               <p className="apoio text-dim">{g.metricas[0]?.detalhe ?? "Ainda não há dado para esta seção."}</p>
             </div>
           ) : (
@@ -66,14 +67,14 @@ async function PainelCeo() {
 function Cartao({ metrica }: { metrica: Metrica }) {
   if (metrica.valor == null) {
     return (
-      <div className="sombra-1 rounded-[14px] border border-dashed border-line bg-panel p-3">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-dashed border-line bg-panel p-3">
         <p className="rotulo text-dim">{metrica.rotulo}</p>
         <p className="apoio mt-1 text-dim">{metrica.detalhe}</p>
       </div>
     )
   }
   return (
-    <div className="sombra-1 rounded-[14px] border border-line bg-panel p-3">
+    <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{metrica.rotulo}</p>
       <p className="font-mono-instr mt-1 text-lg font-semibold tabular-nums">{metrica.valor}</p>
       {metrica.apoio && <p className="apoio mt-0.5 text-dim">{metrica.apoio}</p>}
@@ -101,19 +102,19 @@ function Atalhos({ papeis }: { papeis: PapelAdmin[] }) {
   const visiveis = ATALHOS.filter((a) => podeAcessar(papeis, a.area))
   return (
     <div className="mt-5 space-y-2">
+      {/* A porta de entrada do Admin era dez linhas de lista escritas à mão —
+          e sem `active:`, ou seja, dez alvos que não davam retorno nenhum ao
+          toque. `LinhaLista variant="cartao"` é a peça, e ela traz a
+          confirmação junto. */}
       {visiveis.map((a) => (
-        <Link
+        <LinhaLista
           key={a.href}
+          variant="cartao"
           href={a.href}
-          className="sombra-1 flex items-center gap-3 rounded-[14px] border border-line bg-panel px-4 py-3"
-        >
-          <Icone nome={a.icone} className="size-5 shrink-0 text-accent-forte" />
-          <span className="min-w-0 flex-1">
-            <span className="corpo block font-medium">{a.titulo}</span>
-            <span className="apoio block truncate text-dim">{a.apoio}</span>
-          </span>
-          <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-        </Link>
+          leading={<Icone nome={a.icone} className="size-5 shrink-0 text-accent-forte" />}
+          titulo={a.titulo}
+          subtitulo={a.apoio}
+        />
       ))}
     </div>
   )

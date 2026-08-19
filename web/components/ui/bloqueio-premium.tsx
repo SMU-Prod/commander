@@ -31,13 +31,24 @@ export function BloqueioPremium({
   rotuloAcao?: string
 }) {
   return (
-    <div className={`sombra-1 rounded-[14px] border border-accent/30 bg-panel p-4 text-center ${className}`}>
+    // ONDA 91 — quatro correções da mesma família (achados 2.4, 5.9 e 5.10),
+    // e nenhuma inventa valor: `rounded-[14px]` era o valor de `--raio-cartao`
+    // escrito à mão; `p-4` era o terceiro respiro de cartão do app e vira o
+    // `p-3` de `Cartao`; o `rounded-xl` (12px, que não é token nenhum) do
+    // botão vira `--raio-controle` (8px) pelo critério desta onda — quem se
+    // TOCA é controle, quem CONTÉM conteúdo é cartão.
+    // A quarta é a que mais importava: o botão era `inline-block py-2.5` com
+    // `text-sm`, ou seja 20 + 10 + 10 = 40px de alvo — uma das nove alturas
+    // que a auditoria mediu, e abaixo da régua de 44px que não se negocia.
+    // `min-h` e não `h` porque o rótulo é livre e pode quebrar em duas linhas
+    // num aparelho estreito; travar a altura cortaria a segunda.
+    <div className={`sombra-1 rounded-[var(--raio-cartao)] border border-accent/30 bg-panel p-3 text-center ${className}`}>
       <Icone nome="cadeado" className="mx-auto size-6 text-accent-forte" />
       <p className="corpo mt-2 font-medium">{titulo}</p>
       <p className="apoio mt-1 text-dim">{descricao}</p>
       <Link
         href={href}
-        className="mt-3 inline-block rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
+        className="mt-3 inline-flex min-h-[var(--altura-controle)] items-center rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
       >
         {rotuloAcao}
       </Link>

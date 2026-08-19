@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
   COMPONENTES_JET,
+  componentesJetSemPlano,
   consumoCombustivelPp,
   duracaoHoras,
   ehJet,
   estaAberto,
+  estadoDaHomeDePatio,
   horasDeUso,
   linhaDaComparacao,
   retornoViraAvaria,
@@ -29,6 +31,31 @@ describe("pátio", () => {
     })
     it("com retorno, fechou", () => {
       expect(estaAberto({ retornoEm: "2026-08-18T14:20:00Z" })).toBe(false)
+    })
+  })
+
+  // AUDITORIA 19/08, B7 — o achado inteiro cabe no terceiro caso deste bloco.
+  describe("o que a home de campo mostra", () => {
+    it("com saída aberta, é hora do check-in", () => {
+      expect(estadoDaHomeDePatio({ falhou: false, aberto: { retornoEm: null } }))
+        .toBe("check_in")
+    })
+
+    it("sem saída aberta, é hora do check-out", () => {
+      expect(estadoDaHomeDePatio({ falhou: false, aberto: null })).toBe("check_out")
+    })
+
+    it("leitura que falhou NÃO é 'está no pátio'", () => {
+      // O defeito: `aberto: null` significava as duas coisas, e a tela
+      // oferecia CHECK-OUT de uma unidade que podia estar na água.
+      expect(estadoDaHomeDePatio({ falhou: true, aberto: null })).toBe("indisponivel")
+    })
+
+    it("a falha ganha da suposição mesmo quando veio um movimento junto", () => {
+      // Se a leitura falhou, o que veio junto não é confiável — nem pra dizer
+      // "está fora". Não saber é o estado, ponto.
+      expect(estadoDaHomeDePatio({ falhou: true, aberto: { retornoEm: null } }))
+        .toBe("indisponivel")
     })
   })
 
@@ -172,6 +199,34 @@ describe("pátio", () => {
       const slugs = COMPONENTES_JET.map((c) => c.slug)
       expect(slugs).toEqual(["impeller", "wear-ring", "intake-grate", "jet-pump"])
       for (const c of COMPONENTES_JET) expect(c.ajuda, c.slug).toBeTruthy()
+    })
+
+    describe("o que ainda não está no plano (A13)", () => {
+      it("unidade sem nenhum item monitorado deve os quatro", () => {
+        expect(componentesJetSemPlano([])).toEqual([
+          "impeller", "wear-ring", "intake-grate", "jet-pump",
+        ])
+      })
+
+      it("acha o item mesmo escrito com caixa, hífen e sobra de texto", () => {
+        // É assim que a pessoa cadastra de verdade.
+        expect(componentesJetSemPlano([
+          "Troca do IMPELLER",
+          "wear-ring da turbina",
+          "Intake Grate",
+          "Revisão do jet pump (600 h)",
+        ])).toEqual([])
+      })
+
+      it("item de outra natureza não conta como plano de propulsão", () => {
+        expect(componentesJetSemPlano(["Óleo do motor", "Vela de ignição"]))
+          .toHaveLength(4)
+      })
+
+      it("cobre parcial: sobra o que faltou, na ordem do §5", () => {
+        expect(componentesJetSemPlano(["Impeller", "Jet pump"]))
+          .toEqual(["wear-ring", "intake-grate"])
+      })
     })
   })
 })

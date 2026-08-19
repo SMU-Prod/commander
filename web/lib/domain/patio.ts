@@ -35,6 +35,37 @@ export function estaAberto(m: Pick<Movimento, "retornoEm">): boolean {
   return m.retornoEm == null
 }
 
+/**
+ * O QUE A HOME DE CAMPO MOSTRA AGORA — e por que são TRÊS estados, não dois.
+ *
+ * AUDITORIA 19/08, B7. A consulta devolvia `aberto: null` em dois casos
+ * diferentes: a unidade está no pátio, e a leitura do banco falhou. A tela
+ * tratava os dois como o mesmo e oferecia CHECK-OUT nos dois — ou seja,
+ * oferecia registrar a saída de uma unidade que pode estar na água, sem uma
+ * palavra de aviso. O custo por ocorrência é o maior da lista: o registro do
+ * dia inteiro fica inconsistente e ninguém sabe por quê.
+ *
+ * É o mesmo vício que o cabeçalho deste arquivo condena — `null` virando fato
+ * desenhado — só que uma camada antes do número: ali é "0 h" no lugar de "não
+ * sei"; aqui é "está no pátio" no lugar de "não consegui perguntar".
+ *
+ * `indisponivel` não é tela de erro técnico: é a tela sendo honesta sobre o
+ * que não sabe. Nele NENHUM dos dois formulários aparece. Deixar o check-out
+ * disponível "porque provavelmente está no pátio" seria trocar honestidade por
+ * conveniência exatamente no gesto que não se desfaz.
+ */
+export type EstadoDaHomeDePatio = "check_in" | "check_out" | "indisponivel"
+
+export function estadoDaHomeDePatio(leitura: {
+  falhou: boolean
+  aberto: Pick<Movimento, "retornoEm"> | null
+}): EstadoDaHomeDePatio {
+  if (leitura.falhou) return "indisponivel"
+  // `estaAberto` de novo aqui, e não `!= null`: quem monta o objeto pode ter
+  // pegado o movimento errado, e a régua de "aberto" tem um dono só.
+  return leitura.aberto != null && estaAberto(leitura.aberto) ? "check_in" : "check_out"
+}
+
 // ---------------------------------------------------------------------------
 // §6 — "Comparação com check-out e duração/horas de uso"
 // ---------------------------------------------------------------------------
@@ -194,6 +225,50 @@ export const COMPONENTES_JET = [
 ] as const
 
 export type ComponenteJet = (typeof COMPONENTES_JET)[number]["slug"]
+
+/**
+ * Quais dos quatro já têm item monitorado nesta unidade — e quais não.
+ *
+ * AUDITORIA 19/08, A13: `COMPONENTES_JET` existia, estava testada e nenhuma
+ * tela a mostrava; `ehJet` só trocava uma frase de cabeçalho. O §5 pede ficha
+ * específica do Jet, e o §1 proíbe tratá-lo como "lancha apenas reduzida".
+ * Uma lista dos quatro nomes sozinha seria decoração — o que o pátio precisa
+ * saber é qual deles ainda NÃO está no plano de manutenção da unidade.
+ *
+ * O casamento é por texto normalizado (sem acento, caixa nem separador)
+ * porque é assim que a pessoa cadastra: "Wear ring", "wear-ring" e "WEAR RING
+ * (turbina)" são o mesmo item. `includes` e não igualdade: quase ninguém
+ * cadastra o item com o nome pelado, escreve "Wear ring da turbina".
+ *
+ * ALTERNATIVA DESCARTADA: casar por `itens_monitorados.motor_componente_id`,
+ * que é o vínculo formal. Não serve aqui — esses quatro são propulsão de Jet,
+ * e o catálogo de motor (migration 057) cataloga MOTOR. Casar por id daria
+ * "nenhum monitorado" em 100% das unidades, que é pior que um casamento
+ * aproximado documentado.
+ *
+ * O erro possível é para o lado seguro: um item chamado "Troca do wear ring e
+ * do impeller" marca os dois como monitorados. Marcar de menos faria a tela
+ * pedir cadastro de algo que já existe; marcar de mais, no máximo, deixa de
+ * sugerir. A tela nunca afirma que o plano está completo.
+ */
+export function componentesJetSemPlano(
+  nomesMonitorados: readonly string[],
+): ComponenteJet[] {
+  const cadastrados = nomesMonitorados.map(semRuido)
+  return COMPONENTES_JET
+    .filter((c) => !cadastrados.some((n) => n.includes(semRuido(c.nome))))
+    .map((c) => c.slug)
+}
+
+/** Minúscula, sem acento e sem separador — a mesma normalização que o
+ *  catálogo de motor usa pra comparar texto digitado por gente. */
+function semRuido(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
 
 /**
  * O §5 manda a ficha do Jet ser específica, não "uma interface de lancha

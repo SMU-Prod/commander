@@ -10,6 +10,7 @@ import { carregarMapaTaxonomia, nomeDaRegiao, tituloDeDisponibilidade } from "@/
 import { hojeISO } from "@/lib/domain/datas"
 import { formatarDiaCurto } from "@/lib/domain/marketplace"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { Disponibilidade } from "@/lib/db/types"
 
 /**
@@ -43,7 +44,7 @@ export default async function DisponibilidadesPage({
   const outras = todas.filter((d) => d.autor_id !== user.id)
 
   const cartao = (d: Disponibilidade, propria: boolean) => (
-    <div key={d.id} className="border-b border-line py-3.5 last:border-0">
+    <div key={d.id} className="border-b border-line py-3 last:border-0">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="titulo-card">{tituloDeDisponibilidade(mapa, d)}</p>
@@ -54,7 +55,9 @@ export default async function DisponibilidadesPage({
         {propria && (
           <form action={encerrarDisponibilidade} className="shrink-0">
             <input type="hidden" name="disponibilidade_id" value={d.id} />
-            <Confirmar mensagem="Encerrar?" rotulo="Encerrar" />
+            <Confirmar mensagem="Encerrar?" rotulo="Encerrar" className={ALVO_ACAO}>
+              <span className={PILULA_ACAO}>Encerrar</span>
+            </Confirmar>
           </form>
         )}
       </div>
@@ -67,13 +70,16 @@ export default async function DisponibilidadesPage({
         ].filter(Boolean).join(" · ")}
       </p>
       {d.observacao && <p className="corpo mt-1">{d.observacao}</p>}
+      {/* Era uma caixa de 32px — 12 abaixo da régua — e é o gesto que fecha o
+          negócio nesta tela. O verde saiu porque `--ok` é ESTADO no sistema
+          (DESIGN §5), não cor de ação; quem diz "aqui se toca" é a forma. */}
       {d.telefone && (
         <a
           href={`https://wa.me/55${d.telefone.replace(/\D/g, "")}`}
           target="_blank" rel="noopener noreferrer"
-          className="mt-2 inline-block rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok"
+          className={`${ALVO_ACAO} mt-2`}
         >
-          WhatsApp
+          <span className={PILULA_ACAO}>WhatsApp</span>
         </a>
       )}
     </div>
@@ -87,12 +93,12 @@ export default async function DisponibilidadesPage({
         titulo="Profissionais disponíveis"
         descricao="Quem está oferecendo período de trabalho — comandante, marinheiro, tripulação de apoio."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
-      {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 
       <Link
         href="/marketplace/disponibilidades/nova"
-        className="sombra-1 mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-sm font-semibold text-acao-texto"
+        className="sombra-1 mt-4 flex h-11 items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-accent px-4 text-sm font-semibold text-acao-texto"
       >
         <Icone nome="mais" className="size-4" /> Estou disponível
       </Link>
@@ -100,14 +106,14 @@ export default async function DisponibilidadesPage({
       {minhas.length > 0 && (
         <>
           <SecaoPagina icone="pessoas">Suas publicações</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {minhas.map((d) => cartao(d, true))}
           </div>
         </>
       )}
 
       <SecaoPagina icone="pessoas">No ar agora</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {outras.length === 0 ? (
           <EstadoVazio
             variant="linha"

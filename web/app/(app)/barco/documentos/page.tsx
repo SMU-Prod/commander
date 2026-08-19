@@ -1,11 +1,14 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
+import { BotaoFicha } from "@/components/ui/botao-ficha"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { CampoArquivo } from "@/components/ui/campo-arquivo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { FaixaKpi, PastilhaKpi } from "@/components/ui/faixa-kpi"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { MigalhaPao } from "@/components/ui/migalha-pao"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
@@ -65,16 +68,47 @@ export default async function DocumentosPage({
   const docDestaque = destaque ? docPorItem.get(destaque.item.id) : undefined
   const urlDestaque = docDestaque?.arquivo_path ? await linkAssinado(docDestaque.arquivo_path) : null
 
-  const resumo = resumoDosDocumentos(
-    avaliados.length + avulsos.length,
-    avaliados.filter((a) => a.venc != null).length,
-    avaliados.filter((a) => a.r.status === "vencido").length,
-    avaliados.filter((a) => a.r.status === "atencao").length,
-  )
+  // ONDA 92 — as quatro contagens saem de dentro da chamada e ganham nome:
+  // a frase de resumo e a faixa de KPI passam a ler os MESMOS números, em vez
+  // de a faixa recontar por fora e as duas poderem discordar.
+  const total = avaliados.length + avulsos.length
+  const comValidade = avaliados.filter((a) => a.venc != null).length
+  const vencidos = avaliados.filter((a) => a.r.status === "vencido").length
+  const emAtencao = avaliados.filter((a) => a.r.status === "atencao").length
+  const resumo = resumoDosDocumentos(total, comValidade, vencidos, emAtencao)
 
   return (
     <main>
-      <CabecalhoDetalhe voltarHref="/barco" voltarRotulo="Barco" titulo="Documentos" descricao={resumo ?? undefined} />
+      {/* ONDA 92 (eixo 2.2) — migalha + faixa de KPI + barra de ações, a
+          mesma anatomia da ficha de equipamento. */}
+      <MigalhaPao itens={[{ rotulo: "Barco", href: "/barco" }, { rotulo: "Documentos" }]} />
+
+      {/* Zero AQUI é resposta, não ausência ("Vencidos: 0" é a confirmação
+          ativa de que nada venceu — o mesmo raciocínio da aba "Alerts 0" da
+          referência). Mas com NENHUM documento cadastrado a faixa inteira
+          sai: quatro zeros numa tela vazia é decorar o vazio, que a régua
+          proíbe (docs/DESIGN.md §6, regra 4). */}
+      {total > 0 && (
+        <FaixaKpi className="mt-2">
+          <PastilhaKpi icone="documento" rotulo="Documentos" valor={String(total)} />
+          <PastilhaKpi icone="calendario" rotulo="Com validade" valor={String(comValidade)} />
+          <PastilhaKpi icone="alerta" rotulo="Vencidos" valor={String(vencidos)} />
+          <PastilhaKpi icone="relogio" rotulo="Atenção" valor={String(emAtencao)} />
+        </FaixaKpi>
+      )}
+
+      <CabecalhoDetalhe
+        className="mt-3"
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        titulo="Documentos"
+        descricao={resumo ?? undefined}
+        // O formulário de cadastro mora no fim de uma tela que pode ter vinte
+        // linhas; a barra de ações da ficha é onde a referência põe a ação de
+        // nível "tela". Âncora e não rota nova: o formulário continua sendo
+        // parte desta tela, e mandar pra outra rota seria inventar um passo.
+        acoes={editavel ? <BotaoFicha icone="mais" href="#novo">Novo documento</BotaoFicha> : undefined}
+      />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a
@@ -151,8 +185,23 @@ export default async function DocumentosPage({
           const hrefEditar = editavel ? `/barco/itens/${i.id}/editar` : undefined
 
           // Canvas: item SEM data de validade não finge estado — ponto
-          // vazado e "Completar" no lugar da data (a mesma confissão da
-          // ficha de equipamento).
+          // vazado no lugar do farol (a mesma confissão da ficha de
+          // equipamento).
+          //
+          // ONDA 92 (achado 6.2) — "COMPLETAR" ERA UM `<span>` QUE NÃO SE
+          // TOCA. Verbo imperativo, na cor de ação, sem `href` e sem
+          // `button`: a palavra prometia uma ação específica ("completar o
+          // campo que falta") e entregava "abrir a ficha". Vira o que de fato
+          // é: um estado. Estado é substantivo; ação é verbo.
+          //
+          // `neutro` e não `atencao` (que era a sugestão da auditoria): este
+          // item foi deliberadamente mantido FORA do semáforo — ele não entra
+          // na conta da Saúde, nem a favor nem contra —, e pintá-lo de âmbar
+          // seria dar a ele um estado de semáforo que a régua se recusa a
+          // calcular. "Sem dados" é exatamente o que `neutro` significa no
+          // `Selo`. O selo aparece pra todo mundo, não só pra quem edita:
+          // saber que o documento está incompleto não depende de poder
+          // consertá-lo.
           if (venc == null) {
             return (
               <LinhaLista
@@ -161,7 +210,7 @@ export default async function DocumentosPage({
                 leading={<span aria-label="sem data de validade" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
                 titulo={i.nome}
                 subtitulo="Sem data de validade informada"
-                trailing={editavel ? <span className="apoio shrink-0 font-medium text-accent-forte">Completar</span> : undefined}
+                trailing={<Selo estado="neutro">Incompleto</Selo>}
               />
             )
           }
@@ -228,7 +277,7 @@ export default async function DocumentosPage({
         }))}
       </div>
 
-      <SecaoPagina icone="mais">Novo documento</SecaoPagina>
+      <SecaoPagina id="novo" className="scroll-mt-4" icone="mais">Novo documento</SecaoPagina>
       <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
         <Campo label="Nome" id="nome" name="nome" required list="tipos-doc" placeholder="Ex.: Seguro da embarcação">
           <datalist id="tipos-doc">

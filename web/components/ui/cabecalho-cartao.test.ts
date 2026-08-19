@@ -10,6 +10,22 @@ describe("CabecalhoCartao", () => {
     expect(saida).not.toContain('class="rotulo')
   })
 
+  it("sem subtítulo nada muda — a ficha de equipamento não pode mexer sozinha", () => {
+    const saida = renderToStaticMarkup(createElement(CabecalhoCartao, { titulo: "Cargo Layout" }))
+    expect(saida).not.toContain("rotulo-dado")
+  })
+
+  it("o subtítulo explicativo entra abaixo do título, em `.rotulo-dado` (onda 91)", () => {
+    const saida = renderToStaticMarkup(
+      createElement(CabecalhoCartao, {
+        titulo: "Cargo Layout",
+        subtitulo: "Distribuição de carga por compartimento",
+      }),
+    )
+    expect(saida).toContain("Distribuição de carga por compartimento")
+    expect(saida).toMatch(/class="rotulo-dado[^"]*"/)
+  })
+
   it("ícone, selo e ação são todos opcionais e aparecem quando passados", () => {
     const selo = createElement("span", { className: "selo-teste" }, "Fully loaded")
     const acao = createElement("button", { className: "acao-teste" }, "⟳")

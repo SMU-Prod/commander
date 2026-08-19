@@ -48,8 +48,28 @@
      de primeiro nível e 8–10 nos internos. Tínhamos um raio só, e raio
      único achata a hierarquia: painel e sub-painel pareciam o mesmo nível.
      Com dois, o RAIO passa a significar profundidade — quanto maior, mais
-     externo. Quem está dentro de outro cartão continua com `--raio-cartao`. */
+     externo. Quem está dentro de outro cartão continua com `--raio-cartao`.
+     ONDA 91 — ligado. Ficou sete ondas sem consumidor nenhum (achado 2.3 da
+     auditoria de 19/08) e por isso a hierarquia de raio era plana: painel e
+     sub-painel desenhavam os mesmos 14px. Quem consome agora é o `nivel` de
+     `components/ui/cartao.tsx`, que é o bloco de primeiro nível do app. */
   --raio-painel: 16px;    /* painel de PRIMEIRO nível, direto no fundo */
+
+  /* ONDA 91 (achado 5.10 da auditoria de 19/08) — A ALTURA VIRA TOKEN.
+     A régua de 44px do docs/DESIGN.md §5 era a única medida de forma sem
+     token: raio tem quatro, elevação tem três, altura tinha zero. Sem lugar
+     onde morar, a régua dependia de revisão humana — e a revisão perdeu nove
+     vezes: a auditoria mediu 24, 32, 36, 40, 44, 46, 48 e 88px de alvo, mais
+     a nona que ninguém escreve (o campo de `lib/ui/form.ts` sai em ~50px de
+     `py-3` mais entrelinha).
+     Dois degraus, e o segundo não é folga. O campo pede mais caixa que um
+     chip porque o texto dentro dele é 16px — abaixo disso o Safari do iPhone
+     dá zoom ao focar — e o botão que FECHA o formulário herda a altura do
+     campo que está acima dele: é o alinhamento das duas que faz a coluna do
+     formulário parecer uma coluna, e não uma pilha de peças parecidas.
+     O piso NÃO se negocia: nada que se toca desce de --altura-controle. */
+  --altura-controle: 44px;  /* chip, aba, botão, linha tocável — o piso de toque */
+  --altura-campo: 48px;     /* campo de formulário, e a ação principal que o fecha */
 
   /* ELEVAÇÃO NÃO MORA AQUI — mora em `--sombra-1`/`--sombra-2`, mais abaixo,
      que é o que o app inteiro consome (`.sombra-1`, `.sombra-2`).
@@ -309,10 +329,13 @@ body.fundo-tela-mapa {
   /* O material do §3.1 do spec. `background-image` e não `background`:
      assim ele se soma ao `bg-panel` que a tela já pôs, em vez de apagá-lo —
      um cartão que perdesse a cor de fundo ao ganhar lustro seria uma
-     armadilha silenciosa em 80 telas. */
+     armadilha silenciosa em 80 telas.
+     ONDA 91 — quem pede é `Cartao nivel="painel"`, o padrão do componente. */
   .painel-lustro { background-image: var(--lustro-painel); }
   /* O raio de primeiro nível (§3.2). Existe como classe pra tela não
-     escrever `rounded-[16px]` na mão e o número virar 16 em 40 lugares. */
+     escrever `rounded-[16px]` na mão e o número virar 16 em 40 lugares —
+     mesmo consumidor do lustro acima, e pelo mesmo motivo: as duas peças do
+     "primeiro nível" andam juntas ou a profundidade fica pela metade. */
   .raio-painel { border-radius: var(--raio-painel); }
 
   /* Onda 56 — fila que rola na horizontal (as pílulas de filtro do
@@ -529,7 +552,13 @@ body.fundo-tela-mapa {
 .mapboxgl-ctrl-group {
   background: var(--mapa-instrumento) !important;
   border: 1px solid var(--mapa-instrumento-borda);
-  border-radius: 10px !important;
+  /* ONDA 91 (achado 5.9) — era `10px` cravado, o oitavo raio de facto do app.
+     Vira `--raio-controle` (8px) e não `--raio-cartao` (14px) pelo critério
+     único desta onda: quem se TOCA é controle, quem CONTÉM conteúdo é cartão.
+     Este grupo é botão de zoom, bússola e localizar — controle, então 8px.
+     Os 2px a menos não mexem no sprite: o ícone é `background-image`
+     centralizado, não encosta no canto. */
+  border-radius: var(--raio-controle) !important;
   box-shadow: var(--sombra-2);
   /* sem backdrop-filter: mesmo motivo da onda 25 nos flutuantes — o Safari
      iOS pinta um retangulo opaco atras de elementos com blur empilhados

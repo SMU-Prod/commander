@@ -29,14 +29,33 @@ describe("BotaoEnviar", () => {
   })
 
   /**
-   * A briga que `chip.tsx` já perdeu uma vez: seis alturas para o mesmo gesto.
-   * Estes dois números são os que o app JÁ tinha (48px do botão do canvas,
-   * 44px da única pílula). Se alguém acrescentar um terceiro, este teste cai —
-   * que é o ponto.
+   * ONDA 91 — O FORMULÁRIO DE DOIS BOTÕES. Sem `name`/`value` no `<button>`,
+   * a action não tem como saber qual dos dois foi tocado, e as telas de
+   * moderação (`/admin/avaliacoes`, `/consultor/[id]`) ficavam sem aviso de
+   * envio — justamente onde o duplo-toque grava uma decisão errada.
    */
-  it("usa as duas alturas que já existiam, ambas acima dos 44px de toque", () => {
-    expect(html({ rotulo: "Salvar dados" })).toContain("h-12")
-    expect(html({ rotulo: "Reenviar", variante: "contorno" })).toContain("h-11")
+  it("repassa name/value pro botão — é assim que a action sabe qual foi tocado", () => {
+    const saida = html({ rotulo: "Ocultar por violação", name: "decisao", value: "ocultar" })
+    expect(saida).toContain('name="decisao"')
+    expect(saida).toContain('value="ocultar"')
+  })
+
+  it("sem name/value o botão sai limpo — os consumidores de hoje não mudam", () => {
+    const saida = html({ rotulo: "Salvar dados" })
+    expect(saida).not.toContain("name=")
+    expect(saida).not.toContain("value=")
+  })
+
+  /**
+   * A briga que `chip.tsx` já perdeu uma vez: seis alturas para o mesmo gesto.
+   * Estes dois degraus são os que o app JÁ tinha (48px do botão do canvas,
+   * 44px da única pílula) e que a onda 91 declarou como token — o teste passou
+   * a cobrar o TOKEN e não o número, senão a régua volta a existir em dois
+   * lugares. Se alguém acrescentar um terceiro, este teste cai, que é o ponto.
+   */
+  it("usa os dois degraus declarados de altura, ambos acima dos 44px de toque", () => {
+    expect(html({ rotulo: "Salvar dados" })).toContain("h-[var(--altura-campo)]")
+    expect(html({ rotulo: "Reenviar", variante: "contorno" })).toContain("h-[var(--altura-controle)]")
   })
 
   it("a largura é escolha da coluna, não do vestido", () => {
@@ -56,6 +75,49 @@ describe("BotaoEnviar", () => {
     const contorno = html({ rotulo: "Reenviar", variante: "contorno" })
     expect(contorno).not.toContain("bg-accent")
     expect(contorno).toContain("border-line")
+  })
+
+  /**
+   * ONDA 91 — "Aprovar" um selo e "Reprovar" uma avaliação paga são as duas
+   * gravações mais sérias do produto e ficavam sem aviso de envio, porque nem
+   * o dourado nem o cinza serviam: dourado diria que a reprovação é a marca,
+   * cinza diria que ela é secundária.
+   */
+  it("as variantes de estado usam o semáforo, nunca o acento da marca", () => {
+    const aprovar = html({ rotulo: "Aprovar", variante: "ok" })
+    const reprovar = html({ rotulo: "Reprovar", variante: "critico" })
+    expect(aprovar).toContain("text-ok")
+    expect(reprovar).toContain("text-crit")
+    // Se gastassem dourado, gastariam o orçamento de dois por tela — e uma
+    // reprovação não é a marca do Commander.
+    expect(aprovar).not.toContain("accent")
+    expect(reprovar).not.toContain("accent")
+  })
+
+  it("a cor acompanha, não substitui — a palavra continua dizendo o que acontece", () => {
+    // DESIGN §6, regra 3: quem não distingue verde de vermelho lê o rótulo.
+    expect(html({ rotulo: "Aprovar", variante: "ok" })).toContain(">Aprovar<")
+    expect(html({ rotulo: "Reprovar", variante: "critico" })).toContain(">Reprovar<")
+  })
+
+  it("estado muda só a família de cor — a forma é a de contorno, letra por letra", () => {
+    const contorno = html({ rotulo: "Decidir", variante: "contorno" })
+    const ok = html({ rotulo: "Decidir", variante: "ok" })
+    // Trocando as duas classes de cor, os dois HTML têm que ficar idênticos:
+    // é isso que garante que uma ação de estado não abriu a sétima altura de
+    // pílula do app.
+    expect(ok.replace("border-ok/60 bg-panel text-ok", "border-line bg-panel2 text-texto")).toBe(contorno)
+  })
+
+  it("`--ok`/`--crit` moram sobre `bg-panel` — sobre `panel2` o claro reprova AA", () => {
+    // Medido: no tema claro `--ok` sobre `--superficie-2` dá 4,43:1 e `--crit`
+    // 4,26:1, os dois abaixo de 4,5:1; sobre `--superficie` sobem para 5,02:1
+    // e 4,82:1.
+    for (const variante of ["ok", "critico"] as const) {
+      const saida = html({ rotulo: "Decidir", variante })
+      expect(saida, variante).toContain("bg-panel")
+      expect(saida, variante).not.toContain("bg-panel2")
+    }
   })
 })
 

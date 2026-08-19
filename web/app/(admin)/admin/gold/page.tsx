@@ -1,7 +1,10 @@
 import Link from "next/link"
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { hojeISO } from "@/lib/consultas-gold"
 import { formatarPrecoGold, ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE, statusSeloGold } from "@/lib/domain/gold"
@@ -107,17 +110,37 @@ export default async function AdminGoldPage({
 
   return (
     <main>
-      <p className="rotulo text-dim">Admin Commander</p>
-      <h1 className="titulo-pagina mt-1 inline-flex items-center gap-2">
+      {/* ONDA 93 — ESTA TELA NÃO TINHA SAÍDA.
+          O rótulo "Admin Commander" era texto puro: nenhum link levava de
+          volta pra `/admin`, o layout do Admin não tem navegação, e o
+          wordmark não é clicável. No navegador dá pra voltar; no app
+          INSTALADO não existe botão de voltar, e a pessoa fica presa aqui.
+          É o mesmo beco que a onda 54 caçou em ~46 telas de `(app)` — o
+          Admin ficou de fora daquela varredura porque o usuário de teste
+          nunca teve papel administrativo.
+          `CabecalhoDetalhe` sem `titulo` é o uso documentado pra tela que já
+          tem o próprio elemento de título: ele cuida só da navegação, e o h1
+          abaixo continua igual. */}
+      <CabecalhoDetalhe voltarHref="/admin" voltarRotulo="Admin Commander" />
+      <h1 className="titulo-pagina mt-3 inline-flex items-center gap-2">
         <Icone nome="medalha" className="size-5 text-accent-forte" /> Commander Gold
       </h1>
-      <div className="mt-3 flex gap-3 apoio">
-        <Link href="/admin/gold/precos" className="text-accent-forte">Preços</Link>
-        <Link href="/admin/gold/consultores" className="text-accent-forte">Consultores</Link>
+      {/* Eram dois textos dourados de 18px de altura, colados um no outro:
+          ação secundária vestida de texto é justamente o que a onda 82
+          diagnosticou (`lib/ui/acoes.ts`), e 18px é menos da metade do alvo
+          de toque. `ALVO_ACAO` dá a caixa de 44px, `PILULA_ACAO` o contorno
+          que diz "aqui se toca" sem gastar o orçamento de dourado. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Link href="/admin/gold/precos" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>Preços</span>
+        </Link>
+        <Link href="/admin/gold/consultores" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>Consultores</span>
+        </Link>
       </div>
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <ChipLinha className="mt-4">
         {ABAS.map((a) => (
@@ -127,18 +150,12 @@ export default async function AdminGoldPage({
         ))}
       </ChipLinha>
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {linhas.length === 0 ? (
           <EstadoVazio variant="linha" icone="medalha" titulo="Nada por aqui" />
         ) : (
           linhas.map((l, i) => (
-            <Link key={`${l.href}-${i}`} href={l.href} className="flex items-center justify-between gap-2 border-b border-line py-3 last:border-0">
-              <div className="min-w-0">
-                <p className="corpo truncate">{l.titulo}</p>
-                <p className="apoio text-dim">{l.sub}</p>
-              </div>
-              <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-            </Link>
+            <LinhaLista key={`${l.href}-${i}`} href={l.href} titulo={l.titulo} subtitulo={l.sub} />
           ))
         )}
       </div>

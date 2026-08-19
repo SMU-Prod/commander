@@ -49,7 +49,9 @@ export default async function SegurancaPage() {
 
       {ocorrencias.length > 0 && (
         <>
-          <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=seguranca", rotulo: "Ver todas" }}>
+          {/* ONDA 92 (achado 6.1) — rótulo único "Ver tudo", igual ao gêmeo
+              desta seção em `/barco/hidraulica`. */}
+          <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=seguranca", rotulo: "Ver tudo" }}>
             Ocorrências abertas
           </SecaoPagina>
           <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">

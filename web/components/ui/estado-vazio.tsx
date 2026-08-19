@@ -50,8 +50,16 @@ export function EstadoVazio({
   // componente compõe a Início DENTRO de um `Cartao`, que lê o token. Hoje os
   // dois valem 14px; no dia em que o token mudar, metade dos cartões da mesma
   // tela mudaria e a outra metade não.
+  // ONDA 91 (achado 2.4) — `p-3` no lugar de `p-4`: três componentes
+  // desenhavam o mesmo gesto "cartão" com 12, 14 e 16px de respiro, e 14 nem
+  // degrau da escala base-8 é. O valor que fica é o de `Cartao`, o único dos
+  // três com a decisão escrita ("a referência é densa"). O raio continua em
+  // `--raio-cartao` e NÃO sobe pra `--raio-painel`: este cartão aparece
+  // tipicamente DENTRO de outro (a Início de um barco novo tem quatro ao
+  // mesmo tempo), e é o contraste 14/16 que faz o raio significar
+  // profundidade — ver o `nivel` de `cartao.tsx`.
   const base = variant === "cartao"
-    ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
+    ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
     : "py-6"
   // ONDA 82 — DE TEXTO A FORMA. As duas ênfases eram texto: dourado numa,
   // sublinhado na outra. Num cartão vazio — que é uma caixa com um ícone
@@ -63,8 +71,8 @@ export function EstadoVazio({
   // o PESO da pílula, não a existência dela: cheia (a ação principal de uma
   // tela vazia — o dourado cabe folgado no orçamento de dois por tela) e de
   // contorno (o cartão vazio aninhado, que não é a ação principal de nada).
-  // O alvo de 44px continua vindo do `min-h-11` do link em volta; a pílula
-  // desenha 36px dentro dele.
+  // O alvo de 44px continua vindo do `--altura-controle` do link em volta; a
+  // pílula desenha 36px dentro dele.
   const estiloDaAcao = enfase === "discreta" ? PILULA_ACAO_BLOCO : PILULA_ACAO_PRINCIPAL
   return (
     <div className={`${base} text-center ${className}`}>
@@ -78,11 +86,12 @@ export function EstadoVazio({
           telas, ficou pra trás. Por isso "Resolver" (Selos), "Cadastrar item"
           (Segurança), "Cadastrar recorrente" (Financeiro) e companhia
           continuavam sendo linhas de texto de 17px fingindo ser botão.
-          Mesma solução de lá: `min-h-11` (a régua de toque do app) com
-          `inline-flex` pra altura valer, e `mt-1` no lugar de `mt-3` porque a
-          altura nova já traz o respiro que o `mt-3` dava. */}
+          Mesma solução de lá: `--altura-controle` (a régua de toque do app,
+          token desde a onda 91) com `inline-flex` pra altura valer, e `mt-1`
+          no lugar de `mt-3` porque a altura nova já traz o respiro que o
+          `mt-3` dava. */}
       {acao && (
-        <Link href={acao.href} className="mt-1 inline-flex min-h-11 items-center px-2">
+        <Link href={acao.href} className="mt-1 inline-flex min-h-[var(--altura-controle)] items-center px-2">
           <span className={estiloDaAcao}>{acao.rotulo}</span>
         </Link>
       )}

@@ -42,7 +42,11 @@ export default async function HidraulicaPage() {
 
       {ocorrencias.length > 0 && (
         <>
-          <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=hidraulica", rotulo: "Ver todas" }}>
+          {/* ONDA 92 (achado 6.1) — "Ver tudo" é o rótulo único do gesto
+              "abrir a seção". Eram oito palavras no app pro mesmo gesto; a
+              exceção continua sendo só o verbo que muda o que acontece de
+              verdade ("Gerenciar", "Editar" — telas de edição, não listas). */}
+          <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=hidraulica", rotulo: "Ver tudo" }}>
             Ocorrências abertas
           </SecaoPagina>
           <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">

@@ -81,6 +81,32 @@ describe("Esqueleto", () => {
     }
   })
 
+  /**
+   * ONDA 91 — o esqueleto promete o RAIO que vai chegar, não um raio próprio.
+   * `Cartao` passou a desenhar em `--raio-painel` (16px) com o lustro do §3.1
+   * do spec, então ficha e painel — as duas formas cujos blocos SÃO `Cartao` —
+   * sobem junto. A `lista` não sobe: o painel-mãe dela é escrito à mão nas
+   * telas e continua em `--raio-cartao`, e prometer 16 pra entregar 14 é o
+   * mesmo salto de 2px que este arquivo existe pra evitar.
+   */
+  it("ficha e painel copiam o raio de primeiro nível de `Cartao`; a lista, não", () => {
+    expect(html({ forma: "ficha" })).toContain("raio-painel painel-lustro")
+    expect(html({ forma: "painel" })).toContain("raio-painel painel-lustro")
+    expect(html({ forma: "lista" })).not.toContain("raio-painel")
+  })
+
+  /**
+   * A altura de alvo também virou token (achado 5.10). O esqueleto copia a
+   * medida da peça real — se ele cravasse 44px enquanto o `Chip` lê o token,
+   * o dia em que a régua mudar produz exatamente o salto de layout que este
+   * componente existe pra matar.
+   */
+  it("a altura dos chips vem do token, não de um 44 cravado", () => {
+    const saida = html({ forma: "lista" })
+    expect(saida).toContain("h-[var(--altura-controle)]")
+    expect(saida).not.toMatch(/[\s"]h-11[\s"]/)
+  })
+
   it("itens controla a repetição da unidade de cada forma", () => {
     expect(html({ forma: "painel", itens: 3 }).match(/sombra-1/g)?.length).toBeGreaterThan(
       html({ forma: "painel", itens: 1 }).match(/sombra-1/g)?.length ?? 0,

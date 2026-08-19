@@ -92,13 +92,13 @@ export default async function FinanceiroPage({
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
       <p className="apoio mt-1 text-dim">O dinheiro do barco: o que saiu, o que entrou e o que ainda vence.</p>
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <FinanceiroNav atual="visao" className="mt-4" />
       <AcoesUniversais className="mt-3" />
 
       <SecaoPagina icone="cifrao">{periodo.rotulo}</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-baseline justify-between gap-2">
           <p className="rotulo text-dim">Despesas pagas</p>
           {comparacao.despesasPercentual != null && (
@@ -110,16 +110,21 @@ export default async function FinanceiroPage({
             </span>
           )}
         </div>
-        <p className="mt-1 font-mono-instr text-3xl tabular-nums">{formatarReais(r.despesasCentavos)}</p>
+        {/* ONDA 87, os três degraus do número (globals.css). O gasto do mês é
+            o assunto desta tela — `.valor-instrumento`; entradas e saldo são
+            o degrau de KPI — `.valor-forte`. Antes eram `text-3xl` e
+            `text-lg`, dois tamanhos que não existem em régua nenhuma e que
+            deixavam o número sem peso e sem a cor de dado. */}
+        <p className="mt-1 font-mono-instr valor-instrumento">{formatarReais(r.despesasCentavos)}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
             <p className="rotulo text-dim">Entradas</p>
-            <p className="mt-0.5 font-mono-instr text-lg tabular-nums text-ok">{formatarReais(r.entradasCentavos)}</p>
+            <p className="mt-0.5 font-mono-instr valor-forte text-ok">{formatarReais(r.entradasCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Saldo do mês</p>
-            <p className={`mt-0.5 font-mono-instr text-lg tabular-nums ${r.saldoCentavos < 0 ? "text-crit" : ""}`}>
+            <p className={`mt-0.5 font-mono-instr valor-forte ${r.saldoCentavos < 0 ? "text-crit" : ""}`}>
               {formatarReais(r.saldoCentavos)}
             </p>
           </div>
@@ -130,13 +135,13 @@ export default async function FinanceiroPage({
             {r.aPagarCentavos > 0 && (
               <p className="corpo flex justify-between">
                 <span className="text-dim">A pagar</span>
-                <span className="font-mono-instr tabular-nums">{formatarReais(r.aPagarCentavos)}</span>
+                <span className="font-mono-instr valor">{formatarReais(r.aPagarCentavos)}</span>
               </p>
             )}
             {r.aReceberCentavos > 0 && (
               <p className="corpo mt-1 flex justify-between">
                 <span className="text-dim">A receber</span>
-                <span className="font-mono-instr tabular-nums">{formatarReais(r.aReceberCentavos)}</span>
+                <span className="font-mono-instr valor">{formatarReais(r.aReceberCentavos)}</span>
               </p>
             )}
             {/* O PRD é taxativo: orçamento/proposta não é despesa. "Pendente"
@@ -184,7 +189,7 @@ export default async function FinanceiroPage({
           <SecaoPagina icone="relatorio" acao={{ href: "/financeiro/relatorios", rotulo: "Relatórios" }}>
             Por categoria no mês
           </SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {r.porCategoria.map((c) => (
               <LinhaLista
                 key={c.categoria}
@@ -199,10 +204,14 @@ export default async function FinanceiroPage({
 
       {proximos.length > 0 && (
         <>
-          <SecaoPagina icone="repetir" acao={{ href: "/financeiro/recorrentes", rotulo: "Ver todas" }}>
+          {/* "Ver tudo" e não "Ver todas": um rótulo só pro gesto "abrir a
+              seção" (DESIGN §6 regra 6). A concordância com "recorrentes"
+              parecia mais caprichada e custava um oitavo vocabulário — quem
+              lê a tela reconhece a FORMA da ação, não o gênero dela. */}
+          <SecaoPagina icone="repetir" acao={{ href: "/financeiro/recorrentes", rotulo: "Ver tudo" }}>
             Próximos vencimentos
           </SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {proximos.map(({ rec, data }) => (
               <LinhaLista
                 key={rec.id}
@@ -219,7 +228,7 @@ export default async function FinanceiroPage({
       {pendentes.length > 0 && (
         <>
           <SecaoPagina icone="alerta">Aguardando pagamento</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {pendentes.map((l) => (
               <LinhaLista
                 key={l.id}

@@ -56,9 +56,9 @@ export default async function PerfilComandantePage({
         titulo="Meu perfil de comandante"
         descricao="O que o dono do barco vê quando procura um comandante para contratar."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
       {trocandoDeTipo && (
-        <p className="apoio mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
+        <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
           Você tem um perfil de Prestador (&quot;{existente.nome_publico}&quot;). Um perfil por vez — salvar
           aqui substitui esse perfil pelo de Comandante.
         </p>

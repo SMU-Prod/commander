@@ -1,7 +1,8 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
 import { reivindicarConsultor } from "@/lib/acoes/gold-consultor"
 import { carregarMeuPerfilConsultor } from "@/lib/consultas-gold"
 import { ROTULO_ESTADO_SOLICITACAO, ROTULO_FAIXA_PORTE } from "@/lib/domain/gold"
@@ -30,15 +31,13 @@ export default async function ConsultorAgendaPage({
         <h1 className="titulo-pagina inline-flex items-center gap-2">
           <Icone nome="pessoas" className="size-5 text-accent-forte" /> Área do consultor
         </h1>
-        {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+        {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
         <p className="apoio mt-3 text-dim">
           Não encontramos um cadastro de consultor vinculado a esta conta ainda. Se a equipe
           Commander já te cadastrou, confirme abaixo — o vínculo usa o e-mail desta conta.
         </p>
         <form action={reivindicarConsultor} className="mt-4">
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
-            Confirmar acesso de consultor
-          </button>
+          <BotaoEnviar rotulo="Confirmar acesso de consultor" larguraCheia />
         </form>
       </main>
     )
@@ -76,31 +75,27 @@ export default async function ConsultorAgendaPage({
       </h1>
       <p className="apoio mt-1 text-dim">{meuConsultor.nome}{meuConsultor.regiao ? ` — ${meuConsultor.regiao}` : ""}</p>
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {agendamentos.length === 0 ? (
         <EstadoVazio className="mt-4" icone="calendario" titulo="Nenhuma avaliação agendada ainda" />
       ) : (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {agendamentos.map((a) => {
             const s = solicitacoesPorId.get(a.solicitacao_id)
             const nome = s?.embarcacao_id ? nomesEmbarcacoes.get(s.embarcacao_id) ?? "Embarcação" : s?.embarcacao_externa_nome ?? "Embarcação"
+            const quando = new Date(a.data_hora).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
             return (
-              <Link
-                key={a.id} href={`/consultor/${a.solicitacao_id}`}
-                className="flex items-center justify-between gap-2 border-b border-line py-3 last:border-0"
-              >
-                <div className="min-w-0">
-                  <p className="corpo truncate">{nome}</p>
-                  <p className="apoio text-dim">
-                    {new Date(a.data_hora).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })} · {a.status}
-                    {s && ` · ${ROTULO_FAIXA_PORTE[s.faixa_porte]}`}
-                  </p>
-                  {s && <p className="apoio text-dim">{ROTULO_ESTADO_SOLICITACAO[s.estado]}</p>}
-                </div>
-                <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
-              </Link>
+              <LinhaLista
+                key={a.id}
+                href={`/consultor/${a.solicitacao_id}`}
+                titulo={nome}
+                subtitulo={
+                  `${quando} · ${a.status}` +
+                  (s ? ` · ${ROTULO_FAIXA_PORTE[s.faixa_porte]} · ${ROTULO_ESTADO_SOLICITACAO[s.estado]}` : "")
+                }
+              />
             )
           })}
         </div>

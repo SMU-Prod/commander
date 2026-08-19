@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -44,23 +45,23 @@ export default async function NovaCarteiraPage({
         titulo="Liberar carteira"
         descricao="Para um tripulante desta embarcação. Você decide as regras."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="mt-4 flex gap-2.5 rounded-[14px] border border-line bg-panel2 px-4 py-3">
+      <div className="mt-4 flex gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-4 py-3">
         <Icone nome="escudo" className="mt-0.5 size-4 shrink-0 text-dim" />
         <p className="apoio text-dim">{AVISO_NAO_MOVIMENTA}</p>
       </div>
 
       {candidatos.length === 0 ? (
         <EstadoVazio
-          className="mt-5"
+          className="mt-6"
           icone="pessoas"
           titulo="Ninguém disponível na tripulação"
           descricao="Todo mundo com acesso a esta embarcação já tem carteira, ou você ainda não convidou ninguém."
           acao={{ href: "/tripulacao", rotulo: "Ir para Tripulação" }}
         />
       ) : (
-        <form action={criarCarteira} className="mt-5 space-y-4">
+        <form action={criarCarteira} className="mt-6 space-y-4">
           <GuardaFormulario chave="carteira:nova" />
           <CampoSelect
             label="Para quem" id="tripulante_id" name="tripulante_id" required defaultValue=""
@@ -78,8 +79,8 @@ export default async function NovaCarteiraPage({
             ))}
           </CampoSelect>
 
-          <label className="flex items-start gap-3 rounded-[12px] border border-line bg-panel px-3.5 py-3">
-            <input type="checkbox" name="exige_comprovante" defaultChecked className="mt-0.5 size-5 accent-[#d4af37]" />
+          <label className="flex items-start gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-3 py-3">
+            <input type="checkbox" name="exige_comprovante" defaultChecked className="mt-0.5 size-5 accent-[var(--acao)]" />
             <span>
               <span className="corpo block font-medium">Exigir comprovante em todo gasto</span>
               <span className="apoio block text-dim">
@@ -93,9 +94,7 @@ export default async function NovaCarteiraPage({
             dica="Combinação que valha registrar — ex.: “vale só para combustível e taxas de marina”."
           />
 
-          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-            Liberar carteira
-          </button>
+          <BotaoEnviar rotulo="Liberar carteira" />
         </form>
       )}
     </main>

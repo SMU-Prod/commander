@@ -41,6 +41,7 @@ import { podeEditar, podeVer, ROTULO_ABA, type Aba } from "@/lib/domain/permisso
 import { mesAnteriorISO, mesSeguinte } from "@/lib/domain/relatorio"
 import { calcularSemaforo, vencimentoPorData } from "@/lib/domain/semaforo"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO, TOQUE } from "@/lib/ui/acoes"
 import type { AgendaEvento, Documento, Ocorrencia } from "@/lib/db/types"
 
 /**
@@ -241,7 +242,7 @@ export default async function AgendaPage({
       {/* A frase do canvas (tela-1h): o que mora aqui, em seis palavras. */}
       <p className="apoio mt-1 text-dim">Serviços, vencimentos e saídas planejadas.</p>
 
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* A barra do canvas (tela-1h): filtros à esquerda, a ação de criar à
           direita, uma altura só (44px). Os chips são as camadas da Agenda
@@ -264,7 +265,7 @@ export default async function AgendaPage({
         {podeCriar && (
           <Link
             href="/agenda/novo"
-            className="mb-1 flex h-11 shrink-0 items-center gap-1 rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+            className="mb-1 flex h-11 shrink-0 items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
           >
             <Icone nome="mais" className="size-4" /> Novo
           </Link>
@@ -291,7 +292,7 @@ export default async function AgendaPage({
                desta mesma tela. Contorno no ativo, não dourado cheio: os
                dois dourados de conteúdo da tela já têm dono (chip "Todas" e
                "+ Novo"). */
-            className={`flex h-11 flex-1 items-center justify-center rounded-full border text-sm ${
+            className={`flex h-11 flex-1 items-center justify-center rounded-[var(--raio-pilula)] border text-sm ${
               visualizacao === vv ? "border-accent-forte font-semibold text-accent-forte" : "border-line bg-panel text-dim"
             }`}
           >
@@ -300,25 +301,32 @@ export default async function AgendaPage({
         ))}
       </div>
 
+      {/* `size-11` e não `size-9`: os dois botões que andam o calendário
+          tinham 36px — 8px abaixo da régua de toque (DESIGN §5) — e são os
+          dois alvos mais repetidos desta tela. E "Voltar para hoje" era
+          texto dourado de 18px espremido sob o título: virou pílula, que é
+          o que o app inteiro usa pra dizer "aqui se toca". */}
       <div className="mt-3 flex items-center justify-between gap-2">
         <Link href={link({ d: anterior })} aria-label="Período anterior"
-          className="flex size-9 items-center justify-center rounded-full border border-line bg-panel text-dim">
+          className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
           <Icone nome="voltar" className="size-4" />
         </Link>
         <div className="min-w-0 text-center">
           <p className="titulo-card truncate">{tituloPeriodo}</p>
           {ancora.slice(0, 7) !== hoje.slice(0, 7) && (
-            <Link href={link({ d: hoje })} className="apoio text-accent-forte">Voltar para hoje</Link>
+            <Link href={link({ d: hoje })} className={ALVO_ACAO}>
+              <span className={PILULA_ACAO}>Voltar para hoje</span>
+            </Link>
           )}
         </div>
         <Link href={link({ d: proximo })} aria-label="Próximo período"
-          className="flex size-9 items-center justify-center rounded-full border border-line bg-panel text-dim">
+          className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
           <Icone nome="chevron" className="size-4" />
         </Link>
       </div>
 
       {visualizacao === "mes" && (
-        <VistaMes mesISO={ancora.slice(0, 7)} diaSelecionado={ancora} hoje={hoje} porDia={porDia} link={link} />
+        <VistaMes mesISO={ancora.slice(0, 7)} diaSelecionado={ancora} hoje={hoje} porDia={porDia} link={link} podeCriar={podeCriar} />
       )}
       {visualizacao === "semana" && <VistaSemana ancora={ancora} hoje={hoje} porDia={porDia} />}
       {visualizacao === "lista" && <VistaLista itens={itens} hoje={hoje} podeCriar={podeCriar} />}
@@ -326,8 +334,10 @@ export default async function AgendaPage({
       {/* "Histórico de coisas já realizadas não polui a Agenda normal" (PRD
           §8) — mas continua alcançável, nunca apagado. */}
       <div className="mt-6 text-center">
-        <Link href={link({ feitos: incluirConcluidos ? "" : "1" })} className="apoio text-accent-forte">
-          {incluirConcluidos ? "Esconder o que já foi feito" : "Mostrar o que já foi feito"}
+        <Link href={link({ feitos: incluirConcluidos ? "" : "1" })} className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            {incluirConcluidos ? "Esconder o que já foi feito" : "Mostrar o que já foi feito"}
+          </span>
         </Link>
       </div>
     </main>
@@ -338,7 +348,7 @@ export default async function AgendaPage({
  *  quando é compromisso de gente. */
 function Marcador({ item }: { item: ItemAgenda }) {
   if (item.status) return <Farol status={item.status} />
-  return <span className="inline-block size-2 shrink-0 rounded-full bg-accent-forte" />
+  return <span className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] bg-accent-forte" />
 }
 
 function LinhaAgenda({ item }: { item: ItemAgenda }) {
@@ -361,19 +371,20 @@ function LinhaAgenda({ item }: { item: ItemAgenda }) {
 }
 
 function VistaMes({
-  mesISO, diaSelecionado, hoje, porDia, link,
+  mesISO, diaSelecionado, hoje, porDia, link, podeCriar,
 }: {
   mesISO: string
   diaSelecionado: string
   hoje: string
   porDia: Map<string, ItemAgenda[]>
   link: (novo: { d: string }) => string
+  podeCriar: boolean
 }) {
   const semanas = gradeDoMes(mesISO)
   const doDia = porDia.get(diaSelecionado) ?? []
   return (
     <>
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-2">
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-2">
         <div className="grid grid-cols-7 text-center">
           {NOMES_DIA_SEMANA.map((n, i) => (
             <span key={i} className="rotulo py-1 text-dim">{n}</span>
@@ -389,11 +400,14 @@ function VistaMes({
                   key={dia.data}
                   href={link({ d: dia.data })}
                   aria-current={selecionado ? "date" : undefined}
-                  className={`flex min-h-[46px] flex-col items-center gap-1 rounded-[10px] py-1.5 ${
+                  className={`flex min-h-11 flex-col items-center gap-1 rounded-[var(--raio-controle)] py-1.5 ${
                     selecionado ? "bg-accent/15 ring-1 ring-accent" : ""
                   }`}
                 >
-                  <span className={`font-mono-instr text-sm tabular-nums ${
+                  {/* 46px era um número escolhido no olho; a régua da casa é
+                      44 e a célula continua acima dela. O dia é DADO —
+                      `.valor` traz o tabular e a cor de dado (onda 87). */}
+                  <span className={`font-mono-instr valor ${
                     !dia.doMes ? "text-dim/40" : dia.data === hoje ? "font-bold text-accent-forte" : ""
                   }`}>
                     {Number(dia.data.slice(8))}
@@ -409,9 +423,19 @@ function VistaMes({
       </div>
 
       <SecaoPagina icone="calendario">{rotuloDia(diaSelecionado)}</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+        {/* DESIGN §6 regra 4 — o vazio explica o valor da área e oferece a
+            ação. Só o título era uma constatação; agora ele diz o que cabe
+            num dia da Agenda e leva a marcar, que é o que a pessoa veio
+            fazer ao tocar num dia vazio da grade. */}
         {doDia.length === 0 ? (
-          <EstadoVazio variant="linha" icone="calendario" titulo="Nada marcado neste dia" />
+          <EstadoVazio
+            variant="linha"
+            icone="calendario"
+            titulo="Nada marcado neste dia"
+            descricao="Saída, vistoria, visita do mecânico — e, com as camadas ligadas, os vencimentos do barco caem aqui sozinhos."
+            acao={podeCriar ? { href: "/agenda/novo", rotulo: "Marcar compromisso" } : undefined}
+          />
         ) : (
           doDia.map((i) => <LinhaAgenda key={i.chave} item={i} />)
         )}
@@ -437,7 +461,7 @@ function VistaSemana({
             <p className={`rotulo mb-1 ${dia === hoje ? "text-accent-forte" : "text-dim"}`}>
               {rotuloDia(dia)}{dia === hoje ? " · hoje" : ""}
             </p>
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {itens.length === 0 ? (
                 <p className="apoio py-3 text-dim">Livre</p>
               ) : (
@@ -475,11 +499,14 @@ function LinhaAgendaData({ item }: { item: ItemAgenda }) {
     : item.detalhe ?? ""
   const conteudo = (
     <>
+      {/* `.valor-forte` (20px) e `.rotulo` (11px) no lugar de `text-[17px]` e
+          `text-[11px] tracking-[.12em]`: 17px não é degrau de escala nenhuma,
+          e o rótulo era uma cópia à mão do `.rotulo` que derivou no tracking
+          (achado 5.12 da auditoria). Cabe nos 42px: dois dígitos de mono a
+          20px medem ~24px. */}
       <span className="w-[42px] shrink-0 text-center">
-        <span className="block font-mono-instr text-[17px] font-semibold leading-none tabular-nums">{dia}</span>
-        <span className="mt-1 block font-mono-instr text-[11px] uppercase leading-none tracking-[.12em] text-dim">
-          {semana}
-        </span>
+        <span className="block font-mono-instr valor-forte font-semibold leading-none">{dia}</span>
+        <span className="rotulo mt-1 block leading-none text-dim">{semana}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className={`titulo-card block truncate ${item.concluido ? "text-dim line-through" : ""}`}>
@@ -492,7 +519,7 @@ function LinhaAgendaData({ item }: { item: ItemAgenda }) {
       </span>
       {derivada && (
         <span
-          className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-[.09em] ${
+          className={`rotulo shrink-0 rounded-[var(--raio-pilula)] border px-2 py-0.5 font-bold ${
             (item.status && ESTILO_PILULA[item.status]) || "border-line text-dim-chip"
           }`}
         >
@@ -517,7 +544,7 @@ function VistaLista({ itens, hoje, podeCriar }: { itens: ItemAgenda[]; hoje: str
         titulo="Nenhum compromisso por aqui"
         descricao="Marque uma saída, uma vistoria ou uma visita do mecânico — e compartilhe com quem precisa saber."
         acao={podeCriar ? { href: "/agenda/novo", rotulo: "Marcar compromisso" } : undefined}
-        className="mt-5"
+        className="mt-6"
       />
     )
   }
@@ -528,7 +555,7 @@ function VistaLista({ itens, hoje, podeCriar }: { itens: ItemAgenda[]; hoje: str
     <div className="mt-2">
       {secoes.map((secao) => (
         <div key={`${secao.rotulo}:${secao.itens[0].chave}`}>
-          <p className="rotulo mb-2 mt-5 text-dim">{secao.rotulo}</p>
+          <p className="rotulo mb-2 mt-6 text-dim">{secao.rotulo}</p>
           <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-3">
             {secao.itens.map((i) => <LinhaAgendaData key={i.chave} item={i} />)}
           </div>

@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect } from "@/components/ui/campo"
+import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { alterarValorRecorrente, alternarRecorrente } from "@/lib/acoes/financeiro"
@@ -64,9 +66,9 @@ export default async function RecorrentePage({
         titulo={rec.descricao}
         descricao={`${ROTULO_FREQUENCIA[rec.frequencia]} · ${ROTULO_CATEGORIA[rec.categoria]}`}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">{rec.tipo === "entrada" ? "Entrada recorrente" : "Despesa recorrente"}</p>
         <p className={`mt-1 font-mono-instr text-3xl tabular-nums ${rec.tipo === "entrada" ? "text-ok" : ""}`}>
           {formatarReais(rec.valor_centavos)}
@@ -119,7 +121,7 @@ export default async function RecorrentePage({
       {editavel && rec.ativa && abertos.length > 0 && (
         <>
           <SecaoPagina icone="cifrao">Mudar o valor</SecaoPagina>
-          <form action={alterarValorRecorrente} className="space-y-4 rounded-[14px] border border-line bg-panel p-4">
+          <form action={alterarValorRecorrente} className="space-y-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <input type="hidden" name="recorrencia_id" value={rec.id} />
             <div className="grid grid-cols-2 gap-3">
               <Campo
@@ -139,15 +141,23 @@ export default async function RecorrentePage({
               <option value="somente_este">Somente este vencimento</option>
               <option value="proximos">Este e os próximos</option>
             </CampoSelect>
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Aplicar</button>
+            <BotaoEnviar rotulo="Aplicar" />
           </form>
         </>
       )}
 
       <SecaoPagina>Já lançados</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
+        {/* Era uma lápide de uma linha. `EstadoVazio` é o desenho que as
+            outras 80 telas usam, e a frase agora diz o que vai aparecer
+            aqui em vez de só constatar que não há nada (DESIGN §6 regra 4). */}
         {lancados.length === 0 && (
-          <p className="apoio py-6 text-center text-dim">Nenhum vencimento desta série foi lançado ainda.</p>
+          <EstadoVazio
+            variant="linha"
+            icone="cifrao"
+            titulo="Nenhum vencimento lançado ainda"
+            descricao="Quando você marcar um vencimento como pago lá em cima, ele vira lançamento e passa a aparecer nesta lista, com data e valor."
+          />
         )}
         {lancados.map((l) => (
           <LinhaLista
@@ -165,7 +175,7 @@ export default async function RecorrentePage({
         <form action={alternarRecorrente} className="mt-6">
           <input type="hidden" name="recorrencia_id" value={rec.id} />
           <input type="hidden" name="ativa" value={rec.ativa ? "0" : "1"} />
-          <button className={`w-full rounded-xl py-3 text-sm font-semibold ${
+          <button className={`w-full rounded-[var(--raio-controle)] py-3 text-sm font-semibold ${
             rec.ativa ? "border border-crit/40 text-crit" : "border border-line"
           }`}>
             {rec.ativa ? "Encerrar recorrente" : "Reativar recorrente"}

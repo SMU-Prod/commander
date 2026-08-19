@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { sair } from "@/lib/acoes/auth"
 import { carregarNivelPlano, carregarPainel } from "@/lib/consultas"
 import { ehPago } from "@/lib/domain/plano-acesso"
@@ -24,9 +25,10 @@ import { TETO_FORMULARIO } from "@/lib/ui/superficies"
  * A ANATOMIA veio da fatia: o cartão de pessoa (avatar + nome + papel ·
  * embarcação), a assinatura com a borda dourada SÓ quando é plano pago (o
  * único bloco de borda dourada do app — pertencimento à marca, não ação),
- * "Sair da conta" como texto vermelho e o rodapé de versão com a ressalva
- * de honestidade que o CONTRIBUTING.md exige em toda superfície de
- * navegação.
+ * "Sair da conta" como a porta discreta do fim e o rodapé de versão com a
+ * ressalva de honestidade que o CONTRIBUTING.md exige em toda superfície de
+ * navegação. (O "texto vermelho" que esta linha descrevia até a onda 88 virou
+ * pílula de contorno — o porquê está no comentário do próprio botão.)
  */
 export default async function AjustesPage() {
   const supabase = await supabaseServer()
@@ -75,7 +77,7 @@ export default async function AjustesPage() {
       />
 
       <SecaoPagina icone="imagem">Aparência</SecaoPagina>
-      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4 py-3.5">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4 py-3">
         <ThemeToggle />
         <p className="apoio mt-2 text-dim">
           O modo claro é o padrão — feito para leitura sob sol forte na marina.
@@ -108,18 +110,26 @@ export default async function AjustesPage() {
       <LinhaLista href="/termos" variant="cartao" titulo="Termos de Uso" />
       <LinhaLista href="/privacidade" variant="cartao" className="mt-2" titulo="Política de Privacidade" />
 
-      {/* Texto vermelho, não botão emoldurado (canvas): sair não é a ação
-          principal da tela — é a porta discreta do fim. `min-h-11` mantém o
-          alvo de toque da régua. */}
+      {/* A nota antiga aqui dizia "texto vermelho, não botão emoldurado
+          (canvas)" — a intenção estava certa (sair é a porta discreta do fim,
+          não a ação principal da tela) e o meio ficou errado quando a onda 82
+          chegou: DISCRETO deixou de significar "sem forma" e passou a
+          significar "pílula de contorno". Texto vermelho de 14px é o vestido
+          que o app usa pra MENSAGEM DE ERRO; usá-lo num alvo faz a mesma
+          tinta dizer duas coisas. A pílula de contorno é discreta sem ser
+          invisível, e não é o "botão emoldurado" que o canvas recusou —
+          esse é o dourado cheio, que continua fora daqui. */}
       <form action={sair} className="mt-6">
-        <button className="flex min-h-11 items-center text-sm font-medium text-crit">
-          Sair da conta
+        <button className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>Sair da conta</span>
         </button>
       </form>
 
       {/* O rodapé do canvas: versão real (package.json) + a ressalva que o
-          CONTRIBUTING.md exige em toda superfície de navegação. */}
-      <p className="mt-3 font-mono-instr text-[11px] leading-relaxed text-dim">
+          CONTRIBUTING.md exige em toda superfície de navegação.
+          `.rotulo-dado` no lugar de `text-[11px]`: mesmo piso de 11px, agora
+          pela escala em vez de um tamanho avulso. */}
+      <p className="rotulo-dado mt-3 font-mono-instr leading-relaxed text-dim">
         Commander {pacote.version} · não é auxílio à navegação
       </p>
     </main>

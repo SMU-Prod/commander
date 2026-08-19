@@ -4,6 +4,7 @@ import { Icone, type NomeIcone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { TOQUE_AMPLO } from "@/lib/ui/acoes"
 import { carregarMapaTaxonomia, nomeDaRegiao, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import { carregarMeuPartner } from "@/lib/consultas-partner"
 import { hojeISO } from "@/lib/domain/datas"
@@ -96,7 +97,7 @@ export default async function ParceiroInicioPage() {
       </p>
 
       {!parceiro.visivel && (
-        <p className="corpo mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
+        <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2">
           Seu perfil está oculto: ninguém encontra você no Explorar. Ative a visibilidade em{" "}
           {ROTULO_MEU_PERFIL[tipo]}.
         </p>
@@ -137,7 +138,7 @@ export default async function ParceiroInicioPage() {
               acao={{ href: "/parceiro/perfil", rotulo: `Ajustar ${ROTULO_MEU_PERFIL[tipo].toLowerCase()}` }}
             />
           ) : (
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {compativeis.slice(0, 5).map((d) => (
                 <LinhaLista
                   key={d.id}
@@ -152,7 +153,7 @@ export default async function ParceiroInicioPage() {
       )}
 
       <SecaoPagina icone="mais">Atalhos</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         <LinhaLista href="/parceiro/perfil" titulo={ROTULO_MEU_PERFIL[tipo]} subtitulo="Fotos, contato e o que você atende" />
         <LinhaLista href="/explorar" titulo="Explorar Parceiros" subtitulo="Veja como os outros parceiros se apresentam" />
         <LinhaLista href="/parceiro/conta" titulo="Minha Conta" subtitulo="Plano, cobrança e visibilidade" />
@@ -181,6 +182,14 @@ function Numero({
       <p className="apoio mt-0.5 text-dim">{rotulo}</p>
     </>
   )
-  const classe = "sombra-1 block rounded-[14px] border border-line bg-panel p-3.5"
-  return href ? <Link href={href} className={classe}>{miolo}</Link> : <div className={classe}>{miolo}</div>
+  // `p-3` e não `p-3.5`: 14px não é degrau da escala base-8 do
+  // docs/DESIGN.md §5, e 12px é a decisão já tomada em `components/ui/cartao.tsx`
+  // ("a referência é densa"). A confirmação de toque só entra quando o cartão
+  // LEVA a algum lugar — afundar um número que não navega seria mentira.
+  const classe = "sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
+  return href ? (
+    <Link href={href} className={`${classe} ${TOQUE_AMPLO}`}>{miolo}</Link>
+  ) : (
+    <div className={classe}>{miolo}</div>
+  )
 }

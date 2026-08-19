@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarRecorrente } from "@/lib/acoes/financeiro"
@@ -31,7 +32,7 @@ export default async function NovaRecorrentePage({
     return (
       <main>
         <CabecalhoDetalhe voltarHref="/financeiro/recorrentes" voltarRotulo="Recorrentes" titulo="Nova recorrente" />
-        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-5" />
+        <BloqueioPremium {...mensagemBloqueio("financeiro_lancar")} className="mt-6" />
       </main>
     )
   }
@@ -44,9 +45,9 @@ export default async function NovaRecorrentePage({
         titulo="Nova recorrente"
         descricao="O que se repete em intervalo fixo — vaga da marina, seguro, diarista, financiamento."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={criarRecorrente} className="mt-5 space-y-4">
+      <form action={criarRecorrente} className="mt-6 space-y-4">
         <GuardaFormulario chave="financeiro:recorrente-nova" />
         <CampoSelect label="Tipo" id="tipo" name="tipo" defaultValue="despesa">
           <option value="despesa">Despesa — sai do bolso</option>
@@ -90,14 +91,15 @@ export default async function NovaRecorrentePage({
 
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={3} />
 
-        <p className="apoio rounded-[12px] border border-line bg-panel2 px-3.5 py-3 text-dim">
+        <p className="apoio rounded-[var(--raio-cartao)] border border-line bg-panel2 px-3 py-3 text-dim">
           Cada vencimento aparece na lista como pendente. Nenhum é dado como pago sozinho — você marca quando
           o pagamento acontecer de verdade.
         </p>
 
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
-          Criar recorrente
-        </button>
+        {/* "Cadastrar recorrente" é o verbo que a lista e o estado vazio já
+            usam pra este mesmo destino — "Criar" era um segundo vocabulário
+            pro mesmo gesto. */}
+        <BotaoEnviar rotulo="Cadastrar recorrente" />
       </form>
     </main>
   )

@@ -38,7 +38,15 @@ export function AlternadorVisao({
             key={o.valor}
             href={o.href}
             aria-current={ehAtiva ? "true" : undefined}
-            className={`flex h-8 items-center rounded-[var(--raio-pilula)] px-3 text-sm font-medium ${
+            // ONDA 91 (achado 5.10) — era `h-8`: 32px, 27% abaixo da régua de
+            // toque de 44px que o `docs/DESIGN.md` §5 escreve sem exceção, e a
+            // auditoria listou esta linha nominalmente entre as nove alturas
+            // do app. Um segmento fechado É alvo: cada opção é um `<Link>` que
+            // troca o que a tela mostra.
+            // Custou zero em revisão de tela porque o componente ainda não tem
+            // consumidor (ver o cabeçalho) — a peça entra na régua ANTES de a
+            // primeira tela herdar o defeito, que é a única hora barata.
+            className={`flex h-[var(--altura-controle)] items-center rounded-[var(--raio-pilula)] px-3 text-sm font-medium ${
               ehAtiva ? "sombra-1 bg-panel text-texto" : "text-dim"
             }`}
           >

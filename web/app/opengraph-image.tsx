@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
 import { ImageResponse } from "next/og"
 
 // Onda 25 (auditoria CMO P0) — card de compartilhamento pro WhatsApp/redes.
@@ -5,20 +7,35 @@ import { ImageResponse } from "next/og"
 // no canal onde a audiência mais confia (indicação de amigo), a primeira
 // impressão era a mais fraca possível tecnicamente.
 //
-// Gerada via `ImageResponse` (Next nativo, sem asset externo) pra nunca
-// dessincronizar de um PNG estático esquecido no /public. Composição sóbria
-// de propósito — sem foto fabricada de barco nenhum (regra do produto:
-// zero prova inventada): navy da marca, o mesmo monograma usado no header
-// (ver components/logo.tsx, mesmo <path> dourado), nome e tagline.
-
+// Gerada via `ImageResponse` (Next nativo) pra nunca dessincronizar de um PNG
+// estático esquecido no /public. Composição sóbria de propósito — sem foto
+// fabricada de barco nenhum (regra do produto: zero prova inventada): navy da
+// marca, a marca, nome e tagline.
+//
+// ONDA 93 — A MARCA DEFINITIVA ENTRA AQUI TAMBÉM.
+// Antes este arquivo redesenhava à mão o monograma provisório, com o mesmo
+// `<path>` copiado de `components/logo.tsx`. Dois lugares desenhando a mesma
+// marca é exatamente como uma delas fica pra trás — e ficaria: o dono
+// entregou o SVG final e este card continuaria mostrando o rascunho dourado
+// em todo link compartilhado no WhatsApp.
+//
+// Agora ele LÊ o mesmo arquivo que o app inteiro usa. `readFileSync` na
+// renderização (esta rota roda no Node, não no edge) e o SVG vira data URI,
+// que é a única forma que o Satori — o motor do `ImageResponse` — aceita
+// para desenho vetorial. Trocar o logo passa a ser trocar UM arquivo.
 export const alt = "Commander — o dossiê do seu barco"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-const NAVY = "#0B1D2D"
-const DOURADO = "#D4AF37"
+// O navy do próprio asset, para o fundo do card e o quadrado da marca serem a
+// mesma cor e a marca não parecer um selo colado.
+const NAVY = "#051A33"
+const CLARO = "#E8E9EC"
 
 export default function Image() {
+  const svg = readFileSync(path.join(process.cwd(), "public", "logo-commander.svg"), "utf8")
+  const marca = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`
+
   return new ImageResponse(
     (
       <div
@@ -33,13 +50,8 @@ export default function Image() {
           fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
-        {/* Mesmo monograma "MM espelhado" de components/logo.tsx, mesmo <path> */}
-        <svg width="112" height="79" viewBox="0 0 48 34" fill="none">
-          <path
-            d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z"
-            fill={DOURADO}
-          />
-        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={marca} width={148} height={148} alt="" />
         <div
           style={{
             display: "flex",
@@ -47,7 +59,7 @@ export default function Image() {
             fontSize: 76,
             fontWeight: 700,
             letterSpacing: "0.08em",
-            color: "#E9F1F8",
+            color: CLARO,
           }}
         >
           COMMANDER
@@ -57,7 +69,8 @@ export default function Image() {
             display: "flex",
             marginTop: 20,
             fontSize: 32,
-            color: DOURADO,
+            color: CLARO,
+            opacity: 0.72,
             letterSpacing: "0.02em",
           }}
         >
@@ -65,6 +78,6 @@ export default function Image() {
         </div>
       </div>
     ),
-    { ...size }
+    { ...size },
   )
 }

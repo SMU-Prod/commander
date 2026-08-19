@@ -17,6 +17,7 @@ import { formatarReais } from "@/lib/domain/gastos"
 import { formatarDataCurta } from "@/lib/domain/semaforo"
 import { podeVer } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { LancamentoFinanceiro } from "@/lib/db/types"
 
 type Filtro = "tudo" | "despesa" | "entrada" | "pendente"
@@ -106,17 +107,21 @@ export default async function LancamentosPage({
           ainda vai bater). O "R$" aparece UMA vez aqui; nas linhas abaixo a
           coluna mono vai sem ele — a vírgula alinha e a comparação é de
           valor, não de texto. */}
-      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
+      {/* `p-3` e não os 14px de antes: 14 não é degrau da escala base-8 (DESIGN §5) e
+          era o único respiro desta tela fora dela. `.valor-forte` no lugar de
+          `text-xl` — mesmo 20px, agora com o peso e a cor de DADO que o
+          par rótulo-cinza/valor-branco precisa pra existir (onda 87). */}
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
         <div className="flex gap-3">
           <div className="flex-1">
             <p className="rotulo text-dim">{rotuloPagoNoMes(hoje)}</p>
-            <p className="mt-1.5 font-mono-instr text-xl font-semibold tabular-nums">
+            <p className="mt-1.5 font-mono-instr valor-forte font-semibold">
               {formatarReais(totais.pagoCentavos)}
             </p>
           </div>
           <div className="flex-1">
             <p className="rotulo text-dim">A vencer</p>
-            <p className={`mt-1.5 font-mono-instr text-xl font-semibold tabular-nums ${totais.aVencerCentavos > 0 ? "text-warn" : ""}`}>
+            <p className={`mt-1.5 font-mono-instr valor-forte font-semibold ${totais.aVencerCentavos > 0 ? "text-warn" : ""}`}>
               {formatarReais(totais.aVencerCentavos)}
             </p>
           </div>
@@ -143,12 +148,15 @@ export default async function LancamentosPage({
           Categoria é refinamento SECUNDÁRIO dentro de tipo/status — o slot
           `filtros` da barra é UMA linha (regra em barra-ferramentas.tsx),
           então ela mora fora da barra, numa `ChipLinha` solta logo abaixo. */}
+      {/* ONDA 82 — o alvo já tinha os 44px, mas o VESTIDO era mono dourado
+          rastreado: um sexto jeito de escrever "ação secundária" (achado 5.2
+          da auditoria de 19/08). A forma agora é a mesma de todo cabeçalho de
+          seção do app. */}
       <div className="mt-2 flex justify-end">
-        <Link
-          href="/financeiro/novo?tipo=entrada"
-          className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
-        >
-          <Icone nome="mais" className="size-3.5" /> Entrada
+        <Link href="/financeiro/novo?tipo=entrada" className={ALVO_ACAO}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="mais" className="size-3.5" /> Entrada
+          </span>
         </Link>
       </div>
       {/* mt-4 como no Diário e nas Ocorrências — a margem da barra é a mesma
@@ -189,7 +197,7 @@ export default async function LancamentosPage({
       {grupos.map((g) => (
         <section key={g.chave}>
           <SecaoPagina>{g.rotulo}</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {g.itens.map((l) => {
               // Canvas tela-3e — a anatomia da linha: "09/08 · Posto
               // Verolme · pago". Fornecedor quando existe (é como o dono

@@ -10,72 +10,52 @@
  * Módulo puro.
  */
 
-import { COTISTA_INDIVIDUAL_CENTAVOS, formatarPreco } from "./planos"
-
 // ---------------------------------------------------------------------------
-// §14 — o que o plano entrega
+// §14 — O BLOCO DE VENDA FOI APAGADO. AUDITORIA 19/08, A8.
 // ---------------------------------------------------------------------------
-
-export const RECURSOS_COTISTA_PAGO = [
-  { chave: "meu_uso", nome: "Meu Uso", descricao: "Registro pessoal de retirada e entrega." },
-  { chave: "fotos_painel", nome: "Fotos e painel", descricao: "Condição recebida e entregue, horas e combustível." },
-  { chave: "historico", nome: "Histórico com procedência", descricao: "Cada registro com seu autor, data e utilização." },
-  { chave: "diario", nome: "Diário de Bordo pessoal", descricao: "Suas saídas e seu histórico próprio." },
-  { chave: "relatorios", nome: "Relatórios pessoais", descricao: "Por utilização e resumo mensal." },
-  { chave: "envio_adm", nome: "Envio ao ADM", descricao: "Comunicação estruturada direta com a administradora." },
-  { chave: "mapa", nome: "Mapa e Explorar", descricao: "Os recursos náuticos do Commander." },
-  { chave: "meteorologia", nome: "Meteorologia", descricao: "Informação auxiliar para planejar o uso." },
-  { chave: "seguranca", nome: "Central de Segurança", descricao: "Pane, abastecimento, regras e boas práticas." },
-] as const
-
-export type RecursoCotista = (typeof RECURSOS_COTISTA_PAGO)[number]["chave"]
-
-/** O preço, em texto, saindo do catálogo — nenhuma tela escreve o número. */
-export function precoCotistaEmTexto(): string {
-  return `${formatarPreco(COTISTA_INDIVIDUAL_CENTAVOS)}/mês`
-}
-
-// ---------------------------------------------------------------------------
-// §14 — a copy, com duas proibições explícitas
-// ---------------------------------------------------------------------------
-
-/**
- * A headline do §14, palavra por palavra:
- * "Você divide o Jet. Não precisa dividir a dúvida sobre quem fez o quê."
+/*
+ * Este arquivo trazia a oferta inteira do plano de R$ 24,90: headline,
+ * mensagem, `precoCotistaEmTexto`, os nove `RECURSOS_COTISTA_PAGO`, a lista
+ * de `PALAVRAS_PROIBIDAS_COTISTA` e `cotistaPodeGerarRelatorioPessoal`. Sete
+ * exports, todos escritos, todos testados, e nenhum com um único consumidor
+ * fora do `.test.ts` irmão.
+ *
+ * Não era só falta de tela: NÃO EXISTE COMO COBRAR. O plano
+ * `cotista_individual` não aparece em `PLANOS_COBRAVEIS`, não tem caminho de
+ * assinatura, e a única coisa que sobreviveu do §14 no banco é a constante de
+ * preço em `planos.ts`. Uma tela de oferta em cima disso seria o defeito que
+ * esta auditoria veio consertar, na versão cara: o app anunciando um produto
+ * que ele não sabe vender.
+ *
+ * A alternativa considerada foi construir a tela mesmo assim, com um "fale
+ * com a administradora" no lugar do botão. Descartada: quem fala com a
+ * administradora sobre um plano PESSOAL do cotista não compra nada — a
+ * administradora não vende Commander. Seria mandar o cliente para uma porta
+ * que não abre.
+ *
+ * Copy de produto não vendido é conteúdo de PRD, não código: o §14 do
+ * PRD-UPGRADE-3-COTAS continua com as palavras exatas, inclusive as duas
+ * proibições ("nada de linguagem de prova jurídica"; "deixar explícito que o
+ * acesso básico continua"). No dia em que houver checkout, ela volta com o
+ * checkout junto — e aí ela terá quem a consuma.
+ *
+ * O que ficou é o que a tela usa hoje: a ressalva do acesso básico e o hub de
+ * §15 daqui pra baixo.
  */
-export const HEADLINE_COTISTA =
-  "Você divide o Jet. Não precisa dividir a dúvida sobre quem fez o quê."
-
-export const MENSAGEM_COTISTA =
-  "Registre como recebeu e como entregou a embarcação. Fotos, horas, combustível, ocorrências e " +
-  "Diário de Bordo ficam organizados no seu histórico. Envie informações diretamente à " +
-  "administradora sem depender do lançamento posterior da equipe do pátio."
 
 /**
- * §14, as duas travas de copy, escritas como proibição no próprio PRD:
+ * §14, a trava de copy que sobreviveu porque a tela a mostra: o cotista
+ * precisa ler, no rodapé de /atualizacoes, que o acesso dado pela
+ * administradora não depende de assinar nada.
  *
- *   "NÃO USAR linguagem de 'prova jurídica' ou garantia contra cobrança."
- *   "Deixar EXPLÍCITO que o acesso básico fornecido pela administradora
- *    continua disponível sem assinatura."
- *
- * A primeira é risco real: o cotista que ler "prova" vai assinar achando que
- * comprou defesa contra uma cobrança da administradora, e o Commander não
- * garante isso — as fotos dele são registro pessoal, não perícia. A segunda
- * evita vender o que a pessoa já tem de graça.
- *
- * `RESSALVA_ACESSO_BASICO` existe pra que a tela não possa esquecer: ela é
- * parte do bloco de venda, não um rodapé opcional.
+ * A segunda frase ("Este plano é o seu registro pessoal de uso") saiu junto
+ * com o bloco de venda — ela apontava para um plano que a tela não oferece e
+ * que o app não sabe cobrar. Um rodapé que fala de "este plano" sem plano
+ * nenhum à vista é a mesma categoria de defeito do resto desta auditoria:
+ * afirmar o que não se sustenta.
  */
 export const RESSALVA_ACESSO_BASICO =
-  "O acesso que a administradora te dá para ver esta unidade continua funcionando sem assinar nada. " +
-  "Este plano é o seu registro pessoal de uso."
-
-/** Palavras que a copy deste plano não pode conter (§14). Usada em teste — é
- *  a única forma de a proibição sobreviver a uma reescrita futura. */
-export const PALAVRAS_PROIBIDAS_COTISTA = [
-  "prova jurídica", "prova juridica", "valor probatório", "valor probatorio",
-  "garantia", "garante", "juridicamente", "defesa", "processo",
-] as const
+  "O acesso que a administradora te dá para ver esta unidade continua funcionando sem assinar nada."
 
 // ---------------------------------------------------------------------------
 // §15 — Atualizações dos Cotistas
@@ -106,18 +86,27 @@ export const ROTULO_ESTADO_ENVIO: Record<EstadoEnvio, string> = {
   arquivado: "Arquivado",
 }
 
-/**
+/*
  * §15, a regra que sustenta o hub inteiro: *"NADA enviado pelo cotista altera
- * automaticamente o registro oficial."*
+ * automaticamente o registro oficial."* O envio é sempre um pedido, nunca um
+ * fato do barco — sem isso, dez cotistas com opiniões diferentes sobre o
+ * horímetro escreveriam por cima uns dos outros na ficha da unidade, e a
+ * administradora perderia a única versão que ela responde por.
  *
- * O envio é sempre um pedido, nunca um fato do barco. Sem isso, dez cotistas
- * com opiniões diferentes sobre o horímetro escreveriam por cima uns dos
- * outros na ficha da unidade — e a administradora perderia a única versão que
- * ela responde por.
+ * AUDITORIA 19/08 (B9): aqui morava `envioAlteraRegistroOficial(): false`, que
+ * a auditoria apontou como a função que /atualizacoes deveria chamar em vez de
+ * ter o aviso fixo no JSX. Conferido de perto, ela não podia cumprir esse
+ * papel: o tipo de retorno é o literal `false`, então a regra não é aplicada
+ * por ela — é aplicada por `enviarAoAdm` escrever SÓ em `envios_cotista`, e
+ * por `decidirEnvio` ser a única porta que toca no registro. A função era um
+ * espelho da regra, e o teste dela media a si mesmo.
+ *
+ * É o mesmo diagnóstico que a onda 57 escreveu ao apagar `rotuloDoSelo`
+ * (components/ui/selo.tsx): "existia só para o teste chamar — nenhuma tela
+ * usava — e é por isso que a garantia estava sendo medida num galho que não
+ * roda". Apagada pelo mesmo motivo; a regra fica como está escrita aqui e como
+ * o código de fato se comporta.
  */
-export function envioAlteraRegistroOficial(): false {
-  return false
-}
 
 /**
  * §15: *"Manter procedência: informado por cotista X; incorporado por ADM Y."*
@@ -138,14 +127,10 @@ export function linhaDeProcedencia(
     : `${origem} · arquivado por ${quem}`
 }
 
-/**
- * O que o cotista pagante pode gerar sozinho (§16, segunda metade).
- *
- * O relatório OFICIAL da unidade continua sendo do ADM — gerado uma vez e
- * lido por todos (ver `cotistaPodeGerarRelatorioOficial` em cotistas.ts). O
- * pessoal é outra coisa: usa só o uso DELE, então dez cotistas gerando dez
- * relatórios pessoais é o esperado, não desperdício.
+/*
+ * `cotistaPodeGerarRelatorioPessoal(assinantePago) => assinantePago` foi
+ * apagada junto com o bloco de venda (A8): sem plano pago não existe
+ * `assinantePago`, e a função era a identidade com nome bonito. O relatório
+ * OFICIAL da unidade continua sendo do ADM — a régua desse está em
+ * `cotistaPodeGerarRelatorioOficial` (cotistas.ts), essa sim com consumidor.
  */
-export function cotistaPodeGerarRelatorioPessoal(assinantePago: boolean): boolean {
-  return assinantePago
-}

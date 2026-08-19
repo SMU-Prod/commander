@@ -1,5 +1,8 @@
 import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { carregarMapaTaxonomia, nomeDe, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import { formatarReais } from "@/lib/domain/gastos"
@@ -77,8 +80,10 @@ export default async function AdminMarketplacePage() {
 
   return (
     <main>
-      <p className="rotulo text-dim">Admin Commander</p>
-      <h1 className="titulo-pagina mt-1 inline-flex items-center gap-2">
+      {/* ONDA 93 — mesma correção de `/admin/gold`: esta tela não tinha
+          saída. Ver o comentário longo lá. */}
+      <CabecalhoDetalhe voltarHref="/admin" voltarRotulo="Admin Commander" />
+      <h1 className="titulo-pagina mt-3 inline-flex items-center gap-2">
         <Icone nome="marketplace" className="size-5 text-accent-forte" /> Marketplace
       </h1>
       <p className="apoio mt-1 text-dim">
@@ -110,8 +115,8 @@ export default async function AdminMarketplacePage() {
       <Lista titulo="Regiões com mais atividade" linhas={porRegiao} />
       <Lista titulo="Categorias com mais atividade" linhas={porCategoria} />
 
-      <p className="rotulo mt-6 mb-2 text-dim">Negócios registrados</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <SecaoPagina>Negócios registrados</SecaoPagina>
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {negocios.length === 0 ? (
           <EstadoVazio variant="linha" icone="marketplace" titulo="Nenhum negócio registrado ainda" />
         ) : (
@@ -119,13 +124,16 @@ export default async function AdminMarketplacePage() {
             const d = demandaPorId.get(n.demanda_id)
             const estado = estadoDoNegocio(confirmacoesDe(n.id))
             return (
-              <div key={n.id} className="border-b border-line py-3 last:border-0">
-                <p className="corpo truncate">{d ? tituloDeDemanda(mapa, d) : "Pedido removido"}</p>
-                <p className="apoio text-dim">
-                  {ROTULO_ESTADO_NEGOCIO[estado]}
-                  {n.valor_final_centavos != null ? ` · ${formatarReais(n.valor_final_centavos)}` : " · sem valor informado"}
-                </p>
-              </div>
+              <LinhaLista
+                key={n.id}
+                titulo={d ? tituloDeDemanda(mapa, d) : "Pedido removido"}
+                subtitulo={
+                  ROTULO_ESTADO_NEGOCIO[estado] +
+                  (n.valor_final_centavos != null
+                    ? ` · ${formatarReais(n.valor_final_centavos)}`
+                    : " · sem valor informado")
+                }
+              />
             )
           })
         )}
@@ -136,7 +144,7 @@ export default async function AdminMarketplacePage() {
 
 function Numero({ rotulo, valor, apoio }: { rotulo: string; valor: string; apoio?: string }) {
   return (
-    <div className="sombra-1 rounded-[14px] border border-line bg-panel p-3">
+    <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{rotulo}</p>
       <p className="font-mono-instr mt-1 text-lg font-semibold tabular-nums">{valor}</p>
       {apoio && <p className="apoio mt-0.5 text-dim">{apoio}</p>}
@@ -148,13 +156,10 @@ function Lista({ titulo, linhas }: { titulo: string; linhas: [string, number][] 
   if (linhas.length === 0) return null
   return (
     <>
-      <p className="rotulo mt-6 mb-2 text-dim">{titulo}</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <SecaoPagina>{titulo}</SecaoPagina>
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {linhas.map(([nome, qtd]) => (
-          <div key={nome} className="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-0">
-            <p className="corpo truncate">{nome}</p>
-            <p className="font-mono-instr text-sm font-semibold tabular-nums">{qtd}</p>
-          </div>
+          <LinhaLista key={nome} titulo={nome} valor={qtd} />
         ))}
       </div>
     </>

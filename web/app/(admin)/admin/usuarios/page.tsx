@@ -1,7 +1,8 @@
-import Link from "next/link"
-import { Icone } from "@/components/icone"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { TOQUE } from "@/lib/ui/acoes"
 import { exigirAreaAdmin } from "@/lib/admin"
 import { buscarUsuarios } from "@/lib/consultas-suporte"
 
@@ -31,15 +32,18 @@ export default async function AdminUsuariosPage({
 
   return (
     <main>
-      <Link href="/admin" className="rotulo inline-flex items-center gap-1 text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Admin Commander
-      </Link>
-      <h1 className="titulo-pagina mt-3">Usuários</h1>
-      <p className="apoio mt-1 text-dim">
-        Busca por nome. Abrir uma ficha mostra plano, status de assinatura e as embarcações vinculadas — o
-        dossiê técnico e financeiro do barco continua fechado.
-      </p>
+      <CabecalhoDetalhe
+        voltarHref="/admin"
+        voltarRotulo="Admin Commander"
+        titulo="Usuários"
+        descricao="Busca por nome. Abrir uma ficha mostra plano, status de assinatura e as embarcações vinculadas — o dossiê técnico e financeiro do barco continua fechado."
+      />
 
+      {/* Campo e botão mediam ~42px: dois pixels abaixo da régua, o que é o
+          jeito mais fácil de errar o alvo com o dedo. `h-11` nos dois.
+          Aqui NÃO entra `BotaoEnviar`: este formulário não tem action de
+          servidor — é um GET que navega —, então `useFormStatus` nunca
+          reportaria pendência e o aviso de envio seria um enfeite mudo. */}
       <form className="mt-4 flex gap-2">
         <input
           type="search"
@@ -47,14 +51,14 @@ export default async function AdminUsuariosPage({
           defaultValue={termo}
           placeholder="Nome do usuário"
           aria-label="Buscar usuário pelo nome"
-          className="corpo min-w-0 flex-1 rounded-lg border border-line bg-panel2 px-3 py-2"
+          className="corpo h-11 min-w-0 flex-1 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3"
         />
-        <button className="rounded-lg border border-line bg-panel2 px-4 py-2 font-medium">Buscar</button>
+        <button className={`h-11 shrink-0 rounded-full border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}>
+          Buscar
+        </button>
       </form>
 
-      <p className="rotulo mt-6 mb-2 text-dim">
-        {termo === "" ? "Últimos cadastrados" : `Resultados para "${termo}"`}
-      </p>
+      <SecaoPagina>{termo === "" ? "Últimos cadastrados" : `Resultados para "${termo}"`}</SecaoPagina>
 
       {usuarios.length === 0 ? (
         <EstadoVazio
@@ -67,7 +71,7 @@ export default async function AdminUsuariosPage({
           }
         />
       ) : (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {usuarios.map((u) => (
             <LinhaLista
               key={u.id}

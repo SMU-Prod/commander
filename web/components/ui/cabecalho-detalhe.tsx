@@ -38,7 +38,21 @@ export function CabecalhoDetalhe({
 }: {
   voltarHref: string
   voltarRotulo?: string
-  titulo?: string
+  /** ONDA 91 — era `string`, e a ficha de uma ocorrência ANULADA precisa do
+   *  título riscado: ao adotar o componente padrão, a tela perdia a única
+   *  marca visual de que aquele registro não vale mais.
+   *
+   *  `ReactNode` e NÃO uma prop de classe (`tituloClassName`): este
+   *  componente não tem por que saber o que é `line-through`, e uma prop de
+   *  classe convida a próxima tela a mandar cor, peso e tamanho por aqui —
+   *  que é como a escala tipográfica ganhou sete degraus (achado 5.3). Com
+   *  `ReactNode` quem tem a informação ("está anulada") desenha a informação,
+   *  e o cabeçalho continua cuidando só de posição.
+   *
+   *  PASSE CONTEÚDO EM LINHA (texto, `<s>`, `<span>`): o `truncate` do `<h1>`
+   *  é `white-space: nowrap` mais reticências, e um filho de bloco escapa
+   *  dos dois. */
+  titulo?: ReactNode
   descricao?: string
   selo?: ReactNode
   acao?: ReactNode
@@ -49,11 +63,11 @@ export function CabecalhoDetalhe({
     <div className={className}>
       {/* ONDA 54 — este link é A SAÍDA de ~46 telas do app, e media 16px de
           altura: menos da metade do alvo de toque que o resto do app já
-          respeita (`min-h-11`). Dedo grande, barco balançando, tela molhada
-          — errar o "Voltar" e cair na tela de trás é literalmente o
+          respeita (`--altura-controle`). Dedo grande, barco balançando, tela
+          molhada — errar o "Voltar" e cair na tela de trás é literalmente o
           "ficamos travados sem conseguir voltar" do relato.
 
-          `-my-2.5` devolve ao layout 20 dos 28px que o `min-h-11` acrescenta:
+          `-my-2.5` devolve ao layout 20 dos 28px que os 44px acrescentam:
           a área de TOQUE passa a 44px, mas a altura ocupada sobe só ~8px, e
           o título logo abaixo não desce meia tela em 46 arquivos. O
           `-ml-1 px-1` faz o mesmo na horizontal sem tirar o ícone do
@@ -62,7 +76,7 @@ export function CabecalhoDetalhe({
           encosta em nada. */}
       <Link
         href={voltarHref}
-        className="-my-2.5 -ml-1 inline-flex min-h-11 items-center gap-1 px-1 rotulo text-accent-forte"
+        className="-my-2.5 -ml-1 inline-flex min-h-[var(--altura-controle)] items-center gap-1 px-1 rotulo text-accent-forte"
       >
         <Icone nome="voltar" className="size-4" /> {voltarRotulo}
       </Link>
@@ -73,13 +87,33 @@ export function CabecalhoDetalhe({
         // direita) — é isso que segura os ~46 consumidores atuais no lugar.
         <div className={acoes ? "mt-3 sm:flex sm:items-start sm:justify-between sm:gap-3" : "mt-3 flex items-start justify-between gap-3"}>
           <div className="min-w-0">
+            {/* ONDA 91 — `line-clamp-2` NO LUGAR DE `truncate`.
+                O título da tela é a IDENTIFICAÇÃO dela, e a régua da casa
+                (`linha-lista.tsx`, onda 56) é que reticência serve quando o
+                resto é dispensável — um nome longo ao lado de um valor — e
+                não quando o texto É a informação. Numa linha só, "Preços da
+                avaliação Commander Gold" (34 caracteres) sai como "Preços da
+                avaliação Comm…" a 390px, e `/admin/gold/precos` preferiu não
+                usar o componente a exibir isso. O teto de duas linhas preserva
+                o ritmo (nenhum título vira parágrafo) e a altura só cresce no
+                caso que precisa: a maioria continua em uma linha.
+                `.titulo-pagina` já traz `text-wrap: balance`, então a quebra
+                sai com as duas linhas equilibradas em vez de uma órfã.
+
+                `min-w-0` EXPLÍCITO além disso: com selo o título é item de uma
+                fileira flex, e ali o mínimo automático de um item é o tamanho
+                do conteúdo — um título longo empurraria o selo para fora em
+                vez de quebrar. O `overflow: hidden` que vem dentro do
+                `line-clamp` já zera esse mínimo por tabela; escrevê-lo deixa
+                de depender disso, o que passa a importar agora que `titulo`
+                aceita `ReactNode`. */}
             {selo ? (
               <div className="flex min-w-0 items-center gap-2">
-                <h1 className="titulo-pagina truncate">{titulo}</h1>
+                <h1 className="titulo-pagina min-w-0 line-clamp-2">{titulo}</h1>
                 {selo}
               </div>
             ) : (
-              <h1 className="titulo-pagina truncate">{titulo}</h1>
+              <h1 className="titulo-pagina min-w-0 line-clamp-2">{titulo}</h1>
             )}
             {descricao && <p className="apoio mt-1 text-dim">{descricao}</p>}
           </div>

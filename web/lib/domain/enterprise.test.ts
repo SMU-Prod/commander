@@ -11,6 +11,7 @@ import {
   MODOS_APROVACAO,
   PAPEIS,
   PAPEIS_ENTERPRISE,
+  podePublicarParaCotistas,
   PRESET_ENTERPRISE,
   ROTULO_EVENTO,
   ROTULO_MODO_APROVACAO,
@@ -143,6 +144,56 @@ describe("Enterprise", () => {
     it("publicar é crítico por natureza, não só pela mecânica", () => {
       expect(ehAcaoCritica("publicar_para_cotistas")).toBe(true)
       expect(exigeAprovacao("somente_criticos", "publicar_para_cotistas", "OPERACOES")).toBe(true)
+    })
+  })
+
+  // AUDITORIA 19/08, B6 — a régua acima existia e ninguém a chamava; o app
+  // decidia com `ehDono &&` no JSX. Estes casos são a tradução dela para o
+  // gesto de publicar, que /mecanica e `publicarServico` agora consultam.
+  describe("quem publica laudo para os cotistas", () => {
+    it("o dono da conta publica", () => {
+      expect(podePublicarParaCotistas("PROP", "tudo").pode).toBe(true)
+    })
+
+    it("comandante não publica — publicar é ato da administradora", () => {
+      const r = podePublicarParaCotistas("CMDT", "sem_aprovacao")
+      expect(r.pode).toBe(false)
+      expect(r.motivo).toBeTruthy()
+    })
+
+    it("MECÂNICA nunca publica, em nenhum modo — e o motivo diz por quê", () => {
+      // A trava do §7. Sem ela, a policy da 063 ("quem edita motores
+      // atualiza") deixaria o próprio mecânico gravar `publicado_em`.
+      for (const modo of MODOS_APROVACAO) {
+        const r = podePublicarParaCotistas("MECANICA", modo)
+        expect(r.pode, modo).toBe(false)
+        expect(r.motivo, modo).toContain("ADM")
+      }
+    })
+
+    it("ADM e ADM Geral publicam quando a régua deixa passar", () => {
+      expect(podePublicarParaCotistas("ADM", "sem_aprovacao").pode).toBe(true)
+      expect(podePublicarParaCotistas("ADM_GERAL", "sem_aprovacao").pode).toBe(true)
+    })
+
+    it("ADM com a régua em 'tudo' não publica sozinho", () => {
+      // Era exatamente o caso que o `ehDono &&` do JSX resolvia por acidente:
+      // acertava a recusa pelo motivo errado.
+      expect(podePublicarParaCotistas("ADM", "tudo").pode).toBe(false)
+    })
+
+    it("Operações e Cotista não publicam nem com a confiança no máximo", () => {
+      expect(podePublicarParaCotistas("OPERACOES", "sem_aprovacao").pode).toBe(false)
+      expect(podePublicarParaCotistas("COTISTA", "sem_aprovacao").pode).toBe(false)
+    })
+
+    it("toda recusa vem com motivo — a tela nunca some com o botão em silêncio", () => {
+      for (const papel of PAPEIS) {
+        for (const modo of MODOS_APROVACAO) {
+          const r = podePublicarParaCotistas(papel, modo)
+          if (!r.pode) expect(r.motivo, `${papel}/${modo}`).toBeTruthy()
+        }
+      }
     })
   })
 

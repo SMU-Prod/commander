@@ -52,7 +52,7 @@ export function CampoArquivo({
       </label>
       <label
         htmlFor={id}
-        className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 py-2"
+        className="flex min-h-[var(--altura-controle)] cursor-pointer items-center gap-2.5 rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 py-2"
       >
         <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-texto">
           <Icone nome="mais" className="size-4" />

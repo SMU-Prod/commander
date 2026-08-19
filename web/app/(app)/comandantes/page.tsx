@@ -8,6 +8,7 @@ import { resolvedorDeFotoDePerfil } from "@/lib/consultas-captain"
 import { carregarMapaTaxonomia } from "@/lib/consultas-marketplace"
 import { PLANOS } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import type { PerfilComandante } from "@/lib/db/types"
 
 // Onda 39 — renomeada de /marketplace pra /comandantes (a URL não tinha
@@ -54,11 +55,18 @@ export default async function ComandantesPage() {
       {/* Cartões soltos com respiro (anatomia do canvas), não mais linhas num
           painel único — o cartão de pessoa tem chips e ação próprios. */}
       <div className="mt-4 flex flex-col gap-2">
+        {/* DUAS correções, e a primeira é de honestidade: o título dizia "na
+            sua região" e a consulta logo acima não filtra região nenhuma — é
+            a mesma promessa que o comentário do subtítulo já tinha mandado
+            tirar do texto e que sobreviveu aqui. A segunda é a régua do
+            DESIGN §6 regra 4: "assim que houver, eles aparecem aqui" encerra
+            o assunto sem dizer o que a área serve nem o que fazer agora. */}
         {lista.length === 0 && (
           <EstadoVazio
             icone="pessoas"
-            titulo="Ainda não há comandantes cadastrados na sua região"
-            descricao="Assim que houver, eles aparecem aqui."
+            titulo="Nenhum comandante publicou o perfil ainda"
+            descricao="Aqui aparecem comandantes com perfil publicado — experiência, certificações e porte de embarcação —, para contratar direto pelo WhatsApp. Enquanto a vitrine não enche, o caminho é dizer o que você precisa e deixar quem atende responder."
+            acao={{ href: "/marketplace/nova", rotulo: "Publicar no Marketplace" }}
           />
         )}
         {lista.map((p) => (
@@ -78,10 +86,19 @@ export default async function ComandantesPage() {
         habilitação. A contratação é combinada diretamente entre as partes.
       </p>
 
-      <Link href="/comandantes/perfil" className="mt-6 inline-flex items-center gap-1 apoio text-dim">
-        <Icone nome="pessoas" className="size-3.5" /> É comandante? Toque aqui para criar seu perfil
-        {" "}— o {PLANOS.captain_pro.rotulo} coloca você nesta lista.
-      </Link>
+      {/* Mesma correção de `/prestadores`: a frase inteira era o link, com
+          18px de alvo e o cinza do que não se toca. A pergunta e a condição
+          são texto; o verbo é pílula. */}
+      <div className="mt-6">
+        <p className="apoio text-dim">
+          É comandante? O {PLANOS.captain_pro.rotulo} coloca você nesta lista.
+        </p>
+        <Link href="/comandantes/perfil" className={`${ALVO_ACAO} mt-1`}>
+          <span className={PILULA_ACAO}>
+            <Icone nome="pessoas" className="size-3.5" /> Criar meu perfil
+          </span>
+        </Link>
+      </div>
     </main>
   )
 }

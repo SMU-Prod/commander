@@ -192,3 +192,87 @@ export function consumoPorHora(litros: number, horasDeMotor: number): number | n
   if (!(horasDeMotor > 0)) return null
   return litros / horasDeMotor
 }
+
+// ---------------------------------------------------------------------------
+// §11 — "qual unidade bebe mais". AUDITORIA 19/08, A5 e A10.
+// ---------------------------------------------------------------------------
+
+/**
+ * O RELATÓRIO CENTRAL DO §11, QUE NÃO EXISTIA.
+ *
+ * A auditoria achou duas metades da mesma lacuna: `abastecimentos` recebia
+ * insert em toda saída do tanque para uma unidade e NUNCA era lida por
+ * ninguém (A5), e `consumoPorHora` estava escrita e testada sem consumidor
+ * (A10). Junte as duas e sai a pergunta que justifica ter tanque próprio:
+ * quanto cada unidade bebe por hora de motor.
+ *
+ * As duas honestidades que esta função carrega:
+ *
+ *   HORA SEM LEITURA NÃO É HORA ZERO. Se ninguém anotou horímetro na saída e
+ *   na chegada, `horas` é `null` e `litrosPorHora` é `null` — a unidade
+ *   aparece com os litros (que são fato) e a frase diz que falta o horímetro.
+ *   Cair para zero faria a divisão explodir; cair para "0 L/h" diria que a
+ *   unidade não bebe nada, que é o oposto da verdade.
+ *
+ *   UNIDADE SEM ABASTECIMENTO NÃO APARECE. Diferente de `consolidarFrota`,
+ *   onde custo zero é informação (unidade parada): aqui a ausência quer dizer
+ *   "não abasteceu PELO TANQUE DA BASE" — pode ter enchido no posto, e o app
+ *   não sabe. Listar com "0 L" afirmaria que ela não consumiu combustível.
+ */
+export interface ConsumoDaUnidade {
+  embarcacaoId: string
+  nome: string
+  litros: number
+  /** `null` = nenhum movimento de pátio do período tinha as duas leituras. */
+  horas: number | null
+  litrosPorHora: number | null
+  frase: string
+}
+
+export function consolidarConsumo(
+  unidades: readonly { id: string; nome: string }[],
+  abastecimentos: readonly { embarcacaoId: string; litros: number }[],
+  horasDeUso: readonly { embarcacaoId: string; horas: number }[],
+): ConsumoDaUnidade[] {
+  const litrosPor = new Map<string, number>()
+  for (const a of abastecimentos) {
+    litrosPor.set(a.embarcacaoId, (litrosPor.get(a.embarcacaoId) ?? 0) + a.litros)
+  }
+  const horasPor = new Map<string, number>()
+  for (const u of horasDeUso) {
+    // Só entra hora que existe. Quem chama já filtrou o `null` de
+    // `horasDeUso` do pátio — aqui a defesa é contra hora negativa, que o
+    // horímetro não produz mas o dado gravado pode ter.
+    if (u.horas > 0) horasPor.set(u.embarcacaoId, (horasPor.get(u.embarcacaoId) ?? 0) + u.horas)
+  }
+
+  return unidades
+    .filter((u) => (litrosPor.get(u.id) ?? 0) > 0)
+    .map((u) => {
+      const litros = litrosPor.get(u.id) ?? 0
+      const horas = horasPor.get(u.id) ?? null
+      const litrosPorHora = horas == null ? null : consumoPorHora(litros, horas)
+      return {
+        embarcacaoId: u.id,
+        nome: u.nome,
+        litros,
+        horas,
+        litrosPorHora,
+        frase: litrosPorHora == null
+          ? `${formatarLitros(litros)} · sem horímetro anotado no pátio — não dá pra dizer L/h`
+          : `${formatarLitros(litros)} · ${horas!.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h de uso · ` +
+            `${litrosPorHora.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} L/h`,
+      }
+    })
+    // Quem bebe mais primeiro — é a pergunta do §11. Quem não tem L/h vai
+    // pro fim: não é "bebe pouco", é "não dá pra comparar", e misturar os
+    // dois na mesma ordem faria a lista mentir por ordenação.
+    .sort((a, b) => {
+      if (a.litrosPorHora == null && b.litrosPorHora == null) {
+        return b.litros - a.litros || a.nome.localeCompare(b.nome, "pt-BR")
+      }
+      if (a.litrosPorHora == null) return 1
+      if (b.litrosPorHora == null) return -1
+      return b.litrosPorHora - a.litrosPorHora || a.nome.localeCompare(b.nome, "pt-BR")
+    })
+}

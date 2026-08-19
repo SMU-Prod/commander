@@ -47,7 +47,7 @@ export function BarraFerramentas({
       {acao && (
         <Link
           href={acao.href}
-          className="flex min-h-11 shrink-0 items-center gap-1 self-end rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto lg:order-2 lg:self-auto"
+          className="flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 self-end rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto lg:order-2 lg:self-auto"
         >
           <Icone nome="mais" className="size-4" />
           {acao.rotulo}
