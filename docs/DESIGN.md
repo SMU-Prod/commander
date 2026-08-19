@@ -114,12 +114,38 @@ Quatro raios diferentes na mesma tela é sintoma, não estilo.
 Sombra não é decoração. Se o elemento não flutua, não tem sombra.
 
 ### Cor — significado, nunca enfeite
-- **Navy** — a marca e o fundo escuro.
-- **Dourado** — **a ação principal e o pertencimento à marca.** No máximo
-  **dois** usos de dourado por tela. Se tem sete, o dourado parou de significar.
+
+> **Reescrito na onda 79.** Até aqui esta seção dizia "Navy — a marca e o
+> fundo escuro" e "Dourado — a ação principal". As duas frases deixaram de
+> ser verdade no mesmo dia, e por motivos diferentes: o navy caiu porque as
+> capturas da referência foram AMOSTRADAS pixel a pixel e são cinza puro (a
+> leitura a olho da onda 57 estava errada); o dourado caiu por decisão de
+> identidade do dono. Doc que descreve uma cor que o app não usa mais é pior
+> que doc nenhum — foi o tipo de divergência que fez esta onda inteira
+> começar refazendo trabalho que já existia.
+
+- **Cinza puro** — o chão e as superfícies, do `#101010` do fundo ao
+  `#303030` da linha. **Sem tom nenhum.** Foi a diferença mais visível entre
+  o nosso escuro e o da referência, e a que nenhuma quantidade de refino de
+  componente teria consertado: com o chão azulado, cada cartão herdava azul.
+  Cor no escuro existe só no dado e no estado.
+- **Verde-limão** — **a ação principal e o pertencimento à marca.** No máximo
+  **dois** usos por tela. Se tem sete, o acento parou de significar. Substitui
+  o dourado, que era a marca do Commander até a onda 79.
 - **Verde / âmbar / vermelho** — estado do barco. **Nunca** decoração, nunca
   "destaque". Vermelho é reservado a crítico (PRD §1.1 e §4.6).
-- **Cinza-azulado** — texto secundário e linha.
+- **Ciano e roxo** — dado, e só dado. São DOIS porque duas séries na mesma
+  tela precisam se distinguir sem depender de legenda; nenhum dos dois
+  significa estado.
+- **Cinza médio** — texto secundário e linha.
+
+**A separação de cartão e fundo passou a ser feita por BORDA, não por
+preenchimento.** Na referência o cartão (`#1a1a1a`) sobre o fundo (`#101010`)
+dá 1,105:1 — abaixo do 1,2 que `lib/ui/contraste.test.ts` exige. A borda
+(`#2c2c2c`) dá 1,225:1. O teste passou a aceitar os dois caminhos e a
+**exigir** a borda quando o preenchimento não separa sozinho: ficou mais
+rígido, porque antes uma paleta passava com preenchimento no limite e borda
+invisível.
 
 **A regra dos dois, refinada (onda 60): moldura não paga o orçamento do
 conteúdo.** O dourado de **NAVEGAÇÃO** — o indicador de onde-a-pessoa-está
