@@ -1,10 +1,9 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol, FarolOcorrencia } from "@/components/farol"
-import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIAS_HIDRAULICA, ROTULO_HIDRAULICA } from "@/lib/domain/diario"
 import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
@@ -31,14 +30,13 @@ export default async function HidraulicaPage() {
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
-      <h1 className="mt-3 titulo-pagina">Hidráulica</h1>
-      <p className="apoio mt-1 text-dim">
-        Água doce é o que a embarcação bebe/usa; Grey Water é o esgoto de pia e chuveiro; Black Water é o
-        esgoto do banheiro — sistemas separados, com manutenção própria cada um.
-      </p>
+      {/* ONDA 104 (§8 do Guia) — cabeçalho padrão, com a identidade do hub. */}
+      <CabecalhoDetalhe
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        hub="hidraulica"
+        descricao="Água doce é o que a embarcação bebe/usa; Grey Water é o esgoto de pia e chuveiro; Black Water é o esgoto do banheiro — sistemas separados, com manutenção própria cada um."
+      />
 
       {ocorrencias.length > 0 && (
         <>

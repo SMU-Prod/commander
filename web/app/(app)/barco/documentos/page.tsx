@@ -101,7 +101,7 @@ export default async function DocumentosPage({
         className="mt-3"
         voltarHref="/barco"
         voltarRotulo="Barco"
-        titulo="Documentos"
+        hub="documentos"
         descricao={resumo ?? undefined}
         // O formulário de cadastro mora no fim de uma tela que pode ter vinte
         // linhas; a barra de ações da ficha é onde a referência põe a ação de

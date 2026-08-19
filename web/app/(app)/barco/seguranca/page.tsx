@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIA_SEGURANCA } from "@/lib/domain/diario"
 import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
@@ -31,21 +32,21 @@ export default async function SegurancaPage() {
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
-      <div className="mt-3 flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Segurança</h1>
-        {editavel && (
-          <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${CATEGORIA_SEGURANCA}`)}`}
-            className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
+      {/* ONDA 104 (§8 do Guia) — cabeçalho padrão, com a identidade do hub. */}
+      <CabecalhoDetalhe
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        hub="seguranca"
+        descricao="Colete, extintor, bengala, balsa — quantidade, validade e último teste de cada item de segurança a bordo."
+        acao={editavel ? (
+          <Link
+            href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${CATEGORIA_SEGURANCA}`)}`}
+            className="inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 corpo font-semibold text-acao-texto"
+          >
             <Icone nome="mais" className="size-4" /> Item
           </Link>
-        )}
-      </div>
-      <p className="apoio mt-1 text-dim">
-        Colete, extintor, bengala, balsa — quantidade, validade e último teste de cada item de segurança a bordo.
-      </p>
+        ) : undefined}
+      />
 
       {ocorrencias.length > 0 && (
         <>

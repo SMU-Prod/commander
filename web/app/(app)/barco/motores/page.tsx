@@ -57,7 +57,7 @@ export default async function MotoresPage() {
       <CabecalhoDetalhe
         voltarHref="/barco"
         voltarRotulo="Barco"
-        titulo="Motores"
+        hub="motores"
         descricao="Horímetro, revisões e o histórico de cada motor. Toque no mostrador para abrir a ficha."
         acao={editavel ? (
           <Link

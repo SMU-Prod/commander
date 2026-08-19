@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
+import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
@@ -40,21 +41,21 @@ export default async function EquipamentosPage() {
 
   return (
     <main>
-      <Link href="/barco" className="inline-flex items-center gap-1 rotulo text-accent-forte">
-        <Icone nome="voltar" className="size-4" /> Barco
-      </Link>
-      <div className="mt-3 flex items-baseline justify-between">
-        <h1 className="titulo-pagina">Equipamentos</h1>
-        {editavel && (
-          <Link href="/barco/equipamento/novo?tipo=outro"
-            className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
+      {/* ONDA 104 (§8 do Guia) — cabeçalho padrão, com a identidade do hub. */}
+      <CabecalhoDetalhe
+        voltarHref="/barco"
+        voltarRotulo="Barco"
+        hub="equipamentos"
+        descricao="Bote, guincho, ar-condicionado, dessalinizador — o que você quiser acompanhar a bordo."
+        acao={editavel ? (
+          <Link
+            href="/barco/equipamento/novo?tipo=outro"
+            className="inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 corpo font-semibold text-acao-texto"
+          >
             <Icone nome="mais" className="size-4" /> Equipamento
           </Link>
-        )}
-      </div>
-      <p className="apoio mt-1 text-dim">
-        Bote, guincho, ar-condicionado, dessalinizador — o que você quiser acompanhar a bordo.
-      </p>
+        ) : undefined}
+      />
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (

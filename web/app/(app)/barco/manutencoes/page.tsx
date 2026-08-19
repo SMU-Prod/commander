@@ -50,7 +50,7 @@ export default async function ManutencoesPage() {
       <CabecalhoDetalhe
         voltarHref="/barco"
         voltarRotulo="Barco"
-        titulo="Manutenções"
+        hub="manutencoes"
         descricao="Vence, mas não é motor, elétrica, casco nem documento."
         acao={editavel ? (
           <Link

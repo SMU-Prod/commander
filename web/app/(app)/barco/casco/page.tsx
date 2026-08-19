@@ -58,7 +58,7 @@ export default async function CascoPage() {
       <CabecalhoDetalhe
         voltarHref="/barco"
         voltarRotulo="Barco"
-        titulo="Casco"
+        hub="casco"
         descricao="Deck, fibra, inox, vidros e estofados — o que vence por data e o app avisa antes."
         acao={editavel ? (
           // `alvo=cat:casco_outros` e não `/barco/itens/novo` pelado: "Outros"

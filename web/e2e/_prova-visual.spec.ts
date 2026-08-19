@@ -15,6 +15,14 @@ const TELAS: { rota: string; nome: string }[] = [
   // Onda 7 — Serviços entrou na barra de baixo, então precisa de prova visual
   // como as outras quatro: sem captura não há como comparar antes e depois.
   { rota: "/servicos", nome: "5-servicos" },
+  // Onda 104 — DUAS telas de hub, e duas de propósito. A identidade por hub
+  // (§8 do Guia) só é verificável por COMPARAÇÃO: uma tela sozinha prova que
+  // existe um cartucho colorido, não que Segurança e Elétrica são distintas
+  // uma da outra. Escolhidas estas duas porque são as que estavam nos dois
+  // extremos do defeito — a de Segurança tinha o `<h1>` solto com ação, a de
+  // Elétrica tinha o "Voltar" de 16px.
+  { rota: "/barco/seguranca", nome: "6-hub-seguranca" },
+  { rota: "/barco/eletrica", nome: "7-hub-eletrica" },
 ]
 
 // Onda 7 — a pasta sai por variável pra o MESMO comando gravar o "antes" e o

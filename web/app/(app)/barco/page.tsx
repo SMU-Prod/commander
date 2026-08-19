@@ -21,6 +21,7 @@ import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
 import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
 import { podeEditar, podeVer, type Aba } from "@/lib/domain/permissoes"
 import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
+import { HUBS, type ChaveHub } from "@/lib/ui/hubs"
 import type { ItemMonitorado } from "@/lib/db/types"
 
 /**
@@ -274,59 +275,35 @@ export default async function BarcoPage({
    * As classes são LITERAIS porque o Tailwind varre o código-fonte atrás da
    * classe escrita: `border-hub-${h.aba}/35` não geraria CSS nenhum.
    */
-  const hubs: {
-    aba: Aba
-    rotulo: string
-    icone: NomeIcone
-    href: string
-    quantidade: number
-    status: StatusFarol | null
-    /** A cor do traço do ícone. */
-    tom: string
-    /** A moldura do §5 — a cor do hub no card DAQUELE hub, e só nele. */
-    borda: string
-    /** O halo atrás do ícone: o "rim light na cor do hub" do §6. */
-    halo: string
-  }[] = [
-    { aba: "motores", rotulo: "Motores", icone: "motor", href: "/barco/motores",
-      tom: "text-hub-motores", borda: "border-hub-motores/35 hover:border-hub-motores/60",
-      halo: "bg-hub-motores/10",
-      quantidade: motores.length, status: piorFarol(itensDe(motores)) },
-    // `embarcacao` e não `escudo`, que era o ícone do Casco na tela antiga: lá
-    // as seções eram empilhadas e o escudo do Casco nunca aparecia ao lado do
-    // escudo-com-visto da Segurança. Na grade eles ficam vizinhos e viram dois
-    // escudos quase iguais — e nesta tela o ícone É a identidade do hub (é o
-    // que distingue um card do outro antes de ler). O casco é o corpo do
-    // barco, então a silhueta da embarcação é o desenho certo.
-    { aba: "casco", rotulo: "Casco", icone: "embarcacao", href: "/barco/casco",
-      tom: "text-hub-casco", borda: "border-hub-casco/35 hover:border-hub-casco/60",
-      halo: "bg-hub-casco/10",
-      quantidade: itensDoCasco.length, status: piorFarol(itensDoCasco) },
-    { aba: "eletrica", rotulo: "Elétrica", icone: "raio", href: "/barco/eletrica",
-      tom: "text-hub-eletrica", borda: "border-hub-eletrica/35 hover:border-hub-eletrica/60",
-      halo: "bg-hub-eletrica/10",
-      quantidade: eletricos.length, status: piorFarol(itensDe(eletricos)) },
-    { aba: "hidraulica", rotulo: "Hidráulica", icone: "hidraulica", href: "/barco/hidraulica",
-      tom: "text-hub-hidraulica", borda: "border-hub-hidraulica/35 hover:border-hub-hidraulica/60",
-      halo: "bg-hub-hidraulica/10",
-      quantidade: itensDaHidraulica.length, status: piorFarol(itensDaHidraulica) },
-    { aba: "seguranca", rotulo: "Segurança", icone: "seguranca", href: "/barco/seguranca",
-      tom: "text-hub-seguranca", borda: "border-hub-seguranca/35 hover:border-hub-seguranca/60",
-      halo: "bg-hub-seguranca/10",
-      quantidade: itensDaSeguranca.length, status: piorFarol(itensDaSeguranca) },
-    { aba: "equipamentos", rotulo: "Equipamentos", icone: "ferramenta", href: "/barco/equipamentos",
-      tom: "text-hub-equipamentos", borda: "border-hub-equipamentos/35 hover:border-hub-equipamentos/60",
-      halo: "bg-hub-equipamentos/10",
-      quantidade: outrosEquipamentos.length, status: piorFarol(itensDe(outrosEquipamentos)) },
-    { aba: "documentos", rotulo: "Documentos", icone: "documento", href: "/barco/documentos",
-      tom: "text-hub-documentos", borda: "border-hub-documentos/35 hover:border-hub-documentos/60",
-      halo: "bg-hub-documentos/10",
-      quantidade: documentos.length, status: piorFarol(documentos) },
-    { aba: "embarcacao", rotulo: "Manutenções", icone: "relogio", href: "/barco/manutencoes",
-      tom: "text-hub-manutencoes", borda: "border-hub-manutencoes/35 hover:border-hub-manutencoes/60",
-      halo: "bg-hub-manutencoes/10",
-      quantidade: outrasManutencoes.length, status: piorFarol(outrasManutencoes) },
-  ]
+  /**
+   * A TABELA MUDOU DE CASA NA ONDA 104, e o motivo é o §8 do guia.
+   * Ela agora mora em `lib/ui/hubs.ts`, porque as OITO TELAS DE DESTINO passam
+   * a ler a mesma amarração hub → ícone → tom para desenhar o cabeçalho delas
+   * (`components/cabecalho-hub.tsx`). Com a tabela aqui dentro, "cada tela
+   * mantém a mesma estrutura" viraria nove cópias de cinco classes literais —
+   * e a nona vez que alguém escrevesse `text-hub-casco` à mão seria a vez em
+   * que ele digitaria `text-hub-eletrica`. Há teste provando que cada entrada
+   * só nomeia o próprio token (`lib/ui/hubs.test.ts`).
+   *
+   * O QUE FICA AQUI é o que só esta tela sabe: quantos itens cada hub tem e
+   * qual o pior farol deles. Isso depende do que a consulta trouxe, e enfiá-lo
+   * na tabela transformaria apresentação em segunda régua de domínio.
+   */
+  const CONTEUDO: Record<ChaveHub, { itens: ItemMonitorado[]; quantidade: number }> = {
+    motores: { itens: itensDe(motores), quantidade: motores.length },
+    casco: { itens: itensDoCasco, quantidade: itensDoCasco.length },
+    eletrica: { itens: itensDe(eletricos), quantidade: eletricos.length },
+    hidraulica: { itens: itensDaHidraulica, quantidade: itensDaHidraulica.length },
+    seguranca: { itens: itensDaSeguranca, quantidade: itensDaSeguranca.length },
+    equipamentos: { itens: itensDe(outrosEquipamentos), quantidade: outrosEquipamentos.length },
+    documentos: { itens: documentos, quantidade: documentos.length },
+    manutencoes: { itens: outrasManutencoes, quantidade: outrasManutencoes.length },
+  }
+  const hubs = HUBS.map((h) => ({
+    ...h,
+    quantidade: CONTEUDO[h.chave].quantidade,
+    status: piorFarol(CONTEUDO[h.chave].itens),
+  }))
 
   /**
    * O CAMINHO ÚNICO DE CADASTRO — a segunda queixa literal do dono: *"não sei
