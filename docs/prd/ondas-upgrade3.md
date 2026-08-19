@@ -45,7 +45,20 @@ Regra que o §1 e o §27 do PRD repetem e que vale como trava de todas estas
 ondas: **a ausência de modelo 3D nunca pode impedir o módulo Motor de
 funcionar.** Se o 3D quebrar, some o botão — nada mais.
 
-### Onda 64 — A hierarquia de peça (PRD 3D §16)
+### Onda 64 — A hierarquia de peça (PRD 3D §16) — **ENTREGUE 18/08/2026**
+
+Migrations 057 (estrutura + RLS) e 058 (semente: 12 fabricantes, 13
+famílias, 23 modelos, 144 componentes). `lib/domain/catalogo-motor.ts` com
+28 testes. Seletor de catálogo no cadastro e na edição do motor, identidade
+na ficha, campo "Código da peça" no item monitorado.
+
+**Decisão registrada:** `part_number_oem` e os intervalos de manutenção
+nascem NULOS na semente. Código OEM inventado faria o dono comprar a peça
+errada; intervalo chutado num app que existe pra avisar de manutenção
+estraga motor. Os dois vêm do manual — ou seja, do levantamento da onda 65
+— ou não vêm. O que foi semeado é a estrutura mecânica, que é fato: um D6
+tem filtro de óleo, impelidor, trocador de calor e anodo.
+
 
 A única onda do bloco que **não depende de você nem de terceiro**, e a que
 dá valor mesmo se o 3D nunca sair.
