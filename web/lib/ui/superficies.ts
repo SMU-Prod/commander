@@ -1,3 +1,5 @@
+import { COLUNA_FORMULARIO } from "./largura"
+
 /**
  * QUEM PODE FLUTUAR POR CIMA DO CONTEÚDO, E ONDE.
  *
@@ -167,8 +169,14 @@ export const LARGURA_CONTEUDO = "max-w-[430px] md:max-w-[680px] lg:max-w-[1400px
  * conteúdo já mede ~358px, muito abaixo de 640 — a classe não muda um pixel
  * do celular. Ela só passa a valer onde há largura sobrando, que é
  * exatamente onde o defeito estava.
+ *
+ * `TETO_FORMULARIO` NÃO TEM MAIS O NÚMERO PRÓPRIO (onda 64) — é
+ * `COLUNA_FORMULARIO` de `lib/ui/largura.ts`, reexportado. A régua de
+ * larguras da CASCA (esta tabela) e a régua de larguras de TIPOGRAFIA
+ * (`largura.ts`) mediam a mesma coisa com nomes diferentes; agora só uma
+ * delas carrega o número, e a outra aponta pra lá.
  */
-export const TETO_FORMULARIO = "max-w-[640px]"
+export const TETO_FORMULARIO = COLUNA_FORMULARIO
 export const TETO_LISTA = "max-w-[860px]"
 /** Mesmo 1400px do `lg:` de `LARGURA_CONTEUDO` — escrito de novo (e não
  *  interpolado) porque o Tailwind varre o código-fonte atrás da classe
