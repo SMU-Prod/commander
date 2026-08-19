@@ -3,11 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource, MapEventOf } from "mapbox-gl"
+import { AvisoNavegar } from "@/components/mapa/aviso-navegar"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
 import { TempoPainel } from "@/components/mapa/tempo-painel"
 import { Icone } from "@/components/icone"
+import { Medidor } from "@/components/ui/medidor"
 import { Selo } from "@/components/ui/selo"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
@@ -24,6 +26,11 @@ import { criarElementoMarcadorParceiro } from "@/lib/mapa/pino-parceiro"
 import type { Parceiro } from "@/lib/db/types"
 import type { PedidoRota, Precisao, RespostaRota } from "@/components/mapa/rota.worker"
 import type { MotivoFalhaRota } from "@/lib/domain/rota"
+import {
+  lerAvisoNavegarVisto,
+  lerConsentimentoCorredor,
+  marcarAvisoNavegarVisto,
+} from "@/lib/preferencias-navegacao"
 
 const RESUMO_VAZIO: ResumoTrilha = { distanciaNm: 0, duracaoH: 0, tempoMovimentoH: 0, velMediaKt: 0, velMaxKt: 0 }
 
@@ -88,14 +95,6 @@ type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
 const LIMIAR_RECALCULO_M = 200
 
 const CHAVE_ANCORA = "ancora"
-// Consentimento de corredores (onda 17) — localStorage, NAO coluna no banco:
-// e uma preferencia de DISPOSITIVO/navegador (mesmo raciocinio do
-// CHAVE_URL_SIGNALK em sondagem-painel.tsx), nao da conta — a pessoa pode
-// usar o mesmo login em varios aparelhos e decidir diferente em cada um
-// (ex.: barco emprestado). Nao precisa sobreviver a reinstalacao nem
-// sincronizar entre dispositivos, e ler antes de CADA salvamento (nao so
-// uma vez por sessao) e barato o bastante pra nao justificar ida ao banco.
-const CHAVE_CONSENTIMENTO_CORREDOR = "commander:consentimento-corredor"
 const RAIO_PADRAO_M = 40
 const COR_DOURADO = "#D4AF37"
 const COR_ALARME = "#FF5C5C"
@@ -278,7 +277,9 @@ function colecaoVazia() {
 }
 
 /** Um mostrador (rótulo + valor) no padrão "ponte de comando": rótulo
- *  pequeno, uppercase, espaçado; valor grande, tabular-nums — onda 23,
+ *  pequeno em caixa de frase (`.rotulo-dado`, onda 80 — era uppercase
+ *  rastreado até aqui, ver app/globals.css pro porquê da troca); valor
+ *  grande, tabular-nums — onda 23,
  *  valores dourados desde a onda 24 (passe de arte, "números-destaque
  *  dourados" do mockup do sócio). Antes cada lugar tinha seu próprio estilo
  *  improvisado (o chip de SOG no cabeçalho da trilha, o grid de
@@ -316,7 +317,7 @@ function Mostrador({
   if (variante === "cartao") {
     return (
       <div className="rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums">
-        <p className="text-[11px] uppercase tracking-[.14em] text-meter-dim">{rotulo}</p>
+        <p className="rotulo-dado text-meter-dim">{rotulo}</p>
         <p className="text-2xl text-accent">
           {valor} {unidade && <span className="text-sm text-meter-dim">{unidade}</span>}
         </p>
@@ -325,7 +326,7 @@ function Mostrador({
   }
   return (
     <div className="text-center">
-      <p className="text-[11px] uppercase tracking-[.16em] text-meter-dim">{rotulo}</p>
+      <p className="rotulo-dado text-meter-dim">{rotulo}</p>
       <p className={`font-mono-instr tabular-nums text-accent ${tamanho === "lg" ? "text-lg" : "text-sm"}`}>
         {valor}
         {unidade && <span className="text-xs text-meter-dim"> {unidade}</span>}
@@ -404,26 +405,41 @@ export function NavegarMapa({
   const [estado, setEstado] = useState<"pronto" | "gravando" | "parado" | "salvando">("pronto")
   const [msg, setMsg] = useState<string | null>(null)
   const [obs, setObs] = useState("")
-  // Consentimento de corredores (onda 17) — lembrado no dispositivo (ver
-  // CHAVE_CONSENTIMENTO_CORREDOR). Nasce `false` (opt-IN, nunca opt-out) e só
-  // é sobrescrito depois de ler o localStorage no mount — mesmo padrão do
-  // rearme da âncora, abaixo.
+  // Consentimento de corredores (onda 17) — onda 80: parou de ser
+  // DECIDIDO aqui (checkbox em cima do mapa) e virou preferência de
+  // `/menu/ajustes` (ver o comentário grande sobre consentimento, mais
+  // abaixo, e `lib/preferencias-navegacao.ts`). Esta tela só LÊ o valor já
+  // salvo, uma vez no mount — mesmo padrão do rearme da âncora, abaixo —
+  // pra usar no `salvarTrilha` quando a saída termina.
   const [contribuirCorredor, setContribuirCorredor] = useState(false)
   useEffect(() => {
-    try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- so existe localStorage no cliente, le uma vez apos montar
-      setContribuirCorredor(localStorage.getItem(CHAVE_CONSENTIMENTO_CORREDOR) === "1")
-    } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- so existe localStorage no cliente, le uma vez apos montar
+    setContribuirCorredor(lerConsentimentoCorredor())
   }, [])
-  function alternarConsentimentoCorredor(valor: boolean) {
-    setContribuirCorredor(valor)
-    try {
-      localStorage.setItem(CHAVE_CONSENTIMENTO_CORREDOR, valor ? "1" : "0")
-    } catch {}
-  }
   const [painel, setPainel] = useState({ velKt: 0, resumo: RESUMO_VAZIO, qtd: 0 })
   // nasce recolhido: o mapa é o protagonista da tela, não os cartões
   const [painelAberto, setPainelAberto] = useState(false)
+  // Onda 80 (consolidação Trilha+Sondagem+Tempo num painel só) — qual aba
+  // esta visível dentro do cartão expandido. Nao controla MONTAGEM (as tres
+  // abas ficam sempre montadas, ver JSX mais abaixo e o comentario grande
+  // sobre nunca desmontar a SondagemPainel): só CSS.
+  const [abaAtiva, setAbaAtiva] = useState<"trilha" | "sondagem" | "tempo">("trilha")
+  // Resumo que SondagemPainel devolve pro pai (coletando + guardadas) — so
+  // pra pintar a pilula recolhida e o indicador da aba, ver SondagemPainel.
+  const [resumoSondagem, setResumoSondagem] = useState({ coletando: false, guardadas: 0 })
+  // Aviso "não é auxílio à navegação" (onda 80) — ver aviso-navegar.tsx.
+  // Abre sozinho na primeira visita deste aparelho a /navegar; dali em
+  // diante só reabre pelo botão "?" do cartão. `useEffect` (não useState
+  // direto) porque só existe localStorage no cliente, depois do mount.
+  const [avisoAberto, setAvisoAberto] = useState(false)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- le localStorage uma vez apos montar, decide se mostra o aviso de primeira visita
+    if (!lerAvisoNavegarVisto()) setAvisoAberto(true)
+  }, [])
+  function fecharAvisoNavegar() {
+    setAvisoAberto(false)
+    marcarAvisoNavegarVisto()
+  }
   const [semGeolocalizacao, setSemGeolocalizacao] = useState(false)
   const pontosRef = useRef<PontoTrilha[]>([])
   const watchRef = useRef<number | null>(null)
@@ -1472,6 +1488,18 @@ export function NavegarMapa({
     }`
   }
 
+  // Onda 80 — honestidade dos mostradores da aba Trilha: `resumoTrilha`
+  // devolve zero pra QUALQUER lista com menos de 2 pontos (0 pontos = nunca
+  // começou; 1 ponto = começou mas ainda não dá pra medir nada), então o
+  // número sozinho não distingue "de verdade zero" de "não sei ainda" — o
+  // mesmo problema que web/lib/domain/patio.ts resolve devolvendo `null` em
+  // vez de zero. `painel.qtd` (contagem real de pontos gravados) é quem
+  // desfaz a ambiguidade aqui: Distância/Tempo são honestos com 1 ponto (a
+  // trilha começou, zero decorrido é verdade); Velocidade/Máxima precisam
+  // de 2 pontos pra existir ANY leitura de velocidade.
+  const trilhaTemPontos = painel.qtd >= 1
+  const trilhaTemVelocidade = painel.qtd >= 2
+
   return (
     // Tela cheia: escapa do px-4/pt-5/pb-24 do layout com margens negativas;
     // a altura desconta a bottom nav fixa (~4rem). O mapa é a tela; todo o
@@ -1484,8 +1512,16 @@ export function NavegarMapa({
         className="h-full w-full"
       />
 
-      {/* coluna do topo: alarme + trilha EMPILHADOS (nunca se sobrepõem);
-          right-14 deixa livres os controles do mapa (zoom/bússola/locate) */}
+      {/* Painel único de instrumentos (onda 80) — TRILHA + SONDAGEM + TEMPO,
+          que até aqui eram três cartões EMPILHADOS cobrindo o terço
+          superior do mapa (o "muita letra e informação em cima do mapa"
+          que o dono apontou contra a referência Haulix), viraram UM cartão
+          com abas internas. Como agrupar era decisão livre da task — abas
+          (não seções recolhíveis empilhadas) porque é o que a própria
+          referência usa (Overview/Cargo/Trips…) e porque three accordions
+          abertos ao mesmo tempo é exatamente a poluição que está sendo
+          corrigida aqui.
+          right-14 deixa livres os controles do mapa (zoom/bússola/locate). */}
       <div className="absolute left-3 right-14 top-3 z-20 flex flex-col gap-2">
         {/* Alarme de âncora: segurança > estética — aparece em QUALQUER modo,
             inclusive "só navegação" (onda 23). Por isso fica FORA do
@@ -1496,12 +1532,12 @@ export function NavegarMapa({
           </div>
         )}
 
-        {/* Trilha + Sondagem: recolhem no modo "só navegação" (onda 23).
-            CSS (max-h/opacidade), nunca unmount — a SondagemPainel pode ter
-            uma conexão NMEA ativa em segundo plano (fila persistente, onda
-            14); desmontar o componente derrubaria essa conexão só porque a
-            pessoa escondeu o cartão. `aria-hidden` tira do assistivo quando
-            recolhido; `classeColapsavel` já cuida do pointer-events. */}
+        {/* Recolhe no modo "só navegação" (onda 23). CSS (max-h/opacidade),
+            nunca unmount — a aba Sondagem pode ter uma conexão NMEA ativa
+            em segundo plano (fila persistente, onda 14); desmontar
+            derrubaria essa conexão só porque a pessoa escondeu o cartão.
+            `aria-hidden` tira do assistivo quando recolhido;
+            `classeColapsavel` já cuida do pointer-events. */}
         <div aria-hidden={modoSoNavegacao} className={classeColapsavel("cima")}>
         {/* Onda 24 (passe de arte, bloco 2) — identidade de "instrumento de
             ponte": navy translúcido fixo (--mapa-instrumento, não segue o
@@ -1514,143 +1550,241 @@ export function NavegarMapa({
             fundo mais opaco (ver o "porquê" completo no comentário de
             --mapa-instrumento em globals.css — resumo: Safari iOS pinta um
             retângulo escuro sólido quando backdrop-filter fica sobre o
-            canvas WebGL do Mapbox). */}
-        <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto">
-          <button
-            type="button"
-            onClick={() => setPainelAberto((v) => !v)}
-            aria-expanded={painelAberto}
-            className="flex w-full items-center justify-between px-4 py-3"
-          >
-            <span className="flex items-center gap-2">
-              <span className={`size-2 rounded-full ${estado === "gravando" ? "animate-pulse bg-crit" : "bg-meter-dim"}`} />
-              <span className="titulo-card uppercase tracking-[.04em]">
-                {estado === "gravando"
-                  ? "Gravando trilha"
-                  : estado === "parado"
-                    ? "Trilha pronta pra salvar"
-                    : estado === "salvando"
-                      ? "Salvando…"
-                      : "Trilha"}
-              </span>
-            </span>
-            <span className="flex items-center gap-2">
-              {/* SOG sempre visível quando há posição — pílula mono tabular no
-                  padrão visual do horímetro (rounded + bg-meter). Vem do
-                  coords.speed do GPS (sogKt), não do cálculo de trilha
-                  (painel.velKt, que é a velocidade média entre pontos
-                  gravados e continua só existindo durante a gravação). */}
-              {sogKt != null && (
-                <span className="rounded-full border border-mapa-instrumento-borda bg-meter px-2.5 py-1 font-mono-instr text-xs tabular-nums text-accent">
-                  {sogKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt
+            canvas WebGL do Mapbox).
+            Onda 80 — `sm:max-w-[380px]`: os cartões antigos esticavam a
+            largura inteira da coluna (bom no celular, onde a coluna já é
+            estreita); um painel único com medidor+abas ficaria um retângulo
+            esparramado num monitor de 1440. A referência usa um cartão de
+            largura fixa flutuando sobre o mapa em QUALQUER tela — é isso
+            que este teto imita. `w-full` mantém o celular idêntico a antes
+            (a coluna já mede menos que 380px lá). */}
+        <div className="sombra-2 w-full overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto sm:max-w-[380px]">
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setPainelAberto((v) => !v)}
+              aria-expanded={painelAberto}
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-4 py-3"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span
+                  className={`size-2 shrink-0 rounded-full ${
+                    estado === "gravando" || resumoSondagem.coletando ? "animate-pulse bg-crit" : "bg-meter-dim"
+                  }`}
+                />
+                {/* Onda 80 — sem uppercase forçado (era `.rotulo`
+                    improvisado com tracking): `titulo-card` sozinho já é
+                    caixa de frase, a mesma troca que os mostradores abaixo
+                    fizeram pra `.rotulo-dado`. */}
+                <span className="titulo-card truncate">
+                  {estado === "gravando"
+                    ? "Gravando trilha"
+                    : estado === "parado"
+                      ? "Trilha pronta pra salvar"
+                      : estado === "salvando"
+                        ? "Salvando…"
+                        : resumoSondagem.coletando
+                          ? "Sondando"
+                          : "Instrumentos"}
                 </span>
-              )}
-              <Icone
-                nome="chevron"
-                className={`size-4 text-meter-dim transition-transform ${painelAberto ? "-rotate-90" : "rotate-90"}`}
-              />
-            </span>
-          </button>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                {/* SOG sempre visível quando há posição — pílula mono tabular no
+                    padrão visual do horímetro (rounded + bg-meter). Vem do
+                    coords.speed do GPS (sogKt), não do cálculo de trilha
+                    (painel.velKt, que é a velocidade média entre pontos
+                    gravados e continua só existindo durante a gravação). */}
+                {sogKt != null && (
+                  <span className="rounded-full border border-mapa-instrumento-borda bg-meter px-2.5 py-1 font-mono-instr text-xs tabular-nums text-accent">
+                    {sogKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt
+                  </span>
+                )}
+                <Icone
+                  nome="chevron"
+                  className={`size-4 text-meter-dim transition-transform ${painelAberto ? "-rotate-90" : "rotate-90"}`}
+                />
+              </span>
+            </button>
+            {/* Onda 80 — "?" reabre o aviso "não é auxílio à navegação" a
+                qualquer momento (ver aviso-navegar.tsx: o texto saiu de
+                dentro do painel, onde reaparecia toda sessão, e passou a
+                viver aqui + no cartão de primeira visita). Fora do botão de
+                recolher/expandir de propósito — botão dentro de botão não é
+                válido, e um toque não pode disparar os dois gestos juntos. */}
+            <button
+              type="button"
+              onClick={() => setAvisoAberto(true)}
+              aria-label="Sobre o Commander no mar"
+              className="flex size-11 shrink-0 items-center justify-center text-meter-dim"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-5 items-center justify-center rounded-full border border-mapa-instrumento-borda text-[11px] font-bold"
+              >
+                ?
+              </span>
+            </button>
+          </div>
 
           {painelAberto && (
-            <div className="border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
-              <p className="apoio text-meter-dim">
-                Mantenha o app aberto durante o passeio — a trilha vira um evento no Diário de Bordo.
-                O Commander NÃO é auxílio à navegação: serve para estimar sua posição e registrar
-                o passeio. Navegue pela carta náutica oficial.
-              </p>
-              {msg && <p className="mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
-              {estado === "parado" && (
-                <p className="mt-3 rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2 text-sm text-meter-dim">
-                  GPS parado — a trilha está pronta para salvar.
-                </p>
-              )}
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Mostrador
-                  variante="cartao"
-                  rotulo="Velocidade"
-                  valor={painel.velKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                  unidade="kt"
-                />
-                <Mostrador
-                  variante="cartao"
-                  rotulo="Distância"
-                  valor={painel.resumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                  unidade="nm"
-                />
-                <Mostrador
-                  variante="cartao"
-                  rotulo="Tempo"
-                  valor={(painel.resumo.duracaoH * 60).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
-                  unidade="min"
-                />
-                <Mostrador
-                  variante="cartao"
-                  rotulo="Máxima"
-                  valor={painel.resumo.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                  unidade="kt"
-                />
+            // Onda 80 — teto de METADE da altura do mapa (a mesma conta de
+            // `h-[calc(100dvh-4rem)]` do <main>, ver acima), com rolagem
+            // própria: antes, expandido, os três cartões juntos cobriam o
+            // mapa INTEIRO. Agora o corpo (medidor + abas + conteúdo) nunca
+            // passa de metade — o mapa continua visível atrás mesmo com o
+            // painel aberto.
+            <div className="max-h-[calc((100dvh-4rem)/2)] overflow-y-auto border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
+              {/* Instrumento §2 item 1 da spec Haulix — o medidor de arco no
+                  lugar de texto solto pra SOG, o dado mais lido desta tela.
+                  Vive numa caixinha que SEGUE O TEMA (bg-panel), não no navy
+                  fixo do resto do cartão: o Medidor pinta ponteiro/escala em
+                  var(--texto)/var(--linha) (components/ui/medidor.tsx), e no
+                  tema claro `--texto` é o MESMO valor de navy fixo usado em
+                  --mapa-instrumento (ver app/globals.css). Sobre o navy fixo
+                  direto, o ponteiro simplesmente desapareceria; aninhado num
+                  cartão que segue o tema, o contraste sempre bate (claro:
+                  texto escuro sobre cartão branco; escuro: texto claro sobre
+                  cartão escuro).
+                  max=40 nós — teto generoso de lancha/iate a planar; zonas
+                  default do componente (metade/três-quartos/resto). */}
+              <div className="rounded-[10px] border border-line bg-panel px-2 pb-1 pt-2">
+                <p className="rotulo-dado text-center text-dim">Velocidade</p>
+                <Medidor valor={sogKt} max={40} unidade="kt" rotulo="Velocidade" className="max-w-[200px]" />
               </div>
 
-              {/* Consentimento de corredores (onda 17) — opt-IN explicito,
-                  lembrado no aparelho (CHAVE_CONSENTIMENTO_CORREDOR). Fica
-                  visível em qualquer estado do painel (não só "pronto"):
-                  o dono pode mudar de ideia a qualquer momento antes de
-                  salvar, e o texto continua valendo enquanto a trilha
-                  grava. */}
-              <label className="mt-4 flex min-h-11 cursor-pointer items-start gap-2.5 text-sm text-meter-dim">
-                <input
-                  type="checkbox"
-                  checked={contribuirCorredor}
-                  onChange={(e) => alternarConsentimentoCorredor(e.target.checked)}
-                  className="mt-0.5 size-5 shrink-0"
-                />
-                Contribuir com o mapa de corredores — ao salvar, esta trilha vira passagens anônimas, agregadas por
-                área, nunca sua rota individual. Ajuda outros barcos a encontrar caminho.
-              </label>
-
-              {estado === "pronto" && (
-                <button onClick={iniciar} className="mt-4 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
-                  Iniciar gravação
-                </button>
-              )}
-              {estado !== "pronto" && (
-                <>
-                  <div className="mt-4">
-                    <label htmlFor="obs" className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-meter-dim">
-                      Observação — opcional
-                    </label>
-                    <input
-                      id="obs"
-                      value={obs}
-                      onChange={(e) => setObs(e.target.value)}
-                      placeholder="Ex.: volta às Cagarras"
-                      // texto explícito (não herda o meter-texto do cartão):
-                      // bg-campo continua seguindo o TEMA (branco no claro),
-                      // então a cor do texto também precisa seguir o tema
-                      className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
-                    />
-                  </div>
+              {/* Abas — o que eram três cartões empilhados. As TRÊS ficam
+                  SEMPRE montadas logo abaixo (nunca `{aba === x && <Y/>}`) —
+                  só a visibilidade muda por CSS, mesmo motivo do wrapper
+                  colapsável do modo "só navegação": a aba Sondagem pode ter
+                  uma conexão NMEA em segundo plano que desmontar derrubaria. */}
+              <div
+                role="tablist"
+                aria-label="Instrumentos"
+                className="mt-3 grid grid-cols-3 gap-1 rounded-[10px] border border-mapa-instrumento-borda bg-black/15 p-1"
+              >
+                {(
+                  [
+                    ["trilha", "Trilha"],
+                    ["sondagem", resumoSondagem.guardadas > 0 ? `Sondagem (${resumoSondagem.guardadas})` : "Sondagem"],
+                    ["tempo", "Tempo"],
+                  ] as const
+                ).map(([valor, rotulo]) => (
                   <button
-                    onClick={encerrarESalvar}
-                    disabled={estado === "salvando"}
-                    className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white disabled:opacity-60"
+                    key={valor}
+                    type="button"
+                    role="tab"
+                    aria-selected={abaAtiva === valor}
+                    onClick={() => setAbaAtiva(valor)}
+                    className={`flex min-h-9 items-center justify-center rounded-lg px-1 text-xs font-semibold ${
+                      abaAtiva === valor ? "bg-accent text-acao-texto" : "text-meter-dim"
+                    }`}
                   >
-                    {estado === "salvando" ? "Salvando…" : estado === "parado" ? "Tentar salvar de novo" : "Encerrar e salvar no diário"}
+                    {rotulo}
                   </button>
-                  <p className="mt-2 text-center font-mono-instr text-[11px] tabular-nums text-meter-dim">
-                    {painel.qtd} pontos gravados
-                    {painel.qtd >= MAX_PONTOS_TRILHA ? " · limite atingido — a trilha será salva até aqui" : ""}
+                ))}
+              </div>
+
+              {/* Trilha — mesmo conteúdo de sempre, com dois cortes: saiu o
+                  parágrafo "mantenha o app aberto / não é auxílio à
+                  navegação" (virou aviso-navegar.tsx, lido uma vez, não
+                  toda sessão) e saiu o consentimento de corredores (virou
+                  preferência deliberada de /menu/ajustes — consentimento
+                  não é coisa pra tocar com o barco andando; ver
+                  lib/preferencias-navegacao.ts e o mesmo raciocínio
+                  aplicado ao consentimento de sondagem em
+                  sondagem-painel.tsx). Honestidade dos mostradores (regra
+                  nova desta onda, mesmo espírito de web/lib/domain/patio.ts):
+                  `trilhaTemPontos`/`trilhaTemVelocidade` fazem "—" aparecer
+                  em vez de "0" enquanto não há leitura de verdade pra
+                  sustentar o número — ver as duas constantes acima do
+                  `return`. */}
+              <div className={abaAtiva === "trilha" ? "mt-3" : "hidden"}>
+                {msg && <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
+                {estado === "parado" && (
+                  <p className={`rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2 text-sm text-meter-dim ${msg ? "mt-2" : ""}`}>
+                    GPS parado — a trilha está pronta para salvar.
                   </p>
-                </>
-              )}
+                )}
+
+                <div className={`grid grid-cols-2 gap-2 ${msg || estado === "parado" ? "mt-3" : ""}`}>
+                  <Mostrador
+                    variante="cartao"
+                    rotulo="Velocidade"
+                    valor={trilhaTemVelocidade ? painel.velKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                    unidade={trilhaTemVelocidade ? "kt" : undefined}
+                  />
+                  <Mostrador
+                    variante="cartao"
+                    rotulo="Distância"
+                    valor={trilhaTemPontos ? painel.resumo.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                    unidade={trilhaTemPontos ? "nm" : undefined}
+                  />
+                  <Mostrador
+                    variante="cartao"
+                    rotulo="Tempo"
+                    valor={trilhaTemPontos ? (painel.resumo.duracaoH * 60).toLocaleString("pt-BR", { maximumFractionDigits: 0 }) : "—"}
+                    unidade={trilhaTemPontos ? "min" : undefined}
+                  />
+                  <Mostrador
+                    variante="cartao"
+                    rotulo="Máxima"
+                    valor={trilhaTemVelocidade ? painel.resumo.velMaxKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                    unidade={trilhaTemVelocidade ? "kt" : undefined}
+                  />
+                </div>
+
+                {estado === "pronto" && (
+                  <button onClick={iniciar} className="mt-3 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
+                    Iniciar gravação
+                  </button>
+                )}
+                {estado !== "pronto" && (
+                  <>
+                    <div className="mt-3">
+                      <label htmlFor="obs" className="mb-1.5 block rotulo-dado text-meter-dim">
+                        Observação — opcional
+                      </label>
+                      <input
+                        id="obs"
+                        value={obs}
+                        onChange={(e) => setObs(e.target.value)}
+                        placeholder="Ex.: volta às Cagarras"
+                        // texto explícito (não herda o meter-texto do cartão):
+                        // bg-campo continua seguindo o TEMA (branco no claro),
+                        // então a cor do texto também precisa seguir o tema
+                        className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
+                      />
+                    </div>
+                    <button
+                      onClick={encerrarESalvar}
+                      disabled={estado === "salvando"}
+                      className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white disabled:opacity-60"
+                    >
+                      {estado === "salvando" ? "Salvando…" : estado === "parado" ? "Tentar salvar de novo" : "Encerrar e salvar no diário"}
+                    </button>
+                    <p className="mt-2 text-center font-mono-instr text-[11px] tabular-nums text-meter-dim">
+                      {painel.qtd} pontos gravados
+                      {painel.qtd >= MAX_PONTOS_TRILHA ? " · limite atingido — a trilha será salva até aqui" : ""}
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* Sondagem — NUNCA `{abaAtiva === "sondagem" && <SondagemPainel/>}`:
+                  isso desmontaria o componente (e a conexão NMEA em segundo
+                  plano dentro dele) toda vez que a pessoa trocasse de aba.
+                  `hidden` some do layout sem desmontar. */}
+              <div className={abaAtiva === "sondagem" ? "mt-3" : "hidden"}>
+                <SondagemPainel aoMudarResumo={setResumoSondagem} />
+              </div>
+
+              {/* Tempo — mesmo raciocínio da aba acima. */}
+              <div className={abaAtiva === "tempo" ? "mt-3" : "hidden"}>
+                <TempoPainel posicao={posParaTempo} />
+              </div>
             </div>
           )}
         </div>
-
-        <SondagemPainel />
-        <TempoPainel posicao={posParaTempo} />
         </div>
       </div>
 
@@ -2112,6 +2246,13 @@ export function NavegarMapa({
           }}
         />
       )}
+
+      {/* Onda 80 — aviso "não é auxílio à navegação": abre sozinho na
+          primeira visita deste aparelho (ver o efeito de `avisoAberto` lá em
+          cima) e reabre pelo botão "?" do cartão de instrumentos. Ver
+          aviso-navegar.tsx pro porquê de ter saído de dentro do painel de
+          Trilha, onde reaparecia toda sessão. */}
+      <AvisoNavegar aberto={avisoAberto} aoFechar={fecharAvisoNavegar} />
     </main>
   )
 }

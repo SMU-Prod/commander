@@ -19,6 +19,32 @@ import type { LeituraTransporte, StatusTransporte, TransporteProfundidade } from
  *  trocar quando o barco usa outro host/porta. */
 export const URL_SIGNALK_PADRAO = "ws://signalk.local:3000/signalk/v1/stream?subscribe=none"
 
+const CHAVE_URL_SIGNALK = "commander:signalk-url"
+
+/** Le a URL do servidor Signal K salva no aparelho, com o padrao mDNS como
+ *  reserva. Preferencia de DISPOSITIVO, nao de conta — mesmo raciocinio de
+ *  `lib/preferencias-navegacao.ts`.
+ *  Onda 80: exportada porque `/menu/ajustes` passou a ser onde a pessoa
+ *  EDITA a URL — antes era um campo dentro do painel de sondagem, em cima
+ *  do mapa (configuracao nao e operacao, ver o comentario grande sobre
+ *  consentimento em navegar-mapa.tsx). `sondagem-painel.tsx` continua so
+ *  LENDO, pra abrir a conexao quando a coleta comeca. */
+export function lerUrlSignalKSalva(): string {
+  if (typeof localStorage === "undefined") return URL_SIGNALK_PADRAO
+  try {
+    return localStorage.getItem(CHAVE_URL_SIGNALK) || URL_SIGNALK_PADRAO
+  } catch {
+    return URL_SIGNALK_PADRAO
+  }
+}
+
+export function salvarUrlSignalK(url: string) {
+  if (typeof localStorage === "undefined") return
+  try {
+    localStorage.setItem(CHAVE_URL_SIGNALK, url)
+  } catch {}
+}
+
 const CAMINHO_POSICAO = "navigation.position"
 const CAMINHO_VELOCIDADE = "navigation.speedOverGround"
 /** `belowKeel` primeiro (mais direto pra quem pilota — "quanto tenho sob a

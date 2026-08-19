@@ -1,4 +1,4 @@
-﻿# Upgrade 3 em ondas — Cotas Enterprise e 3D do Motor
+# Upgrade 3 em ondas — Cotas Enterprise e 3D do Motor
 
 > Decisão do dono, 18/08/2026: os dois PRDs **não são produtos novos**. São
 > ondas dentro do Commander. E o 3D é **só do motor** — não do barco.

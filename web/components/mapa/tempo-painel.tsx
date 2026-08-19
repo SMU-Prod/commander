@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Icone } from "@/components/icone"
 import { celulaGeografica } from "@/lib/domain/geo"
 import {
   calcularEscalaMare,
@@ -186,120 +185,101 @@ function GraficoMare({ serie, proxima }: { serie: BoletimMar["serieNivelMar"]; p
   )
 }
 
-/** Painel "Tempo" de /navegar (onda 20) — mesma família visual de Trilha e
- *  Sondagem (instrumento de ponte navy, ver comentário grande em
- *  SondagemPainel): vento, onda, água e a curva de maré estimada do dia,
- *  pra POSIÇÃO ATUAL do barco (ou o centro do mapa sem GPS — resolvido pelo
- *  chamador, ver `posicao` em navegar-mapa.tsx). Nasce recolhido, como os
- *  outros dois. */
+/** Painel "Tempo" de /navegar (onda 20) — vento, onda, água e a curva de
+ *  maré estimada do dia, pra POSIÇÃO ATUAL do barco (ou o centro do mapa
+ *  sem GPS — resolvido pelo chamador, ver `posicao` em navegar-mapa.tsx).
+ *
+ *  Onda 80 (consolidação dos painéis flutuantes): este componente PAROU de
+ *  desenhar a própria casca de cartão/pílula e o próprio botão de
+ *  recolher/expandir — quem chama (`navegar-mapa.tsx`) é dono do cartão
+ *  único e das abas agora, e só esconde este conteúdo via CSS quando a aba
+ *  "Tempo" não está ativa (mesmo raciocínio de nunca desmontar aplicado à
+ *  SondagemPainel, ver o comentário grande lá — aqui o motivo é mais fraco,
+ *  não há conexão em segundo plano, mas o padrão fica consistente entre as
+ *  três abas). */
 export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } | null }) {
-  const [aberto, setAberto] = useState(false)
   const { estado, tentarDeNovo } = useBoletimTempo(posicao)
 
   const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
-  const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
-
-  const resumoCabecalho = (() => {
-    if (!posicao) return "Tempo"
-    if (estado.tipo === "pronto") {
-      const { ventoKt, selo } = estado.boletim
-      return ventoKt != null ? `Tempo — ${Math.round(ventoKt)} kt` : `Tempo — ${selo.rotulo}`
-    }
-    if (estado.tipo === "carregando") return "Tempo — carregando…"
-    return "Tempo — indisponível"
-  })()
+  // Onda 80 — rótulo em CAIXA DE FRASE (`.rotulo-dado`, ver app/globals.css),
+  // não mais uppercase rastreado: mesma troca que o resto da tela fez (ver
+  // navegar-mapa.tsx, comentário do Mostrador).
+  const etiqueta = "rotulo-dado text-meter-dim"
 
   return (
-    <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto">
-      <button
-        type="button"
-        onClick={() => setAberto((v) => !v)}
-        aria-expanded={aberto}
-        className="flex w-full items-center justify-between px-4 py-3"
-      >
-        <span className="flex items-center gap-2">
-          <Icone nome="vento" className={`size-4 ${estado.tipo === "pronto" ? "text-accent" : "text-meter-dim"}`} />
-          <span className="titulo-card uppercase tracking-[.04em]">{resumoCabecalho}</span>
-        </span>
-        <Icone nome="chevron" className={`size-4 text-meter-dim transition-transform ${aberto ? "-rotate-90" : "rotate-90"}`} />
-      </button>
+    <div>
+      {!posicao && (
+        <p className="apoio text-meter-dim">Sem posição ainda — aguardando GPS ou o mapa carregar.</p>
+      )}
 
-      {aberto && (
-        <div className="border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
-          {!posicao && (
-            <p className="apoio text-meter-dim">Sem posição ainda — aguardando GPS ou o mapa carregar.</p>
-          )}
+      {posicao && estado.tipo === "carregando" && (
+        <p className="apoio text-meter-dim">Carregando o tempo…</p>
+      )}
 
-          {posicao && estado.tipo === "carregando" && (
-            <p className="apoio text-meter-dim">Carregando o tempo…</p>
-          )}
-
-          {posicao && estado.tipo === "indisponivel" && (
-            <div className="flex items-center justify-between gap-3">
-              <p className="apoio text-meter-dim">Tempo indisponível agora — a Open-Meteo não respondeu.</p>
-              <button
-                onClick={tentarDeNovo}
-                className="flex min-h-11 shrink-0 items-center rounded-lg border border-mapa-instrumento-borda px-3 text-xs font-semibold text-meter-texto"
-              >
-                Tentar de novo
-              </button>
-            </div>
-          )}
-
-          {posicao && estado.tipo === "pronto" && (
-            <>
-              <div className="grid grid-cols-3 gap-2">
-                <div className={mostrador}>
-                  <p className={etiqueta}>Vento</p>
-                  <p className="flex items-baseline gap-1 text-xl text-accent">
-                    {estado.boletim.ventoKt != null ? Math.round(estado.boletim.ventoKt) : "—"}
-                    <span className="text-sm text-meter-dim">kt</span>
-                    {/* "de NE" e nao so "NE": o marinheiro fala a ORIGEM do
-                        vento, e o "de" tira qualquer duvida de leitura ao lado
-                        de uma seta que aponta pro lado contrario (ver
-                        SetaVento). */}
-                    {estado.boletim.ventoGraus != null && (
-                      <span className="ml-auto flex items-center gap-1 text-xs text-meter-dim">
-                        <SetaVento graus={estado.boletim.ventoGraus} />
-                        de {pontoCardeal(estado.boletim.ventoGraus)}
-                      </span>
-                    )}
-                  </p>
-                  {estado.boletim.rajadaKt != null && (
-                    <p className="mt-0.5 text-[11px] text-meter-dim">rajada {Math.round(estado.boletim.rajadaKt)} kt</p>
-                  )}
-                </div>
-                <div className={mostrador}>
-                  <p className={etiqueta}>Onda</p>
-                  <p className="text-xl text-accent">
-                    {estado.boletim.ondaM != null ? estado.boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
-                    <span className="text-sm text-meter-dim"> m</span>
-                  </p>
-                  {estado.boletim.periodoS != null && (
-                    <p className="mt-0.5 text-[11px] text-meter-dim">período {Math.round(estado.boletim.periodoS)} s</p>
-                  )}
-                </div>
-                <div className={mostrador}>
-                  <p className={etiqueta}>Água</p>
-                  <p className="text-xl text-accent">
-                    {estado.boletim.aguaC != null ? Math.round(estado.boletim.aguaC) : "—"}
-                    <span className="text-sm text-meter-dim"> °C</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className={`mt-2 inline-flex rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
-                estado.boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
-                : estado.boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
-                : "border border-crit/40 text-crit"
-              }`}>
-                {estado.boletim.selo.rotulo}
-              </div>
-
-              <GraficoMare serie={estado.boletim.serieNivelMar} proxima={estado.boletim.proximaMareEstimada} />
-            </>
-          )}
+      {posicao && estado.tipo === "indisponivel" && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="apoio text-meter-dim">Tempo indisponível agora — a Open-Meteo não respondeu.</p>
+          <button
+            onClick={tentarDeNovo}
+            className="flex min-h-11 shrink-0 items-center rounded-lg border border-mapa-instrumento-borda px-3 text-xs font-semibold text-meter-texto"
+          >
+            Tentar de novo
+          </button>
         </div>
+      )}
+
+      {posicao && estado.tipo === "pronto" && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <div className={mostrador}>
+              <p className={etiqueta}>Vento</p>
+              <p className="flex items-baseline gap-1 text-xl text-accent">
+                {estado.boletim.ventoKt != null ? Math.round(estado.boletim.ventoKt) : "—"}
+                <span className="text-sm text-meter-dim">kt</span>
+                {/* "de NE" e nao so "NE": o marinheiro fala a ORIGEM do
+                    vento, e o "de" tira qualquer duvida de leitura ao lado
+                    de uma seta que aponta pro lado contrario (ver
+                    SetaVento). */}
+                {estado.boletim.ventoGraus != null && (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-meter-dim">
+                    <SetaVento graus={estado.boletim.ventoGraus} />
+                    de {pontoCardeal(estado.boletim.ventoGraus)}
+                  </span>
+                )}
+              </p>
+              {estado.boletim.rajadaKt != null && (
+                <p className="mt-0.5 text-[11px] text-meter-dim">rajada {Math.round(estado.boletim.rajadaKt)} kt</p>
+              )}
+            </div>
+            <div className={mostrador}>
+              <p className={etiqueta}>Onda</p>
+              <p className="text-xl text-accent">
+                {estado.boletim.ondaM != null ? estado.boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                <span className="text-sm text-meter-dim"> m</span>
+              </p>
+              {estado.boletim.periodoS != null && (
+                <p className="mt-0.5 text-[11px] text-meter-dim">período {Math.round(estado.boletim.periodoS)} s</p>
+              )}
+            </div>
+            <div className={mostrador}>
+              <p className={etiqueta}>Água</p>
+              <p className="text-xl text-accent">
+                {estado.boletim.aguaC != null ? Math.round(estado.boletim.aguaC) : "—"}
+                <span className="text-sm text-meter-dim"> °C</span>
+              </p>
+            </div>
+          </div>
+
+          <div className={`mt-2 inline-flex rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
+            estado.boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
+            : estado.boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
+            : "border border-crit/40 text-crit"
+          }`}>
+            {estado.boletim.selo.rotulo}
+          </div>
+
+          <GraficoMare serie={estado.boletim.serieNivelMar} proxima={estado.boletim.proximaMareEstimada} />
+        </>
       )}
     </div>
   )

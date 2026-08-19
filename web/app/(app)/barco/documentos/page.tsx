@@ -1,4 +1,4 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Farol } from "@/components/farol"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"

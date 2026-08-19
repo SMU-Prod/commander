@@ -1,4 +1,4 @@
-﻿/**
+/**
  * O CATÁLOGO DE MOTOR (onda 64 — PRD-3D-ENGINE §16, §23, §24).
  *
  * O §16 manda a corrente de manutenção existir SEM depender do 3D:

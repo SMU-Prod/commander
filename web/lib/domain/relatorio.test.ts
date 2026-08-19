@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { mesAnteriorISO, resumoDoMes } from "./relatorio"
 import type { Equipamento, Evento, ItemMonitorado } from "@/lib/db/types"
 

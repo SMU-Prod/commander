@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { Icone } from "@/components/icone"
 import { gravarSondagens, type LeituraParaGravar } from "@/lib/acoes/sondagem"
 import { tempoRelativo } from "@/lib/domain/datas"
@@ -17,26 +18,9 @@ import {
   type ResultadoEnvioLote,
 } from "@/lib/nmea/fila"
 import { criarTransporteAtivo, transporteAtivoNome } from "@/lib/nmea/selecionar"
-import { URL_SIGNALK_PADRAO } from "@/lib/nmea/signalk"
+import { lerUrlSignalKSalva } from "@/lib/nmea/signalk"
 import type { LeituraTransporte, StatusTransporte } from "@/lib/nmea/transporte"
-
-const CHAVE_URL_SIGNALK = "commander:signalk-url"
-
-function lerUrlSalva(): string {
-  if (typeof localStorage === "undefined") return URL_SIGNALK_PADRAO
-  try {
-    return localStorage.getItem(CHAVE_URL_SIGNALK) || URL_SIGNALK_PADRAO
-  } catch {
-    return URL_SIGNALK_PADRAO
-  }
-}
-
-function salvarUrl(url: string) {
-  if (typeof localStorage === "undefined") return
-  try {
-    localStorage.setItem(CHAVE_URL_SIGNALK, url)
-  } catch {}
-}
+import { lerConsentimentoSondagem } from "@/lib/preferencias-navegacao"
 
 const ROTULO_STATUS: Record<StatusTransporte, string> = {
   conectando: "Conectando…",
@@ -94,25 +78,44 @@ const ESTADO_FILA_INICIAL: EstadoFila = {
  *  (`web/lib/domain/sondagem.ts`) e guarda na fila local — nunca tenta
  *  mandar ao vivo. A leitura sai da fila sozinha quando a conexão volta ou o
  *  app volta ao primeiro plano; sem sinal a saída inteira, nada se perde —
- *  continua guardada no aparelho até a próxima chance. Mesma gramática
- *  visual do card de Trilha ao lado: pill recolhido por padrão, expande pra
- *  mostrar detalhe + ação. */
-export function SondagemPainel() {
-  const [painelAberto, setPainelAberto] = useState(false)
+ *  continua guardada no aparelho até a próxima chance.
+ *
+ *  Onda 80 (consolidação dos painéis flutuantes de `/navegar`): este
+ *  componente PAROU de desenhar a própria casca de cartão/pílula — quem
+ *  chama (`navegar-mapa.tsx`) agora é dono do cartão único, das abas e do
+ *  recolher/expandir, e só esconde este conteúdo via CSS quando a aba
+ *  "Sondagem" não está ativa (NUNCA um `{condicao && <SondagemPainel/>}`,
+ *  que desmontaria e derrubaria a conexão em segundo plano — ver o
+ *  comentário grande sobre isso em navegar-mapa.tsx). `aoMudarResumo`
+ *  devolve pro pai só o que ele precisa pra pintar a pílula recolhida e o
+ *  indicador da aba (coletando + quantidade guardada), sem o pai precisar
+ *  conhecer o resto do estado interno.
+ *
+ *  O consentimento e a URL do Signal K também saíram daqui: viraram
+ *  preferência deliberada de `/menu/ajustes` (`lib/preferencias-navegacao.ts`
+ *  e `lib/nmea/signalk.ts`) em vez de caixa de seleção + campo de texto em
+ *  cima do mapa — mesmo raciocínio do consentimento de corredores, ver o
+ *  comentário grande sobre isso em navegar-mapa.tsx. Sem consentimento dado
+ *  em Ajustes, "Iniciar coleta" fica desabilitado com um aviso curto e um
+ *  link pra lá — nunca um checkbox aparecendo de novo sobre o mapa. */
+export function SondagemPainel({
+  aoMudarResumo,
+}: {
+  aoMudarResumo?: (resumo: { coletando: boolean; guardadas: number }) => void
+}) {
   const [consentimento, setConsentimento] = useState(false)
   const [coletando, setColetando] = useState(false)
   const [statusConexao, setStatusConexao] = useState<StatusTransporte>("desconectado")
   const [profundidadeAtualM, setProfundidadeAtualM] = useState<number | null>(null)
   const [qtdLeituras, setQtdLeituras] = useState(0)
   const [motivoRejeicao, setMotivoRejeicao] = useState<string | null>(null)
-  const [urlSignalK, setUrlSignalK] = useState(URL_SIGNALK_PADRAO)
   const [fila, setFila] = useState<EstadoFila>(ESTADO_FILA_INICIAL)
 
   const ultimaAceitaRef = useRef<PontoAceitoSondagem | null>(null)
   const pararRef = useRef<(() => void) | null>(null)
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- so existe localStorage no cliente, le uma vez apos montar (evita mismatch de hidratacao)
-  useEffect(() => setUrlSignalK(lerUrlSalva()), [])
+  useEffect(() => setConsentimento(lerConsentimentoSondagem()), [])
 
   // Rede de seguranca: se a tela desmontar com a coleta ligada, fecha o
   // transporte mesmo assim (mesmo padrao do wakeLock em navegar-mapa.tsx). A
@@ -149,6 +152,14 @@ export function SondagemPainel() {
       clearInterval(intervalo)
     }
   }, [])
+
+  const totalGuardado = fila.pendentes + fila.emVoo
+
+  // Resumo pro pai (pílula recolhida + indicador da aba) — só dispara quando
+  // algo que o pai de fato usa muda, não a cada leitura de profundidade.
+  useEffect(() => {
+    aoMudarResumo?.({ coletando, guardadas: totalGuardado })
+  }, [coletando, totalGuardado, aoMudarResumo])
 
   function aoReceberLeitura(leitura: LeituraTransporte) {
     setProfundidadeAtualM(leitura.profundidadeM)
@@ -187,9 +198,7 @@ export function SondagemPainel() {
     setQtdLeituras(0)
     setProfundidadeAtualM(null)
     setMotivoRejeicao(null)
-    const urlFinal = urlSignalK.trim() || URL_SIGNALK_PADRAO
-    salvarUrl(urlFinal)
-    const transporte = criarTransporteAtivo(urlFinal)
+    const transporte = criarTransporteAtivo(lerUrlSignalKSalva())
     pararRef.current = transporte.conectar(aoReceberLeitura, setStatusConexao)
     setColetando(true)
   }
@@ -204,153 +213,99 @@ export function SondagemPainel() {
     despachar(enviarLote).finally(() => setFila(estadoFila()))
   }
 
-  const totalGuardado = fila.pendentes + fila.emVoo
   const usaNativo = transporteAtivoNome() === "nativo"
 
-  // Onda 24 (passe de arte) — mesma casca "instrumento de ponte" do resto do
-  // /navegar (ver comentário grande em Mostrador, navegar-mapa.tsx): navy
-  // translúcido fixo (--mapa-instrumento), valores em dourado (text-accent —
-  // não accent-forte, que troca com o tema e perderia contraste aqui
-  // dentro), texto em meter-texto/meter-dim (não texto/dim, calibrados pra
-  // --superficie, não pra este fundo fixo).
-  // Onda 25 — SEM `backdrop-blur` de propósito: Safari iOS pinta um véu
-  // escuro sólido quando backdrop-filter fica sobre o canvas WebGL do
-  // Mapbox (bug real em produção, iPhone, 12/08) — ver o "porquê" completo
-  // em --mapa-instrumento, app/globals.css.
+  // Onda 24 (passe de arte) — mesma identidade "instrumento de ponte" do
+  // resto do /navegar: valores em dourado (text-accent — não accent-forte,
+  // que troca com o tema e perderia contraste aqui dentro), texto em
+  // meter-texto/meter-dim (não texto/dim, calibrados pra --superficie, não
+  // pra este fundo fixo). Onda 80 — rótulo em CAIXA DE FRASE
+  // (`.rotulo-dado`, ver app/globals.css), não mais uppercase rastreado: é
+  // a mesma troca que o resto da tela fez, ver navegar-mapa.tsx.
   const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
-  const etiqueta = "text-[11px] uppercase tracking-[.14em] text-meter-dim"
+  const etiqueta = "rotulo-dado text-meter-dim"
 
   return (
-    <div className="sombra-2 overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto">
-      <button
-        type="button"
-        onClick={() => setPainelAberto((v) => !v)}
-        aria-expanded={painelAberto}
-        className="flex w-full items-center justify-between px-4 py-3"
-      >
-        <span className="flex items-center gap-2">
-          <Icone nome="sonar" className={`size-4 ${coletando ? "text-accent" : "text-meter-dim"}`} />
-          <span className="titulo-card uppercase tracking-[.04em]">
-            {coletando
-              ? `Sondando — ${qtdLeituras} leitura${qtdLeituras === 1 ? "" : "s"}`
-              : totalGuardado > 0
-                ? `Sondagem colaborativa — ${totalGuardado} guardada${totalGuardado === 1 ? "" : "s"}`
-                : "Sondagem colaborativa"}
-          </span>
-        </span>
-        <Icone
-          nome="chevron"
-          className={`size-4 text-meter-dim transition-transform ${painelAberto ? "-rotate-90" : "rotate-90"}`}
-        />
-      </button>
-
-      {painelAberto && (
-        <div className="border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
-          <p className="apoio text-meter-dim">
-            Cada leitura do seu ecobatímetro, com a posição do GPS, ajuda a completar o mapa colaborativo — como o
-            SonarChart do Navionics. É dado colaborativo bruto: melhora com o tempo e nunca substitui a carta
-            náutica oficial. Sem sinal de celular no mar, cada leitura fica guardada no aparelho e sobe sozinha
-            quando o sinal voltar — nada se perde.
-          </p>
-
-          {!coletando && (
-            <>
-              {!usaNativo && (
-                <div className="mt-3">
-                  <label htmlFor="signalk-url" className="mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-meter-dim">
-                    Servidor Signal K
-                  </label>
-                  <input
-                    id="signalk-url"
-                    value={urlSignalK}
-                    onChange={(e) => setUrlSignalK(e.target.value)}
-                    placeholder={URL_SIGNALK_PADRAO}
-                    // texto explícito: bg-campo segue o TEMA (branco no
-                    // claro), então a cor do texto também precisa seguir
-                    className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
-                  />
-                </div>
-              )}
-
-              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-meter-dim">
-                <input
-                  type="checkbox"
-                  checked={consentimento}
-                  onChange={(e) => setConsentimento(e.target.checked)}
-                  className="size-5 shrink-0"
-                />
-                Concordo em compartilhar minhas leituras de profundidade e posição aproximada, de forma agregada por
-                área — nunca minha rota individual.
-              </label>
-
-              <button
-                onClick={iniciarColeta}
-                disabled={!consentimento}
-                className="mt-3 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto disabled:opacity-50"
-              >
-                Iniciar coleta
-              </button>
-            </>
-          )}
-
-          {coletando && (
-            <>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <div className={mostrador}>
-                  <p className={etiqueta}>Profundidade</p>
-                  <p className="text-xl text-accent">
-                    {profundidadeAtualM != null ? profundidadeAtualM.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
-                    <span className="text-sm text-meter-dim"> m</span>
-                  </p>
-                </div>
-                <div className={mostrador}>
-                  <p className={etiqueta}>Leituras</p>
-                  <p className="text-xl text-accent">{qtdLeituras}</p>
-                </div>
-                <div className={mostrador}>
-                  <p className={etiqueta}>Conexão</p>
-                  <p className="flex items-center gap-1 text-xs text-meter-texto">
-                    <Icone nome="sinal" className={`size-3.5 ${statusConexao === "conectado" ? "text-accent" : "text-meter-dim"}`} />
-                    {ROTULO_STATUS[statusConexao]}
-                  </p>
-                </div>
-              </div>
-
-              {motivoRejeicao && (
-                <p className="mt-2 text-center text-xs text-meter-dim">Não registrando agora: {motivoRejeicao}</p>
-              )}
-
-              <button
-                onClick={pararColeta}
-                className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white"
-              >
-                Parar coleta
-              </button>
-            </>
-          )}
-
-          {/* Verdade da fila — mesmo com o painel aberto e parado (sem
-              coletar), uma leitura de uma saída anterior sem sinal pode
-              continuar guardada esperando pra subir. Ninguém deve achar que
-              perdeu a saída. */}
-          {(totalGuardado > 0 || fila.ultimoEnvioEm != null) && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
-              <Icone nome="guardado" className="mt-0.5 size-4 shrink-0 text-meter-dim" />
-              <p>
-                {totalGuardado > 0 ? (
-                  <>
-                    {totalGuardado} leitura{totalGuardado === 1 ? "" : "s"} guardada{totalGuardado === 1 ? "" : "s"} no
-                    aparelho, esperando sinal pra enviar — nada foi perdido.
-                    {fila.filaCheia &&
-                      " A fila está cheia; leituras de área ainda não visitada podem esperar até liberar espaço."}
-                  </>
-                ) : (
-                  "Tudo enviado."
-                )}{" "}
-                {fila.ultimoEnvioEm != null && <>Último envio: {tempoRelativo(fila.ultimoEnvioEm)}.</>}
-              </p>
+    <div>
+      {!coletando && (
+        <>
+          {consentimento ? (
+            <button
+              onClick={iniciarColeta}
+              className="w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto"
+            >
+              Iniciar coleta {usaNativo ? "" : "via Signal K"}
+            </button>
+          ) : (
+            // Sem consentimento (decidido em Ajustes, nunca aqui): honesto
+            // sobre por que o botão não funciona, com o caminho pra decidir —
+            // nunca um checkbox reaparecendo em cima do mapa (ver comentário
+            // grande no topo do arquivo).
+            <div className="rounded-[10px] border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
+              <p>Sondagem colaborativa desligada neste aparelho.</p>
+              <Link href="/menu/ajustes#navegacao" className="mt-1 inline-block font-medium text-accent underline">
+                Ativar em Ajustes → Navegação
+              </Link>
             </div>
           )}
+        </>
+      )}
+
+      {coletando && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <div className={mostrador}>
+              <p className={etiqueta}>Profundidade</p>
+              <p className="text-xl text-accent">
+                {profundidadeAtualM != null ? profundidadeAtualM.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) : "—"}
+                <span className="text-sm text-meter-dim"> m</span>
+              </p>
+            </div>
+            <div className={mostrador}>
+              <p className={etiqueta}>Leituras</p>
+              <p className="text-xl text-accent">{qtdLeituras}</p>
+            </div>
+            <div className={mostrador}>
+              <p className={etiqueta}>Conexão</p>
+              <p className="flex items-center gap-1 text-xs text-meter-texto">
+                <Icone nome="sinal" className={`size-3.5 ${statusConexao === "conectado" ? "text-accent" : "text-meter-dim"}`} />
+                {ROTULO_STATUS[statusConexao]}
+              </p>
+            </div>
+          </div>
+
+          {motivoRejeicao && (
+            <p className="mt-2 text-center text-xs text-meter-dim">Não registrando agora: {motivoRejeicao}</p>
+          )}
+
+          <button
+            onClick={pararColeta}
+            className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white"
+          >
+            Parar coleta
+          </button>
+        </>
+      )}
+
+      {/* Verdade da fila — mesmo parado (sem coletar), uma leitura de uma
+          saída anterior sem sinal pode continuar guardada esperando pra
+          subir. Ninguém deve achar que perdeu a saída. */}
+      {(totalGuardado > 0 || fila.ultimoEnvioEm != null) && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
+          <Icone nome="guardado" className="mt-0.5 size-4 shrink-0 text-meter-dim" />
+          <p>
+            {totalGuardado > 0 ? (
+              <>
+                {totalGuardado} leitura{totalGuardado === 1 ? "" : "s"} guardada{totalGuardado === 1 ? "" : "s"} no
+                aparelho, esperando sinal pra enviar — nada foi perdido.
+                {fila.filaCheia &&
+                  " A fila está cheia; leituras de área ainda não visitada podem esperar até liberar espaço."}
+              </>
+            ) : (
+              "Tudo enviado."
+            )}{" "}
+            {fila.ultimoEnvioEm != null && <>Último envio: {tempoRelativo(fila.ultimoEnvioEm)}.</>}
+          </p>
         </div>
       )}
     </div>

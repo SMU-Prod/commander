@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/avatar"
+import { AjustesNavegacao } from "@/components/ajustes-navegacao"
 import { AtivarAlertas } from "@/components/ativar-alertas"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -86,6 +87,14 @@ export default async function AjustesPage() {
         A ativação vale só para este aparelho — troque de celular ou navegador e precisa ativar de novo.
       </p>
       <AtivarAlertas />
+
+      {/* Onda 80 — consentimentos de corredores/sondagem colaborativa e a
+          URL do Signal K, que até aqui viviam em cima do mapa em
+          /navegar (ver o comentário grande em AjustesNavegacao). Âncora
+          `id="navegacao"` porque o painel de sondagem em /navegar linka
+          pra cá quando a coleta está desligada por falta de consentimento. */}
+      <SecaoPagina icone="mapa" id="navegacao" className="scroll-mt-4">Navegação</SecaoPagina>
+      <AjustesNavegacao />
 
       <SecaoPagina icone="embarcacao">Embarcações</SecaoPagina>
       <LinhaLista

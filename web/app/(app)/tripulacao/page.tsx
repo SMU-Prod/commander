@@ -1,4 +1,4 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
 import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"

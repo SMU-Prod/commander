@@ -1,4 +1,4 @@
-﻿import { cache } from "react"
+import { cache } from "react"
 import { supabaseServer } from "@/lib/supabase/server"
 import type {
   Assinatura,

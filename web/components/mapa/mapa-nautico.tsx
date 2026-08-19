@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { useEffect, useRef, useState } from "react"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { IControl, Map as MapaMapbox } from "mapbox-gl"

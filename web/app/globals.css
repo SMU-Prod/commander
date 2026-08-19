@@ -239,7 +239,7 @@ body {
   /* Onda 62 — IBM Plex Sans no lugar da Urbanist (canvas do dono; a decisão
      e o porquê estão em docs/DESIGN.md §5, Tipografia). A variável vem do
      next/font em app/layout.tsx. */
-  font-family: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans-app), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Onda 25 (bug de produção, print do dono 12/08, iPhone tema escuro,
@@ -337,16 +337,48 @@ body.fundo-tela-mapa {
      81px a 11px/tracking zero — não cabia. A troca de Comandantes por
      Diário nesta onda tirou o rótulo que forçava a exceção; a barra inteira
      volta ao piso de 11px como as outras 4 vozes. */
+  /* ONDA 80 — A HIERARQUIA QUE FALTAVA.
+     Diagnóstico do dono, olhando o app pronto: "não tem hierarquia, tá bem
+     amador". Ele tem razão, e a causa é medível: `.corpo` (14px) e `.apoio`
+     (13px) diferem em UM pixel. Um pixel não é degrau de hierarquia, é
+     ruído — na prática o app tinha DUAS vozes (título grande e
+     todo-o-resto), não quatro.
+     Pior: as vozes só carregavam TAMANHO. Como a tela pintava quase tudo de
+     `text-dim`, rótulo e valor ficavam do mesmo cinza e nada se destacava de
+     nada. Na referência o cinza é do RÓTULO; o VALOR é branco. É essa dupla
+     que cria a hierarquia, não o tamanho.
+     Por isso `.rotulo-dado` e `.valor` passam a carregar a COR junto do
+     tamanho: a dupla vira impossível de errar. */
   .titulo-pagina {
     font-size: 1.5rem;      /* 24px */
     font-weight: 600;
-    letter-spacing: -.015em;
-    line-height: 1.2;
+    /* Inter (onda 80) precisa de tracking mais negativo que a Plex pra ler
+       apertada como a referência — a grotesca tem aberturas menores e, no
+       espaçamento padrão, título grande fica frouxo. */
+    letter-spacing: -.022em;
+    line-height: 1.15;
     text-wrap: balance;
   }
-  .titulo-card { font-size: .9375rem; font-weight: 600; line-height: 1.35; }  /* 15px */
+  .titulo-card {
+    font-size: .9375rem;    /* 15px */
+    font-weight: 600;
+    letter-spacing: -.011em;
+    line-height: 1.35;
+    color: var(--texto);
+  }
+  /* A VOZ QUE NÃO EXISTIA: o dado em si. Branco, médio, tabular — é o que
+     o olho procura primeiro num painel, e o que estava cinza igual ao
+     rótulo. */
+  .valor {
+    font-size: .875rem;     /* 14px */
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--texto);
+    font-variant-numeric: tabular-nums;
+  }
   .corpo { font-size: .875rem; line-height: 1.5; }                            /* 14px */
-  .apoio { font-size: .8125rem; line-height: 1.45; }                          /* 13px */
+  /* 12px, não 13: com `.corpo` em 14 o degrau de 1px não se via. */
+  .apoio { font-size: .75rem; line-height: 1.5; }                             /* 12px */
   .rotulo {
     /* var(--pilha-mono-instr), e NÃO var(--font-mono-instr): o token do
        @theme inline não existe como custom property no DOM — ver o comentário
@@ -385,6 +417,11 @@ body.fundo-tela-mapa {
   .rotulo-dado {
     font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
     line-height: 1.4;
+    /* Onda 80: a cor entra na classe. O par rótulo-cinza / valor-branco é o
+       que cria hierarquia na referência, e deixá-lo a cargo de quem usa foi
+       o que produziu telas inteiras em cinza uniforme. Quem quiser outra cor
+       sobrescreve; o padrão passa a ser o certo. */
+    color: var(--texto-dim);
   }
 }
 
