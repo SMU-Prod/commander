@@ -1933,14 +1933,40 @@ export function NavegarMapa({
               type="button"
               onClick={() => setModoDefinirDestino((v) => !v)}
               aria-pressed={modoDefinirDestino}
-              className={`sombra-2 flex h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-medium ${
+              // ONDA 81 — OS ATALHOS PERDEM O RÓTULO E VIRAM BOTÃO-CÍRCULO.
+              //
+              // Duas queixas do dono, na mesma pilha. A primeira: cada pílula
+              // tinha a largura do próprio texto e a coluna era alinhada à
+              // direita, então a borda ESQUERDA virava uma escada de três
+              // degraus ("Definir destino" longa, "Fundeei" curta). A
+              // segunda, e a que manda: "pra que ter um textão desse no
+              // mapa?".
+              //
+              // Ele está certo — a referência não tem UM rótulo de ação sobre
+              // a carta: os controles do mapa lá são uma coluna de
+              // botões-círculo iguais, encostados na borda. Texto sobre mapa
+              // compete com o dado que o mapa existe pra mostrar, que é a
+              // mesma razão pela qual a prosa saiu dos painéis nesta onda.
+              //
+              // Círculo de 44px resolve as duas de uma vez: some a escada
+              // (todos do mesmo tamanho) e some o texto. O nome vira
+              // `aria-label` + `title` — quem usa leitor de tela continua
+              // ouvindo, e quem passa o mouse continua lendo.
+              //
+              // EXCEÇÃO deliberada: quando o modo de definir destino está
+              // ATIVO, o rótulo volta ("Toque no mapa…"). Aí o texto não é
+              // enfeite, é a única coisa que explica por que o próximo toque
+              // no mapa vai fazer algo diferente do normal.
+              aria-label="Definir destino"
+              title="Definir destino"
+              className={`sombra-2 flex h-11 items-center justify-center gap-2 rounded-full border text-sm font-medium ${
                 modoDefinirDestino
-                  ? "border-accent bg-accent text-acao-texto"
-                  : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+                  ? "border-accent bg-accent px-4 text-acao-texto"
+                  : "w-11 border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
               }`}
             >
-              <Icone nome="mapa" className="size-4" />
-              {modoDefinirDestino ? "Toque no mapa…" : "Definir destino"}
+              <Icone nome="mapa" className="size-5 shrink-0" />
+              {modoDefinirDestino && "Toque no mapa…"}
             </button>
           )}
 
@@ -1953,10 +1979,11 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => router.push("/navegar/viagem/nova")}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
+              aria-label="Planejar viagem"
+              title="Planejar viagem"
+              className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
             >
-              <Icone nome="estrela" className="size-4" />
-              Planejar viagem
+              <Icone nome="estrela" className="size-5 shrink-0" />
             </button>
           )}
 
@@ -1964,10 +1991,11 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => setArmandoAncora(true)}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
+              aria-label="Fundeei — armar alarme de âncora"
+              title="Fundeei — armar alarme de âncora"
+              className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
             >
-              <Icone nome="ancora" className="size-4" />
-              Fundeei
+              <Icone nome="ancora" className="size-5 shrink-0" />
             </button>
           )}
           {!ancora && armandoAncora && (
@@ -2082,10 +2110,24 @@ export function NavegarMapa({
             type="button"
             onClick={acionarMob}
             disabled={!posAtual}
-            aria-label="Homem ao mar"
-            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full bg-crit font-bold text-white transition-all duration-200 disabled:opacity-50 ${
-              modoSoNavegacao ? "w-11 px-0" : "px-4 text-sm"
-            }`}
+            // ONDA 81 — o estado desabilitado do MOB era `opacity-50` sobre o
+            // vermelho, e o resultado é um rosa lavado: o controle mais
+            // crítico do app lia como defeito de renderização, não como
+            // indisponível. O dono apontou exatamente esta pílula.
+            //
+            // Sem GPS ele REALMENTE não pode agir (marcar homem ao mar exige
+            // uma posição), então esconder o estado seria pior. O que muda é
+            // como ele confessa: em vez de desbotar o vermelho, ele troca
+            // preenchimento por CONTORNO e diz o motivo no `title`/`aria`.
+            // Contorno lê como "armado e esperando", desbotado lê como
+            // "quebrado".
+            aria-label={posAtual ? "Homem ao mar" : "Homem ao mar — indisponível sem posição GPS"}
+            title={posAtual ? undefined : "Sem posição GPS — o MOB marca onde o barco está"}
+            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full font-bold transition-all duration-200 ${
+              posAtual
+                ? "bg-crit text-white"
+                : "border-2 border-crit/70 bg-mapa-instrumento text-crit"
+            } ${modoSoNavegacao ? "w-11 px-0" : "px-4 text-sm"}`}
           >
             <Icone nome="alerta" className="size-4 shrink-0" />
             {!modoSoNavegacao && "MOB"}
