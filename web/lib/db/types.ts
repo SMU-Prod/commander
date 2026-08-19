@@ -466,6 +466,35 @@ export interface Auditoria {
   criado_em: string
 }
 
+/** §6 do PRD Upgrade 3 — check-out e check-in numa linha só (migration 060).
+ *  Quase tudo nullable porque a home de campo tem que ser rápida; o domínio
+ *  (`lib/domain/patio.ts`) devolve `null` no que falta em vez de inventar. */
+export interface MovimentoPatio {
+  id: string
+  embarcacao_id: string
+  responsavel_id: string | null
+  saida_em: string
+  saida_horas: number | null
+  /** Percentual do ponteiro do painel — litro é assunto do Hub Combustível. */
+  saida_combustivel_pct: number | null
+  saida_estado: string | null
+  saida_foto_path: string | null
+  /** Tudo nulo enquanto a unidade está fora. */
+  retorno_em: string | null
+  retorno_horas: number | null
+  retorno_combustivel_pct: number | null
+  retorno_estado: string | null
+  retorno_foto_path: string | null
+  /** Quem devolve pode não ser quem tirou. */
+  retorno_responsavel_id: string | null
+  /** A avaria aberta a partir do retorno (§6). */
+  ocorrencia_id: string | null
+  aprovado: boolean
+  aprovado_por: string | null
+  aprovado_em: string | null
+  criado_em: string
+}
+
 export type EventoAuditadoDb =
   | "criou" | "alterou" | "excluiu" | "aprovou" | "recusou"
   | "publicou_para_cotistas" | "bloqueou_cotista" | "desbloqueou_cotista"

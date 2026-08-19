@@ -17,23 +17,35 @@
  * relógio.
  */
 
-/** Espelha o enum `tipo_embarcacao` do banco (migration 056). */
-export type TipoEmbarcacao = "lancha" | "veleiro" | "iate" | "bote"
+/** Espelha o enum `tipo_embarcacao` do banco (migrations 056 e 060). */
+export type TipoEmbarcacao = "lancha" | "veleiro" | "iate" | "bote" | "jet"
 
-/** Ordem de exibição: a do canvas tela-3j, chip por chip. */
+/**
+ * Ordem de exibição: a do canvas tela-3j, chip por chip — e "Jet Ski" no
+ * fim (onda 70).
+ *
+ * O Jet entrou pelo PRD Upgrade 3 §5, que pede uma ficha PRÓPRIA de PWC. O
+ * §1 do mesmo PRD é explícito sobre por quê: *"A interface se adapta ao tipo
+ * de embarcação. Jet Ski não recebe uma interface de lancha apenas
+ * reduzida."* Sem valor no enum, não havia como uma tela perguntar "isto é
+ * um Jet?" — e é essa pergunta que `ehJet` (patio.ts) responde.
+ */
 export const TIPOS_EMBARCACAO = [
   "lancha",
   "veleiro",
   "iate",
   "bote",
+  "jet",
 ] as const satisfies readonly TipoEmbarcacao[]
 
-/** Rótulos do canvas, palavra por palavra. */
+/** Rótulos do canvas, palavra por palavra. "Jet Ski" e não "PWC": é como o
+ *  dono e o pátio chamam, e o app fala a língua de quem usa. */
 export const ROTULO_TIPO_EMBARCACAO: Record<TipoEmbarcacao, string> = {
   lancha: "Lancha",
   veleiro: "Veleiro",
   iate: "Iate",
   bote: "Bote",
+  jet: "Jet Ski",
 }
 
 /** Valida o que veio de formulário — §27.2, a regra nos dois lados: o
