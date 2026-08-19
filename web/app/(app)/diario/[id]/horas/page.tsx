@@ -93,7 +93,7 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
                 className="font-mono-instr tabular-nums"
               >
                 {m.horas_atuais != null && (
-                  <p className="mt-1 font-mono-instr text-[11px] tabular-nums text-dim">
+                  <p className="mt-1 font-mono-instr rotulo-dado tabular-nums text-dim">
                     atual: {m.horas_atuais.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
                   </p>
                 )}

@@ -213,7 +213,7 @@ export default async function OcorrenciasPage({
                   {chipsDaAtiva(o.anexo_path != null, o.created_at, hoje).map((c) => (
                     <span
                       key={c}
-                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 font-mono-instr text-[11px] tracking-[.06em] text-dim-chip"
+                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 font-mono-instr rotulo-dado tracking-[.06em] text-dim-chip"
                     >
                       {c}
                     </span>

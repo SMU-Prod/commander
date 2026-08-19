@@ -52,6 +52,82 @@ async function contexto() {
 }
 
 // ---------------------------------------------------------------------------
+// §12 — A ENTRADA AUTOMÁTICA NO FINANCEIRO, COM PROCEDÊNCIA
+// ---------------------------------------------------------------------------
+
+/**
+ * O §12 traz uma tabela chamada "Origem → Entrada automática no Financeiro", e
+ * até a auditoria de 19/08 ela não existia em lugar nenhum: as ações abaixo
+ * escreviam em `estoque_movimentos`, `tanque_movimentos` e `abastecimentos`, e
+ * NUNCA em `lancamentos_financeiros`. Consequência visível: `/frota` prometia
+ * "em quê cada unidade gastou" lendo uma coluna que ninguém preenchia.
+ *
+ * O que esta função faz, e principalmente o que ela se RECUSA a fazer:
+ *
+ *   NÃO INVENTA VALOR. Sem custo unitário no item, ou sem valor informado no
+ *   abastecimento, ela devolve `"sem_valor"` e não lança nada. Estimar (pelo
+ *   último preço, pela média do mercado) transformaria o custo da frota — um
+ *   número que o ADM leva para conversa com cliente — num palpite com cara de
+ *   fato. É a mesma regra do `null` que a casa aplica na tela, aplicada uma
+ *   camada antes: se não sabe quanto custou, não escreve custo.
+ *
+ *   NÃO ENGOLE A RECUSA. O insert passa pela policy `permissao(embarcacao_id,
+ *   'gastos', 'editar')` — um Operações que retira peça pode muito bem não
+ *   tê-la. Nesse caso o movimento de estoque continua válido (é fato do
+ *   almoxarifado) mas o lançamento não entra, e quem clicou precisa LER isso,
+ *   senão vai acreditar num custo de frota que está faltando dinheiro.
+ *
+ *   NÃO DUPLICA. `lancamentos_uma_entrada_por_origem` (migration 065) é único
+ *   por (origem, origem_id); um duplo clique bate no 23505 e a segunda
+ *   tentativa é tratada como sucesso, não como erro — porque o lançamento que
+ *   ela queria criar já está lá.
+ */
+type ResultadoLancamento = "lancado" | "sem_valor" | "recusado"
+
+async function lancarCustoComOrigem(
+  supabase: Awaited<ReturnType<typeof supabaseServer>>,
+  dados: {
+    embarcacaoId: string
+    origem: "combustivel" | "mecanica" | "estoque" | "avaria" | "documentacao"
+    origemId: string
+    categoria: string
+    descricao: string
+    valorCentavos: number | null
+    userId: string | null
+  },
+): Promise<ResultadoLancamento> {
+  if (dados.valorCentavos == null || dados.valorCentavos <= 0) return "sem_valor"
+
+  const { error } = await supabase.from("lancamentos_financeiros").insert({
+    embarcacao_id: dados.embarcacaoId,
+    tipo: "despesa",
+    categoria: dados.categoria,
+    descricao: dados.descricao,
+    valor_centavos: dados.valorCentavos,
+    data: hojeISO(),
+    // "pago" e não "pendente": a peça já foi comprada quando entrou no
+    // estoque, e o combustível já foi comprado quando encheu o tanque. Não há
+    // conta a vencer aqui — o que acontece agora é o custo achar a unidade.
+    status: "pago",
+    origem: dados.origem,
+    origem_id: dados.origemId,
+    criado_por: dados.userId,
+  })
+  if (!error) return "lancado"
+  return error.code === "23505" ? "lancado" : "recusado"
+}
+
+/** O sufixo que a mensagem de sucesso ganha — a pessoa precisa saber se o
+ *  custo entrou no Financeiro, porque é ele que alimenta `/frota`. */
+function sufixoDoLancamento(r: ResultadoLancamento, oQueFaltou: string): string {
+  switch (r) {
+    case "lancado": return " · custo lançado no Financeiro"
+    case "sem_valor": return ` · sem ${oQueFaltou}, nada foi lançado no Financeiro`
+    case "recusado": return " · o custo NÃO entrou no Financeiro (seu acesso não permite editar Financeiro)"
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Mecânica (§7) e votação (§9)
 // ---------------------------------------------------------------------------
 
@@ -103,18 +179,26 @@ export async function publicarServico(formData: FormData) {
   if (painel.papel !== "PROP") falhar("/mecanica", "Só o proprietário publica laudo para os cotistas.")
   const id = String(formData.get("servico_id") ?? "")
 
+  const publicadoEm = new Date().toISOString()
   const { data, error } = await supabase.from("servicos_mecanica")
-    .update({ publicado_em: new Date().toISOString(), publicado_por: userId })
-    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id).select("id")
+    .update({ publicado_em: publicadoEm, publicado_por: userId })
+    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id)
+    .select("id, problema_informado")
   if (error || !data?.length) falhar("/mecanica", "Não deu pra publicar.")
 
   // §22 — publicação para cotistas é evento auditado, com autor e hora.
+  // A3 (auditoria 19/08): `alvo`, `antes` e `depois` estavam vazios aqui
+  // também. `alvo` é o problema que o laudo trata — é assim que a linha fica
+  // legível meses depois, quando ninguém lembra do uuid do serviço.
   await supabase.from("auditoria").insert({
     embarcacao_id: painel.embarcacao.id,
     autor_id: userId,
     evento: "publicou_para_cotistas",
     entidade: "servicos_mecanica",
     entidade_id: id,
+    alvo: (data[0].problema_informado as string | null)?.trim() || null,
+    antes: { publicado_em: null },
+    depois: { publicado_em: publicadoEm },
   })
 
   revalidatePath("/mecanica")
@@ -164,6 +248,41 @@ export async function abrirVotacao(formData: FormData) {
 
   revalidatePath("/mecanica")
   redirect(`/mecanica?ok=${encodeURIComponent("Votação aberta para os cotistas")}`)
+}
+
+/**
+ * §9 — APURAR E FECHAR. AUDITORIA 19/08, A14 e B6.
+ *
+ * `votacoes.encerrada_em` era lida em dois lugares de `/mecanica` e escrita em
+ * nenhum: a tela escondia os botões de voto quando a votação estivesse
+ * encerrada, e nada no app produzia esse estado. A votação ficava aberta para
+ * sempre, e nunca havia o momento em que o ADM diz "apurado, seguimos" — o
+ * orçamento não avança nem morre.
+ *
+ * A migration 063 já previa o gesto: a policy de UPDATE se chama, com todas as
+ * letras, "votacoes: so o dono encerra". Faltava a action.
+ *
+ * Encerrar NÃO decide nada por ninguém: o placar continua o que os cotistas
+ * votaram (`apurarVotacao` é quem lê), e a única coisa que muda é que a urna
+ * fecha. Por isso não há campo de "resultado" aqui — inventar um deixaria o
+ * ADM sobrescrever a votação que ele mesmo abriu.
+ */
+export async function encerrarVotacao(formData: FormData) {
+  const { supabase, painel } = await contexto()
+  if (painel.papel !== "PROP") falhar("/mecanica", "Só o proprietário encerra a votação.")
+  const id = String(formData.get("votacao_id") ?? "")
+
+  const { data, error } = await supabase.from("votacoes")
+    .update({ encerrada_em: new Date().toISOString() })
+    .eq("id", id).eq("embarcacao_id", painel.embarcacao.id)
+    .is("encerrada_em", null)
+    .select("id")
+  // `is("encerrada_em", null)` no filtro: encerrar duas vezes reescreveria a
+  // hora da apuração, e a hora é justamente o que dá valor ao registro.
+  if (error || !data?.length) falhar("/mecanica", "Não deu pra encerrar. Talvez ela já esteja encerrada.")
+
+  revalidatePath("/mecanica")
+  redirect(`/mecanica?ok=${encodeURIComponent("Votação encerrada")}`)
 }
 
 /** O voto do cotista. As cinco travas (em nome próprio, votação aberta, é
@@ -222,7 +341,7 @@ export async function movimentarEstoque(formData: FormData) {
   if (qtd === null || qtd <= 0) falhar("/estoque", "Informe uma quantidade maior que zero.")
 
   const { data: item } = await supabase.from("estoque_itens")
-    .select("quantidade").eq("id", itemId).maybeSingle()
+    .select("quantidade, nome, custo_unitario_centavos").eq("id", itemId).maybeSingle()
   if (!item) falhar("/estoque", "Item não encontrado.")
 
   let nova: number
@@ -238,21 +357,55 @@ export async function movimentarEstoque(formData: FormData) {
     nova = qtd
   }
 
+  // AUDITORIA 19/08, B5 — A UNIDADE PASSOU A SER PERGUNTADA.
+  //
+  // O cabeçalho de /estoque sempre disse que "a unidade entra na RETIRADA", e
+  // até aqui a action gravava a unidade ATIVA sem perguntar. Numa base que
+  // atende 40 unidades, quem está no balcão tirando um filtro raramente tem a
+  // unidade certa aberta no app — o rastro saía errado com aparência de
+  // certo, que é o mesmo defeito do B2 em /afazeres. Sem escolha no
+  // formulário, a unidade ativa segue como padrão.
+  const destinoRetirada = tipo === "retirada"
+    ? (texto(formData, "embarcacao_id") ?? painel.embarcacao.id)
+    : null
+
   const { error } = await supabase.from("estoque_itens")
     .update({ quantidade: nova }).eq("id", itemId)
   if (error) falhar("/estoque", "Não deu pra atualizar o estoque.")
 
-  await supabase.from("estoque_movimentos").insert({
+  const { data: movimento } = await supabase.from("estoque_movimentos").insert({
     item_id: itemId,
     tipo,
     quantidade: qtd,
-    embarcacao_id: tipo === "retirada" ? painel.embarcacao.id : null,
+    embarcacao_id: destinoRetirada,
     motivo: texto(formData, "motivo"),
     autor_id: userId,
-  })
+  }).select("id").maybeSingle()
+
+  // §12 — a peça que sai da prateleira vira custo DA UNIDADE que a recebeu,
+  // com procedência "estoque". Sem custo unitário cadastrado no item o app
+  // não tem como saber quanto ela vale, e não chuta (ver
+  // `lancarCustoComOrigem`).
+  let sufixo = ""
+  if (tipo === "retirada" && movimento && destinoRetirada) {
+    const unitario = item.custo_unitario_centavos as number | null
+    sufixo = sufixoDoLancamento(
+      await lancarCustoComOrigem(supabase, {
+        embarcacaoId: destinoRetirada,
+        origem: "estoque",
+        origemId: movimento.id,
+        categoria: "pecas_equipamentos",
+        descricao: `Retirada do estoque — ${item.nome}`,
+        valorCentavos: unitario == null ? null : Math.round(qtd * unitario),
+        userId,
+      }),
+      "custo unitário cadastrado no item",
+    )
+  }
 
   revalidatePath("/estoque")
-  redirect(`/estoque?ok=${encodeURIComponent("Estoque atualizado")}`)
+  revalidatePath("/frota")
+  redirect(`/estoque?ok=${encodeURIComponent(`Estoque atualizado${sufixo}`)}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +470,7 @@ export async function movimentarTanque(formData: FormData) {
 
   // §11: "abastecimento pelo tanque baixa saldo E registra automaticamente
   // no Jet". A saída com destino de frota vira abastecimento da unidade.
+  let sufixo = ""
   if (tipo === "saida" && destinoUnidade) {
     await supabase.from("abastecimentos").insert({
       embarcacao_id: destinoUnidade,
@@ -325,10 +479,29 @@ export async function movimentarTanque(formData: FormData) {
       valor_centavos: centavos(formData, "valor"),
       responsavel_id: userId,
     })
+
+    // §12 — e o abastecimento vira custo da unidade, com procedência
+    // "combustivel". Sem valor informado não há lançamento: o litro do tanque
+    // próprio custou o que a empresa pagou na compra, e essa conta o app não
+    // tem (ver A10 da auditoria — `precoPorLitroCentavos` existe no domínio e
+    // ainda não tem por onde entrar).
+    sufixo = sufixoDoLancamento(
+      await lancarCustoComOrigem(supabase, {
+        embarcacaoId: destinoUnidade,
+        origem: "combustivel",
+        origemId: data.id,
+        categoria: "combustivel",
+        descricao: `Abastecimento pelo tanque da base — ${litros.toLocaleString("pt-BR")} L`,
+        valorCentavos: centavos(formData, "valor"),
+        userId,
+      }),
+      "valor informado",
+    )
   }
 
   revalidatePath("/combustivel")
-  redirect(`/combustivel?ok=${encodeURIComponent("Movimento registrado")}`)
+  revalidatePath("/frota")
+  redirect(`/combustivel?ok=${encodeURIComponent(`Movimento registrado${sufixo}`)}`)
 }
 
 // ---------------------------------------------------------------------------

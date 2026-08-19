@@ -264,7 +264,7 @@ export default async function DiarioPage({
                   {(e.importado_do_plotter || (urlAnexo && !ehSaida)) && (
                     <p className="mt-2 flex flex-wrap items-center gap-1.5">
                       {e.importado_do_plotter && (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr text-[11px] text-dim">
+                        <span className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
                           <Icone nome="guardado" className="size-3" /> Importada do plotter
                         </span>
                       )}

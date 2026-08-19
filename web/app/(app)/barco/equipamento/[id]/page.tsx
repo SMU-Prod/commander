@@ -327,8 +327,11 @@ export default async function EquipamentoPage({
       {irmaos.length > 1 && (
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {irmaos.map((e) => (
+            // Onda 87 — `rotulo-dado` pelo tamanho (11px em caixa de frase), e
+            // NÃO `.rotulo`: estes chips carregam o NOME do equipamento irmão,
+            // e `.rotulo` é caixa alta — passaria a reescrever o conteúdo.
             <Link key={e.id} href={`/barco/equipamento/${e.id}`}
-              className={`whitespace-nowrap rounded-full border px-4 py-2 font-mono-instr text-[11px] ${
+              className={`whitespace-nowrap rounded-full border px-4 py-2 font-mono-instr rotulo-dado ${
                 e.id === id ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
               }`}>
               {nomeCurto(e)}

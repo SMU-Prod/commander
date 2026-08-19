@@ -48,7 +48,13 @@ export function PastilhaKpi({
     <span className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3">
       <Icone nome={icone} className="size-3.5 shrink-0 text-dim" />
       <span className="rotulo-dado text-dim">{rotulo}:</span>
-      <span className="font-mono-instr text-[12px] font-semibold tabular-nums text-texto">{valor}</span>
+      {/* ONDA 87 — o valor sobe de 12px pro degrau `.valor` (14px). Era o
+          menor dos sete tamanhos de número que a auditoria mediu, e aqui ele
+          fica ao lado de um rótulo de 11px: com um pixel de diferença os dois
+          liam como a mesma coisa. A pastilha tem altura fixa (`h-8`), então
+          nada se move. `tabular-nums` continua explícito no markup porque
+          `faixa-kpi.test.ts` confere a string — a classe já o traria. */}
+      <span className="font-mono-instr valor font-semibold tabular-nums">{valor}</span>
     </span>
   )
 }

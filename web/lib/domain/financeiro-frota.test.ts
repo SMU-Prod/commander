@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import {
   avisoDeDuplicidade,
   consolidarFrota,
+  fraseSemProcedencia,
   inicioDoPeriodo,
+  linhaDaUnidade,
   MESES_DO_PERIODO,
   ORIGENS_CUSTO,
   origensQuePesaram,
@@ -125,6 +127,94 @@ describe("financeiro da frota (§12)", () => {
         l("jet-1", "combustivel", 300),
       ])
       expect(origensQuePesaram(r.porOrigem)).toEqual(["mecanica", "combustivel"])
+    })
+  })
+
+  // AUDITORIA 19/08, B1 — O GRUPO QUE GUARDA A CORREÇÃO MAIS CARA DA RODADA.
+  //
+  // A tela lia `l.origem ?? "manual"` sobre uma coluna que nenhum insert
+  // preenchia: TODO custo virava "Lançamento manual" e o gráfico "Em quê"
+  // tinha uma barra só, 100%, em qualquer conta e para sempre. Não era um
+  // `null` virando zero desenhado — era um `null` virando um FATO desenhado,
+  // que é a versão pior da mesma doença. Estes testes existem para que a
+  // conveniência de "ah, joga em manual" não volte por descuido.
+  describe("origem ausente ≠ origem manual", () => {
+    const semOrigem = (id: string, reais: number): CustoLancado =>
+      ({ embarcacaoId: id, origem: null, valorCentavos: reais * 100 })
+
+    it("custo sem origem NÃO entra em `manual`", () => {
+      const r = consolidarFrota(frota, [semOrigem("jet-1", 1000)])
+      expect(r.porOrigem.manual).toBe(0)
+      expect(r.semProcedenciaCentavos).toBe(100000)
+    })
+
+    it("mas continua no total — o dinheiro saiu, e isso a tela sabe", () => {
+      const r = consolidarFrota(frota, [semOrigem("jet-1", 1000), l("jet-1", "mecanica", 500)])
+      expect(r.totalCentavos).toBe(150000)
+      expect(r.unidades[0].totalCentavos).toBe(150000)
+    })
+
+    it("`manual` explícito continua sendo uma origem de verdade", () => {
+      // É a última linha da tabela do §12 ("exceções e despesas não
+      // cobertas"). O que mudou foi só quem NÃO é manual.
+      const r = consolidarFrota(frota, [l("jet-1", "manual", 300)])
+      expect(r.porOrigem.manual).toBe(30000)
+      expect(r.semProcedenciaCentavos).toBe(0)
+    })
+
+    it("frota inteira sem procedência não desenha barra nenhuma", () => {
+      // O caso que estava no ar: sem isto, `origensQuePesaram` devolvia
+      // ["manual"] e o gráfico saía com a barra única de 100%.
+      const r = consolidarFrota(frota, [semOrigem("jet-1", 800), semOrigem("jet-2", 200)])
+      expect(origensQuePesaram(r.porOrigem)).toEqual([])
+    })
+
+    describe("a frase que confessa", () => {
+      it("cala quando tudo tem procedência", () => {
+        expect(fraseSemProcedencia(100000, 0)).toBeNull()
+      })
+
+      it("diz o valor e a fatia quando falta", () => {
+        const f = fraseSemProcedencia(100000, 62000)
+        expect(f).toContain("620,00")
+        expect(f).toContain("62%")
+      })
+
+      it("frota sem custo nenhum não divide por zero", () => {
+        expect(fraseSemProcedencia(0, 0)).toBeNull()
+      })
+    })
+
+    describe("a linha de cada unidade", () => {
+      it("zero é informação, não ausência", () => {
+        const r = consolidarFrota(frota, [])
+        expect(linhaDaUnidade(r.unidades[0])).toBe("Nenhum custo no período")
+      })
+
+      it("sem origem nenhuma, não inventa origem", () => {
+        const r = consolidarFrota(frota, [semOrigem("jet-1", 500)])
+        const u = r.unidades.find((x) => x.embarcacaoId === "jet-1")!
+        expect(linhaDaUnidade(u)).toBe("100% do custo da frota · procedência não registrada")
+        expect(linhaDaUnidade(u)).not.toContain("manual")
+        expect(linhaDaUnidade(u)).not.toContain("Manual")
+      })
+
+      it("com origem, lista as duas que mais pesaram", () => {
+        const r = consolidarFrota(frota, [
+          l("jet-1", "mecanica", 1000), l("jet-1", "combustivel", 500), l("jet-1", "estoque", 100),
+        ])
+        const linha = linhaDaUnidade(r.unidades[0])
+        expect(linha).toContain("Mecânica, Combustível")
+        expect(linha).not.toContain("Estoque")
+      })
+
+      it("misturado, diz as origens E quanto ficou sem explicação", () => {
+        const r = consolidarFrota(frota, [l("jet-1", "mecanica", 700), semOrigem("jet-1", 300)])
+        const linha = linhaDaUnidade(r.unidades[0])
+        expect(linha).toContain("Mecânica")
+        expect(linha).toContain("300,00")
+        expect(linha).toContain("sem procedência")
+      })
     })
   })
 

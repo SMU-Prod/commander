@@ -118,7 +118,7 @@ export default async function FotosPage({
                       nos dois temas (a foto não segue o tema; mesmo raciocínio
                       de --mapa-instrumento em globals.css). */}
                   {ehCapa && (
-                    <span className="absolute bottom-1.5 left-1.5 rounded-full border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[.06em] text-meter-texto">
+                    <span className="absolute bottom-1.5 left-1.5 rounded-full border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 rotulo font-semibold text-meter-texto">
                       Capa
                     </span>
                   )}
@@ -157,7 +157,10 @@ export default async function FotosPage({
               className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-line text-dim"
             >
               <Icone nome="camera" className="size-5" />
-              <span className="font-mono-instr text-[11px]">+ foto</span>
+              {/* `rotulo-dado` e não `.rotulo`: o convite é caixa de frase —
+                  `.rotulo` transforma em caixa alta e o "+ FOTO" gritaria mais
+                  que a própria grade de fotos. */}
+              <span className="font-mono-instr rotulo-dado">+ foto</span>
             </Link>
           )}
         </div>

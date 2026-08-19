@@ -273,7 +273,11 @@ export default async function MapaEmbarcacaoPage({
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="titulo-card">Não mapeados</h2>
-                <span className="font-mono-instr text-sm font-semibold tabular-nums text-dim">
+                {/* ONDA 87 — a contagem é DADO, então vai de `.valor`. O
+                    `text-dim` fica: aqui o número é subordinado ao título ao
+                    lado dele, e trocar a cor dele é a correção 5.7 (a
+                    contagem vira chip), que é outra onda. */}
+                <span className="font-mono-instr valor font-semibold text-dim">
                   {naoMapeados.length}
                 </span>
               </div>

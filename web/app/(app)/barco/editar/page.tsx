@@ -2,12 +2,13 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { salvarDadosGerais } from "@/lib/acoes/embarcacao"
 import { carregarPainel } from "@/lib/consultas"
 import { carregarTaxonomia, itensDoTipo } from "@/lib/consultas-marketplace"
 import { ROTULO_TIPO_EMBARCACAO, TIPOS_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
 import { campo, linhaCampos, numeroParaCampoPtBr, rot } from "@/lib/ui/form"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function EditarEmbarcacaoPage({
   searchParams,
@@ -158,7 +159,11 @@ export default async function EditarEmbarcacaoPage({
           </div>
         </section>
 
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar dados</button>
+        {/* ONDA 85 — 15 campos e zero retorno ao salvar (auditoria §3.3). De
+            quebra some o `py-3.5`: 52px e `rounded-xl` eram uma altura e um
+            raio que só existiam aqui e em `/financeiro/novo` — a sétima altura
+            de botão que `chip.tsx` conta a história de ter caçado. */}
+        <BotaoEnviar rotulo="Salvar dados" />
       </form>
 
       <Link

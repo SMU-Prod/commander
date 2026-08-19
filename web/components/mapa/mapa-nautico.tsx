@@ -62,6 +62,36 @@ const PITCH_ESTILO: Record<EstiloMapa, number> = {
 
 const SOURCE_TERRENO = "mapbox-dem"
 
+/**
+ * ONDA 89 (achado 4.2) — OS TRÊS CONTROLES MAIS TOCADOS DO APP ENTRAM NA
+ * RÉGUA DE 44px.
+ *
+ * Zoom, bússola e localizar nasciam com os 32px default do `mapbox-gl.css`.
+ * O `docs/DESIGN.md` §5 escreve 44px sem exceção, e a varredura de alvo de
+ * toque mede isso em toda tela — menos aqui, porque o markup é do Mapbox e
+ * não passa por classe nossa. 32 contra 44 é 27% abaixo da régua, e a tela
+ * onde isso pesa é justamente a de mar aberto: barco balançando, sol na
+ * tela, mão molhada.
+ *
+ * O que muda é SÓ A CAIXA. O ícone é `background-image` de um SVG sem
+ * dimensão intrínseca — sem `background-size` ele esticaria junto com a
+ * caixa e ficaria borrado. Travar em 32px mantém o desenho exatamente como
+ * está e centraliza os 12px de folga, que é o caminho barato do achado.
+ * ALTERNATIVA DESCARTADA: trocar os três por `BotaoCirculo` nosso — resolve
+ * também, mas reimplementa zoom/bússola/geolocalização inteiros pra ganhar
+ * 12px de caixa.
+ *
+ * MORA NO COMPONENTE, e não em `app/globals.css` junto do resto do skin dos
+ * controles, porque é onde o mapa é montado — quem ler este arquivo vê a
+ * régua valendo. `!important` só no par que o `mapbox-gl.css` importado
+ * declara com a mesma especificidade; `background-size` não tem
+ * concorrente, então entra limpo.
+ */
+const CSS_ALVO_TOQUE_MAPBOX = `
+.mapboxgl-ctrl-group button { width: 44px !important; height: 44px !important; }
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon { background-size: 32px 32px; background-position: center; }
+`
+
 /** `SetStyleOptions` não é exportado pelo pacote `mapbox-gl` (é um tipo
  *  interno do .d.ts), e a versão instalada (v3.28) marca `localFontFamily`/
  *  `localIdeographFontFamily` como obrigatórios mesmo aceitando `undefined`
@@ -162,12 +192,17 @@ class ControleCamadas implements IControl {
     botao.setAttribute("aria-label", "Camadas do mapa")
     // Onda 24 (passe de arte, bloco 3) — o resto do grupo (.mapboxgl-ctrl-icon
     // dos controles NATIVOS do Mapbox) vira claro via filter:invert em
-    // globals.css; este ícone é SVG inline nosso, não usa essa classe, então
-    // o traço muda direto pra cor clara (#e9f1f8, literal — mesmo motivo do
-    // resto deste arquivo/navegar-mapa.tsx: sem CSS var confiável dentro de
-    // um innerHTML fora do Tailwind).
+    // globals.css; este ícone é SVG inline nosso e não usa essa classe.
+    //
+    // Onda 89 (achado 4.1) — o traço era um literal claro escrito à mão. O
+    // botão passa a carregar `text-meter-texto` e o SVG desenha em
+    // `currentColor`: é DOM, não canvas, então a classe utilitária resolve o
+    // token sozinha nos dois temas. `currentColor` e não uma classe direta
+    // no <svg> de propósito — se a utilitária um dia sumir, o traço herda a
+    // cor do texto em volta em vez de virar `none` e desaparecer.
+    botao.className = "text-meter-texto"
     botao.innerHTML =
-      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e9f1f8" stroke-width="1.7" ' +
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" ' +
       'stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:auto"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
     botao.addEventListener("click", () => this.aoClicar())
     container.appendChild(botao)
@@ -236,6 +271,10 @@ export function MapaNautico({
   // de montagem no "Tentar de novo".
   const [falhaMapa, setFalhaMapa] = useState<string | null>(null)
   const [tentativaMapa, setTentativaMapa] = useState(0)
+  // Onda 89 (achado 4.6) — vira true quando os controles nativos já estão no
+  // DOM; ver o efeito que mede a altura deles logo abaixo.
+  const [controlesMontados, setControlesMontados] = useState(false)
+  const [alturaControlesPx, setAlturaControlesPx] = useState<number | null>(null)
 
   // `camadas` sempre atualizado, sem recriar closures — quem lê isso é
   // código assíncrono (listener de "style.load", que dispara bem depois do
@@ -553,6 +592,9 @@ export function MapaNautico({
         "top-right",
       )
       mapa.addControl(new ControleCamadas(() => setPainelAberto((v) => !v)), "top-right")
+      // A pilha de controles já existe no DOM a partir daqui (`addControl` é
+      // síncrono) — é o sinal pro efeito que MEDE essa pilha, mais abaixo.
+      if (!cancelado) setControlesMontados(true)
       // "load" só dispara uma vez na vida do mapa (estilo inicial + fontes
       // prontas) — o que ele faz agora é só resize/aoIniciar; reconstruir
       // camadas em toda troca de estilo é responsabilidade do listener
@@ -578,6 +620,7 @@ export function MapaNautico({
       cancelado = true
       mapaRef.current?.remove()
       mapaRef.current = null
+      setControlesMontados(false)
     }
     // `camadasRef.current` cobre o valor inicial de estilo/toggles (lido uma
     // vez, no mount, via ref — por isso o linter não pede pra entrar nas
@@ -610,14 +653,41 @@ export function MapaNautico({
     }
   }, [camadas.estilo])
 
+  // ONDA 89 (achado 4.6) — O PAINEL DE CAMADAS DEIXA DE MORAR NUM NÚMERO.
+  //
+  // Ele estava em `top-44`: 176px cravados, escolhidos à mão pra passar por
+  // baixo da pilha de controles nativos. Número cravado contra altura de
+  // outro elemento quebra em silêncio quando esse elemento muda — e ele
+  // acabou de mudar, nesta mesma onda: o achado 4.2 leva os botões do Mapbox
+  // de 32 pra 44px e a pilha inteira cresce quase 60px. Com 176 fixos, o
+  // painel passaria a nascer POR CIMA do botão que o abre.
+  //
+  // Medir a pilha resolve a classe do problema, não a instância: acrescentar
+  // um controle, tirar um, mudar a régua de toque de novo — o painel
+  // continua entrando logo abaixo, na mesma coluna de flutuantes que os
+  // controles já formam. `ResizeObserver` e não uma medida única porque o
+  // botão de localização muda de altura ao entrar em estado de erro.
+  useEffect(() => {
+    const raiz = containerRef.current
+    if (!controlesMontados || !raiz) return
+    const coluna = raiz.querySelector<HTMLElement>(".mapboxgl-ctrl-top-right")
+    if (!coluna) return
+    const medir = () => setAlturaControlesPx(coluna.getBoundingClientRect().height)
+     
+    medir()
+    const observador = new ResizeObserver(medir)
+    observador.observe(coluna)
+    return () => observador.disconnect()
+  }, [controlesMontados])
+
   if (!TOKEN) {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-3 rounded-[14px] border border-line bg-[#0B1D2D] p-8 text-center ${className ?? ""}`}
+        className={`flex flex-col items-center justify-center gap-3 rounded-[14px] border border-line bg-meter p-8 text-center ${className ?? ""}`}
       >
         {/* o plano pedia "bussola", que nao existe no conjunto de 28 — "mapa" e o mais proximo */}
-        <Icone nome="mapa" className="size-8 text-[#D4AF37]" />
-        <p className="corpo text-[#e9f1f8]">
+        <Icone nome="mapa" className="size-8 text-accent" />
+        <p className="corpo text-meter-texto">
           {process.env.NODE_ENV === "development"
             ? "O mapa precisa de configuração — adicione NEXT_PUBLIC_MAPBOX_TOKEN ao .env.local."
             : "Mapa indisponível no momento."}
@@ -629,22 +699,29 @@ export function MapaNautico({
   return (
     // Tela cheia: o mapa É a tela; quem emoldura é quem usa (via className).
     <div className={`relative ${className ?? ""}`}>
+      {/* Régua de toque dos controles nativos — ver CSS_ALVO_TOQUE_MAPBOX.
+          `precedence` é o que faz o React deduplicar a folha quando houver
+          mais de um mapa vivo na mesma navegação. */}
+      <style href="mapbox-alvo-toque" precedence="medium">
+        {CSS_ALVO_TOQUE_MAPBOX}
+      </style>
+
       {/* h-full em vez de absolute/inset: o CSS do mapbox forca
           .mapboxgl-map{position:relative}, que vence o .absolute na cascata e
           colapsava a altura para 0 (mapa branco) */}
       <div ref={containerRef} className="h-full w-full" />
 
       {falhaMapa && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#0B1D2D]/95 p-8 text-center">
-          <Icone nome="mapa" className="size-8 text-[#D4AF37]" />
-          <p className="corpo max-w-xs text-[#e9f1f8]">{falhaMapa}</p>
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-meter/95 p-8 text-center">
+          <Icone nome="mapa" className="size-8 text-accent" />
+          <p className="corpo max-w-xs text-meter-texto">{falhaMapa}</p>
           <button
             type="button"
             onClick={() => {
               setFalhaMapa(null)
               setTentativaMapa((t) => t + 1)
             }}
-            className="min-h-11 rounded-[14px] bg-[#D4AF37] px-6 font-semibold text-[#0B1D2D]"
+            className="min-h-11 rounded-[14px] bg-accent px-6 font-semibold text-acao-texto"
           >
             Tentar de novo
           </button>
@@ -657,14 +734,32 @@ export function MapaNautico({
         // canvas WebGL do Mapbox ("véu escuro" visto no iPhone em produção,
         // 12/08). /97 sem blur fica quase idêntico e elimina o defeito — ver
         // o comentário completo em --mapa-instrumento, app/globals.css.
-        <div className="sombra-2 absolute right-3 top-44 z-30 w-72 rounded-[14px] border border-line bg-panel/97 p-4">
+        // Onda 89 (achado 4.6) — `top-44` (176px cravados) deu lugar à altura
+        // MEDIDA da pilha de controles nativos: o painel entra na coluna de
+        // flutuantes do próprio mapa, logo abaixo do botão que o abriu, e
+        // continua entrando ali se a pilha mudar de tamanho (foi o que
+        // acabou de acontecer com a régua de 44px do achado 4.2). Enquanto a
+        // medida não chegou, `top-3` é o mesmo lugar de onde a coluna começa
+        // — nunca fica sem posição.
+        <div
+          style={{ top: alturaControlesPx ?? undefined }}
+          // `mt-2` é o MESMO gap-2 (8px) que as colunas de flutuantes desta
+          // tela já usam entre um cartão e o próximo — margem vale em
+          // elemento posicionado, então ela soma ao `top` medido.
+          className={`sombra-2 absolute right-3 z-30 mt-2 w-72 max-w-[calc(100%-1.5rem)] rounded-[14px] border border-line bg-panel/97 p-4 ${
+            alturaControlesPx == null ? "top-3" : ""
+          }`}
+        >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="titulo-card">Camadas do mapa</h2>
+            {/* Onda 89 (achado 4.2) — era `size-7` (28px), o menor alvo de
+                toque da tela de mar aberto. Margem negativa pra crescer o
+                alvo sem empurrar o cabeçalho do painel pra baixo. */}
             <button
               type="button"
               onClick={() => setPainelAberto(false)}
               aria-label="Fechar painel de camadas"
-              className="flex size-7 items-center justify-center text-dim"
+              className="-my-2 -mr-2 flex size-11 items-center justify-center text-dim"
             >
               <Icone nome="mais" className="size-4 rotate-45" />
             </button>

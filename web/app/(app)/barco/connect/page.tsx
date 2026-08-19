@@ -38,7 +38,7 @@ export default async function ConnectPage() {
       <div className="mt-3 flex items-center gap-2">
         <Icone nome="sinal" className="size-5 text-dim" />
         <h1 className="titulo-pagina">Commander Connect</h1>
-        <span className="rounded-full border border-line bg-panel2 px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim-chip">
+        <span className="rounded-full border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
           Em breve
         </span>
       </div>

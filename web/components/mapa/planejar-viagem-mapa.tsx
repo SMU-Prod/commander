@@ -6,6 +6,8 @@ import type { Map as MapaMapbox, MapMouseEvent, GeoJSONSource } from "mapbox-gl"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { Icone } from "@/components/icone"
 import { avisoCaladoViagem, usePernasViagem, usouCorredoresViagem } from "@/components/mapa/usar-pernas-viagem"
+import { useCoresMapa } from "@/components/mapa/usar-cores-mapa"
+import { criarCamadasViagem, pintarCamadasViagem } from "@/lib/mapa/camadas-viagem"
 import { criarViagem } from "@/lib/acoes/viagem"
 import {
   montarViagem,
@@ -18,16 +20,15 @@ import { hojeISO } from "@/lib/domain/datas"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { campo, rot } from "@/lib/ui/form"
 
-const COR_DOURADO = "#D4AF37"
-const COR_ALARME = "#FF5C5C"
+// ONDA 89 (achado 4.1) — as cores das camadas eram dois literais aqui e
+// outros dois iguais em VerViagemMapa. Desenho e cor foram os dois pra
+// lib/mapa/camadas-viagem.ts: passar a ler token exigiria manter DUAS
+// repinturas de tema em sincronia, e é assim que uma delas fica pra trás.
+
 // `campo`/`rot` vêm de `lib/ui/form` — este arquivo mantinha uma cópia local
 // das mesmas duas strings, então um ajuste no estilo de campo do app não
 // chegava aqui. O alias preserva o nome `rotulo` já usado no JSX abaixo.
 const rotulo = rot
-
-function colecaoVazia() {
-  return { type: "FeatureCollection" as const, features: [] as unknown[] }
-}
 
 /**
  * Planejar viagem (onda 19, Pilar Strava do Mar): escolher paradas TOCANDO
@@ -59,6 +60,9 @@ export function PlanejarViagemMapa({
   const [velocidadeTexto, setVelocidadeTexto] = useState("")
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+
+  // Cores das camadas por token do documento (onda 89, achado 4.1).
+  const cores = useCoresMapa()
 
   const pernasEstado = usePernasViagem(paradas, caladoM)
 
@@ -100,54 +104,13 @@ export function PlanejarViagemMapa({
   }, [mapaPronto, modoAdicionar])
 
   // Fontes/camadas do mapa — criadas uma vez, atualizadas via setData abaixo.
+  // `cores` entra nas dependências porque a criação é idempotente (guardada
+  // por `getSource`): numa troca de tema o efeito só chega na repintura.
   useEffect(() => {
     if (!mapaPronto) return
-    if (!mapaPronto.getSource("viagem-pernas-ok")) {
-      mapaPronto.addSource("viagem-pernas-ok", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-pernas-ok-linha",
-        type: "line",
-        source: "viagem-pernas-ok",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_DOURADO, "line-width": 3 },
-      })
-    }
-    if (!mapaPronto.getSource("viagem-pernas-sem-caminho")) {
-      mapaPronto.addSource("viagem-pernas-sem-caminho", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-pernas-sem-caminho-linha",
-        type: "line",
-        source: "viagem-pernas-sem-caminho",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_ALARME, "line-width": 2.5, "line-dasharray": [1.5, 1.5] },
-      })
-    }
-    if (!mapaPronto.getSource("viagem-paradas")) {
-      mapaPronto.addSource("viagem-paradas", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-paradas-circulos",
-        type: "circle",
-        source: "viagem-paradas",
-        paint: {
-          "circle-radius": 9,
-          "circle-color": COR_DOURADO,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#0B1D2D",
-        },
-      })
-      mapaPronto.addLayer({
-        id: "viagem-paradas-numeros",
-        type: "symbol",
-        source: "viagem-paradas",
-        layout: {
-          "text-field": ["get", "rotulo"],
-          "text-size": 11,
-          "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-        },
-        paint: { "text-color": "#0B1D2D" },
-      })
-    }
-  }, [mapaPronto])
+    criarCamadasViagem(mapaPronto, cores)
+    pintarCamadasViagem(mapaPronto, cores)
+  }, [mapaPronto, cores])
 
   // Redesenha paradas (pontos numerados) a cada mudança da lista.
   useEffect(() => {

@@ -152,7 +152,14 @@ export default async function HistoricoPage({
                 </Link>
               ) : (
                 <div key={`e-${entrada.evento.id}`} className="flex items-center gap-3 border-b border-line py-3 last:border-0">
-                  <div className="w-11 shrink-0 text-center font-mono-instr tabular-nums text-[11px] leading-tight text-dim">
+                  {/* Onda 87 — o mês abreviado sob o dia é legenda de valor:
+                      `rotulo-dado`, que já traz o 11px e uma entrelinha
+                      própria (1,4). O `leading-tight` saiu junto porque a
+                      classe vem depois na cascata e o venceria de qualquer
+                      jeito — deixá-lo seria uma linha que não faz nada. A
+                      altura da linha continua a mesma: quem a define é a
+                      coluna do meio (título + apoio), não esta. */}
+                  <div className="w-11 shrink-0 text-center font-mono-instr rotulo-dado tabular-nums text-dim">
                     <span className="block text-base text-texto">{entrada.evento.data.slice(8, 10)}</span>
                     {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
                       .format(new Date(`${entrada.evento.data}T00:00:00Z`)).replace(".", "")}

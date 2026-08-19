@@ -131,6 +131,18 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
  * Continua discreta (docs/DESIGN.md §6, regra 2: a segunda ação da tela não
  * disputa com a principal) — mas discreta agora quer dizer contorno, não
  * ausência de forma.
+ *
+ * E O RÓTULO VIROU UM SÓ. Esta tela tinha SEIS palavras para o mesmo gesto:
+ * "Ver tudo", "Ver financeiro", "Ver todos", "Ver detalhes", "Ver ficha" e
+ * "Gerenciar". O `docs/DESIGN.md` §6, regra 6, é explícito — *"duas telas que
+ * fazem a mesma coisa têm que parecer a mesma coisa"* —, e vocabulário é
+ * metade dessa aparência: seis nomes para "abrir a seção" fazem a pessoa
+ * parar para ler, em vez de reconhecer.
+ *
+ * Sobram DUAS exceções, e as duas mudam o que acontece de verdade:
+ * "Gerenciar" leva a uma tela de EDIÇÃO (convidar, remover acesso), não a uma
+ * lista; e "Completar" aparece só quando o barco ainda não tem dado — é
+ * convite para preencher, não para ver.
  */
 function AcaoCartao({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -501,7 +513,7 @@ export default async function HojePage({
             titulo="Gastos do mês"
             className="order-7"
             acao={resumoMes.totalMesCentavos > 0
-              ? <AcaoCartao href="/financeiro">Ver financeiro</AcaoCartao>
+              ? <AcaoCartao href="/financeiro">Ver tudo</AcaoCartao>
               : undefined}
           >
             {resumoMes.totalMesCentavos > 0 ? (
@@ -588,7 +600,7 @@ export default async function HojePage({
             icone="pessoas"
             titulo="Comandantes disponíveis"
             className="order-11"
-            acao={<AcaoCartao href="/comandantes">Ver todos</AcaoCartao>}
+            acao={<AcaoCartao href="/comandantes">Ver tudo</AcaoCartao>}
           >
             {(comandantes ?? []).map((c) => (
               <LinhaLista
@@ -614,7 +626,7 @@ export default async function HojePage({
           selo={<Selo estado={seloDaSaude(estadoSaude)}>{rotuloDaSaude(estadoSaude)}</Selo>}
           acao={
             estadoSaude != null
-              ? <AcaoCartao href="/barco/saude">Ver detalhes</AcaoCartao>
+              ? <AcaoCartao href="/barco/saude">Ver tudo</AcaoCartao>
               : <AcaoCartao href="/barco">Completar</AcaoCartao>
           }
         >
@@ -695,7 +707,7 @@ export default async function HojePage({
           className="order-6"
           /* Vazio, quem convida é o próprio `EstadoVazio` — dois links pro
              mesmo assunto no mesmo cartão é ruído, não conveniência. */
-          acao={motores.length > 0 ? <AcaoCartao href="/barco">Ver ficha</AcaoCartao> : undefined}
+          acao={motores.length > 0 ? <AcaoCartao href="/barco">Ver tudo</AcaoCartao> : undefined}
         >
           {/* `enfase="discreta"` nos QUATRO estados vazios desta tela (aqui,
               Gastos, Mar agora e Tripulação). Num barco recém-cadastrado eles

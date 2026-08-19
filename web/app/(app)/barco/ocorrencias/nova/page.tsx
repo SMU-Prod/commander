@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarOcorrencia } from "@/lib/acoes/ocorrencias"
@@ -7,7 +8,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { ABAS_OCORRENCIA, GRAVIDADES, ROTULO_GRAVIDADE, type Gravidade } from "@/lib/domain/ocorrencias"
 import { podeEditar, ROTULO_ABA, type Aba } from "@/lib/domain/permissoes"
 import { rot } from "@/lib/ui/form"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 // O segmento escolhido acende na cor do que a escolha SIGNIFICA (canvas
 // tela-3g pinta a "Média" selecionada de âmbar): alta é a luz de crítico —
@@ -133,9 +134,10 @@ export default async function NovaOcorrenciaPage({
             placeholder="Onde exatamente, quando notou, se piora navegando…"
           />
 
-          <button className={`${ACAO_NAO_ESTICA} h-12 rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto`}>
-            Abrir ocorrência
-          </button>
+          {/* ONDA 85 — este formulário sobe FOTO (até 10 MB, no 3G da marina).
+              É um dos caminhos mais longos do app, e era o mais mudo: o botão
+              ficava idêntico do primeiro ao último byte. */}
+          <BotaoEnviar rotulo="Abrir ocorrência" />
         </form>
       )}
     </main>

@@ -35,16 +35,36 @@ export default async function EstoquePage({
   if (!painel) redirect("/onboarding")
 
   const supabase = await supabaseServer()
-  const { data } = await supabase.from("estoque_itens").select("*").order("nome")
+  // AUDITORIA 19/08, A4 — `estoque_movimentos` era write-only: a tela gravava
+  // "esta peça saiu para aquela unidade" e não tinha como mostrar. Sem o
+  // rastro, /estoque respondia só "quanto tem", e não "para onde foram os 8
+  // litros de óleo que sumiram este mês" — que é a pergunta que justifica ter
+  // controle de estoque.
+  const [{ data }, { data: brutosMovimentos }] = await Promise.all([
+    supabase.from("estoque_itens").select("*").order("nome"),
+    supabase.from("estoque_movimentos").select("*")
+      .order("criado_em", { ascending: false }).limit(20),
+  ])
 
   type Item = {
     id: string; nome: string; categoria: CategoriaEstoque; unidade: string | null
     quantidade: number; minimo: number | null; fornecedor: string | null
   }
+  type Movimento = {
+    id: string; item_id: string; tipo: string; quantidade: number
+    embarcacao_id: string | null; motivo: string | null; criado_em: string
+  }
   const itens = (data ?? []) as Item[]
   const comEstado = itens.map((i) => ({ ...i, estado: estadoDoItem(Number(i.quantidade), i.minimo) }))
   const repor = comEstado.filter((i) => precisaRepor(i.estado))
   const emOrdem = comEstado.filter((i) => !precisaRepor(i.estado))
+
+  const movimentos = (brutosMovimentos ?? []) as Movimento[]
+  const itemPorId = new Map(itens.map((i) => [i.id, i]))
+  const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
+  const ROTULO_MOVIMENTO: Record<string, string> = {
+    entrada: "Entrada", retirada: "Retirada", ajuste: "Ajuste",
+  }
 
   const Linha = ({ i }: { i: (typeof comEstado)[number] }) => (
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
@@ -79,6 +99,27 @@ export default async function EstoquePage({
           wrapperClassName="w-24"
           className="font-mono-instr tabular-nums"
         />
+        {/* AUDITORIA 19/08, B5 — O SELETOR QUE O CABEÇALHO JÁ PROMETIA.
+            "A unidade entra na RETIRADA", diz o comentário lá em cima, e a
+            action gravava a unidade ATIVA sem perguntar. Quem está no balcão
+            do almoxarifado tirando um filtro raramente tem aberta no app a
+            unidade que vai receber a peça — o rastro saía errado com cara de
+            certo. A unidade ativa continua sendo o padrão, porque é o palpite
+            certo na maioria das vezes; ela só deixou de ser imposta. Ignorado
+            na entrada e no ajuste, que são movimentos da prateleira e não de
+            nenhuma unidade. */}
+        <CampoSelect
+          label="Para qual unidade"
+          id={`unidade-${i.id}`}
+          name="embarcacao_id"
+          wrapperClassName="min-w-[8rem] flex-1"
+          defaultValue={painel.embarcacao.id}
+          dica="Só vale na retirada."
+        >
+          {painel.embarcacoes.map((e) => (
+            <option key={e.id} value={e.id}>{e.nome}</option>
+          ))}
+        </CampoSelect>
         <Campo
           label="Motivo"
           id={`motivo-${i.id}`}
@@ -170,6 +211,47 @@ export default async function EstoquePage({
         <div className="space-y-2">
           {emOrdem.map((i) => <Linha key={i.id} i={i} />)}
         </div>
+      )}
+
+      {/* A4 — o rastro, finalmente lido. Só as 20 últimas: quem abre esta
+          seção está atrás de "para onde foi o que sumiu esta semana", não de
+          um extrato contábil. */}
+      {movimentos.length > 0 && (
+        <>
+          <SecaoPagina icone="relatorio">Últimas movimentações</SecaoPagina>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            {movimentos.map((m) => {
+              const item = itemPorId.get(m.item_id)
+              return (
+                <div key={m.id} className="flex items-center justify-between gap-2 border-b border-line py-3 last:border-0">
+                  <span className="min-w-0">
+                    <span className="corpo block truncate">
+                      {/* Item que não veio na consulta é item apagado depois do
+                          movimento — o movimento continua sendo verdade, e a
+                          linha diz que não sabe o nome em vez de sumir. */}
+                      {item?.nome ?? "Item removido do cadastro"}
+                    </span>
+                    <span className="apoio block text-dim">
+                      {ROTULO_MOVIMENTO[m.tipo] ?? m.tipo}
+                      {m.embarcacao_id &&
+                        ` · ${nomeDaUnidade.get(m.embarcacao_id) ?? "unidade fora da sua lista"}`}
+                      {" · "}
+                      <span className="font-mono-instr tabular-nums">
+                        {new Date(m.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      </span>
+                      {m.motivo && ` · ${m.motivo}`}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono-instr text-sm tabular-nums">
+                    {m.tipo === "retirada" ? "−" : m.tipo === "entrada" ? "+" : ""}
+                    {Number(m.quantidade).toLocaleString("pt-BR")}
+                    {item?.unidade ? ` ${item.unidade}` : ""}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       <SecaoPagina icone="mais">Novo item</SecaoPagina>

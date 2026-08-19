@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { CampoSenha } from "@/components/campo-senha"
 import { Logo } from "@/components/logo"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { cadastrar, entrar, pedirNovaSenha, reenviarConfirmacao } from "@/lib/acoes/auth"
 
 /**
@@ -132,10 +133,16 @@ export default async function LoginPage({
             placeholder={cadastro ? "Mínimo de 8 caracteres" : undefined}
           />
         )}
-        {/* A única dourada da tela (DESIGN §5): uma ação principal. */}
-        <button className="mt-1 h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto">
-          {recuperar ? "Enviar link" : cadastro ? "Criar conta" : "Entrar"}
-        </button>
+        {/* A única dourada da tela (DESIGN §5): uma ação principal.
+            ONDA 85 — e a que mais precisava avisar que estava enviando: entrar
+            e cadastrar batem na rede, e o duplo-toque disparava a action duas
+            vezes. `larguraCheia` porque esta coluna é 430px em qualquer
+            monitor — ver a prop. */}
+        <BotaoEnviar
+          larguraCheia
+          className="mt-1"
+          rotulo={recuperar ? "Enviar link" : cadastro ? "Criar conta" : "Entrar"}
+        />
         {cadastro && (
           <p className="apoio text-center text-dim">
             Ao criar a conta você concorda com os{" "}
@@ -192,9 +199,14 @@ export default async function LoginPage({
             id="email-reenvio" name="email" type="email" required defaultValue={email ?? ""}
             placeholder="voce@exemplo.com" autoComplete="email" className={campo}
           />
-          <button className="mt-3 h-11 w-full rounded-[var(--raio-controle)] border border-line bg-panel2 text-sm font-medium text-texto">
-            Reenviar
-          </button>
+          {/* ONDA 85 — vira a PÍLULA DE CONTORNO, e contida. Era um botão de
+              largura cheia com o canto de um controle: do outro lado da tela
+              ele lia como uma segunda ação principal, competindo com "Entrar"
+              — e a auditoria (§3.3) já tinha flagrado as duas alturas
+              diferentes desta mesma tela como hierarquia embaralhada. Contorno
+              + largura do próprio conteúdo diz "sou a saída secundária" pela
+              FORMA, que é a régua de `lib/ui/acoes.ts`. */}
+          <BotaoEnviar variante="contorno" className="mt-3" rotulo="Reenviar" />
         </form>
       )}
 

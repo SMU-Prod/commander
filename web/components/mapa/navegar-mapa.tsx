@@ -8,9 +8,12 @@ import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
 import { TempoPainel } from "@/components/mapa/tempo-painel"
+import { useCoresMapa } from "@/components/mapa/usar-cores-mapa"
 import { Icone } from "@/components/icone"
 import { Medidor } from "@/components/ui/medidor"
+import { ProgressoRota } from "@/components/ui/progresso-rota"
 import { Selo } from "@/components/ui/selo"
+import { formatarEta } from "@/lib/mapa/eta"
 import { salvarTrilha } from "@/lib/acoes/trilha"
 import { haversineNm, resumoTrilha, MAX_PONTOS_TRILHA, type PontoTrilha, type ResumoTrilha } from "@/lib/domain/geo"
 import { msParaNos, rumoGraus, etaMinutos, foraDoRaio } from "@/lib/domain/navegacao"
@@ -94,10 +97,28 @@ type EstadoRota = EstadoRotaResultado | { tipo: "ausente" }
 // Worker por nada — so vale recalcular quando o barco realmente andou.
 const LIMIAR_RECALCULO_M = 200
 
+// Onda 90 (achado 4.5) — entrada do modo "só navegação" por MOVIMENTO. A
+// justificativa de cada um dos dois números está no efeito que os usa
+// (procure por `inicioDaMarchaRef`); resumo: 4 kt é acima do que um barco
+// parado produz e abaixo de qualquer manobra real, e 30 s é mais longo que
+// qualquer rajada de ruído de SOG do GPS.
+const LIMIAR_SO_NAVEGACAO_KT = 4
+const MS_MARCHA_SUSTENTADA = 30_000
+
 const CHAVE_ANCORA = "ancora"
 const RAIO_PADRAO_M = 40
-const COR_DOURADO = "#D4AF37"
-const COR_ALARME = "#FF5C5C"
+
+// ONDA 89 (achado 4.1) — AS CORES DESTA TELA SAÍRAM DO HEXADECIMAL.
+//
+// Aqui viviam três literais (o dourado da marca, o vermelho de alarme e o
+// navy do casing) e eles produziam o defeito mais visível da auditoria: a
+// linha da rota era dourada e a pílula de SOG encostada nela era limão,
+// porque a pílula lê o token e a linha não. Duas marcas, na mesma tela.
+//
+// Agora tudo que pinta CAMADA lê `useCoresMapa()` (ver
+// lib/mapa/cores-tema.ts pro porquê de o canvas WebGL precisar da leitura
+// explícita) e tudo que pinta DOM usa classe utilitária, que resolve o token
+// sozinha. Nenhum dos dois caminhos pode divergir do `app/globals.css`.
 
 // Onda 26 (modo navegando) — parâmetros da câmera perseguidora. Constantes
 // de módulo (não dependem de props/estado): `FATOR_AMORTECIMENTO_RUMO` mais
@@ -118,13 +139,9 @@ const PITCH_NAVEGANDO = 55
 const FRACAO_PADDING_TOPO = 0.55
 const DURACAO_EASETO_MS = 1200
 // Onda 23 — casing da rota: traco escuro translucido por baixo do nucleo
-// dourado, mesmo padrao dos apps de navegacao serios (legivel sobre o
-// nautico "faded" claro E sobre o satelite, que varia muito de cor). Mesmo
-// navy de sempre (--fundo/--meter no tema escuro) — camadas do Mapbox
-// pintam no canvas WebGL, nao no DOM, entao nao enxergam var(--cor); por
-// isso o literal, igual ao resto dos hex fixos deste arquivo (COR_ALARME
-// acima, os anveis dos marcadores abaixo).
-const COR_CASING = "#0B1D2D"
+// da marca, mesmo padrao dos apps de navegacao serios (legivel sobre o
+// nautico "faded" claro E sobre o satelite, que varia muito de cor). O navy
+// dele agora e o token `--meter` lido pelo helper — ver o bloco acima.
 
 // Ícones/cores do pino do parceiro (onda 10, Pedido 2) — extraídos pra
 // web/lib/mapa/pino-parceiro.ts na onda 39 (ExplorarMapa passou a
@@ -157,21 +174,26 @@ function criarElementoBarco(): HTMLDivElement {
   el.className = "relative flex size-8 items-center justify-center"
 
   const halo = document.createElement("span")
-  halo.className = "marcador-barco-halo absolute -inset-2.5 rounded-full bg-[#0B1D2D]/60"
+  halo.className = "marcador-barco-halo absolute -inset-2.5 rounded-full bg-meter/60"
   el.appendChild(halo)
 
-  // proa: visível com rumo conhecido, rotacionada via transform inline
+  // proa: visível com rumo conhecido, rotacionada via transform inline.
+  // Onda 89 — `bg-accent` no lugar do dourado cravado: era ESTE marcador que
+  // aparecia dourado ao lado do botão "Voltar ao barco" limão. `currentColor`
+  // no preenchimento do traçado, com o par de contraste da ação na classe do
+  // container — se a utilitária faltar, o traço herda cor em vez de sumir.
   const proa = document.createElement("div")
   proa.dataset.papel = "proa"
-  proa.className = "relative flex size-7 items-center justify-center rounded-full bg-[#D4AF37] ring-2 ring-white shadow"
-  proa.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="#0B1D2D">${TRACADO_PROA_BARCO}</svg>`
+  proa.className =
+    "relative flex size-7 items-center justify-center rounded-full bg-accent text-acao-texto ring-2 ring-white shadow"
+  proa.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">${TRACADO_PROA_BARCO}</svg>`
   el.appendChild(proa)
 
   // ponto: visível sem rumo (parado, ou o navegador não expõe o dado) —
   // mesma cor da marca, sem seta nenhuma pra não inventar uma direção.
   const ponto = document.createElement("div")
   ponto.dataset.papel = "ponto"
-  ponto.className = "relative hidden size-4 rounded-full bg-[#D4AF37] ring-2 ring-white shadow"
+  ponto.className = "relative hidden size-4 rounded-full bg-accent ring-2 ring-white shadow"
   el.appendChild(ponto)
 
   return el
@@ -198,8 +220,8 @@ function atualizarRumoBarco(el: HTMLDivElement, rumo: number | null) {
  *  usuário) usado acima. */
 function criarElementoMob(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "flex size-9 items-center justify-center rounded-full bg-[#FF5C5C] ring-2 ring-white shadow-lg"
-  el.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0B1D2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_MOB}</svg>`
+  el.className = "flex size-9 items-center justify-center rounded-full bg-crit text-acao-texto ring-2 ring-white shadow-lg"
+  el.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_MOB}</svg>`
   return el
 }
 
@@ -219,8 +241,7 @@ const TRACADO_DESTINO_ROTA = '<path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7
  *  linha comeca. */
 function criarElementoOrigemRota(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "size-3.5 rounded-full ring-2 ring-white shadow"
-  el.style.backgroundColor = COR_DOURADO
+  el.className = "size-3.5 rounded-full bg-accent ring-2 ring-white shadow"
   return el
 }
 
@@ -238,14 +259,13 @@ function criarElementoDestinoRota(aproximado: boolean): HTMLDivElement {
   if (aproximado) {
     const halo = document.createElement("span")
     halo.setAttribute("aria-hidden", "true")
-    halo.className = "absolute -inset-2 rounded-full border-2 border-dashed"
-    halo.style.borderColor = COR_DOURADO
+    halo.className = "absolute -inset-2 rounded-full border-2 border-dashed border-accent"
     wrapper.appendChild(halo)
   }
   const corpo = document.createElement("div")
-  corpo.className = "relative flex size-9 items-center justify-center rounded-full ring-2 ring-white shadow-lg"
-  corpo.style.backgroundColor = COR_DOURADO
-  corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0B1D2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_DESTINO_ROTA}</svg>`
+  corpo.className =
+    "relative flex size-9 items-center justify-center rounded-full bg-accent text-acao-texto ring-2 ring-white shadow-lg"
+  corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_DESTINO_ROTA}</svg>`
   wrapper.appendChild(corpo)
   return wrapper
 }
@@ -388,6 +408,10 @@ export function NavegarMapa({
   destinoInicial?: { la: number; lo: number; nome: string } | null
 }) {
   const router = useRouter()
+
+  // Onda 89 (achado 4.1) — os tokens de cor que as camadas do Mapbox
+  // consomem, reagindo à troca de tema (ver lib/mapa/cores-tema.ts).
+  const cores = useCoresMapa()
 
   // Onda 25 (bug de produção, iPhone tema escuro, 12/08) — véu escuro atrás
   // dos cartões flutuantes. Suspeito A: o body pinta --fundo (navy escuro)
@@ -595,6 +619,80 @@ export function NavegarMapa({
   // alarme de âncora (segurança > estética) e o botão de MOB (vira só-ícone,
   // mas nunca some).
   const [modoSoNavegacao, setModoSoNavegacao] = useState(false)
+
+  // ONDA 90 (achado 4.5) — O MODO LIMPO ENTRA POR MOVIMENTO, NÃO POR DESTINO.
+  //
+  // Até aqui a tela só se limpava sozinha se houvesse um destino marcado
+  // (`modoNavegando`, mais abaixo). Só que sair da marina SEM destino é o
+  // caso mais comum que existe — dar uma volta, ir pescar, atravessar pra
+  // ilha de sempre — e nele o barco podia estar a 18 nós com a tela ainda
+  // cheia de cartão. Waze e Navionics reagem a MOVIMENTO; a condição hostil
+  // (sol, balanço, mão molhada) é o barco em marcha, com ou sem rota.
+  //
+  // OS DOIS NÚMEROS, e por que estes:
+  //
+  // 4 kt — o limiar de "isto é marcha, não balanço". `emMovimento` (domínio)
+  // usa 2 kt pra entrar no modo navegando, mas LÁ a pessoa já declarou
+  // intenção marcando um destino; aqui o app está adivinhando sozinho, e
+  // errar custa a tela sumindo na cara de quem não pediu nada. 2 kt é
+  // alcançável por um barco fundeado garrando em corrente, por um veleiro
+  // sendo rebocado na doca, e por um pico de ruído de SOG do GPS. 4 kt não
+  // é: está acima do que qualquer coisa parada produz e abaixo de qualquer
+  // velocidade de manobra real (um deslocamento em marcha lenta na área de
+  // marina já fica em 5-6 kt).
+  //
+  // 30 s — o tempo SUSTENTADO acima do limiar. GPS parado oscila, e o que
+  // ele produz é pico curto, não platô: um único tick ruim não pode limpar
+  // a tela. Trinta segundos é mais longo que qualquer rajada de ruído
+  // plausível (o watcher entrega um ponto a cada poucos segundos, então são
+  // ~6 a 10 leituras seguidas concordando) e curto o bastante pra a tela já
+  // estar limpa antes de o barco sair do canal da marina.
+  //
+  // A SAÍDA não espelha a entrada — mesma regra do `modoNavegando`: parar
+  // (esperar numa poita, boiar pescando) não devolve os cartões sozinho. Só
+  // o toque da pessoa devolve, e esse toque VENCE o automático até o barco
+  // parar de novo (`saidaManualSoNavegacaoRef`). Os dois números são
+  // constantes de módulo (`LIMIAR_SO_NAVEGACAO_KT`/`MS_MARCHA_SUSTENTADA`,
+  // no topo do arquivo) — não dependem de prop nem de estado.
+
+  // Instante em que a velocidade cruzou o limiar e não caiu mais desde
+  // então; `null` = não está em marcha agora.
+  const inicioDaMarchaRef = useRef<number | null>(null)
+  // "Já estou em marcha sustentada" — lido pelo efeito de transição do modo
+  // navegando (mais abaixo) pra não devolver os cartões a um barco que
+  // continua a 18 nós só porque o destino foi cancelado.
+  const marchaSustentadaRef = useRef(false)
+  // O toque da pessoa manda: sair à mão trava a reentrada automática até o
+  // barco parar. Mesmo papel do `saidaManualRef` do modo navegando.
+  const saidaManualSoNavegacaoRef = useRef(false)
+
+  useEffect(() => {
+    if (sogKt == null || sogKt < LIMIAR_SO_NAVEGACAO_KT) {
+      inicioDaMarchaRef.current = null
+      marchaSustentadaRef.current = false
+      // Parar zera a recusa: a próxima marcha é uma decisão nova, não a
+      // mesma que a pessoa já recusou.
+      saidaManualSoNavegacaoRef.current = false
+      return
+    }
+    const agora = Date.now()
+    inicioDaMarchaRef.current ??= agora
+    if (agora - inicioDaMarchaRef.current < MS_MARCHA_SUSTENTADA) return
+    marchaSustentadaRef.current = true
+    if (saidaManualSoNavegacaoRef.current) return
+     
+    setModoSoNavegacao(true)
+    // `posAtual` entra junto de propósito: se o GPS repetir a MESMA
+    // velocidade em dois ticks, `sogKt` não muda de identidade e o efeito
+    // não roda — e o relógio dos 30 s nunca seria conferido de novo.
+  }, [sogKt, posAtual])
+
+  // Toque na seta de recolher/expandir. Sair no meio da marcha é decisão da
+  // pessoa e vence a entrada automática; entrar à mão não trava nada.
+  function alternarSoNavegacao() {
+    saidaManualSoNavegacaoRef.current = modoSoNavegacao
+    setModoSoNavegacao(!modoSoNavegacao)
+  }
 
   // --- mapa + parceiros ------------------------------------------------------
   const [mapaPronto, setMapaPronto] = useState<MapaMapbox | null>(null)
@@ -844,6 +942,12 @@ export function NavegarMapa({
 
   // Fontes/camadas do mapa (linha de rumo + círculo do alarme) — criadas uma
   // vez quando o mapa fica pronto; atualizadas via setData nos efeitos abaixo.
+  //
+  // Onda 89 (achado 4.1) — `cores` entra nas dependências e a repintura vem
+  // no fim do efeito: a criação é idempotente (guardada por `getSource`),
+  // então numa troca de tema o efeito atravessa os guardiões sem fazer nada
+  // e só repinta o que já existe. É isso que faz o canvas acompanhar o
+  // alternador claro/escuro, que o DOM acompanha de graça.
   useEffect(() => {
     if (!mapaPronto) return
     if (!mapaPronto.getSource("rumo")) {
@@ -856,7 +960,7 @@ export function NavegarMapa({
         type: "line",
         source: "rumo",
         layout: { "line-cap": "round" },
-        paint: { "line-color": COR_DOURADO, "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 },
+        paint: { "line-color": cores.acao, "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.55 },
       })
     }
     if (!mapaPronto.getSource("rota")) {
@@ -874,14 +978,14 @@ export function NavegarMapa({
         type: "line",
         source: "rota",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_CASING, "line-width": 6.5, "line-opacity": 0.55 },
+        paint: { "line-color": cores.meter, "line-width": 6.5, "line-opacity": 0.55 },
       })
       mapaPronto.addLayer({
         id: "rota-linha",
         type: "line",
         source: "rota",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_DOURADO, "line-width": 3 },
+        paint: { "line-color": cores.acao, "line-width": 3 },
       })
     }
     if (!mapaPronto.getSource("rota-pontos")) {
@@ -893,9 +997,9 @@ export function NavegarMapa({
         source: "rota-pontos",
         paint: {
           "circle-radius": 4,
-          "circle-color": COR_DOURADO,
+          "circle-color": cores.acao,
           "circle-stroke-width": 1.5,
-          "circle-stroke-color": "#0B1D2D",
+          "circle-stroke-color": cores.acaoTexto,
         },
       })
     }
@@ -905,16 +1009,33 @@ export function NavegarMapa({
         id: "ancora-circulo-preenchimento",
         type: "fill",
         source: "ancora-circulo",
-        paint: { "fill-color": COR_ALARME, "fill-opacity": 0.12 },
+        paint: { "fill-color": cores.crit, "fill-opacity": 0.12 },
       })
       mapaPronto.addLayer({
         id: "ancora-circulo-contorno",
         type: "line",
         source: "ancora-circulo",
-        paint: { "line-color": COR_ALARME, "line-width": 2 },
+        paint: { "line-color": cores.crit, "line-width": 2 },
       })
     }
-  }, [mapaPronto, versaoEstilo])
+
+    // Repintura — ver o comentário no topo deste efeito.
+    // A propriedade é uma união literal (e não `string`) porque é assim que
+    // o `setPaintProperty` do mapbox-gl é tipado — escrever `string` aqui
+    // desligaria a checagem que garante que "line-color" não virou
+    // "linecolor" num dedo torto.
+    type PropriedadeDeCor = "line-color" | "circle-color" | "circle-stroke-color" | "fill-color"
+    const pintar = (camada: string, propriedade: PropriedadeDeCor, valor: string) => {
+      if (mapaPronto.getLayer(camada)) mapaPronto.setPaintProperty(camada, propriedade, valor)
+    }
+    pintar("rumo-linha", "line-color", cores.acao)
+    pintar("rota-linha-casing", "line-color", cores.meter)
+    pintar("rota-linha", "line-color", cores.acao)
+    pintar("rota-pontos-circulos", "circle-color", cores.acao)
+    pintar("rota-pontos-circulos", "circle-stroke-color", cores.acaoTexto)
+    pintar("ancora-circulo-preenchimento", "fill-color", cores.crit)
+    pintar("ancora-circulo-contorno", "line-color", cores.crit)
+  }, [mapaPronto, versaoEstilo, cores])
 
   // Linha de rumo posição→destino, redesenhada a cada nova posição.
   useEffect(() => {
@@ -1097,6 +1218,40 @@ export function NavegarMapa({
     return etaMinutos(progressoRotaAtual.distanciaRestanteNm, sogKt)
   }, [progressoRotaAtual, sogKt])
 
+  // ONDA 90 (achado 4.4) — A DISTÂNCIA TOTAL DA TRAVESSIA, CONGELADA NA
+  // ENTRADA.
+  //
+  // O `ProgressoRota` precisa de um TOTAL pra ter denominador, e não dá pra
+  // usar `estadoRotaAtual.distanciaNm`: o A* recalcula a rota A PARTIR DA
+  // POSIÇÃO ATUAL a cada 200 m andados, então esse número é a distância que
+  // FALTA, não a da travessia — dividir um pelo outro daria 0% pra sempre.
+  //
+  // O denominador honesto é "o quanto faltava quando esta navegação
+  // começou". Ele é lido uma vez, na entrada do modo, e zera quando o modo
+  // sai ou quando o destino muda (destino novo é travessia nova). Se a rota
+  // crescer no meio do caminho — desvio, recálculo por calado — a barra
+  // trava em 100% em vez de estourar o trilho (`percentualPreso`, no
+  // componente).
+  const [totalTravessiaNm, setTotalTravessiaNm] = useState<number | null>(null)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- zera na transicao de modo/destino; o valor congelado nao e derivavel do render
+    setTotalTravessiaNm(null)
+  }, [modoNavegando, destino])
+  useEffect(() => {
+    if (!modoNavegando || totalTravessiaNm != null || !progressoRotaAtual) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- congela a primeira leitura valida de GPS apos entrar no modo
+    setTotalTravessiaNm(progressoRotaAtual.distanciaRestanteNm)
+  }, [modoNavegando, totalTravessiaNm, progressoRotaAtual])
+
+  /** Percentual já percorrido da travessia. `null` enquanto o total ainda
+   *  não foi congelado (uma renderização, no máximo) — e `null` NÃO vira
+   *  zero desenhado: o painel simplesmente não mostra a barra ainda, em vez
+   *  de afirmar "0% percorrido" sobre um dado que não existe. */
+  const percentualTravessia = useMemo(() => {
+    if (totalTravessiaNm == null || totalTravessiaNm <= 0 || !progressoRotaAtual) return null
+    return ((totalTravessiaNm - progressoRotaAtual.distanciaRestanteNm) / totalTravessiaNm) * 100
+  }, [totalTravessiaNm, progressoRotaAtual])
+
   // O listener de gesto do usuário (registrado uma vez por instância do
   // mapa, deps `[mapaPronto]`, ver efeito mais abaixo) precisa ver o valor
   // MAIS RECENTE de `modoNavegando` sem recriar o listener a cada
@@ -1159,9 +1314,17 @@ export function NavegarMapa({
   // decide o estado inicial de "só navegação", nunca briga com um toque
   // manual depois; por isso não dá pra virar `modoSoNavegacao` derivado
   // (ele PRECISA continuar divergindo livremente depois do toque).
+  //
+  // Onda 90 (achado 4.5) — a SAÍDA deste modo deixou de forçar `false`: se o
+  // destino for cancelado com o barco ainda a 18 nós, devolver os cartões
+  // seria desfazer, por um segundo, exatamente o que a entrada por movimento
+  // acabou de decidir (e o efeito de marcha os recolheria de novo no tick
+  // seguinte, piscando). Quem manda no estado de saída é a marcha.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reseta um estado INDEPENDENTE na transicao; precisa continuar divergindo livre depois (nao e derivavel)
-    setModoSoNavegacao(modoNavegando)
+     
+    setModoSoNavegacao(
+      modoNavegando || (marchaSustentadaRef.current && !saidaManualSoNavegacaoRef.current),
+    )
   }, [modoNavegando])
 
   // Entrar sempre retoma a perseguição — nunca nasce já pausado, mesmo
@@ -1649,7 +1812,17 @@ export function NavegarMapa({
                   default do componente (metade/três-quartos/resto). */}
               <div className="rounded-[10px] border border-line bg-panel px-2 pb-1 pt-2">
                 <p className="rotulo-dado text-center text-dim">Velocidade</p>
-                <Medidor valor={sogKt} max={40} unidade="kt" rotulo="Velocidade" className="max-w-[200px]" />
+                {/* ONDA 89 (achado 4.3) — A ESCALA DO MEDIDOR SAI DE 9,5px.
+                    O `viewBox` do Medidor é 200×160 e os números da escala
+                    são desenhados em 9,5 unidades. Com a caixa travada em
+                    200px o fator de escala era 1,0 — ou seja, 9,5px de
+                    verdade na tela, contra o piso de 11px que o
+                    app/globals.css declara ("nada abaixo de 11px"). Ilegível
+                    sob sol, que é a única condição em que esta tela é usada.
+                    240px dá fator 1,2 e leva a escala pra 11,4px sem tocar
+                    no componente (o teto interno dele é 260px, e o cartão
+                    flutuante tem 380px de largura no desktop — sobra). */}
+                <Medidor valor={sogKt} max={40} unidade="kt" rotulo="Velocidade" className="max-w-[240px]" />
               </div>
 
               {/* Abas — o que eram três cartões empilhados. As TRÊS ficam
@@ -1838,52 +2011,71 @@ export function NavegarMapa({
           }`}
         >
           {progressoRotaAtual && destino && (
-            <div className="sombra-2 pointer-events-auto w-64 rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
+            // ONDA 90 (achado 4.4) — O PAINEL VIRA INSTRUMENTO DE PROGRESSO.
+            //
+            // Eram quatro `Mostrador` numa grade 2×2 (próxima virada,
+            // restante, ETA, velocidade): quatro números soltos que dizem
+            // QUANTO falta e nunca ONDE se está. O `ProgressoRota` — item 6
+            // do spec haulix-exato, marcado P0, escrito e testado desde a
+            // onda 79 com ZERO consumidores — junta origem, destino, trilho
+            // e proporção numa peça só, e absorve dois dos quatro
+            // mostradores (restante e ETA) no caminho.
+            //
+            // Isso também desarma o risco aritmético que a auditoria
+            // levantou: numa célula de ~112px, "282,1 MN" em text-2xl mono
+            // não cabe. Restante saiu da grade (agora é o número de 13px do
+            // ProgressoRota) e a grade caiu pra dois campos, com mais que o
+            // dobro de folga cada.
+            //
+            // `w-72` e não `w-64`: a linha "origem → destino" precisa de
+            // largura pra truncar tarde, e 288px continua caindo folgado num
+            // celular de 390.
+            <div className="sombra-2 pointer-events-auto w-72 max-w-[calc(100vw-1.5rem)] rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
               {/* Onda 62 (canvas tela-1c) — a anatomia do cabeçalho do
-                  painel: o destino à esquerda (o dado que muda), o estado
-                  como pílula verde à direita — cor E palavra, mesmo Selo do
-                  resto do app (o override de --ok em .bg-mapa-instrumento
-                  já garante o verde vivo sobre navy). Cosmético apenas:
-                  mesmos dados, nenhum efeito ou lógica de mapa tocada. */}
-              <div className="flex items-center gap-2">
-                {/* !text-meter-texto (onda 80, achado tardio): `.titulo-card`
-                    ganhou `color: var(--texto)` fixo no mesmo commit que
-                    trouxe a Inter (ver app/globals.css) — sem o override,
-                    este texto fica invisível no tema claro (navy sobre
-                    navy, a mesma cor de --mapa-instrumento). O `!` força a
-                    cor certa deste cartão (fixa, não segue o tema) a vencer
-                    a cor que a classe agora embute. */}
-                <span className="titulo-card flex min-w-0 flex-1 items-center gap-1.5 !text-meter-texto">
-                  <Icone nome="embarcacao" className="size-3.5 shrink-0 text-accent" />
-                  <span className="truncate">{destino.nome}</span>
-                </span>
-                <Selo estado="ok">Navegando</Selo>
-              </div>
-              {/* Honestidade de GPS (task 4): mesmo limiar de 60 m já usado
+                  painel: o estado como pílula verde à direita, cor E
+                  palavra, mesmo Selo do resto do app (o override de --ok em
+                  .bg-mapa-instrumento já garante o verde vivo sobre navy).
+                  Onda 90 — o destino saiu daqui pra dentro do ProgressoRota
+                  (escrever o mesmo nome duas vezes num cartão de 288px é
+                  gastar a largura que a linha da rota precisa), e a vaga da
+                  esquerda ficou pra honestidade de GPS, que antes custava
+                  uma linha só dela.
+                  Honestidade de GPS (task 4): mesmo limiar de 60 m já usado
                   no filtro anti-jitter do alarme de âncora — acima disso a
                   leitura já não conta lá, e aqui não pode fingir que a
                   posição na tela é exata. */}
-              {precisaoM != null && precisaoM > 60 && (
-                <p className="apoio mt-1 text-warn">GPS impreciso (~{Math.round(precisaoM)} m)</p>
+              <div className="flex items-center gap-2">
+                <span className="apoio min-w-0 flex-1 truncate text-warn">
+                  {precisaoM != null && precisaoM > 60 ? `GPS impreciso (~${Math.round(precisaoM)} m)` : ""}
+                </span>
+                <Selo estado="ok">Navegando</Selo>
+              </div>
+
+              {/* "Aqui" e não o nome de uma origem: a travessia começa na
+                  posição do barco NESTE instante, que não tem nome nenhum —
+                  inventar um ("Marina", "Partida") seria afirmar um lugar
+                  que o app não sabe. O total é o congelado na entrada do
+                  modo (ver `totalTravessiaNm`); sem ele a peça inteira não
+                  aparece, em vez de desenhar uma barra em zero. */}
+              {percentualTravessia != null && totalTravessiaNm != null && (
+                <ProgressoRota
+                  className="mt-2"
+                  origem="Aqui"
+                  destino={destino.nome}
+                  percentual={percentualTravessia}
+                  distanciaTotal={totalTravessiaNm}
+                  restante={progressoRotaAtual.distanciaRestanteNm}
+                  eta={formatarEta(etaNavegandoMin)}
+                  unidade="MN"
+                />
               )}
+
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Mostrador
                   variante="cartao"
                   rotulo={progressoRotaAtual.ultimoSegmento ? "Chegando em" : "Próxima virada"}
                   valor={progressoRotaAtual.proximaViradaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
                   unidade="MN"
-                />
-                <Mostrador
-                  variante="cartao"
-                  rotulo="Restante"
-                  valor={progressoRotaAtual.distanciaRestanteNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
-                  unidade="MN"
-                />
-                <Mostrador
-                  variante="cartao"
-                  rotulo="ETA"
-                  valor={etaNavegandoMin != null ? String(etaNavegandoMin) : "—"}
-                  unidade={etaNavegandoMin != null ? "min" : undefined}
                 />
                 <Mostrador
                   variante="cartao"
@@ -2095,7 +2287,7 @@ export function NavegarMapa({
 
           <button
             type="button"
-            onClick={() => setModoSoNavegacao((v) => !v)}
+            onClick={alternarSoNavegacao}
             aria-pressed={modoSoNavegacao}
             aria-label={modoSoNavegacao ? "Sair do modo só navegação" : "Modo só navegação"}
             className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"

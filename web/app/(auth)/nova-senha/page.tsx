@@ -1,5 +1,6 @@
 import { CampoSenha } from "@/components/campo-senha"
 import { Logo } from "@/components/logo"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { definirNovaSenha } from "@/lib/acoes/auth"
 
 /**
@@ -53,9 +54,10 @@ export default async function NovaSenhaPage({
 
         <form action={definirNovaSenha} className="mt-7 space-y-3.5">
           <CampoSenha autoComplete="new-password" placeholder="Mínimo de 8 caracteres" />
-          <button className="mt-1 h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto">
-            Salvar senha
-          </button>
+          {/* ONDA 85 — o aviso de envio importa aqui mais do que parece: quem
+              chega nesta tela já falhou uma vez pra entrar. Um botão mudo, e a
+              pessoa toca de novo achando que não pegou. */}
+          <BotaoEnviar larguraCheia className="mt-1" rotulo="Salvar senha" />
         </form>
 
         <p className="mt-auto pt-10 text-center font-mono-instr text-[11px] leading-relaxed text-dim">

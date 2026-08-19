@@ -139,9 +139,13 @@ export function criarElementoMarcadorParceiro(p: Parceiro): HTMLDivElement {
   el.style.cursor = "pointer"
   el.style.zIndex = destaque ? "10" : "1"
 
+  // Onda 89 (achado 4.1) — o anel de "destaque" e o ponto de poita são
+  // MARCA, e marca sai de token: aqui o elemento é DOM (não canvas WebGL),
+  // então a classe utilitária resolve sozinha nos dois temas, sem precisar
+  // do leitor de `lib/mapa/cores-tema.ts`.
   const corpo = document.createElement("div")
   corpo.className = destaque
-    ? "relative flex size-9 items-center justify-center rounded-full ring-2 ring-[#D4AF37]"
+    ? "relative flex size-9 items-center justify-center rounded-full ring-2 ring-accent"
     : "relative flex size-9 items-center justify-center rounded-full ring-2 ring-white"
   corpo.style.backgroundColor = p.cor
   const tracado = TRACADO_ICONE_PARCEIRO[p.icone] ?? TRACADO_ICONE_PARCEIRO[ICONE_FALLBACK]
@@ -150,7 +154,7 @@ export function criarElementoMarcadorParceiro(p: Parceiro): HTMLDivElement {
 
   if (p.tem_poita) {
     const ponto = document.createElement("span")
-    ponto.className = "absolute -right-0.5 -top-0.5 block size-2.5 rounded-full bg-[#D4AF37] ring-2 ring-[#0B1D2D]"
+    ponto.className = "absolute -right-0.5 -top-0.5 block size-2.5 rounded-full bg-accent ring-2 ring-meter"
     corpo.appendChild(ponto)
   }
   return el

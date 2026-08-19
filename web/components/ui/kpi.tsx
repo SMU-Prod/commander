@@ -30,7 +30,11 @@ export function Kpi({
   return (
     <div className="min-w-0">
       <p className="rotulo truncate text-dim">{rotulo}</p>
-      <p className={`font-mono-instr text-[20px] font-semibold tabular-nums ${COR_VALOR[estado]}`}>{valor}</p>
+      {/* ONDA 87 — `.valor-forte` no lugar do `text-[20px]` escrito à mão:
+          mesmo 20px, agora vindo do degrau declarado da escala. As cores de
+          COR_VALOR continuam mandando (a classe entrega a cor com
+          especificidade zero — ver o bloco `:where` em globals.css). */}
+      <p className={`font-mono-instr valor-forte font-semibold ${COR_VALOR[estado]}`}>{valor}</p>
       {apoio && <p className={`apoio truncate ${COR_APOIO[apoioEstado]}`}>{apoio}</p>}
     </div>
   )

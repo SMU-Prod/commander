@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { ChecklistDiario } from "@/components/checklist-diario"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import type { Equipamento, ItemMonitorado } from "@/lib/db/types"
 import { duracaoHoras, retornoNoDiaSeguinte, textoDuracao } from "@/lib/domain/bordo"
@@ -10,7 +11,7 @@ import {
   CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA,
   nomeDoEquipamento, ROTULO_CASCO, ROTULO_HIDRAULICA,
 } from "@/lib/domain/diario"
-import { ACAO_NAO_ESTICA, GRADE_LADRILHOS } from "@/lib/ui/superficies"
+import { GRADE_LADRILHOS } from "@/lib/ui/superficies"
 
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
 
@@ -426,10 +427,16 @@ export function FormularioNovoEvento({
           {/* 48px, raio de controle (8px) e 15px — o botão do canvas
               (tela-3b). Era `rounded-xl` (12px), um quarto raio fora da
               escala de três do DESIGN §5. A saída fala "Salvar saída", como
-              no canvas; os demais tipos seguem com o verbo genérico. */}
-          <button className={`${ACAO_NAO_ESTICA} h-12 rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto`}>
-            {tipo === "navegacao" ? "Salvar saída" : "Registrar no diário"}
-          </button>
+              no canvas; os demais tipos seguem com o verbo genérico.
+
+              ONDA 85 — vira `BotaoEnviar`. Este é o formulário MAIS USADO do
+              app e o que mais tinha a perder com o silêncio: ele grava no
+              Diário de Bordo, e o segundo toque de quem achou que "não pegou"
+              produzia uma saída duplicada no histórico do barco — o
+              documento que a onda 1 existe pra manter confiável. O desenho é
+              o mesmo de antes, byte a byte (`principal` = h-12 + raio de
+              controle + dourado); o que entra é o estado de envio. */}
+          <BotaoEnviar rotulo={tipo === "navegacao" ? "Salvar saída" : "Registrar no diário"} />
         </>
       )}
     </>

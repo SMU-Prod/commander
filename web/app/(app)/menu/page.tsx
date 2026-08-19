@@ -3,6 +3,7 @@ import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { meusPapeisAdmin } from "@/lib/admin"
 import { carregarPainel } from "@/lib/consultas"
+import { carregarMeuPerfilConsultor } from "@/lib/consultas-gold"
 import { resumoPapeis } from "@/lib/domain/admin-papeis"
 import { podeVerAgenda } from "@/lib/domain/agenda"
 import { hojeISO } from "@/lib/domain/datas"
@@ -54,7 +55,14 @@ export default async function MenuPage({
   const painel = await carregarPainel()
   // `cache()` no `meusPapeisAdmin` — a mesma consulta que o layout de (admin)
   // faz; aqui não custa uma ida a mais ao banco.
-  const papeisAdmin = await meusPapeisAdmin()
+  // As duas descobertas por papel saem juntas: papel administrativo e papel
+  // de consultor do Gold. Uma consulta indexada cada, e as duas em paralelo
+  // porque nenhuma depende da outra.
+  const [papeisAdmin, meuConsultor] = await Promise.all([
+    meusPapeisAdmin(),
+    carregarMeuPerfilConsultor(),
+  ])
+  const ehConsultor = meuConsultor !== null
 
   // Equipamentos do hub (tipo "outro") já vêm inteiros em `painel.equipamentos`
   // — contar de novo no banco seria pagar duas vezes pela mesma resposta. O
@@ -302,6 +310,31 @@ export default async function MenuPage({
               href="/admin"
               titulo="Admin Commander"
               subtitulo={`Você entrou como ${resumoPapeis(papeisAdmin)}`}
+            />
+          </PainelMenu>
+        </>
+      )}
+
+      {/* ONDA 88 / AUDITORIA 19/08 (achado C1) — A PORTA DO CONSULTOR.
+          `/consultor` é a agenda de trabalho de quem faz a avaliação do
+          Commander Gold: papel PAGO, externo, que precisa entrar todo dia — e
+          passou três ondas sem UM link no app inteiro, alcançável só digitando
+          a URL de cabeça. Os únicos apontamentos que existiam eram os
+          `redirect` pós-ação do próprio fluxo, ou seja, só quem já estava lá
+          dentro voltava pra lá.
+          Mesma regra do bloco de admin logo acima, e pelo mesmo motivo: a
+          seção só existe pra quem TEM o papel. Mostrar a todo mundo levaria a
+          maioria a uma tela de "não encontramos seu cadastro" — um beco, que é
+          justamente o que a onda 54 caçou. A decisão de acesso continua sendo
+          do servidor; isto aqui é só descoberta. */}
+      {ehConsultor && (
+        <>
+          <SecaoPagina icone="pessoas">Commander Gold</SecaoPagina>
+          <PainelMenu>
+            <LinhaLista
+              href="/consultor"
+              titulo="Minha agenda de avaliações"
+              subtitulo="Visitas marcadas e o Protocolo de cada embarcação"
             />
           </PainelMenu>
         </>

@@ -1,11 +1,13 @@
 "use client"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, GeoJSONSource } from "mapbox-gl"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { Icone } from "@/components/icone"
 import { avisoCaladoViagem, usePernasViagem, usouCorredoresViagem } from "@/components/mapa/usar-pernas-viagem"
+import { useCoresMapa } from "@/components/mapa/usar-cores-mapa"
+import { criarCamadasViagem, pintarCamadasViagem } from "@/lib/mapa/camadas-viagem"
 import {
   montarViagem,
   velocidadeCruzeiroHistorica,
@@ -15,14 +17,12 @@ import {
 } from "@/lib/domain/viagem"
 import { parseDecimalPtBr } from "@/lib/domain/numeros"
 
-const COR_DOURADO = "#D4AF37"
-const COR_ALARME = "#FF5C5C"
+// ONDA 89 (achado 4.1) — as cores das camadas e o desenho delas saíram daqui
+// pra lib/mapa/camadas-viagem.ts: eram um bloco copiado byte a byte de
+// PlanejarViagemMapa, e passar a ler token exigiria manter DUAS repinturas
+// de tema em sincronia.
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
 const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
-
-function colecaoVazia() {
-  return { type: "FeatureCollection" as const, features: [] as unknown[] }
-}
 
 /**
  * Ver viagem (onda 19): mostra a viagem já planejada — rota completa
@@ -50,6 +50,17 @@ export function VerViagemMapa({
   const [mapaPronto, setMapaPronto] = useState<MapaMapbox | null>(null)
   const [velocidadeTexto, setVelocidadeTexto] = useState("")
 
+  // Cores por token (onda 89). O ref alimenta a CRIAÇÃO das camadas, que
+  // roda uma vez só e cujo efeito não pode ganhar `cores` nas dependências —
+  // ele também dá `fitBounds`, e reenquadrar o mapa porque alguém trocou o
+  // tema jogaria fora o enquadramento que a pessoa acabou de fazer à mão. A
+  // troca de tema entra pelo efeito de repintura, logo abaixo.
+  const cores = useCoresMapa()
+  const coresRef = useRef(cores)
+  useEffect(() => {
+    coresRef.current = cores
+  }, [cores])
+
   const pernasEstado = usePernasViagem(paradas, caladoM)
   const velocidadeHistorica = useMemo(() => velocidadeCruzeiroHistorica(eventosComTrilha), [eventosComTrilha])
   const velInformadaKt = parseDecimalPtBr(velocidadeTexto)
@@ -65,47 +76,7 @@ export function VerViagemMapa({
 
   useEffect(() => {
     if (!mapaPronto) return
-    if (!mapaPronto.getSource("viagem-pernas-ok")) {
-      mapaPronto.addSource("viagem-pernas-ok", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-pernas-ok-linha",
-        type: "line",
-        source: "viagem-pernas-ok",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_DOURADO, "line-width": 3 },
-      })
-    }
-    if (!mapaPronto.getSource("viagem-pernas-sem-caminho")) {
-      mapaPronto.addSource("viagem-pernas-sem-caminho", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-pernas-sem-caminho-linha",
-        type: "line",
-        source: "viagem-pernas-sem-caminho",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": COR_ALARME, "line-width": 2.5, "line-dasharray": [1.5, 1.5] },
-      })
-    }
-    if (!mapaPronto.getSource("viagem-paradas")) {
-      mapaPronto.addSource("viagem-paradas", { type: "geojson", data: colecaoVazia() })
-      mapaPronto.addLayer({
-        id: "viagem-paradas-circulos",
-        type: "circle",
-        source: "viagem-paradas",
-        paint: {
-          "circle-radius": 9,
-          "circle-color": COR_DOURADO,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#0B1D2D",
-        },
-      })
-      mapaPronto.addLayer({
-        id: "viagem-paradas-numeros",
-        type: "symbol",
-        source: "viagem-paradas",
-        layout: { "text-field": ["get", "rotulo"], "text-size": 11, "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"] },
-        paint: { "text-color": "#0B1D2D" },
-      })
-    }
+    criarCamadasViagem(mapaPronto, coresRef.current)
 
     const sourceParadas = mapaPronto.getSource("viagem-paradas") as GeoJSONSource
     sourceParadas.setData({
@@ -158,6 +129,13 @@ export function VerViagemMapa({
     sourceOk.setData({ type: "FeatureCollection", features: featuresOk })
     sourceFalha.setData({ type: "FeatureCollection", features: featuresFalha })
   }, [mapaPronto, viagem, pernasEstado])
+
+  // Troca de tema com a tela já aberta (onda 89) — o canvas do Mapbox não vê
+  // var(--acao), então a repintura tem que ser explícita.
+  useEffect(() => {
+    if (!mapaPronto) return
+    pintarCamadasViagem(mapaPronto, cores)
+  }, [mapaPronto, cores])
 
   const dataFormatada = new Date(`${dataPrevista}T12:00:00`).toLocaleDateString("pt-BR", {
     day: "2-digit",

@@ -1,18 +1,28 @@
 "use client"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { Map as MapaMapbox } from "mapbox-gl"
 import { Icone } from "@/components/icone"
+import { useCoresMapa } from "@/components/mapa/usar-cores-mapa"
 import type { PontoTrilha } from "@/lib/domain/geo"
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
-// Dourado da marca (--acao em globals.css) — mesmo valor em claro/escuro, por
-// isso pode ser fixo aqui em vez de ler a variável CSS (que o Mapbox GL, um
-// canvas, não enxerga de qualquer forma).
-const COR_TRILHA = "#d4af37"
-const COR_INICIO = "#2fd07a"
-const COR_FIM = "#ff5c5c"
+// ONDA 89 (achado 4.1) — as três cores desta tela eram literais, e o
+// comentário que estava aqui dizia que a da trilha era "a mesma em claro e
+// escuro". Deixou de ser verdade na onda 79, quando a marca do tema escuro
+// virou limão. Agora saem de `useCoresMapa`, que lê os tokens do documento
+// — ver lib/mapa/cores-tema.ts pro porquê de o canvas do Mapbox precisar
+// disso em vez de var().
+
+/** Expressão de cor das pontas: verde na partida, vermelho na chegada. Numa
+ *  função porque a MESMA expressão é usada na criação da camada e na
+ *  repintura por troca de tema — duas cópias derivariam. O retorno é anotado
+ *  como TUPLA (não array) porque é assim que o `mapbox-gl` declara
+ *  `ExpressionSpecification`, e a inferência de um array literal não casa. */
+function corDaPonta(inicio: string, fim: string): [string, ...unknown[]] {
+  return ["match", ["get", "ponta"], "inicio", inicio, fim]
+}
 
 /**
  * Preview pequeno e não-interativo do percurso de uma saída (onda 18 — a
@@ -25,6 +35,20 @@ const COR_FIM = "#ff5c5c"
 export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; className?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapaRef = useRef<MapaMapbox | null>(null)
+
+  // As cores entram no mapa por DOIS caminhos, e os dois são necessários: um
+  // ref pra pintura inicial (dentro do "load", que roda bem depois do render
+  // que o originou) e o valor direto no efeito de repintura mais abaixo
+  // (troca de tema com a tela já aberta). Pôr `cores` nas dependências do
+  // efeito de criação recriaria o mapa inteiro a cada troca de tema.
+  const cores = useCoresMapa()
+  const coresRef = useRef(cores)
+  useEffect(() => {
+    coresRef.current = cores
+  }, [cores])
+  // Sobe quando as camadas existem de verdade — é o gatilho da repintura,
+  // que antes disso não teria o que pintar.
+  const [camadasProntas, setCamadasProntas] = useState(0)
 
   useEffect(() => {
     if (!TOKEN || !containerRef.current || pontos.length < 2) return
@@ -88,19 +112,25 @@ export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; class
           type: "line",
           source: "trilha",
           layout: { "line-join": "round", "line-cap": "round" },
-          paint: { "line-color": COR_TRILHA, "line-width": 3 },
+          paint: { "line-color": coresRef.current.acao, "line-width": 3 },
         })
         // Pontas início/fim — mesma convenção de cor do TrilhaSvg (verde
         // partida, vermelho chegada) que este componente substitui.
+        //
+        // A feature carrega só QUAL ponta ela é; a cor fica no `paint`, numa
+        // expressão. Antes a cor vinha embutida na própria feature
+        // (`properties.cor`), e nesse desenho trocar de tema exigiria
+        // reescrever o GeoJSON inteiro — com a cor no paint, basta um
+        // `setPaintProperty` (ver efeito de repintura abaixo).
         mapa.addSource("trilha-pontas", {
           type: "geojson",
           data: {
             type: "FeatureCollection",
             features: [
-              { type: "Feature", properties: { cor: COR_INICIO }, geometry: { type: "Point", coordinates: coordenadas[0] } },
+              { type: "Feature", properties: { ponta: "inicio" }, geometry: { type: "Point", coordinates: coordenadas[0] } },
               {
                 type: "Feature",
-                properties: { cor: COR_FIM },
+                properties: { ponta: "fim" },
                 geometry: { type: "Point", coordinates: coordenadas[coordenadas.length - 1] },
               },
             ],
@@ -112,12 +142,13 @@ export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; class
           source: "trilha-pontas",
           paint: {
             "circle-radius": 5,
-            "circle-color": ["get", "cor"],
+            "circle-color": corDaPonta(coresRef.current.ok, coresRef.current.crit),
             "circle-stroke-width": 1.5,
-            "circle-stroke-color": "#0b1d2d",
+            "circle-stroke-color": coresRef.current.acaoTexto,
           },
         })
         mapa.resize()
+        setCamadasProntas((v) => v + 1)
       })
       mapa.addControl(new mapboxgl.AttributionControl({ compact: true }))
     })
@@ -132,15 +163,28 @@ export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; class
     // inteiro nesse caso é o comportamento certo.
   }, [pontos])
 
+  // Repintura por troca de tema (onda 89) — o DOM se repinta sozinho quando
+  // `--acao` muda; o canvas WebGL do Mapbox não vê a variável e ficaria com a
+  // cor do tema anterior até alguém recarregar a página.
+  useEffect(() => {
+    const mapa = mapaRef.current
+    if (!mapa || camadasProntas === 0) return
+    if (mapa.getLayer("trilha-linha")) mapa.setPaintProperty("trilha-linha", "line-color", cores.acao)
+    if (mapa.getLayer("trilha-pontas")) {
+      mapa.setPaintProperty("trilha-pontas", "circle-color", corDaPonta(cores.ok, cores.crit))
+      mapa.setPaintProperty("trilha-pontas", "circle-stroke-color", cores.acaoTexto)
+    }
+  }, [camadasProntas, cores])
+
   if (pontos.length < 2) return null
 
   if (!TOKEN) {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-[14px] border border-line bg-[#0B1D2D] p-6 text-center ${className ?? ""}`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-[14px] border border-line bg-meter p-6 text-center ${className ?? ""}`}
       >
-        <Icone nome="mapa" className="size-7 text-[#D4AF37]" />
-        <p className="apoio text-[#e9f1f8]">
+        <Icone nome="mapa" className="size-7 text-accent" />
+        <p className="apoio text-meter-texto">
           {process.env.NODE_ENV === "development"
             ? "O mapa precisa de configuração — adicione NEXT_PUBLIC_MAPBOX_TOKEN ao .env.local."
             : "Mapa indisponível no momento."}

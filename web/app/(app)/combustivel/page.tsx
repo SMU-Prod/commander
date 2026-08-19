@@ -52,6 +52,14 @@ export default async function CombustivelPage({
   const lista = (tanques ?? []) as Tanque[]
   const movs = (movimentos ?? []) as Mov[]
 
+  // AUDITORIA 19/08, B4 — o histórico só renderizava `destino_livre`, o caso
+  // EXCEPCIONAL. Toda saída para uma unidade cadastrada — o caso normal, e o
+  // único que o formulário chama de obrigatório — aparecia sem destino
+  // nenhum: pedia-se o dado à pessoa e ele sumia. O mapa resolve o id pelo
+  // nome; id que não está aqui é unidade que esta conta não enxerga, e a
+  // linha diz isso em vez de inventar um nome ou apagar o destino.
+  const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
+
   return (
     <main>
       <CabecalhoDetalhe
@@ -179,7 +187,11 @@ export default async function CombustivelPage({
                       <span className="min-w-0">
                         <span className="corpo block truncate">
                           {m.tipo === "entrada" ? "Entrada" : m.tipo === "saida" ? "Saída" : "Medição"}
-                          {m.destino_livre && ` · ${m.destino_livre}`}
+                          {m.destino_embarcacao_id
+                            ? ` · ${nomeDaUnidade.get(m.destino_embarcacao_id) ?? "unidade fora da sua lista"}`
+                            : m.destino_livre
+                              ? ` · ${m.destino_livre}`
+                              : ""}
                         </span>
                         <span className="apoio block text-dim">
                           <span className="font-mono-instr tabular-nums">

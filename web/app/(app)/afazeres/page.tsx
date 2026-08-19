@@ -34,11 +34,31 @@ export default async function AfazeresPage({
   if (!painel) redirect("/onboarding")
 
   const supabase = await supabaseServer()
+  // AUDITORIA 19/08, B2 — A CONSULTA NÃO FILTRAVA E A TELA AFIRMAVA MESMO
+  // ASSIM.
+  //
+  // Era `.select("*")` sem recorte nenhum, e cada cartão escrevia
+  // `painel.embarcacao.nome` em qualquer tarefa que tivesse `embarcacao_id`.
+  // Para um ADM com mais de uma unidade — que é *o* público desta tela — uma
+  // tarefa do Jet 3 aparecia escrita "Jet 1". Número inventado na acepção
+  // mais literal: a tela afirmava um fato que não consultou.
+  //
+  // O recorte é o mesmo das telas vizinhas (/mecanica, /atualizacoes,
+  // /patio): a unidade aberta. A diferença é o `is.null`, que precisa entrar
+  // junto — tarefa "da base" não pertence a unidade nenhuma e sumiria com um
+  // `.eq()` puro, e ela é justamente a que vale para a frota inteira.
   const [{ data }, { data: vinculo }] = await Promise.all([
-    supabase.from("afazeres").select("*").order("criado_em", { ascending: false }).limit(60),
+    supabase.from("afazeres").select("*")
+      .or(`embarcacao_id.eq.${painel.embarcacao.id},embarcacao_id.is.null`)
+      .order("criado_em", { ascending: false }).limit(60),
     supabase.from("vinculos").select("modo_aprovacao")
       .eq("embarcacao_id", painel.embarcacao.id).eq("papel", painel.papel).maybeSingle(),
   ])
+
+  // O nome sai do id da própria tarefa, nunca da unidade ativa. Com o filtro
+  // acima os dois coincidem hoje; escrever assim é o que impede a mentira de
+  // voltar se um dia esta tela passar a listar a frota inteira.
+  const nomeDaUnidade = new Map(painel.embarcacoes.map((e) => [e.id, e.nome]))
 
   type Afazer = {
     id: string; titulo: string; detalhe: string | null; destino: DestinoAfazer
@@ -66,7 +86,9 @@ export default async function AfazeresPage({
       {a.detalhe && <p className="apoio mt-1 text-dim">{a.detalhe}</p>}
       <p className="apoio mt-1 text-dim">
         {ROTULO_DESTINO_AFAZER[a.destino]}
-        {a.embarcacao_id ? ` · ${painel.embarcacao.nome}` : " · da base"}
+        {a.embarcacao_id
+          ? ` · ${nomeDaUnidade.get(a.embarcacao_id) ?? "outra unidade"}`
+          : " · da base"}
         {a.prazo && (
           <>
             {" · até "}
@@ -107,7 +129,10 @@ export default async function AfazeresPage({
         voltarHref="/menu"
         voltarRotulo="Menu"
         titulo="Afazeres"
-        descricao="O que a equipe combinou de fazer — e quem ficou com o quê."
+        // A descrição diz o RECORTE, porque ele mudou: quem tem frota e
+        // estranhar a lista mais curta precisa saber que ela ficou correta, e
+        // não incompleta.
+        descricao={`O que a equipe combinou de fazer em ${painel.embarcacao.nome} e na base.`}
         selo={abertos.length > 0 ? <Selo estado="atencao">{`${abertos.length} em aberto`}</Selo> : undefined}
       />
       {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}

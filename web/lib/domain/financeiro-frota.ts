@@ -20,6 +20,8 @@
  * Módulo puro.
  */
 
+import { formatarReais } from "./gastos"
+
 // ---------------------------------------------------------------------------
 // §12 — de onde o custo veio
 // ---------------------------------------------------------------------------
@@ -92,7 +94,24 @@ export function inicioDoPeriodo(periodo: PeriodoFrota, hoje: string): string {
 
 export interface CustoLancado {
   embarcacaoId: string
-  origem: OrigemCusto
+  /**
+   * `null` NÃO É `"manual"`.
+   *
+   * Esta distinção é a correção da auditoria de 19/08 (achado B1), e vale a
+   * pena registrar por que ela existe. A tela lia `l.origem ?? "manual"`: como
+   * nenhum insert do app preenchia a coluna, TODO custo caía em "Lançamento
+   * manual" e o gráfico "Em quê" tinha uma barra só, 100%, em qualquer conta e
+   * para sempre. Era a regra da casa quebrada na versão mais cara dela — não
+   * um `null` virando zero desenhado, e sim um `null` virando um FATO
+   * desenhado, afirmando uma procedência que ninguém informou.
+   *
+   * `manual` continua sendo uma origem legítima: é a última linha da tabela do
+   * §12 ("exceções e despesas não cobertas") e vale para o lançamento em que
+   * alguém DISSE que foi manual. Ausência de origem é outra coisa — é o app
+   * não sabendo — e a consolidação abaixo a separa em `semProcedenciaCentavos`
+   * em vez de escolher uma gaveta por ela.
+   */
+  origem: OrigemCusto | null
   valorCentavos: number
 }
 
@@ -101,6 +120,9 @@ export interface CustoDaUnidade {
   nome: string
   totalCentavos: number
   porOrigem: Record<OrigemCusto, number>
+  /** Parte do total que não diz de onde veio. Entra no total (o dinheiro saiu,
+   *  isso é fato), nunca numa das seis origens. */
+  semProcedenciaCentavos: number
   /** Fatia do custo da frota, 0 a 100. */
   percentualDaFrota: number
 }
@@ -108,6 +130,7 @@ export interface CustoDaUnidade {
 export interface CustoDaFrota {
   totalCentavos: number
   porOrigem: Record<OrigemCusto, number>
+  semProcedenciaCentavos: number
   /** §12: "Ordenar unidades por maior custo." Já vem ordenado. */
   unidades: CustoDaUnidade[]
 }
@@ -129,6 +152,11 @@ function zeradoPorOrigem(): Record<OrigemCusto, number> {
  *   A ORDEM É POR CUSTO, decrescente, com desempate por nome. O §12 pede
  *   isso e o motivo é operacional: numa frota de 40, quem está no topo é
  *   quem merece a próxima conversa.
+ *
+ *   CUSTO SEM ORIGEM NÃO ESCOLHE UMA GAVETA. Ele soma no total — o dinheiro
+ *   saiu, e isso a tela sabe — e fica separado em `semProcedenciaCentavos`,
+ *   para que o "Em quê" mostre só o que foi de fato informado. Somá-lo em
+ *   `manual` faria a tela responder uma pergunta que ninguém respondeu.
  */
 export function consolidarFrota(
   unidades: readonly { id: string; nome: string }[],
@@ -137,11 +165,15 @@ export function consolidarFrota(
   const porUnidade = new Map<string, CustoDaUnidade>(
     unidades.map((u) => [
       u.id,
-      { embarcacaoId: u.id, nome: u.nome, totalCentavos: 0, porOrigem: zeradoPorOrigem(), percentualDaFrota: 0 },
+      {
+        embarcacaoId: u.id, nome: u.nome, totalCentavos: 0,
+        porOrigem: zeradoPorOrigem(), semProcedenciaCentavos: 0, percentualDaFrota: 0,
+      },
     ]),
   )
   const frotaPorOrigem = zeradoPorOrigem()
   let total = 0
+  let semProcedencia = 0
 
   for (const l of lancamentos) {
     const u = porUnidade.get(l.embarcacaoId)
@@ -149,9 +181,14 @@ export function consolidarFrota(
     // propósito: acontece quando o ADM filtra por base e o custo é de outra.
     if (!u) continue
     u.totalCentavos += l.valorCentavos
+    total += l.valorCentavos
+    if (l.origem === null) {
+      u.semProcedenciaCentavos += l.valorCentavos
+      semProcedencia += l.valorCentavos
+      continue
+    }
     u.porOrigem[l.origem] += l.valorCentavos
     frotaPorOrigem[l.origem] += l.valorCentavos
-    total += l.valorCentavos
   }
 
   const lista = [...porUnidade.values()]
@@ -161,7 +198,12 @@ export function consolidarFrota(
     }))
     .sort((a, b) => b.totalCentavos - a.totalCentavos || a.nome.localeCompare(b.nome, "pt-BR"))
 
-  return { totalCentavos: total, porOrigem: frotaPorOrigem, unidades: lista }
+  return {
+    totalCentavos: total,
+    porOrigem: frotaPorOrigem,
+    semProcedenciaCentavos: semProcedencia,
+    unidades: lista,
+  }
 }
 
 /** As origens que realmente pesaram, da maior pra menor — a tela mostra as
@@ -170,6 +212,59 @@ export function origensQuePesaram(porOrigem: Record<OrigemCusto, number>): Orige
   return ORIGENS_CUSTO
     .filter((o) => porOrigem[o] > 0)
     .sort((a, b) => porOrigem[b] - porOrigem[a])
+}
+
+// ---------------------------------------------------------------------------
+// §12 — o que a tela diz sobre o que ela NÃO sabe
+// ---------------------------------------------------------------------------
+
+/**
+ * A frase que confessa a parte do custo sem procedência — `null` quando não
+ * há nada a confessar.
+ *
+ * Ela existe porque a alternativa honesta à barra falsa não é esconder o
+ * dinheiro: é dizê-lo. Um ADM que veja "R$ 4.200 · 62% do total sem
+ * procedência" entende na hora por que o gráfico "Em quê" cobre pouco, e
+ * entende também o que precisa mudar no hábito da equipe (retirar peça pelo
+ * Estoque e abastecer pelo Combustível, em vez de lançar à mão no Financeiro).
+ * Sumir com o número transformaria o gráfico numa mentira menor, não numa
+ * verdade.
+ */
+export function fraseSemProcedencia(
+  totalCentavos: number,
+  semProcedenciaCentavos: number,
+): string | null {
+  if (semProcedenciaCentavos <= 0) return null
+  if (totalCentavos <= 0) return null
+  const pct = Math.round((semProcedenciaCentavos / totalCentavos) * 100)
+  return `${formatarReais(semProcedenciaCentavos)} · ${pct}% do total sem procedência registrada`
+}
+
+/**
+ * A linha de apoio de cada unidade.
+ *
+ * Mora aqui, e não no JSX, porque ela é uma decisão sobre o que a tela pode
+ * AFIRMAR — e a versão anterior afirmava errado ("Lançamento manual" em cima
+ * de origem ausente). São quatro casos, e cada um diz exatamente o que se
+ * sabe:
+ *
+ *   sem custo         → zero é informação: costuma ser unidade parada (§12)
+ *   só sem procedência → não inventa origem nenhuma
+ *   só com procedência → as duas que mais pesaram, como o §12 pede
+ *   os dois            → as origens conhecidas E o quanto ficou sem explicação
+ */
+export function linhaDaUnidade(u: CustoDaUnidade): string {
+  if (u.totalCentavos === 0) return "Nenhum custo no período"
+
+  const fatia = `${u.percentualDaFrota}% do custo da frota`
+  const conhecidas = origensQuePesaram(u.porOrigem)
+    .slice(0, 2)
+    .map((o) => ROTULO_ORIGEM[o])
+    .join(", ")
+
+  if (conhecidas === "") return `${fatia} · procedência não registrada`
+  if (u.semProcedenciaCentavos <= 0) return `${fatia} · ${conhecidas}`
+  return `${fatia} · ${conhecidas} · ${formatarReais(u.semProcedenciaCentavos)} sem procedência`
 }
 
 // ---------------------------------------------------------------------------

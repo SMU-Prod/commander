@@ -237,7 +237,7 @@ export default async function ResumosPage({
                   <div key={g.grupo}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="corpo font-medium">{g.grupo}</span>
-                      <span className="font-mono-instr text-sm font-semibold tabular-nums">{formatarReais(g.totalCentavos)}</span>
+                      <span className="font-mono-instr valor font-semibold">{formatarReais(g.totalCentavos)}</span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-panel2">
                       <div
@@ -257,7 +257,7 @@ export default async function ResumosPage({
           <div className="mt-3 flex gap-2">
             <div className="sombra-1 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
               <p className="rotulo text-dim">Custo por hora</p>
-              <p className="mt-1.5 font-mono-instr text-[20px] font-semibold tabular-nums">
+              <p className="mt-1.5 font-mono-instr valor-forte font-semibold">
                 {custoHora != null ? formatarReais(custoHora) : "—"}
               </p>
               <p className="apoio mt-0.5 text-dim">
@@ -275,7 +275,7 @@ export default async function ResumosPage({
             </div>
             <div className="sombra-1 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
               <p className="rotulo text-dim">Consumo médio</p>
-              <p className="mt-1.5 font-mono-instr text-[20px] font-semibold tabular-nums">—</p>
+              <p className="mt-1.5 font-mono-instr valor-forte font-semibold">—</p>
               <p className="apoio mt-0.5 text-dim">sem abastecimento com litragem</p>
             </div>
           </div>

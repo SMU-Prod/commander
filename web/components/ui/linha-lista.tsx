@@ -68,9 +68,14 @@ export function LinhaLista({
       {subtitulo && <p className="apoio mt-0.5 line-clamp-2 text-dim">{subtitulo}</p>}
     </div>
   )
+  // ONDA 87 — `.valor` no lugar de `text-sm`. Os dois dão 14px; a classe
+  // traz junto o que fazia falta (branco, peso médio, tabular), e é ela que
+  // faz o par rótulo-cinza / valor-branco existir na tela em vez de só no
+  // CSS. `font-semibold` continua escrito: a linha de lista já era 600 e
+  // esta onda não deixa valor nenhum mais fraco do que estava.
   const direita = trailing ?? (valor != null && (
     <span className="shrink-0 text-right">
-      <p className={`font-mono-instr text-sm font-semibold tabular-nums ${valorClassName}`}>{valor}</p>
+      <p className={`font-mono-instr valor font-semibold ${valorClassName}`}>{valor}</p>
       {valorSecundario && <p className="apoio font-mono-instr tabular-nums text-dim">{valorSecundario}</p>}
     </span>
   ))

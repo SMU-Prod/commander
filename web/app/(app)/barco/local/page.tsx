@@ -7,7 +7,9 @@ import { carregarPainel } from "@/lib/consultas"
 import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+// Onda 87 — `.rotulo` já É mono, 11px, caixa alta e rastreada; o que estava
+// aqui era ela reescrita à mão, com o tracking derivado (.14 contra .16).
+const rotulo = "mb-1.5 block rotulo text-dim"
 
 export default async function LocalPage({
   searchParams,

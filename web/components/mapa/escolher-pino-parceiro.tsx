@@ -32,7 +32,7 @@ export function EscolherPinoParceiro({
       <div className="flex items-center gap-3 rounded-[12px] border border-line bg-panel2 px-3 py-3">
         <div
           className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
-            destaque ? "ring-2 ring-[#D4AF37]" : "ring-2 ring-white"
+            destaque ? "ring-2 ring-accent" : "ring-2 ring-white"
           }`}
           style={{ backgroundColor: cor }}
         >

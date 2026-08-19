@@ -7,7 +7,8 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { alternarSuspensao, definirCotas, redefinirLink } from "@/lib/acoes/cotistas"
 import { carregarPainel } from "@/lib/consultas"
-import { acimaDaCota, vagasDeCotista } from "@/lib/domain/cotistas"
+import { acimaDaCota, estaSuspenso, MENSAGEM_SUSPENSO, vagasDeCotista } from "@/lib/domain/cotistas"
+import { linhaDeAuditoria, type EventoAuditado } from "@/lib/domain/enterprise"
 import { supabaseServer } from "@/lib/supabase/server"
 import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 import type { ConviteCotista, Vinculo } from "@/lib/db/types"
@@ -37,17 +38,31 @@ export default async function CotistasPage({
   if (painel.papel !== "PROP") redirect("/menu")
 
   const supabase = await supabaseServer()
-  const [{ data: vinculos }, { data: links }, { data: perfis }] = await Promise.all([
+  const [{ data: vinculos }, { data: links }, { data: perfis }, { data: trilha }] = await Promise.all([
     supabase.from("vinculos").select("*")
       .eq("embarcacao_id", painel.embarcacao.id).eq("papel", "COTISTA"),
     supabase.from("convites_cotista").select("*")
       .eq("embarcacao_id", painel.embarcacao.id).eq("ativo", true).limit(1),
     supabase.from("profiles").select("id, nome"),
+    // AUDITORIA 19/08, A3 — a tabela `auditoria` era write-only: o app
+    // gravava quem bloqueou quem e ninguém nunca lia. Na hora em que o
+    // cotista pergunta "por que perdi acesso em julho", a resposta estava no
+    // banco e não tinha tela. Esta é a tela.
+    supabase.from("auditoria").select("id, evento, alvo, motivo, autor_id, criado_em")
+      .eq("embarcacao_id", painel.embarcacao.id)
+      .in("evento", ["bloqueou_cotista", "desbloqueou_cotista"])
+      .order("criado_em", { ascending: false }).limit(15),
   ])
 
   const lista = (vinculos ?? []) as Vinculo[]
   const link = ((links ?? []) as ConviteCotista[])[0] ?? null
   const nomePorId = new Map((perfis ?? []).map((p: { id: string; nome: string }) => [p.id, p.nome]))
+
+  type LinhaTrilha = {
+    id: string; evento: EventoAuditado; alvo: string | null
+    motivo: string | null; autor_id: string | null; criado_em: string
+  }
+  const eventos = (trilha ?? []) as LinhaTrilha[]
 
   // A ocupação é DERIVADA (§13) — contagem de vínculos, não contador
   // guardado. É o que faz "remover acesso libera vaga" acontecer sozinho e
@@ -111,9 +126,20 @@ export default async function CotistasPage({
         {urlLink ? (
           <>
             <p className="break-all font-mono-instr text-xs text-dim">{urlLink}</p>
+            {/* AUDITORIA 19/08, B3 — A COPY DIZIA O QUE O BACKEND NÃO FAZ.
+                Ela prometia "cada cadastro ocupa uma vaga; ao lotar, o link
+                para de aceitar sozinho", e não existe resgate automático
+                nenhum: `convites_cotista` só é legível pelo dono e não há
+                policy que deixe alguém criar o próprio vínculo de COTISTA a
+                partir do código. A rota `/convite-cotista/[codigo]` passou a
+                existir nesta rodada (era 404), mas quem abre o link ainda
+                termina falando com a administradora — e é isso que o ADM
+                precisa saber ANTES de mandar o link no grupo, senão são dez
+                pessoas travadas e ele sem entender por quê. */}
             <p className="apoio mt-2 text-dim">
-              Mande no grupo da unidade. Cada cadastro ocupa uma vaga; ao lotar, o link para de
-              aceitar sozinho.
+              Mande no grupo da unidade. Quem abrir o link vai ver de qual unidade ele é e receber o
+              código para te passar — a liberação do acesso ainda é sua, aqui embaixo. A cota é o
+              teto: {vagas.rotulo} hoje.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <a
@@ -165,7 +191,10 @@ export default async function CotistasPage({
         <div className="space-y-2">
           {lista.map((v) => {
             const nome = nomePorId.get(v.usuario_id) || "Cotista"
-            const suspenso = v.suspenso_em != null
+            // B10 — a tela reimplementava `v.suspenso_em != null`. A regra tem
+            // dono (`estaSuspenso`, com teste); duas cópias da mesma condição
+            // não quebram hoje, só garantem que vão divergir amanhã.
+            const suspenso = estaSuspenso({ suspensoEm: v.suspenso_em })
             return (
               <div
                 key={v.id}
@@ -185,16 +214,33 @@ export default async function CotistasPage({
                     fora do Commander, então a única coisa que a tela afirma é
                     quando o acesso foi suspenso — que é fato do app. */}
                 {suspenso && (
-                  <p className="apoio mt-1 text-dim">
-                    Suspenso em{" "}
-                    <span className="font-mono-instr tabular-nums">
-                      {new Date(v.suspenso_em!).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
-                    </span>
-                  </p>
+                  <>
+                    <p className="apoio mt-1 text-dim">
+                      Suspenso em{" "}
+                      <span className="font-mono-instr tabular-nums">
+                        {new Date(v.suspenso_em!).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                      </span>
+                    </p>
+                    {/* A frase que o cotista lê do outro lado, mostrada aqui
+                        pro ADM saber exatamente o que ele está dizendo em nome
+                        da administradora — e que o app não fala em dívida,
+                        valor nem prazo (§13). */}
+                    <p className="apoio mt-1 text-dim">“{MENSAGEM_SUSPENSO}”</p>
+                  </>
                 )}
-                <form action={alternarSuspensao} className="mt-3">
+                <form action={alternarSuspensao} className="mt-3 space-y-2">
                   <input type="hidden" name="vinculo_id" value={v.id} />
                   <input type="hidden" name="suspender" value={suspenso ? "0" : "1"} />
+                  {/* §22 — o motivo é o campo que transforma a trilha de
+                      auditoria em resposta. Opcional de propósito: exigi-lo
+                      faria o ADM digitar "." pra passar da tela, e um motivo
+                      inventado é pior que motivo nenhum. */}
+                  <Campo
+                    label={suspenso ? "Motivo da reativação — opcional" : "Motivo da suspensão — opcional"}
+                    id={`motivo-${v.id}`}
+                    name="motivo"
+                    placeholder="Fica registrado com seu nome e a hora"
+                  />
                   <button
                     className={`flex h-11 items-center gap-1.5 rounded-[var(--raio-controle)] border px-3.5 text-sm font-medium ${
                       suspenso ? "border-ok/40 text-ok" : "border-line text-dim"
@@ -208,6 +254,34 @@ export default async function CotistasPage({
             )
           })}
         </div>
+      )}
+
+      {/* §22 — a trilha. Só bloqueio e desbloqueio: é o que esta tela produz,
+          e uma lista com todo evento da unidade viraria log de sistema numa
+          tela de gestão de pessoas. */}
+      {eventos.length > 0 && (
+        <>
+          <SecaoPagina icone="escudo">Histórico de acesso</SecaoPagina>
+          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            {eventos.map((e) => (
+              <div key={e.id} className="border-b border-line py-3 last:border-0">
+                <p className="corpo">
+                  {/* A frase mora no domínio (`linhaDeAuditoria`, com teste).
+                      Autor sem perfil legível vira "a administradora": o fato
+                      é que a administradora bloqueou — o nome é que se perdeu,
+                      e inventar um seria pior. */}
+                  {linhaDeAuditoria(
+                    (e.autor_id && nomePorId.get(e.autor_id)) || "A administradora",
+                    e.evento,
+                    e.criado_em,
+                    e.alvo,
+                  )}
+                </p>
+                {e.motivo && <p className="apoio mt-0.5 text-dim">Motivo: {e.motivo}</p>}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </main>
   )

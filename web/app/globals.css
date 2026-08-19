@@ -368,12 +368,51 @@ body.fundo-tela-mapa {
   }
   /* A VOZ QUE NÃO EXISTIA: o dado em si. Branco, médio, tabular — é o que
      o olho procura primeiro num painel, e o que estava cinza igual ao
-     rótulo. */
+     rótulo.
+
+     ONDA 87 — OS TRÊS DEGRAUS DO NÚMERO.
+     A auditoria de 19/08 (eixo 5.3) mediu o que a onda 80 achou ter
+     entregue: `.valor` tinha ZERO usos em 225 arquivos, e 222 `text-sm`
+     ocupavam o lugar dela — mesmo 14px, sem peso, sem cor, sem tabular.
+     A voz do dado existia no CSS e não existia na tela, que é o mesmo que
+     não existir; o diagnóstico do dono ("não tem hierarquia, tá amador")
+     continuava descrevendo o app renderizado porque a correção parou no
+     arquivo de tokens. Junto disso, o número de instrumento — a voz mais
+     importante de um app que se comporta como instrumento — tinha SETE
+     tamanhos em uso (12, 14, 18, 20, 22, 24 e um clamp), nenhum deles
+     declarado em lugar nenhum.
+     Três degraus, e nada fora deles:
+       `.valor`              14px — valor de linha de lista, contagem,
+                                    coluna de dinheiro;
+       `.valor-forte`        20px — o número do cartão de KPI;
+       `.valor-instrumento`  28px — o número que É o assunto da tela.
+     Os dois degraus novos NÃO declaram `line-height`, de propósito: as
+     utilitárias de tamanho ARBITRÁRIO do Tailwind (`text-[20px]`) escrevem
+     só `font-size`, então quem elas substituem já herda o 1,5 do
+     documento. Declarar entrelinha aqui encolheria a caixa dos cartões de
+     KPI em 6px — e esta onda é troca de classe, não de layout. Apertar a
+     entrelinha do número grande fica pro dia em que o cartão for
+     redesenhado. `.valor` mantém o 1,35 que a onda 80 lhe deu.
+
+     AVISO, PORQUE FOI ISTO QUE DEU ERRADO DA ÚLTIMA VEZ: `.valor` e
+     `.valor-forte` já nascem com consumidor nesta onda (linha de lista,
+     ficha, faixa de KPI, cartões de custo). `.valor-instrumento` NÃO —
+     quem ela serve é o mostrador de `/navegar` e o `Medidor`, que ficaram
+     fora do lote desta onda. Ela é o degrau declarado esperando a onda que
+     liga os dois; se essa onda não vier, o certo é APAGAR esta classe, não
+     deixá-la de enfeite: foi a `.valor` de enfeite, com zero usos por 7
+     ondas, que fez a auditoria abrir o eixo 5.3. */
   .valor {
     font-size: .875rem;     /* 14px */
-    font-weight: 500;
     line-height: 1.35;
-    color: var(--texto);
+    font-variant-numeric: tabular-nums;
+  }
+  .valor-forte {
+    font-size: 1.25rem;     /* 20px */
+    font-variant-numeric: tabular-nums;
+  }
+  .valor-instrumento {
+    font-size: 1.75rem;     /* 28px */
     font-variant-numeric: tabular-nums;
   }
   .corpo { font-size: .875rem; line-height: 1.5; }                            /* 14px */
@@ -417,12 +456,40 @@ body.fundo-tela-mapa {
   .rotulo-dado {
     font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
     line-height: 1.4;
-    /* Onda 80: a cor entra na classe. O par rótulo-cinza / valor-branco é o
-       que cria hierarquia na referência, e deixá-lo a cargo de quem usa foi
-       o que produziu telas inteiras em cinza uniforme. Quem quiser outra cor
-       sobrescreve; o padrão passa a ser o certo. */
-    color: var(--texto-dim);
   }
+
+  /* ONDA 80 (a intenção) + ONDA 87 (o mecanismo que faltava pra ela valer).
+     ---------------------------------------------------------------------
+     A COR E O PESO DA DUPLA RÓTULO/VALOR SAEM COM ESPECIFICIDADE ZERO.
+
+     A onda 80 pôs a cor dentro das classes — o par rótulo-cinza /
+     valor-branco é o que cria hierarquia na referência, e deixá-lo a cargo
+     de quem usa foi o que produziu telas inteiras em cinza uniforme — e
+     escreveu ali que "quem quiser outra cor sobrescreve". Na prática não
+     dava: estas classes moram na layer `utilities` e são escritas DEPOIS
+     das utilitárias do Tailwind no CSS gerado, então, com especificidade
+     normal, `.valor` venceria `text-crit` e `.rotulo-dado` venceria
+     `text-dim-chip`. `LinhaLista` recebe `valorClassName="text-crit"` em 15
+     telas — vencimento de documento, saldo negativo, gasto acima do
+     previsto: aplicar `.valor` sem este cuidado apagaria o vermelho das 15
+     de uma vez, e o `text-dim-chip` (que existe pra passar AA sobre
+     `--superficie-2`) sumiria dos chips.
+
+     `:where()` tem especificidade 0. Com ele a classe entrega o padrão
+     certo — valor branco, rótulo cinza, peso médio — e QUALQUER utilitária
+     de cor ou de peso continua vencendo. Herança não conta como declaração,
+     então um `.valor` dentro de um bloco `text-dim` continua branco: o
+     padrão só perde pra quem pedir outra coisa NAQUELE elemento, que é
+     exatamente o contrato que a onda 80 escreveu e não conseguiu cumprir.
+
+     O TAMANHO fica de fora deste bloco, com especificidade normal: se ele
+     também virasse sugestão, a escala voltaria a ter sete degraus na
+     primeira tela que escrevesse `text-sm` por hábito. */
+  :where(.valor, .valor-forte, .valor-instrumento) {
+    color: var(--texto);
+    font-weight: 500;
+  }
+  :where(.rotulo-dado) { color: var(--texto-dim); }
 }
 
 /* Foco visível — não existia nenhum. Sem border-radius: o navegador já

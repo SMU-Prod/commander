@@ -8,7 +8,8 @@ import { PainelDuplo } from "@/components/ui/painel-duplo"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import {
-  abrirServico, abrirVotacao, atualizarServico, criarOrcamento, publicarServico, votar,
+  abrirServico, abrirVotacao, atualizarServico, criarOrcamento, encerrarVotacao,
+  publicarServico, votar,
 } from "@/lib/acoes/enterprise"
 import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
@@ -212,6 +213,29 @@ export default async function MecanicaPage({
                         ))}
                       </div>
                     )}
+
+                    {/* AUDITORIA 19/08, A14 — O ESTADO QUE O CÓDIGO NUNCA
+                        PRODUZIA. A tela já escondia os botões de voto quando
+                        `encerrada_em` tivesse valor, e nada no app escrevia
+                        essa coluna: a urna ficava aberta para sempre e nunca
+                        havia o "apurado, seguimos". A policy da migration 063
+                        se chama "votacoes: so o dono encerra" — o gesto estava
+                        previsto no banco e faltava a porta. */}
+                    {votacao?.encerrada_em ? (
+                      <p className="apoio mt-2 text-dim">
+                        Apurada em{" "}
+                        <span className="font-mono-instr tabular-nums">
+                          {new Date(votacao.encerrada_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        </span>
+                      </p>
+                    ) : ehDono && votacao ? (
+                      <form action={encerrarVotacao} className="mt-3">
+                        <input type="hidden" name="votacao_id" value={votacao.id} />
+                        <button className="h-11 w-full rounded-[var(--raio-controle)] border border-line text-sm font-medium">
+                          Encerrar votação
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
                 ) : ehDono && !vencido ? (
                   <form action={abrirVotacao} className="mt-3">

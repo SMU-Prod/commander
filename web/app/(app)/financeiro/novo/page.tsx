@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { criarLancamento } from "@/lib/acoes/financeiro"
@@ -12,7 +13,7 @@ import {
 import { podeEditar } from "@/lib/domain/permissoes"
 import { rot } from "@/lib/ui/form"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 /**
  * "+ Despesa" e "+ Entrada" — as duas ações universais do PRD §9.1. Mesmo
@@ -163,9 +164,12 @@ export default async function NovoLancamentoPage({
 
         <CampoTextarea label="Observação (opcional)" id="observacao" name="observacao" rows={3} />
 
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
-          {ehEntrada ? "Registrar entrada" : "Registrar despesa"}
-        </button>
+        {/* ONDA 85 — o pior caso do app inteiro (auditoria §3.3):
+            `multipart/form-data` com comprovante de até 10 MB. É o caminho
+            mais longo que existe aqui e o botão não mudava um pixel — e o
+            duplo-toque num formulário de dinheiro grava a despesa duas vezes.
+            Sai também o `py-3.5`/`rounded-xl`, altura e raio fora da escala. */}
+        <BotaoEnviar rotulo={ehEntrada ? "Registrar entrada" : "Registrar despesa"} />
       </form>
     </main>
   )

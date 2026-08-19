@@ -18,7 +18,9 @@ import type { Evento } from "@/lib/db/types"
 import { CompartilharBotao } from "./compartilhar-botao"
 
 const instrumento = "rounded-[12px] border border-line bg-panel p-3"
-const rotuloInstrumento = "font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+// Onda 87 — era `font-mono-instr text-[11px] uppercase tracking-[.14em]`,
+// que é `.rotulo` reescrito à mão com o tracking derivado (.14 contra .16).
+const rotuloInstrumento = "rotulo text-dim"
 const valorInstrumento = "mt-0.5 font-mono-instr text-lg tabular-nums"
 
 /**
@@ -126,7 +128,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
           vivo pelo app, e o dono precisa saber disso olhando a tela. */}
       {e.importado_do_plotter && (
-        <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+        <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
           <Icone nome="guardado" className="size-3" /> Importada do plotter
         </p>
       )}
@@ -179,13 +181,17 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       {temMar && (
         <div className="mt-4 rounded-[14px] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Condições do mar no momento do registro</p>
-          <div className="mt-1.5 flex gap-4 font-mono-instr text-sm tabular-nums">
+          {/* ONDA 87 — altura de onda e vento são leitura de instrumento:
+              `.valor` no lugar do `text-sm` solto, e os rótulos colados neles
+              passam a ser `.rotulo` de verdade (era 11px com tracking .12em
+              escrito à mão — uma cópia do `.rotulo` que derivou). */}
+          <div className="mt-1.5 flex gap-4 font-mono-instr valor">
             <span>
-              <span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>
+              <span className="mr-1.5 rotulo text-dim">Onda</span>
               {e.mar_onda_m != null ? `${e.mar_onda_m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}
             </span>
             <span>
-              <span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>
+              <span className="mr-1.5 rotulo text-dim">Vento</span>
               {e.mar_vento_kt != null ? `${Math.round(e.mar_vento_kt)} kt` : "—"}
             </span>
           </div>

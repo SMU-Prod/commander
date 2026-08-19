@@ -187,7 +187,7 @@ export default async function DocumentosPage({
               subtitulo={doc?.arquivo_path ? "Arquivo anexado" : "Sem arquivo anexado"}
               trailing={
                 <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                  <span className={`font-mono-instr text-sm font-semibold tabular-nums ${corData}`}>{dataTxt}</span>
+                  <span className={`font-mono-instr valor font-semibold ${corData}`}>{dataTxt}</span>
                   {diasTxt && <span className="apoio font-mono-instr tabular-nums text-dim">{diasTxt}</span>}
                   {url ? (
                     <a href={url} target="_blank" rel="noopener noreferrer" className="apoio text-accent-forte">Abrir</a>

@@ -370,7 +370,10 @@ export default async function BarcoPage({
           <p className="titulo-card inline-flex items-center gap-1.5">
             <Icone nome="sinal" className="size-4 text-dim" /> Commander Connect
           </p>
-          <span className="shrink-0 rounded-full border border-line bg-panel2 px-2 py-0.5 font-mono-instr text-[10px] uppercase tracking-[.1em] text-dim-chip">
+          {/* Onda 87 — o mesmo selo "Em breve" de /barco/connect, que lá era
+              11px e aqui 10, abaixo do piso tipográfico. Os dois agora pedem
+              `.rotulo`, que é o desenho declarado desse gesto. */}
+          <span className="shrink-0 rounded-full border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
             Em breve
           </span>
         </div>

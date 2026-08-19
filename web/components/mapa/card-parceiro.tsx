@@ -61,7 +61,10 @@ export function CardParceiro({
 
   return (
     <>
-      <div className="fixed inset-0 z-20 bg-[#0B1D2D]/40" onClick={aoFechar} />
+      {/* Onda 89 — o véu era navy escrito à mão; `bg-meter` é o MESMO navy no
+          tema claro, e no escuro acompanha o chão de instrumento em vez de
+          ficar preso ao valor de um tema só. */}
+      <div className="fixed inset-0 z-20 bg-meter/40" onClick={aoFechar} />
       <div className="sombra-2 fixed inset-x-0 bottom-0 z-30 rounded-t-[20px] border-t border-line bg-panel">
         <div className="mx-auto max-h-[75dvh] max-w-[430px] overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <div className="flex justify-center">
@@ -75,7 +78,7 @@ export function CardParceiro({
                 sobre qualquer cor da paleta. */}
             <div
               className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
-                parceiro.plano === "destaque" ? "ring-2 ring-[#D4AF37]" : "ring-2 ring-white"
+                parceiro.plano === "destaque" ? "ring-2 ring-accent" : "ring-2 ring-white"
               }`}
               style={{ backgroundColor: parceiro.cor }}
             >
