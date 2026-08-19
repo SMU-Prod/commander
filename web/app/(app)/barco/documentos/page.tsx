@@ -29,7 +29,7 @@ export default async function DocumentosPage({
   const { erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
-  if (!podeVer(painel.permissoes, "documentos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso nÃ£o inclui os documentos."))
+  if (!podeVer(painel.permissoes, "documentos")) redirect("/hoje?erro=" + encodeURIComponent("Seu acesso não inclui os documentos."))
   const editavel = podeEditar(painel.permissoes, "documentos")
   const supabase = await supabaseServer()
   const { data: docs } = await supabase.from("documentos")
@@ -46,11 +46,11 @@ export default async function DocumentosPage({
     return data?.signedUrl ?? null
   }
 
-  // Canvas tela-3d â€” a lista ordena pior primeiro (MESMO `PESO` do semÃ¡foro,
-  // nenhuma rÃ©gua nova) e o vencido hÃ¡ mais tempo SAI da lista pra virar o
-  // cartÃ£o de destaque: Ã© o Ãºnico documento que exige algo hoje.
-  // O vencimento pode vir de data fixa OU de Ãºltimo ciclo + intervalo em
-  // meses â€” `vencimentoPorData` Ã© a mesma rÃ©gua da ficha (nÃ£o ler sÃ³
+  // Canvas tela-3d — a lista ordena pior primeiro (MESMO `PESO` do semáforo,
+  // nenhuma régua nova) e o vencido há mais tempo SAI da lista pra virar o
+  // cartão de destaque: é o único documento que exige algo hoje.
+  // O vencimento pode vir de data fixa OU de último ciclo + intervalo em
+  // meses — `vencimentoPorData` é a mesma régua da ficha (não ler só
   // `data_fixa`, que fazia duas telas discordarem do mesmo dado).
   const avaliados = itensDocumento
     .map((i) => {
@@ -77,10 +77,10 @@ export default async function DocumentosPage({
       <CabecalhoDetalhe voltarHref="/barco" voltarRotulo="Barco" titulo="Documentos" descricao={resumo ?? undefined} />
       {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
-      {/* O cartÃ£o do vencido (canvas tela-3d): borda lateral crÃ­tica, a
-          palavra no selo e as duas aÃ§Ãµes â€” ver o arquivo que estÃ¡ lÃ¡ e
-          anexar o novo. O gate `editavel` vale aqui como na lista: quem sÃ³
-          vÃª, nÃ£o anexa. */}
+      {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a
+          palavra no selo e as duas ações — ver o arquivo que está lá e
+          anexar o novo. O gate `editavel` vale aqui como na lista: quem só
+          vê, não anexa. */}
       {destaque && (
         <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line border-l-2 border-l-crit bg-panel p-3.5">
           <div className="flex items-center gap-2.5">
@@ -104,7 +104,7 @@ export default async function DocumentosPage({
             ) : (
               "Vencido"
             )}
-            {docDestaque?.arquivo_path ? " Â· arquivo anexado" : " Â· sem arquivo anexado"}
+            {docDestaque?.arquivo_path ? " · arquivo anexado" : " · sem arquivo anexado"}
           </p>
           {(urlDestaque || editavel) && (
             <div className="mt-3 flex gap-2">
@@ -142,7 +142,7 @@ export default async function DocumentosPage({
             variant="linha"
             icone="documento"
             titulo={destaque ? "Nenhum outro documento cadastrado" : "Nenhum documento cadastrado ainda"}
-            descricao={editavel && !destaque ? "Cadastre abaixo pra o semÃ¡foro avisar antes de vencer." : undefined}
+            descricao={editavel && !destaque ? "Cadastre abaixo pra o semáforo avisar antes de vencer." : undefined}
           />
         )}
         {await Promise.all(restantes.map(async ({ item: i, r, venc }) => {
@@ -150,8 +150,8 @@ export default async function DocumentosPage({
           const url = doc?.arquivo_path ? await linkAssinado(doc.arquivo_path) : null
           const hrefEditar = editavel ? `/barco/itens/${i.id}/editar` : undefined
 
-          // Canvas: item SEM data de validade nÃ£o finge estado â€” ponto
-          // vazado e "Completar" no lugar da data (a mesma confissÃ£o da
+          // Canvas: item SEM data de validade não finge estado — ponto
+          // vazado e "Completar" no lugar da data (a mesma confissão da
           // ficha de equipamento).
           if (venc == null) {
             return (
@@ -167,15 +167,15 @@ export default async function DocumentosPage({
           }
 
           // Vencimento longe (ok): data completa dd/mm/aa, sem contagem.
-          // Na margem ou vencido: dd/mm colorido + os dias embaixo â€” a
+          // Na margem ou vencido: dd/mm colorido + os dias embaixo — a
           // anatomia da coluna direita do canvas. "Abrir"/"Anexar" moram na
-          // mesma coluna, abaixo da data, pra nenhuma funÃ§Ã£o se perder.
+          // mesma coluna, abaixo da data, pra nenhuma função se perder.
           const dataTxt = r.status === "ok" ? formatarDataCurtaComAno(venc) : formatarDataCurta(venc)
           const corData = r.status === "vencido" ? "text-crit" : r.status === "atencao" ? "text-warn" : ""
           const diasTxt =
             r.diasRestantes != null && r.status !== "ok"
               ? r.diasRestantes < 0
-                ? `hÃ¡ ${-r.diasRestantes} dias`
+                ? `há ${-r.diasRestantes} dias`
                 : `${r.diasRestantes} dias`
               : null
           return (
@@ -230,20 +230,20 @@ export default async function DocumentosPage({
 
       <SecaoPagina icone="mais">Novo documento</SecaoPagina>
       <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
-        <Campo label="Nome" id="nome" name="nome" required list="tipos-doc" placeholder="Ex.: Seguro da embarcaÃ§Ã£o">
+        <Campo label="Nome" id="nome" name="nome" required list="tipos-doc" placeholder="Ex.: Seguro da embarcação">
           <datalist id="tipos-doc">
-            <option value="Seguro da embarcaÃ§Ã£o" /><option value="TIE" />
-            <option value="Vistoria da Marinha" /><option value="LicenÃ§a de navegaÃ§Ã£o" />
-            <option value="Certificado de seguranÃ§a" /><option value="Documento de propriedade" />
+            <option value="Seguro da embarcação" /><option value="TIE" />
+            <option value="Vistoria da Marinha" /><option value="Licença de navegação" />
+            <option value="Certificado de segurança" /><option value="Documento de propriedade" />
           </datalist>
         </Campo>
-        <Campo label="Vence em â€” opcional" id="validade" name="validade" type="date" />
+        <Campo label="Vence em — opcional" id="validade" name="validade" type="date" />
         {/* Fora da grade de 2 colunas e com `CampoArquivo`: o input nativo
-            desenhava "Choose File Â· No file chosen" em inglÃªs (auditoria
-            visual 18/08, Â§8), e espremido em meia largura o rÃ³tulo do
-            navegador ainda saÃ­a cortado. */}
+            desenhava "Choose File · No file chosen" em inglês (auditoria
+            visual 18/08, §8), e espremido em meia largura o rótulo do
+            navegador ainda saía cortado. */}
         <CampoArquivo
-          label="Arquivo â€” opcional"
+          label="Arquivo — opcional"
           name="arquivo"
           accept="application/pdf,image/jpeg,image/png,image/webp"
           ajuda="PDF, JPG, PNG ou WebP"

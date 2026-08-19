@@ -26,7 +26,7 @@ export default async function FotosPage({
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   if (!podeVer(painel.permissoes, "fotos")) {
-    redirect(`/hoje?erro=${encodeURIComponent("Seu acesso nÃ£o inclui as fotos.")}`)
+    redirect(`/hoje?erro=${encodeURIComponent("Seu acesso não inclui as fotos.")}`)
   }
   const editavel = podeEditar(painel.permissoes, "fotos")
   const albumAtivo = ALBUNS.find((a) => a === albumBruto) ?? "exterior"
@@ -37,16 +37,16 @@ export default async function FotosPage({
       .order("created_at", { ascending: false }),
     carregarNivelPlano(),
   ])
-  if (error) throw new Error("NÃ£o foi possÃ­vel carregar as fotos. Recarregue a pÃ¡gina.")
+  if (error) throw new Error("Não foi possível carregar as fotos. Recarregue a página.")
 
   const todas = (fotos ?? []) as Foto[]
-  // Contagem do gate do plano Free (onda 38) â€” total real do barco, nÃ£o sÃ³
-  // do Ã¡lbum aberto: o limite Ã© da embarcaÃ§Ã£o inteira, cruzando Ã¡lbuns.
+  // Contagem do gate do plano Free (onda 38) — total real do barco, não só
+  // do álbum aberto: o limite é da embarcação inteira, cruzando álbuns.
   const usoFotos = todas.length
   const liberadoParaSubir = recursoLiberado("fotos", nivel, usoFotos)
-  // Canvas tela-4a: o "18 / 40" mono do cartÃ£o Ã© a cota REAL â€” a que aperta
-  // primeiro neste plano (contagem no Free, espaÃ§o em MB no pago). A escolha
-  // mora no domÃ­nio (`cotaDoPlano`), com teste.
+  // Canvas tela-4a: o "18 / 40" mono do cartão é a cota REAL — a que aperta
+  // primeiro neste plano (contagem no Free, espaço em MB no pago). A escolha
+  // mora no domínio (`cotaDoPlano`), com teste.
   const cota = cotaDoPlano(nivel, usoFotos, todas.reduce((s, f) => s + f.bytes, 0))
   const doAlbum = todas.filter((f) => f.album === albumAtivo)
   const urls = doAlbum.length
@@ -60,10 +60,10 @@ export default async function FotosPage({
         voltarHref="/barco"
         voltarRotulo="Barco"
         titulo="Fotos"
-        descricao="O Ã¡lbum do barco â€” e o dossiÃª que vale na hora de vender."
-        // O "+ Adicionar" do canvas (tela-4a): pÃ­lula dourada ao lado do
-        // tÃ­tulo, levando Ã  MESMA seÃ§Ã£o de envio no fim da pÃ¡gina â€” uma aÃ§Ã£o,
-        // dois pontos de entrada, nunca um segundo formulÃ¡rio.
+        descricao="O álbum do barco — e o dossiê que vale na hora de vender."
+        // O "+ Adicionar" do canvas (tela-4a): pílula dourada ao lado do
+        // título, levando à MESMA seção de envio no fim da página — uma ação,
+        // dois pontos de entrada, nunca um segundo formulário.
         acao={
           editavel && liberadoParaSubir ? (
             <Link
@@ -85,8 +85,8 @@ export default async function FotosPage({
             ativo={a === albumAtivo}
           >
             {ROTULO_ALBUM[a]}
-            {/* O contador mono do chip ativo (canvas: "Todas 18") â€” sÃ³ no
-                ativo, que Ã© o recorte que a grade abaixo estÃ¡ mostrando. */}
+            {/* O contador mono do chip ativo (canvas: "Todas 18") — só no
+                ativo, que é o recorte que a grade abaixo está mostrando. */}
             {a === albumAtivo && doAlbum.length > 0 && (
               <span className="ml-1.5 font-mono-instr tabular-nums">{doAlbum.length}</span>
             )}
@@ -98,7 +98,7 @@ export default async function FotosPage({
         <EstadoVazio
           icone="camera"
           titulo={`Nenhuma foto em ${ROTULO_ALBUM[albumAtivo]}`}
-          descricao="Fotos boas valorizam o barco e contam a histÃ³ria dele."
+          descricao="Fotos boas valorizam o barco e contam a história dele."
           className="mt-4"
         />
       ) : (
@@ -110,11 +110,11 @@ export default async function FotosPage({
               <div key={f.id} className="overflow-hidden rounded-[10px] border border-line bg-panel sombra-1">
                 <div className="relative">
                   {url && (
-                    /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporÃ¡ria do storage */
-                    <img src={url} alt={f.legenda ?? "Foto da embarcaÃ§Ã£o"} className="aspect-square w-full object-cover" loading="lazy" />
+                    /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
+                    <img src={url} alt={f.legenda ?? "Foto da embarcação"} className="aspect-square w-full object-cover" loading="lazy" />
                   )}
-                  {/* O selo "Capa" do canvas â€” sobre a prÃ³pria foto, navy fixo
-                      nos dois temas (a foto nÃ£o segue o tema; mesmo raciocÃ­nio
+                  {/* O selo "Capa" do canvas — sobre a própria foto, navy fixo
+                      nos dois temas (a foto não segue o tema; mesmo raciocínio
                       de --mapa-instrumento em globals.css). */}
                   {ehCapa && (
                     <span className="absolute bottom-1.5 left-1.5 rounded-full border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[.06em] text-meter-texto">
@@ -147,8 +147,8 @@ export default async function FotosPage({
               </div>
             )
           })}
-          {/* O convite "+ foto" do canvas: Ãºltimo quadrado da grade, tracejado,
-              levando Ã  mesma seÃ§Ã£o de envio. SÃ³ existe quando dÃ¡ pra enviar â€”
+          {/* O convite "+ foto" do canvas: último quadrado da grade, tracejado,
+              levando à mesma seção de envio. Só existe quando dá pra enviar —
               convite pra porta fechada seria mentira. */}
           {editavel && liberadoParaSubir && (
             <Link
@@ -162,8 +162,8 @@ export default async function FotosPage({
         </div>
       )}
 
-      {/* O cartÃ£o de cota do canvas â€” rÃ³tulo mono, nÃºmero mono Ã  direita,
-          barra fina. Fica DEPOIS da grade, como lÃ¡: primeiro o Ã¡lbum, depois
+      {/* O cartão de cota do canvas — rótulo mono, número mono à direita,
+          barra fina. Fica DEPOIS da grade, como lá: primeiro o álbum, depois
           o quanto ainda cabe. */}
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
         <div className="flex items-baseline justify-between">
@@ -176,7 +176,7 @@ export default async function FotosPage({
             style={{ width: `${Math.max(2, cota.percentual)}%` }}
           />
         </div>
-        <p className="apoio mt-2 text-dim">A foto marcada como capa Ã© a que abre o seu Commander.</p>
+        <p className="apoio mt-2 text-dim">A foto marcada como capa é a que abre o seu Commander.</p>
       </div>
 
       {editavel && (
@@ -185,23 +185,23 @@ export default async function FotosPage({
           {liberadoParaSubir ? (
             <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
               <input type="hidden" name="album" value={albumAtivo} />
-              {/* `CampoArquivo` e nÃ£o `Campo type="file"`: o input nativo
-                  desenha o prÃ³prio botÃ£o em inglÃªs ("Choose File Â· No file
-                  chosen") no meio de uma tela toda em portuguÃªs â€” onda 63,
-                  auditoria visual Â§8. */}
+              {/* `CampoArquivo` e não `Campo type="file"`: o input nativo
+                  desenha o próprio botão em inglês ("Choose File · No file
+                  chosen") no meio de uma tela toda em português — onda 63,
+                  auditoria visual §8. */}
               <CampoArquivo
                 label={`Foto para ${ROTULO_ALBUM[albumAtivo]}`}
                 name="arquivo"
                 accept="image/jpeg,image/png,image/webp"
-                ajuda="JPG, PNG ou WebP, atÃ© 10 MB"
+                ajuda="JPG, PNG ou WebP, até 10 MB"
               />
-              <Campo label="Legenda â€” opcional" id="legenda" name="legenda" placeholder="Ex.: convÃ©s apÃ³s a Ãºltima lavagem" />
+              <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
               <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
             </form>
           ) : (
             <>
-              {/* Â§23 â€” nada do acervo Ã© apagado quando o teto muda; o aviso
-                  diz isso antes do cadeado. `null` quando nÃ£o hÃ¡ excedente. */}
+              {/* §23 — nada do acervo é apagado quando o teto muda; o aviso
+                  diz isso antes do cadeado. `null` quando não há excedente. */}
               {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos) && (
                 <p className="corpo mb-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
                   {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos)}
