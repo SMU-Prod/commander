@@ -130,15 +130,15 @@ export default async function OcorrenciaDetalhePage({
           ) : undefined
         }
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
-      {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 text-sm">{ok}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {ok && <p className="mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2 text-sm">{ok}</p>}
 
       {/* Anulada COM REGISTRO (PRD §7) — o motivo, quem escreveu e quando
           ficam em destaque no topo, antes da descrição original: quem abre
           essa tela precisa saber que o que vem abaixo não vale mais, e por
           quê, sem caçar no histórico de mudanças. */}
       {anulada && (
-        <div className="mt-4 rounded-[14px] border border-line bg-panel2 p-4">
+        <div className="mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel2 p-4">
           <p className="titulo-card">Ocorrência anulada</p>
           <p className="corpo mt-1">{o.motivo_anulacao}</p>
           <p className="apoio mt-2 text-dim">
@@ -155,7 +155,7 @@ export default async function OcorrenciaDetalhePage({
         </a>
       )}
       {editavel && acoes.length > 0 && (
-        <form action={transicionarOcorrencia} className="sombra-1 mt-5 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <form action={transicionarOcorrencia} className="sombra-1 mt-6 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <input type="hidden" name="ocorrencia_id" value={o.id} />
           {/* Uma caixa só pros dois usos: observação livre nas transições
               normais e MOTIVO obrigatório ao anular (o servidor recusa a
@@ -175,7 +175,7 @@ export default async function OcorrenciaDetalhePage({
                 type="submit"
                 name="novo_estado"
                 value={estado}
-                className={`rounded-xl px-4 py-2.5 text-sm font-semibold ${
+                className={`rounded-[var(--raio-controle)] px-4 py-2.5 text-sm font-semibold ${
                   estado === "resolvida"
                     ? "bg-accent text-acao-texto"
                     : estado === "anulada"
@@ -197,7 +197,7 @@ export default async function OcorrenciaDetalhePage({
       )}
 
       <p className="rotulo text-dim mt-6 mb-2">Histórico de mudanças</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {transicoes.map((t) => (
           <div key={t.id} className="border-b border-line py-3 last:border-0">
             <p className="titulo-card">

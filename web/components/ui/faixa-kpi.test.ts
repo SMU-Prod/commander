@@ -14,7 +14,13 @@ describe("PastilhaKpi", () => {
   it("rótulo em caixa de frase (rotulo-dado), valor em mono tabular", () => {
     const saida = htmlPastilha({ icone: "motor", rotulo: "Sistemas", valor: "3" })
     expect(saida).toContain("rotulo-dado")
-    expect(saida).toContain(">Sistemas:</span>")
+    // ONDA 95 (achado 5.7) — sem dois-pontos: a pastilha passou a ter a mesma
+    // anatomia do `ChipDado` (rótulo colado no valor, dentro da pílula), que é
+    // a única forma de contagem que a régua do app admite. O teste trava a
+    // AUSÊNCIA junto com a presença, senão o dois-pontos volta na primeira
+    // edição distraída — foi assim que as três formas nasceram.
+    expect(saida).toContain(">Sistemas</span>")
+    expect(saida).not.toContain("Sistemas:")
     expect(saida).toContain("font-mono-instr")
     expect(saida).toContain("tabular-nums")
     expect(saida).toContain(">3<")

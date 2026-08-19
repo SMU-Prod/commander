@@ -38,7 +38,7 @@ export default async function ConnectPage() {
       <div className="mt-3 flex items-center gap-2">
         <Icone nome="sinal" className="size-5 text-dim" />
         <h1 className="titulo-pagina">Commander Connect</h1>
-        <span className="rounded-full border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
+        <span className="rounded-[var(--raio-pilula)] border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
           Em breve
         </span>
       </div>
@@ -51,7 +51,7 @@ export default async function ConnectPage() {
       </p>
 
       <p className="rotulo mt-6 mb-2 text-dim">Planejado para o ecossistema Connect</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {PLANEJADO.map((item) => (
           <div key={item} className="flex items-start gap-3 border-b border-line py-3 last:border-0">
             <Icone nome="sinal" className="mt-0.5 size-4 shrink-0 text-dim" />
@@ -67,7 +67,7 @@ export default async function ConnectPage() {
       </p>
 
       <p className="rotulo mt-6 mb-2 text-dim">Quer saber se sua embarcação já é compatível?</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="corpo">
           Responda um questionário curto sobre a sua instalação. O resultado é uma classificação
           preliminar — nunca uma promessa — e ajuda a Commander a priorizar quem atender primeiro.
@@ -78,7 +78,7 @@ export default async function ConnectPage() {
       </div>
 
       <p className="rotulo mt-6 mb-2 text-dim">Seu sistema não aparece como compatível?</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="corpo">
           A Commander poderá analisar a instalação e indicar interfaces adicionais quando houver
           uma solução viável.

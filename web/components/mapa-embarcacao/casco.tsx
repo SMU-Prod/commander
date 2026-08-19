@@ -241,7 +241,7 @@ export function Casco({
             style={pct(PINO[z.zona])}
           >
             <span
-              className={`flex size-8 items-center justify-center rounded-full border-2 bg-panel font-mono-instr text-xs font-semibold tabular-nums ${
+              className={`flex size-8 items-center justify-center rounded-[var(--raio-pilula)] border-2 bg-panel font-mono-instr text-xs font-semibold tabular-nums ${
                 z.estado ? COR_PINO[z.estado] : COR_PINO_SEM_DADO
               } ${ativa ? "outline-2 outline-offset-2 outline-accent" : ""}`}
             >

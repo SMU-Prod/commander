@@ -200,7 +200,7 @@ function GraficoMare({ serie, proxima }: { serie: BoletimMar["serieNivelMar"]; p
 export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } | null }) {
   const { estado, tentarDeNovo } = useBoletimTempo(posicao)
 
-  const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
+  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
   // Onda 80 — rótulo em CAIXA DE FRASE (`.rotulo-dado`, ver app/globals.css),
   // não mais uppercase rastreado: mesma troca que o resto da tela fez (ver
   // navegar-mapa.tsx, comentário do Mostrador).
@@ -221,7 +221,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
           <p className="apoio text-meter-dim">Tempo indisponível agora — a Open-Meteo não respondeu.</p>
           <button
             onClick={tentarDeNovo}
-            className="flex min-h-11 shrink-0 items-center rounded-lg border border-mapa-instrumento-borda px-3 text-xs font-semibold text-meter-texto"
+            className="flex min-h-11 shrink-0 items-center rounded-[var(--raio-controle)] border border-mapa-instrumento-borda px-3 text-xs font-semibold text-meter-texto"
           >
             Tentar de novo
           </button>
@@ -270,7 +270,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
             </div>
           </div>
 
-          <div className={`mt-2 inline-flex rounded px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.1em] ${
+          <div className={`rotulo mt-2 inline-flex rounded px-2 py-0.5 ${
             estado.boletim.selo.nivel === "ok" ? "border border-ok/40 text-ok"
             : estado.boletim.selo.nivel === "atencao" ? "border border-warn/40 text-warn"
             : "border border-crit/40 text-crit"

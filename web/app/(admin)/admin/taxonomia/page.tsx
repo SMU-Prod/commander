@@ -66,7 +66,7 @@ export default async function AdminTaxonomiaPage({
       {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <ChipLinha quebra className="mt-5">
+      <ChipLinha quebra className="mt-6">
         {TIPOS_TAXONOMIA.map((t) => (
           <Chip key={t} href={`/admin/taxonomia?tipo=${t}`} ativo={t === tipoAtivo}>
             {ROTULO_TIPO_TAXONOMIA[t]}

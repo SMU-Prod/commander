@@ -31,7 +31,7 @@ export default async function InteresseConnectPage({
     return (
       <main>
         <CabecalhoDetalhe voltarHref="/barco/connect" voltarRotulo="Commander Connect" />
-        <div className="sombra-1 mt-4 rounded-[14px] border border-ok/40 bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-ok/40 bg-panel p-4">
           <div className="flex items-center gap-2">
             <Icone nome="guardado" className="size-5 text-ok" />
             <p className="titulo-card">Interesse registrado</p>
@@ -61,7 +61,7 @@ export default async function InteresseConnectPage({
         titulo="Ver se sua embarcação é compatível"
         descricao="Um questionário curto — o resultado é uma classificação preliminar, nunca uma promessa."
       />
-      {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       <form action={registrarInteresseConnect}>
         <FormularioInteresseConnect motorPrincipal={motorPrincipal} />

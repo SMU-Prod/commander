@@ -47,7 +47,21 @@ export function PastilhaKpi({
   return (
     <span className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3">
       <Icone nome={icone} className="size-3.5 shrink-0 text-dim" />
-      <span className="rotulo-dado text-dim">{rotulo}:</span>
+      {/* ONDA 95 (achado 5.7) — O DOIS-PONTOS CAI, E COM ELE A TERCEIRA FORMA.
+          A auditoria de 19/08 mediu a contagem escrita de três jeitos: dentro
+          da pílula (`ChipDado`, `Chip contagem`), `rótulo: valor` — que era
+          ESTA linha — e número mono solto ao lado do título. A régua do app é
+          a primeira: rótulo colado no valor, dentro da pílula. Sem o
+          dois-pontos esta pastilha passa a ter a MESMA anatomia do `ChipDado`,
+          e a diferença que sobra entre as duas é a única deliberada: aqui o
+          rótulo é caixa de frase (`.rotulo-dado`, medido da referência —
+          "Active", não "ACTIVE") porque isto é legenda de um valor; lá é
+          `.rotulo` maiúsculo porque é etiqueta de instrumento.
+          Um dois-pontos não é pontuação inocente numa faixa de números: ele
+          transforma a pastilha numa FRASE ("Sistemas: 3") no meio de uma fila
+          que o olho lê como painel, e é o que fazia a mesma informação ter
+          duas caras em duas telas vizinhas. A referência não usa nenhum. */}
+      <span className="rotulo-dado text-dim">{rotulo}</span>
       {/* ONDA 87 — o valor sobe de 12px pro degrau `.valor` (14px). Era o
           menor dos sete tamanhos de número que a auditoria mediu, e aqui ele
           fica ao lado de um rótulo de 11px: com um pixel de diferença os dois

@@ -29,9 +29,9 @@ export function EscolherPinoParceiro({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 rounded-[12px] border border-line bg-panel2 px-3 py-3">
+      <div className="flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel2 px-3 py-3">
         <div
-          className={`relative flex size-11 shrink-0 items-center justify-center rounded-full ${
+          className={`relative flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] ${
             destaque ? "ring-2 ring-accent" : "ring-2 ring-white"
           }`}
           style={{ backgroundColor: cor }}
@@ -55,7 +55,7 @@ export function EscolherPinoParceiro({
                 aria-label={c.rotulo}
                 title={c.rotulo}
                 onClick={() => setCor(c.valor)}
-                className={`size-9 rounded-full transition-transform ${
+                className={`size-9 rounded-[var(--raio-pilula)] transition-transform ${
                   selecionada ? "ring-2 ring-accent-forte scale-110" : "ring-1 ring-line"
                 }`}
                 style={{ backgroundColor: c.valor }}
@@ -77,7 +77,7 @@ export function EscolherPinoParceiro({
                 role="radio"
                 aria-checked={selecionado}
                 onClick={() => setIcone(i.valor)}
-                className={`flex flex-col items-center gap-1 rounded-[10px] border px-2 py-2.5 text-center ${
+                className={`flex flex-col items-center gap-1 rounded-[var(--raio-controle)] border px-2 py-2.5 text-center ${
                   selecionado ? "border-accent bg-accent/10 text-accent-forte" : "border-line text-dim"
                 }`}
               >

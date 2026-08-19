@@ -19,7 +19,7 @@ import {
 export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Reputacao; className?: string }) {
   if (reputacao.quantidade === 0) {
     return (
-      <div className={`rounded-[14px] border border-line bg-panel p-4 ${className}`}>
+      <div className={`rounded-[var(--raio-cartao)] border border-line bg-panel p-4 ${className}`}>
         <p className="corpo font-medium">{formatarQuantidade(0)}</p>
         <p className="apoio mt-1 text-dim">
           Aqui só entra avaliação de quem fechou negócio pelo Commander e confirmou o fechamento dos dois
@@ -30,7 +30,7 @@ export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Repu
   }
 
   return (
-    <div className={`sombra-1 rounded-[14px] border border-line bg-panel p-3.5 ${className}`}>
+    <div className={`sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5 ${className}`}>
       <div className="flex items-center gap-4">
         <div className="shrink-0">
           <p className="font-mono-instr text-[34px] font-semibold leading-none tabular-nums">
@@ -42,9 +42,9 @@ export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Repu
           {barrasDaDistribuicao(reputacao).map((b) => (
             <div key={b.estrela} className="flex items-center gap-2">
               <span className="w-3 shrink-0 font-mono-instr text-[11px] tabular-nums text-dim">{b.estrela}</span>
-              <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-panel2">
+              <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
                 <div
-                  className={`h-full rounded-full ${b.destaque ? "bg-accent" : "bg-dim"}`}
+                  className={`h-full rounded-[var(--raio-pilula)] ${b.destaque ? "bg-accent" : "bg-dim"}`}
                   style={{ width: `${b.percentual}%` }}
                 />
               </div>
@@ -55,7 +55,7 @@ export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Repu
           </p>
         </div>
       </div>
-      <p className="apoio mt-3 inline-flex items-center gap-1.5 rounded-full border border-ok/40 px-2.5 py-1 text-ok">
+      <p className="apoio mt-3 inline-flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-ok/40 px-2.5 py-1 text-ok">
         <Icone nome="guardado" className="size-3.5" />
         {SELO_NEGOCIO_CONFIRMADO}
       </p>
@@ -71,7 +71,7 @@ export function SeloReputacao({ reputacao, href }: { reputacao: Reputacao; href:
   return (
     <Link
       href={href}
-      className="apoio inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-dim"
+      className="apoio inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim"
     >
       <Icone nome="estrela" className="size-3.5 text-accent-forte" />
       <span className="font-mono-instr tabular-nums">{formatarMedia(reputacao.media)}</span>

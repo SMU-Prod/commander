@@ -24,7 +24,7 @@ export function Confirmar({
   return (
     <span className="flex items-center gap-2">
       <span className="apoio text-dim">{mensagem}</span>
-      <button type="submit" className="rounded-lg bg-crit px-2.5 py-1.5 text-xs font-semibold text-white">
+      <button type="submit" className="rounded-[var(--raio-controle)] bg-crit px-2.5 py-1.5 text-xs font-semibold text-white">
         Confirmar
       </button>
       <button type="button" onClick={() => setPedindo(false)} className="px-2 py-1.5 text-xs text-dim">

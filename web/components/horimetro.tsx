@@ -41,15 +41,15 @@ export function Horimetro({
     ? horas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
     : "—"
   return (
-    <div className="rounded-[10px] border border-line bg-meter text-meter-texto px-3 py-2 font-mono-instr tabular-nums">
-      <div className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[.16em] text-meter-dim">
+    <div className="rounded-[var(--raio-cartao)] border border-line bg-meter text-meter-texto px-3 py-2 font-mono-instr tabular-nums">
+      <div className="rotulo mb-1 flex items-center justify-between text-meter-dim">
         {rotulo}{" "}
         {status ? (
           <Farol status={status} />
         ) : (
           <span
             aria-label="Sem dados de manutenção"
-            className="inline-block size-2 shrink-0 rounded-full border border-meter-dim"
+            className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-meter-dim"
           />
         )}
       </div>

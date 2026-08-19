@@ -53,13 +53,13 @@ export default async function GoldPage({
         independentes.
       </p>
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {selo && statusSelo && (
         <Link
           href={`/barco/selos/gold/${selo.solicitacao_id}`}
-          className="sombra-1 mt-5 block rounded-[14px] border border-accent-forte/40 bg-panel p-4"
+          className="sombra-1 mt-6 block rounded-[var(--raio-cartao)] border border-accent-forte/40 bg-panel p-4"
         >
           <div className="flex items-center justify-between gap-2">
             <p className="titulo-card inline-flex items-center gap-1.5">
@@ -76,7 +76,7 @@ export default async function GoldPage({
       {emAndamento && solicitacao && (
         <Link
           href={`/barco/selos/gold/${solicitacao.id}`}
-          className="sombra-1 mt-5 block rounded-[14px] border border-line bg-panel p-4"
+          className="sombra-1 mt-6 block rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
         >
           <div className="flex items-center justify-between gap-2">
             <p className="titulo-card">{ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]}</p>
@@ -89,7 +89,7 @@ export default async function GoldPage({
       {!emAndamento && (
         <>
           <p className="rotulo mt-6 mb-2 text-dim">Valores da avaliação Commander Gold</p>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {precos.map((p) => (
               <div key={p.faixa} className="flex items-center justify-between border-b border-line py-2.5 last:border-0">
                 <p className="corpo text-dim">{p.rotulo}</p>
@@ -104,7 +104,7 @@ export default async function GoldPage({
 
           <p className="rotulo mt-6 mb-2 text-dim">Solicitar Commander Gold</p>
           {painel.papel === "PROP" ? (
-            <form action={criarSolicitacaoGold} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <form action={criarSolicitacaoGold} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <input type="hidden" name="tipo" value="minha" />
               <p className="corpo font-medium">{painel.embarcacao.nome}</p>
               <p className="apoio text-dim">Solicitação para a sua própria embarcação.</p>
@@ -119,12 +119,12 @@ export default async function GoldPage({
                 <option value="proprio">Eu</option>
                 <option value="interessado">Outra pessoa (gero um link de pagamento)</option>
               </CampoSelect>
-              <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
+              <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">
                 Quero o Commander Gold
               </button>
             </form>
           ) : (
-            <p className="apoio rounded-[14px] border border-line bg-panel p-4 text-dim">
+            <p className="apoio rounded-[var(--raio-cartao)] border border-line bg-panel p-4 text-dim">
               Só o proprietário pode solicitar o Commander Gold para esta embarcação.
             </p>
           )}
@@ -133,7 +133,7 @@ export default async function GoldPage({
             <summary className="corpo cursor-pointer text-accent-forte">
               Quero avaliar outra embarcação (ainda não é minha)
             </summary>
-            <form action={criarSolicitacaoGold} className="sombra-1 mt-3 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+            <form action={criarSolicitacaoGold} className="sombra-1 mt-3 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <input type="hidden" name="tipo" value="outra" />
               <p className="apoio text-dim">
                 Vai comprar um barco e quer a avaliação presencial antes de fechar negócio? Ou está
@@ -158,7 +158,7 @@ export default async function GoldPage({
                 <option value="proprio">Eu</option>
                 <option value="interessado">Outra pessoa (gero um link de pagamento)</option>
               </CampoSelect>
-              <button className="w-full rounded-xl border border-line bg-panel2 py-3 font-semibold">
+              <button className="w-full rounded-[var(--raio-controle)] border border-line bg-panel2 py-3 font-semibold">
                 Solicitar avaliação dessa embarcação
               </button>
             </form>
@@ -176,7 +176,7 @@ export default async function GoldPage({
       {externas.length > 0 && (
         <>
           <p className="rotulo mt-6 mb-2 text-dim">Suas solicitações para outras embarcações</p>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {externas.map((s) => (
               <Link
                 key={s.id} href={`/barco/selos/gold/${s.id}`}

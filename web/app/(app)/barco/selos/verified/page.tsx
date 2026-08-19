@@ -33,12 +33,12 @@ function LinhaPilar({ item }: { item: ItemVerified }) {
       key={item.chave}
       leading={
         <span
-          className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+          className={`flex size-5 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border ${
             item.ok ? "border-ok bg-ok/15" : "border-line"
           }`}
           aria-hidden="true"
         >
-          {item.ok && <span className="size-2 rounded-full bg-ok" />}
+          {item.ok && <span className="size-2 rounded-[var(--raio-pilula)] bg-ok" />}
         </span>
       }
       titulo={<span className={item.ok ? "" : "text-dim"}>{item.rotulo}</span>}
@@ -75,7 +75,7 @@ export default async function VerifiedPage() {
         física — quem avalia presencialmente é o Commander Gold.
       </p>
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="rotulo text-dim">Situação do selo</p>
           <SituacaoVerified selo={selo} />
@@ -123,7 +123,7 @@ export default async function VerifiedPage() {
       {verified.pendentes.length > 0 && (
         <>
           <SecaoPagina icone="alerta">O que falta — {verified.pendentes.length}</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {verified.pendentes.map((item) => <LinhaPilar key={item.chave} item={item} />)}
           </div>
         </>
@@ -132,7 +132,7 @@ export default async function VerifiedPage() {
       {verified.atendidos.length > 0 && (
         <>
           <SecaoPagina icone="escudo">Requisitos atendidos — {verified.atendidos.length}</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {verified.atendidos.map((item) => <LinhaPilar key={item.chave} item={item} />)}
           </div>
         </>
@@ -140,7 +140,7 @@ export default async function VerifiedPage() {
 
       <Link
         href="/barco/selos/gold"
-        className="sombra-1 mt-6 block rounded-[14px] border border-line bg-panel p-3.5"
+        className="sombra-1 mt-6 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
       >
         <p className="titulo-card inline-flex items-center gap-1.5">
           <SeloGold size={18} variant="convite" /> Quer avaliação presencial?

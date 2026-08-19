@@ -37,7 +37,7 @@ export function SinoNotificacoes({ contador, className = "" }: { contador: numbe
            sobre o vermelho nos dois. */
         <span
           aria-hidden="true"
-          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 font-mono-instr text-[11px] font-bold leading-4 tabular-nums text-ink"
+          className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1 font-mono-instr text-[11px] font-bold leading-4 tabular-nums text-ink"
         >
           {contador > 9 ? "9+" : contador}
         </span>

@@ -36,12 +36,12 @@ export default async function NovaOcorrenciaPage({
   return (
     <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref="/barco/ocorrencias" voltarRotulo="Ocorrências" titulo="Abrir ocorrência" />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
       {setoresPermitidos.length === 0 ? (
-        <p className="corpo mt-5 text-dim">Seu acesso não permite abrir ocorrência em nenhum setor.</p>
+        <p className="corpo mt-6 text-dim">Seu acesso não permite abrir ocorrência em nenhum setor.</p>
       ) : (
-        <form action={criarOcorrencia} className="mt-5 space-y-4">
+        <form action={criarOcorrencia} className="mt-6 space-y-4">
           {/* A descrição de uma avaria costuma ser o texto mais longo que
               alguém digita no app. `criarOcorrencia` volta com `?erro=` e
               limpava tudo — inclusive o relato inteiro. A guarda também

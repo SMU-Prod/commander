@@ -102,7 +102,7 @@ export default async function LandingPage() {
           <h1 className="text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-5xl lg:text-6xl">
             O dossiê do seu barco.
           </h1>
-          <p className="mt-5 max-w-md text-lg text-dim sm:text-xl">
+          <p className="mt-6 max-w-md text-lg text-dim sm:text-xl">
             Manutenção em dia, documentos alertados e um histórico que vale dinheiro na hora de vender.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -126,7 +126,7 @@ export default async function LandingPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           {VALORES.map((v) => (
             <div key={v.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-5">
-              <span className="flex size-10 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
+              <span className="flex size-10 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/12 text-accent-forte">
                 <Icone nome={v.icone} className="size-5" />
               </span>
               <h2 className="titulo-card mt-4">{v.titulo}</h2>
@@ -142,7 +142,7 @@ export default async function LandingPage() {
         <ol className="mt-10 grid gap-8 sm:grid-cols-3">
           {PASSOS.map((p, i) => (
             <li key={p.titulo} className="text-center sm:text-left">
-              <span className="mx-auto flex size-9 items-center justify-center rounded-full border border-accent/40 font-mono-instr text-sm font-semibold text-accent-forte sm:mx-0">
+              <span className="mx-auto flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-accent/40 font-mono-instr text-sm font-semibold text-accent-forte sm:mx-0">
                 {i + 1}
               </span>
               <h2 className="titulo-card mt-3">{p.titulo}</h2>
@@ -180,7 +180,10 @@ export default async function LandingPage() {
             </p>
           </div>
           <div className="sombra-2 relative rounded-[var(--raio-painel)] border border-accent/50 bg-panel p-5">
-            <span className="absolute -top-3 right-4 rounded-full bg-accent px-2.5 py-1 font-mono-instr text-[11px] uppercase tracking-[.1em] text-acao-texto">
+            {/* Onda 93 (achado 5.12) — `.rotulo` no lugar de
+                `font-mono-instr text-[11px] uppercase tracking-[.1em]`, que é
+                ela reescrita à mão com o tracking derivado (.1 contra .16). */}
+            <span className="absolute -top-3 right-4 rounded-[var(--raio-pilula)] bg-accent px-2.5 py-1 rotulo text-acao-texto">
               Mais escolhido
             </span>
             <p className="titulo-card">{PLANOS.commander.rotulo}</p>

@@ -39,9 +39,9 @@ export default async function NovoItemPage({
         titulo="Nova manutenção"
         descricao="Tudo que vence por horas de uso e/ou por data — o semáforo cuida do resto."
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
-      <form action={criarItemMonitorado} className="mt-5 space-y-4">
+      <form action={criarItemMonitorado} className="mt-6 space-y-4">
         {/* `criarItemMonitorado` volta pra cá com `?erro=` quando falha, e o
             redirect re-renderiza a página em branco — sem isto, quem
             preencheu as oito caixas perdia tudo por causa de um campo. */}
@@ -103,7 +103,7 @@ export default async function NovoItemPage({
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date" defaultValue={hojeISO()} />
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Criar manutenção</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Criar manutenção</button>
       </form>
     </main>
   )

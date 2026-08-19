@@ -331,7 +331,7 @@ export default async function EquipamentoPage({
             // NÃO `.rotulo`: estes chips carregam o NOME do equipamento irmão,
             // e `.rotulo` é caixa alta — passaria a reescrever o conteúdo.
             <Link key={e.id} href={`/barco/equipamento/${e.id}`}
-              className={`whitespace-nowrap rounded-full border px-4 py-2 font-mono-instr rotulo-dado ${
+              className={`whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 py-2 font-mono-instr rotulo-dado ${
                 e.id === id ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
               }`}>
               {nomeCurto(e)}
@@ -381,7 +381,7 @@ export default async function EquipamentoPage({
           `<div>` que existiam aqui; o comportamento da lista (empty state,
           farol, prazo) não mudou uma linha, só a moldura em volta. */}
       <div id="manutencoes" className="mt-6 scroll-mt-4">
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-3">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
           <CabecalhoCartao
             icone="ferramenta"
             titulo="Manutenções"
@@ -453,7 +453,7 @@ export default async function EquipamentoPage({
               <LinhaLista
                 key={item.id}
                 href={editavel ? `/barco/itens/${item.id}/editar` : undefined}
-                leading={<span aria-label="sem informação suficiente" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+                leading={<span aria-label="sem informação suficiente" className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-dim/60 bg-transparent" />}
                 titulo={item.nome}
                 subtitulo={linhaDaRegra(calc)}
                 trailing={<Selo estado="neutro">Incompleto</Selo>}
@@ -494,7 +494,7 @@ export default async function EquipamentoPage({
           instrumento e das manutenções: no canvas (tela-3c) o topo é do
           horímetro e do que está pedindo ação; a foto é contexto. Sem foto,
           convite claro em vez de retângulo vazio. */}
-      <div className="sombra-1 mt-6 overflow-hidden rounded-[14px] border border-line bg-[#0b1d2d]">
+      <div className="sombra-1 mt-6 overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-[#0b1d2d]">
         {urlFoto ? (
           /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
           <img src={urlFoto} alt={`Foto de ${nomeCurto(equipamento)}`} className="h-56 w-full object-cover" />
@@ -529,7 +529,7 @@ export default async function EquipamentoPage({
       >
         Sistemas
       </SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {sistemas.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -589,7 +589,7 @@ export default async function EquipamentoPage({
                 <Link
                   href={editarHref}
                   aria-label={`Editar ${s.nome}`}
-                  className="apoio flex min-h-11 shrink-0 items-center rounded-lg border border-line px-3 text-dim"
+                  className="apoio flex min-h-11 shrink-0 items-center rounded-[var(--raio-controle)] border border-line px-3 text-dim"
                 >
                   Editar
                 </Link>
@@ -607,7 +607,7 @@ export default async function EquipamentoPage({
       >
         Histórico
       </SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {(eventos ?? []).length === 0 && (
           <EstadoVazio variant="linha" icone="calendario" titulo="Nenhum serviço registrado neste equipamento ainda" />
         )}
@@ -644,7 +644,7 @@ export default async function EquipamentoPage({
           é literalmente o par "Client / Loading order" da imagem, com dado
           nosso. */}
       <SecaoPagina id="dados" className="scroll-mt-4" icone="documento">Dados</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <GradeRotuloValor itens={especificacoes} />
         {equipamento.observacoes && <p className="apoio mt-3 text-dim">{equipamento.observacoes}</p>}
         {/* O "Editar equipamento" que morava aqui subiu pra barra de ações do

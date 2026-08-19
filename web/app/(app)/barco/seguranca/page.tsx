@@ -38,7 +38,7 @@ export default async function SegurancaPage() {
         <h1 className="titulo-pagina">Segurança</h1>
         {editavel && (
           <Link href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${CATEGORIA_SEGURANCA}`)}`}
-            className="inline-flex items-center gap-1 rounded-full bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
+            className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
             <Icone nome="mais" className="size-4" /> Item
           </Link>
         )}
@@ -54,7 +54,7 @@ export default async function SegurancaPage() {
           <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=seguranca", rotulo: "Ver tudo" }}>
             Ocorrências abertas
           </SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {ocorrencias.map((o) => (
               <LinhaLista
                 key={o.id}
@@ -69,7 +69,7 @@ export default async function SegurancaPage() {
       )}
 
       <SecaoPagina icone="seguranca">Itens de segurança</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {itens.length === 0 && (
           <EstadoVazio
             variant="linha"

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Farol, FarolOcorrencia } from "@/components/farol"
 import { Casco, type ZonaDoCasco } from "@/components/mapa-embarcacao/casco"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { ChipDado } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { Selo } from "@/components/ui/selo"
@@ -40,7 +41,7 @@ import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
  *  `FarolOcorrencia`: presente, mas visivelmente fora de jogo). */
 function FarolZona({ estado }: { estado: StatusFarol | null }) {
   if (estado) return <Farol status={estado} />
-  return <span aria-label="Sem dados" className="inline-block size-2 shrink-0 rounded-full border border-dim/60" />
+  return <span aria-label="Sem dados" className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-dim/60" />
 }
 
 /** O resumo de uma zona, na voz da referência ("1 ocorrência aberta ·
@@ -273,13 +274,15 @@ export default async function MapaEmbarcacaoPage({
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="titulo-card">Não mapeados</h2>
-                {/* ONDA 87 — a contagem é DADO, então vai de `.valor`. O
-                    `text-dim` fica: aqui o número é subordinado ao título ao
-                    lado dele, e trocar a cor dele é a correção 5.7 (a
-                    contagem vira chip), que é outra onda. */}
-                <span className="font-mono-instr valor font-semibold text-dim">
-                  {naoMapeados.length}
-                </span>
+                {/* ONDA 93 — a outra onda de que falava o registro da 87
+                    chegou (achado 5.7). O número era DADO com a voz certa
+                    (`.valor`) e a forma errada: mono solto ao lado do título,
+                    que é a terceira forma de escrever contagem que o app
+                    tinha. `ChipDado` é a régua única — rótulo e número dentro
+                    da mesma pílula — e ela também resolve o `text-dim` que
+                    estava aqui só para subordinar o número ao `<h2>`: dentro
+                    do chip a hierarquia sai do par rótulo/valor, não da cor. */}
+                <ChipDado rotulo="Itens">{naoMapeados.length}</ChipDado>
               </div>
               <p className="apoio mt-1 text-dim">
                 Equipamentos que ainda não têm lugar no corte. Um toque em “Definir zona” resolve.

@@ -4,8 +4,9 @@ import { redirect } from "next/navigation"
 import {
   AsaasRecusa, asaasConfigurado, cancelarCobrancaAvulsaAsaas, criarClienteAsaas, criarCobrancaAvulsaAsaas,
 } from "@/lib/asaas"
-import { carregarPainel } from "@/lib/consultas"
+import { carregarAssinatura, carregarPainel, hojeISO } from "@/lib/consultas"
 import { ROTULO_FAIXA_PORTE, sugerirFaixaPorte } from "@/lib/domain/gold"
+import { formatarPreco, precoGoldComDesconto } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import type { FaixaPorteGold, GoldPreco, GoldSolicitacao } from "@/lib/db/types"
 
@@ -217,10 +218,38 @@ export async function iniciarPagamentoGold(formData: FormData) {
 
   const { data: precoBruto } = await supabase.from("gold_precos").select("*").eq("faixa", solicitacao.faixa_porte).maybeSingle()
   const preco = precoBruto as GoldPreco | null
-  const valorCentavos = preco?.valor_centavos ?? null
-  if (valorCentavos == null) {
+  const valorDeTabela = preco?.valor_centavos ?? null
+  if (valorDeTabela == null) {
     erroDetalhe(solicitacaoId, `A faixa "${ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]}" está sob consulta — fale com a equipe Commander para o valor.`)
   }
+
+  // AUDITORIA 19/08, A20 — O DESCONTO QUE O BANCO GUARDAVA E NUNCA VIRAVA
+  // PREÇO.
+  //
+  // O §2.1 promete "20% de desconto na avaliação para Commander Gold" a quem
+  // está na promoção de migração. A linha existe em `assinatura_promocoes`,
+  // `carregarAssinatura` já a lê e devolve `descontoGoldPercentual` — e
+  // `precoGoldComDesconto`, escrita e testada, nunca rodava. A cobrança saía
+  // pelo valor cheio: promessa comercial quebrada no único ponto em que ela
+  // custa dinheiro de verdade a quem confiou nela.
+  //
+  // Aqui, e não na tela: este é o lugar onde o número vira COBRANÇA. Uma tela
+  // que mostra o desconto e uma cobrança que não o aplica seria pior que
+  // nenhuma das duas.
+  //
+  // `carregarAssinatura` lê a promoção da pessoa LOGADA por RLS — e é a
+  // pessoa logada que solicitou. Quando `quem_paga` é "interessado", o
+  // desconto continua sendo o de quem pediu: a promoção é do cliente
+  // Commander, não de quem ele indicou para pagar.
+  const { promocao } = await carregarAssinatura()
+  const valorCentavos = precoGoldComDesconto(
+    valorDeTabela,
+    promocao ? { promocao: promocao.promocao, validoAte: promocao.validoAte } : null,
+    hojeISO(),
+  )
+  const avisoDesconto = valorCentavos < valorDeTabela
+    ? ` (de ${formatarPreco(valorDeTabela)} por ${formatarPreco(valorCentavos)}, com o desconto da sua promoção)`
+    : ""
 
   if (!asaasConfigurado()) {
     const { data: inserido, error } = await supabase.from("gold_pagamentos").insert({
@@ -275,12 +304,15 @@ export async function iniciarPagamentoGold(formData: FormData) {
   }
 
   revalidarGold(solicitacaoId)
+  // O desconto aplicado é DITO, não só cobrado: a tela de detalhe mostra o
+  // preço de tabela da faixa, e uma cobrança menor sem explicação pareceria
+  // erro. Vazio quando não houve desconto.
   if (solicitacao.quem_paga === "proprio") {
     if (cobranca.invoiceUrl) redirect(cobranca.invoiceUrl)
-    okDetalhe(solicitacaoId, "Cobrança criada — o link de pagamento chega por e-mail.")
+    okDetalhe(solicitacaoId, `Cobrança criada${avisoDesconto} — o link de pagamento chega por e-mail.`)
   }
   // Interessado: não redireciona pra fora — a tela mostra o link/QR pra compartilhar.
-  okDetalhe(solicitacaoId, "Link de pagamento gerado — copie e envie para quem vai pagar.")
+  okDetalhe(solicitacaoId, `Link de pagamento gerado${avisoDesconto} — copie e envie para quem vai pagar.`)
 }
 
 /** Cancelamento — dono da embarcação vinculada ou o próprio solicitante,

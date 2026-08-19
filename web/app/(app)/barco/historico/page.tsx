@@ -130,7 +130,7 @@ export default async function HistoricoPage({
       {grupos.map((g) => (
         <section key={g.rotulo}>
           <SecaoPagina>{g.rotulo}</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {g.eventos.map((entrada) =>
               entrada.tipo === "ocorrencia" ? (
                 <Link

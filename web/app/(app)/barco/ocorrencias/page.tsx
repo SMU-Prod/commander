@@ -137,8 +137,8 @@ export default async function OcorrenciasPage({
         descricao="O que apareceu de errado e o que já foi resolvido."
       />
 
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
-      {ok && <p className="mt-3 rounded-lg border border-ok/40 bg-panel px-3 py-2 corpo">{ok}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {ok && <p className="mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2 corpo">{ok}</p>}
 
       {/* ONDA 59 — a barra recebe só o filtro PRIMÁRIO (estado), ao lado da
           ação de abrir — o slot `filtros` da barra é UMA linha (regra em
@@ -211,9 +211,13 @@ export default async function OcorrenciasPage({
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {chipsDaAtiva(o.anexo_path != null, o.created_at, hoje).map((c) => (
+                    /* Onda 93 (achado 5.12) — o `tracking-[.06em]` que estava
+                       aqui era resíduo da cópia à mão: `.rotulo-dado` já é a
+                       legenda em caixa de frase, e caixa de frase não leva
+                       tracking (quem leva é `.rotulo`, que é caixa alta). */
                     <span
                       key={c}
-                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 font-mono-instr rotulo-dado tracking-[.06em] text-dim-chip"
+                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 font-mono-instr rotulo-dado text-dim-chip"
                     >
                       {c}
                     </span>

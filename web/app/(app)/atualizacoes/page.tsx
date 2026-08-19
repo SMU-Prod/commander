@@ -116,12 +116,12 @@ export default async function AtualizacoesPage({
           ? <Selo estado="atencao">{`${aguardando.length} aguardando`}</Selo>
           : undefined}
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {!ehDono && (
         <>
           <SecaoPagina icone="mais">Informar à administradora</SecaoPagina>
-          <form action={enviarAoAdm} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+          <form action={enviarAoAdm} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <CampoSelect label="O que é" id="tipo" name="tipo">
               <option value="uso">Uso da unidade</option>
               <option value="ocorrencia">Ocorrência</option>
@@ -138,7 +138,7 @@ export default async function AtualizacoesPage({
               <Campo label="Horas" id="horas" name="horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
               <Campo label="Combustível (%)" id="combustivel_pct" name="combustivel_pct" inputMode="numeric" className="font-mono-instr tabular-nums" />
             </div>
-            <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3 font-semibold text-acao-texto`}>
+            <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto`}>
               Enviar à administradora
             </button>
             {/* §15, dito na tela pra ninguém achar que já alterou a ficha. */}

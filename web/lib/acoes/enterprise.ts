@@ -8,7 +8,9 @@ import { podeAbrirVotacao } from "@/lib/domain/mecanica"
 import {
   retirarDoEstoque, totalCentavosPorLitro, validarSaidaDoTanque,
 } from "@/lib/domain/estoque-combustivel"
-import { converterEmAfazer, ESTADOS_AFAZER, type EstadoAfazer } from "@/lib/domain/afazeres"
+import {
+  converterEmAfazer, ESTADOS_AFAZER, recusaDoResponsavel, type EstadoAfazer,
+} from "@/lib/domain/afazeres"
 import { valorAlancar } from "@/lib/domain/financeiro-frota"
 import {
   exigeMotivoDeAjuste, podePublicarParaCotistas,
@@ -704,16 +706,42 @@ export async function criarAfazer(formData: FormData) {
   const titulo = texto(formData, "titulo")
   if (!titulo) falhar("/afazeres", "Dê um título à tarefa.")
 
-  const { error } = await supabase.from("afazeres").insert({
+  const embarcacaoId = formData.get("da_unidade") === "on" ? painel.embarcacao.id : null
+
+  // AUDITORIA 19/08, A16 — O CAMPO QUE A POLICY VALIDAVA E NINGUÉM ENVIAVA.
+  //
+  // A consulta de vínculos só sai quando alguém foi escolhido: no caso comum
+  // (tarefa sem responsável) ela seria uma ida ao banco pra confirmar nada.
+  // E ela é NECESSÁRIA — sem a lista, a recusa da policy voltaria como o
+  // "Não deu pra criar a tarefa" genérico, que é a mentira que a onda 63
+  // ensinou a não repetir: erro que não diz o que houve faz a pessoa tentar
+  // de novo pra sempre.
+  const responsavelId = texto(formData, "responsavel_id")
+  let vinculadosAtivos: string[] = []
+  if (responsavelId !== null && embarcacaoId !== null) {
+    const { data: equipe } = await supabase.from("vinculos").select("usuario_id")
+      .eq("embarcacao_id", embarcacaoId).is("suspenso_em", null)
+    vinculadosAtivos = ((equipe ?? []) as { usuario_id: string }[]).map((v) => v.usuario_id)
+  }
+  const recusa = recusaDoResponsavel({
+    responsavelId,
+    donoId: userId ?? "",
+    embarcacaoId,
+    vinculadosAtivos,
+  })
+  if (recusa) falhar("/afazeres", recusa)
+
+  const { data, error } = await supabase.from("afazeres").insert({
     dono_id: userId,
-    embarcacao_id: formData.get("da_unidade") === "on" ? painel.embarcacao.id : null,
+    embarcacao_id: embarcacaoId,
     titulo,
     detalhe: texto(formData, "detalhe"),
     destino: String(formData.get("destino") ?? "qualquer"),
+    responsavel_id: responsavelId,
     prazo: texto(formData, "prazo"),
     criado_por: userId,
-  })
-  if (error) falhar("/afazeres", "Não deu pra criar a tarefa.")
+  }).select("id")
+  if (error || !data?.length) falhar("/afazeres", "Não deu pra criar a tarefa.")
 
   revalidatePath("/afazeres")
   redirect(`/afazeres?ok=${encodeURIComponent("Tarefa criada")}`)

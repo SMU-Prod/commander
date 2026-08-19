@@ -81,7 +81,7 @@ export function EscolherPonto({ lat, lng }: { lat: number | null; lng: number | 
 
   return (
     <div>
-      <div ref={containerRef} className="h-64 w-full overflow-hidden rounded-[14px] border border-line" />
+      <div ref={containerRef} className="h-64 w-full overflow-hidden rounded-[var(--raio-cartao)] border border-line" />
       <input type="hidden" name="lat" value={coords.lat} />
       <input type="hidden" name="lng" value={coords.lng} />
       <p className="apoio mt-1.5 text-dim">

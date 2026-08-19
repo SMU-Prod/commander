@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { TarjaPushDesligado } from "@/components/tarja-push-desligado"
 import { Abas } from "@/components/ui/abas"
-import { Chip, ChipLinha } from "@/components/ui/chip"
+import { Chip, ChipDado, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarNotificacoes, carregarPainel } from "@/lib/consultas"
@@ -125,11 +125,15 @@ function NivelRecolhido({
     <details className="group mt-4" open={aberto}>
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium text-dim [&::-webkit-details-marker]:hidden">
         <Icone nome="chevron" className="size-4 transition-transform group-open:rotate-90" />
-        {rotulo}
-        {/* `.valor` — a contagem é DADO, e o degrau dela é 14px, o mesmo do
-            rótulo ao lado (onda 87). Em 11px o número lia como legenda do
-            texto em vez de o número dele. */}
-        <span className="font-mono-instr valor">{itens.length}</span>
+        {/* ONDA 93 (achado 5.7) — A CONTAGEM VOLTA PARA DENTRO DO CHIP.
+            A onda 87 acertou a VOZ do número (`.valor`, 14px, dado e não
+            legenda) e parou aí: ele continuava sendo um mono solto ao lado do
+            rótulo, que é a terceira das três formas que o app tinha para
+            escrever contagem. A régua é uma só — número colado no rótulo,
+            dentro do chip — e `ChipDado` é ela em componente. O rótulo do
+            grupo entra como `rotulo` do próprio chip, senão apareceria duas
+            vezes na mesma linha. */}
+        <ChipDado rotulo={rotulo}>{itens.length}</ChipDado>
       </summary>
       <div className="mt-2 space-y-2">
         {itens.map((n) => <CartaoNotificacao key={n.id} n={n} />)}

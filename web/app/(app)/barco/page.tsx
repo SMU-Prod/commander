@@ -125,7 +125,7 @@ export default async function BarcoPage({
 
   return (
     <main>
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* §23, downgrade Commander Pro → Commander: "não apagar embarcações
           excedentes; BLOQUEAR GESTÃO das excedentes e exigir seleção da
@@ -137,7 +137,7 @@ export default async function BarcoPage({
           (por isso o bloqueio é um aviso, não uma parede: esconder a ficha
           seria exatamente o "apagar" que o PRD proíbe). */}
       {avisoPlano && (
-        <div className="sombra-1 mt-3 rounded-[14px] border border-aten/40 bg-panel p-4">
+        <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-aten/40 bg-panel p-4">
           <p className="titulo-card">Gestão pausada pelo plano</p>
           <p className="apoio mt-1 text-dim">{avisoPlano}</p>
           <Link href="/menu/assinatura" className="apoio mt-3 inline-block font-semibold text-accent-forte">
@@ -313,7 +313,7 @@ export default async function BarcoPage({
       )}
 
       <SecaoPagina id="casco" denso className="scroll-mt-4" icone="escudo">Casco</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {CATEGORIAS_CASCO.map((c) => {
           const doGrupo = itens.filter((i) => i.categoria === c)
           const status = doGrupo
@@ -322,7 +322,7 @@ export default async function BarcoPage({
           return (
             <LinhaLista
               key={c}
-              leading={status ? <Farol status={status} /> : <span className="size-2 rounded-full border border-line" />}
+              leading={status ? <Farol status={status} /> : <span className="size-2 rounded-[var(--raio-pilula)] border border-line" />}
               titulo={ROTULO_CASCO[c]}
               trailing={
                 doGrupo.length === 0 ? (
@@ -350,7 +350,7 @@ export default async function BarcoPage({
       </div>
 
       <SecaoPagina id="documentos" denso className="scroll-mt-4" icone="documento">Documentos</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {documentos.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -399,7 +399,7 @@ export default async function BarcoPage({
           negativo grudaria a frase no rótulo (0px). Sem ele, a folga continua
           exatamente os mesmos 4px de antes. */}
       <p className="apoio mb-2 text-dim">Vence, mas não é motor, elétrica, casco nem documento.</p>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {outrasManutencoes.length === 0 && (
           <EstadoVazio variant="linha" icone="ferramenta" titulo="Nenhuma outra manutenção cadastrada ainda" />
         )}
@@ -445,7 +445,7 @@ export default async function BarcoPage({
         )
           .filter((c) => !c.aba || podeVer(permissoes, c.aba))
           .map((c) => (
-            <Link key={c.href} href={c.href} className="sombra-1 rounded-[14px] border border-line bg-panel p-3.5">
+            <Link key={c.href} href={c.href} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
               <p className="titulo-card">{c.rotulo}</p>
               <p className="apoio mt-0.5 text-dim">{c.desc}</p>
             </Link>
@@ -457,7 +457,7 @@ export default async function BarcoPage({
       </SecaoPagina>
       <Link
         href="/barco/selos"
-        className="sombra-1 block rounded-[14px] border border-line bg-panel p-3.5"
+        className="sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
       >
         <div className="flex items-center justify-between gap-2">
           <p className="titulo-card inline-flex min-w-0 items-center gap-1.5">
@@ -483,7 +483,7 @@ export default async function BarcoPage({
 
       <Link
         href="/barco/connect"
-        className="sombra-1 mt-2 block rounded-[14px] border border-line bg-panel p-3.5"
+        className="sombra-1 mt-2 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5"
       >
         <div className="flex items-center justify-between gap-2">
           <p className="titulo-card inline-flex items-center gap-1.5">
@@ -492,7 +492,7 @@ export default async function BarcoPage({
           {/* Onda 87 — o mesmo selo "Em breve" de /barco/connect, que lá era
               11px e aqui 10, abaixo do piso tipográfico. Os dois agora pedem
               `.rotulo`, que é o desenho declarado desse gesto. */}
-          <span className="shrink-0 rounded-full border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
+          <span className="shrink-0 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-2 py-0.5 rotulo text-dim-chip">
             Em breve
           </span>
         </div>
@@ -522,7 +522,7 @@ export default async function BarcoPage({
           da mesma tela, que é justamente a hierarquia achatada que o
           `--raio-painel` existe pra desfazer. A promoção é da tela inteira, e
           por isso vai no relatório em vez de meia. */}
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           {([
             ["Comprimento", embarcacao.comprimento_m != null ? `${embarcacao.comprimento_m.toLocaleString("pt-BR")} m` : null],

@@ -104,7 +104,7 @@ export function AjustesNavegacao() {
             onChange={(e) => setUrlSignalK(e.target.value)}
             onBlur={aoSairDoCampoUrl}
             placeholder={URL_SIGNALK_PADRAO}
-            className="mt-2 w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
+            className="mt-2 w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 text-base text-texto"
           />
         </div>
       )}

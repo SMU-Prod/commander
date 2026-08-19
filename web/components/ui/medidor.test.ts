@@ -49,11 +49,30 @@ describe("Medidor", () => {
     expect(saida).not.toContain("—")
   })
 
+  /** ONDA 95 — o ponteiro passou a ser desenhado no zero e girado até o valor
+   *  (achado 3.4: sem `transform` não há o que transicionar, e a agulha
+   *  teleportava). Quem carrega a leitura agora é o ÂNGULO, então é ele que
+   *  estes dois testes medem — medir `x2`/`y2` viraria uma tautologia, porque
+   *  a ponta é a mesma constante para qualquer valor. */
+  const giro = (saida: string) => Number(saida.match(/transform="rotate\(([\d.]+) 100 104\)"/)?.[1])
+
   it("acima do máximo o ponteiro para na ponta do arco, não passa dela", () => {
-    const noMaximo = html({ ...BASE, valor: 150 })
-    const muitoAcima = html({ ...BASE, valor: 900 })
-    const ponta = (saida: string) => saida.match(/<line x1="100" y1="104" x2="([^"]*)" y2="([^"]*)"/)?.slice(1, 3)
-    expect(ponta(muitoAcima)).toEqual(ponta(noMaximo))
+    expect(giro(html({ ...BASE, valor: 900 }))).toBe(giro(html({ ...BASE, valor: 150 })))
+    // A varredura do arco é de 240°: no máximo a agulha andou os 240 inteiros.
+    expect(giro(html({ ...BASE, valor: 150 }))).toBe(240)
+  })
+
+  it("o ponteiro chega ao valor por rotação, e a rotação acompanha a escala", () => {
+    // Meia escala = meia varredura. É o que faz a transição significar alguma
+    // coisa: o ângulo é uma função contínua do valor, não um par de pontos.
+    expect(giro(html({ ...BASE, valor: 0 }))).toBe(0)
+    expect(giro(html({ ...BASE, valor: 75 }))).toBe(120)
+  })
+
+  it("o movimento existe e respeita quem pediu menos movimento", () => {
+    const saida = html({ ...BASE, valor: 100 })
+    expect(saida).toContain("transition-transform")
+    expect(saida).toContain("motion-reduce:transition-none")
   })
 
   it("as zonas padrão acompanham a escala — não são frações soltas", () => {

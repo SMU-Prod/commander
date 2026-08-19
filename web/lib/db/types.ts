@@ -16,6 +16,8 @@ import type {
   TipoTrabalho,
   TipoVaga,
 } from "@/lib/domain/marketplace"
+import type { DestinoAfazer, EstadoAfazer } from "@/lib/domain/afazeres"
+import type { CategoriaEstoque } from "@/lib/domain/estoque-combustivel"
 import type { ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 import type { PlanoId, PromocaoId } from "@/lib/domain/planos"
 import type { TipoEmbarcacao } from "@/lib/domain/tipo-embarcacao"
@@ -1310,4 +1312,179 @@ export interface AdminLogDb {
   status_depois: string | null
   detalhes: Record<string, unknown> | null
   criado_em: string
+}
+
+// ---------------------------------------------------------------------------
+// ONDA ENTERPRISE — as cinco que moravam dentro das páginas
+// ---------------------------------------------------------------------------
+// Achado P2-5 de `docs/auditoria/2026-08-19-banco-e-rls.md`, item 13 dos
+// ABERTOS de `docs/auditoria/2026-08-19-fechamento.md`: `Afazer`, `Tanque`,
+// `EstoqueItem`, `Orcamento` e `Votacao` eram declarados INLINE, dentro do
+// corpo dos componentes de página, enquanto todo o resto do app declara tipo
+// de tabela aqui. Tipo de tabela escondido dentro de uma página não é só
+// desorganização: ele nasce do que AQUELA tela usa, não do que a coluna É — e
+// então cada tela reinventa uma versão parcial e ligeiramente diferente da
+// mesma linha, sem ninguém para compará-las.
+//
+// As cinco abaixo foram escritas a partir de `information_schema.columns` e
+// `pg_constraint` do banco vivo (`khgjtxvmduizyooqaoox`, lido em 19/08/2026),
+// NÃO a partir das declarações que estavam nas páginas. Onde as duas coisas
+// divergiam, quem manda é a coluna — e a divergência está anotada no campo.
+
+/**
+ * §20 do PRD Upgrade 3 — tarefa de pátio (migration 066).
+ *
+ * `embarcacao_id` é nullable de propósito: tarefa de casa (comprar filtro,
+ * ligar pro despachante) não pertence a barco nenhum. É o que faz `/afazeres`
+ * buscar com `.or("embarcacao_id.eq.<id>,embarcacao_id.is.null")` em vez de
+ * `.eq()` — ver `app/(app)/afazeres/page.tsx:53`.
+ */
+export interface Afazer {
+  id: string
+  /** `null` = tarefa da operação, não de uma unidade específica. */
+  embarcacao_id: string | null
+  /** NOT NULL no banco — a página omitia este campo por completo. */
+  dono_id: string
+  titulo: string
+  detalhe: string | null
+  /** `check` do banco: 'operacoes' | 'mecanica' | 'qualquer'. Default 'qualquer'. */
+  destino: DestinoAfazer
+  /**
+   * A quem a tarefa foi atribuída. A policy de INSERT viva EXIGE que este
+   * usuário tenha vínculo não suspenso na unidade — e mesmo assim nenhum dos
+   * dois inserts de `lib/acoes/enterprise.ts` o envia (achado A16, ABERTO).
+   * Validação de um campo que ninguém preenche: a coluna existe, a regra
+   * existe, o dado nunca chega.
+   */
+  responsavel_id: string | null
+  /** `date`, não `timestamptz` — chega como "AAAA-MM-DD", sem hora nem fuso. */
+  prazo: string | null
+  /** `check` do banco: 'aberto' | 'em_andamento' | 'concluido'. Default 'aberto'. */
+  estado: EstadoAfazer
+  /**
+   * DIVERGÊNCIA CORRIGIDA: a página declarava `string | null`. O banco tem
+   * `check (origem_tipo in ('manutencao','avaria'))` — são dois valores, não
+   * texto livre. Com `string` o `switch` sobre a origem nunca ficava exaustivo
+   * e o compilador não reprovava um valor inventado.
+   */
+  origem_tipo: "manutencao" | "avaria" | null
+  origem_id: string | null
+  criado_por: string | null
+  concluido_em: string | null
+  criado_em: string
+}
+
+/**
+ * §11 do PRD Upgrade 3 — tanque do Hub Combustível (migration 064).
+ *
+ * O saldo atual NÃO mora aqui: ele é somado a partir de `tanque_movimentos`
+ * (`saldoTeorico`, em `lib/domain/estoque-combustivel.ts`). Só o ponto de
+ * partida é coluna. Número derivado que se guarda é número que sai de
+ * sincronia — a decisão está escrita em `064_estoque_e_combustivel.sql:41-46`.
+ */
+export interface Tanque {
+  id: string
+  /**
+   * NOT NULL no banco; a página omitia. É por ele que a RLS recorta a lista
+   * inteira (`tanques: o dono le` = `dono_id = auth.uid()`), e é o único
+   * predicado — a tela busca sem filtro e deixa a policy cortar.
+   */
+  dono_id: string
+  /**
+   * Coluna viva hoje, sempre `null` (0 de 5 linhas preenchidas) e sem uma
+   * única referência em `web/`. É o achado A2. A migration
+   * `084_bases_operacionais_apagada.sql` a remove — se ela for aplicada,
+   * apague este campo daqui junto.
+   */
+  base_id: string | null
+  nome: string
+  combustivel: string | null
+  /** `numeric` do banco; o PostgREST serializa como número JSON. */
+  capacidade_litros: number | null
+  /** NOT NULL, default 0. */
+  saldo_inicial_litros: number
+  minimo_litros: number | null
+  criado_em: string
+}
+
+/**
+ * §10 do PRD Upgrade 3 — item de estoque (migration 064).
+ * O nome corrige o da página, que chamava isto de `Item` — genérico demais
+ * para conviver com os outros seis `item` do app.
+ */
+export interface EstoqueItem {
+  id: string
+  /** NOT NULL no banco; a página omitia. Mesmo papel de recorte que em `Tanque`. */
+  dono_id: string
+  /** Mesma nota de `Tanque.base_id`: achado A2, morre com a migration 084. */
+  base_id: string | null
+  nome: string
+  /** `check` do banco com as nove categorias do §10, na mesma ordem. */
+  categoria: CategoriaEstoque
+  unidade: string | null
+  /**
+   * `numeric` NOT NULL, default 0, com `check (quantidade >= 0)`. Chega como
+   * número JSON — o `Number(i.quantidade)` de `app/(app)/estoque/page.tsx:66`
+   * é redundante (inofensivo, mas denuncia a dúvida que este tipo resolve).
+   */
+  quantidade: number
+  minimo: number | null
+  fornecedor: string | null
+  /**
+   * `bigint` no banco, `check (>= 0 ou null)`. A página de estoque omitia; a
+   * de mecânica lia (`app/(app)/mecanica/page.tsx:51-52,150`) com uma terceira
+   * declaração inline — exatamente o sintoma que o P2-5 descreve.
+   */
+  custo_unitario_centavos: number | null
+  criado_em: string
+}
+
+/**
+ * §12 do PRD Upgrade 3 — orçamento de serviço de mecânica (migration 063).
+ * `servico_id` é nullable porque o orçamento pode nascer antes do serviço.
+ */
+export interface Orcamento {
+  id: string
+  /** NOT NULL no banco — a página omitia, e é a coluna que a RLS usa. */
+  embarcacao_id: string
+  servico_id: string | null
+  /** O problema como foi descrito na hora de pedir o orçamento. */
+  problema: string | null
+  servico_proposto: string
+  fornecedor: string | null
+  pecas: string | null
+  /** `bigint`, `check (>= 0 ou null)`. */
+  valor_centavos: number | null
+  /** `date` — "AAAA-MM-DD", sem hora. */
+  valido_ate: string | null
+  /** Coletada nunca: não há campo de upload na tela (resíduo do achado A15). */
+  anexo_path: string | null
+  criado_por: string | null
+  criado_em: string
+}
+
+/**
+ * §12 do PRD Upgrade 3 — votação de cotistas sobre um orçamento (migration 063).
+ *
+ * DIVERGÊNCIA ESTRUTURAL CORRIGIDA: a página declarava
+ * `{ id, orcamento_id, encerrada_em, votos: { voto: Voto }[] }` — três colunas
+ * mais um EMBED do PostgREST. `votos` não é coluna desta tabela; é a relação
+ * `public.votos`. Este tipo é a LINHA. Quem precisar da forma com o embed
+ * compõe, sem reabrir a declaração:
+ *
+ *     type VotacaoComVotos = Votacao & { votos: { voto: Voto }[] }
+ *
+ * (`Voto` continua vindo de `@/lib/domain/mecanica` — é a união
+ * `"aprovar" | "nao_aprovar"`, espelhada no `check` de `votos.voto`.)
+ */
+export interface Votacao {
+  id: string
+  /** NOT NULL no banco — a página omitia. */
+  embarcacao_id: string
+  orcamento_id: string
+  aberta_por: string | null
+  aberta_em: string
+  /** `null` enquanto aberta. Escrita por `encerrarVotacao`
+   *  (`lib/acoes/enterprise.ts:390`). */
+  encerrada_em: string | null
 }

@@ -102,7 +102,7 @@ export function PatrocinioDashboard({ anuncios }: { anuncios: AnuncioPatrocinado
         )}
       </div>
 
-      <div className="sombra-1 flex items-center gap-2 rounded-[14px] border border-dashed border-line bg-panel p-3.5">
+      <div className="sombra-1 flex items-center gap-2 rounded-[var(--raio-cartao)] border border-dashed border-line bg-panel p-3.5">
         {lista.length > 1 && (
           <BotaoPasso
             rotulo="Patrocinador anterior"
@@ -148,7 +148,7 @@ function BotaoPasso({
       type="button"
       aria-label={rotulo}
       onClick={onClick}
-      className="shrink-0 rounded-lg border border-line bg-panel2 p-1.5"
+      className="shrink-0 rounded-[var(--raio-controle)] border border-line bg-panel2 p-1.5"
     >
       <Icone nome={icone} className="size-4 text-dim" />
     </button>

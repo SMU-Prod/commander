@@ -49,7 +49,7 @@ export default async function HidraulicaPage() {
           <SecaoPagina icone="alerta" acao={{ href: "/barco/ocorrencias?setor=hidraulica", rotulo: "Ver tudo" }}>
             Ocorrências abertas
           </SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {ocorrencias.map((o) => (
               <LinhaLista
                 key={o.id}
@@ -72,7 +72,7 @@ export default async function HidraulicaPage() {
             >
               {ROTULO_HIDRAULICA[c]}
             </SecaoPagina>
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
               {doGrupo.length === 0 && (
                 <EstadoVazio variant="linha" icone="oleo" titulo="Nada cadastrado ainda" />
               )}

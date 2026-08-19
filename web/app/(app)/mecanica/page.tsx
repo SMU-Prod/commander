@@ -34,6 +34,11 @@ import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 type Servico = {
   id: string; problema_informado: string | null; diagnostico: string | null
   conserto: string | null; horas: number | null; estado: EstadoServico
+  // AUDITORIA 19/08, A15 — "Entrada na oficina" era pedida no formulário de
+  // abrir serviço, gravada por `abrirServico` e não existia neste tipo. A
+  // data que responde "há quanto tempo esse motor está parado lá" ficava só
+  // no banco.
+  entrada_em: string | null
   publicado_em: string | null; criado_em: string
 }
 
@@ -519,6 +524,19 @@ function CartaoServico({
       {s.diagnostico && <p className="apoio mt-1 text-dim">{s.diagnostico}</p>}
       {s.conserto && <p className="apoio mt-1">{s.conserto}</p>}
       <p className="apoio mt-1 text-dim">
+        {/* A15 — a data de entrada, finalmente devolvida a quem a digitou.
+            Condicional porque a maioria dos serviços não a tem (medido: 0 de
+            2 no banco de hoje): serviço sem entrada anotada não entrou "em
+            data nenhuma", só não teve a data anotada. */}
+        {s.entrada_em && (
+          <>
+            {"entrou em "}
+            <span className="font-mono-instr tabular-nums">
+              {s.entrada_em.split("-").reverse().join("/")}
+            </span>
+            {" · "}
+          </>
+        )}
         {s.horas != null && (
           <span className="font-mono-instr tabular-nums">{s.horas.toLocaleString("pt-BR")} h · </span>
         )}

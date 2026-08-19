@@ -31,14 +31,14 @@ export default async function EditarEmbarcacaoPage({
       </Link>
       <h1 className="titulo-pagina mt-3">Dados da embarcação</h1>
       <p className="apoio mt-1 text-dim">O que estiver aqui aparece no dossiê e no Commander Verified.</p>
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={salvarDadosGerais} className="mt-5 space-y-5">
+      <form action={salvarDadosGerais} className="mt-6 space-y-5">
         {/* 15 campos em três blocos. `salvarDadosGerais` volta pra cá com
             `?erro=` e a página re-renderiza do servidor com os valores do
             banco — ou seja, tudo que foi digitado e ainda não salvou some. */}
         <GuardaFormulario chave="barco:editar" />
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="embarcacao" className="size-3.5" /> Identificação</p>
           <div>
             <label className={rot} htmlFor="nome">Nome</label>
@@ -95,7 +95,7 @@ export default async function EditarEmbarcacaoPage({
           </div>
         </section>
 
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="ancora" className="size-3.5" /> Medidas e casco</p>
           {/* Três colunas só sobrevivem a 390px porque os rótulos são
               abreviados ("Compr. (m)", "Boca (m)", "Calado (m)") e cabem em
@@ -144,7 +144,7 @@ export default async function EditarEmbarcacaoPage({
           </div>
         </section>
 
-        <section className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo flex items-center gap-1.5 text-dim"><Icone nome="documento" className="size-3.5" /> Registro</p>
           <div className={linhaCampos}>
             <div>
@@ -168,7 +168,7 @@ export default async function EditarEmbarcacaoPage({
 
       <Link
         href="/barco/transferir"
-        className="mt-5 flex items-center gap-3 rounded-[14px] border border-line bg-panel p-4"
+        className="mt-6 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
       >
         <Icone nome="transferir" className="size-5 shrink-0 text-dim" />
         <span className="min-w-0 flex-1">

@@ -174,7 +174,7 @@ function criarElementoBarco(): HTMLDivElement {
   el.className = "relative flex size-8 items-center justify-center"
 
   const halo = document.createElement("span")
-  halo.className = "marcador-barco-halo absolute -inset-2.5 rounded-full bg-meter/60"
+  halo.className = "marcador-barco-halo absolute -inset-2.5 rounded-[var(--raio-pilula)] bg-meter/60"
   el.appendChild(halo)
 
   // proa: visível com rumo conhecido, rotacionada via transform inline.
@@ -185,7 +185,7 @@ function criarElementoBarco(): HTMLDivElement {
   const proa = document.createElement("div")
   proa.dataset.papel = "proa"
   proa.className =
-    "relative flex size-7 items-center justify-center rounded-full bg-accent text-acao-texto ring-2 ring-white shadow"
+    "relative flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white shadow"
   proa.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">${TRACADO_PROA_BARCO}</svg>`
   el.appendChild(proa)
 
@@ -193,7 +193,7 @@ function criarElementoBarco(): HTMLDivElement {
   // mesma cor da marca, sem seta nenhuma pra não inventar uma direção.
   const ponto = document.createElement("div")
   ponto.dataset.papel = "ponto"
-  ponto.className = "relative hidden size-4 rounded-full bg-accent ring-2 ring-white shadow"
+  ponto.className = "relative hidden size-4 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white shadow"
   el.appendChild(ponto)
 
   return el
@@ -220,7 +220,7 @@ function atualizarRumoBarco(el: HTMLDivElement, rumo: number | null) {
  *  usuário) usado acima. */
 function criarElementoMob(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "flex size-9 items-center justify-center rounded-full bg-crit text-acao-texto ring-2 ring-white shadow-lg"
+  el.className = "flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-crit text-acao-texto ring-2 ring-white shadow-lg"
   el.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_MOB}</svg>`
   return el
 }
@@ -241,7 +241,7 @@ const TRACADO_DESTINO_ROTA = '<path d="m12 4 2.4 5 5.6.8-4 3.9 1 5.5-5-2.7-5 2.7
  *  linha comeca. */
 function criarElementoOrigemRota(): HTMLDivElement {
   const el = document.createElement("div")
-  el.className = "size-3.5 rounded-full bg-accent ring-2 ring-white shadow"
+  el.className = "size-3.5 rounded-[var(--raio-pilula)] bg-accent ring-2 ring-white shadow"
   return el
 }
 
@@ -259,12 +259,12 @@ function criarElementoDestinoRota(aproximado: boolean): HTMLDivElement {
   if (aproximado) {
     const halo = document.createElement("span")
     halo.setAttribute("aria-hidden", "true")
-    halo.className = "absolute -inset-2 rounded-full border-2 border-dashed border-accent"
+    halo.className = "absolute -inset-2 rounded-[var(--raio-pilula)] border-2 border-dashed border-accent"
     wrapper.appendChild(halo)
   }
   const corpo = document.createElement("div")
   corpo.className =
-    "relative flex size-9 items-center justify-center rounded-full bg-accent text-acao-texto ring-2 ring-white shadow-lg"
+    "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] bg-accent text-acao-texto ring-2 ring-white shadow-lg"
   corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${TRACADO_DESTINO_ROTA}</svg>`
   wrapper.appendChild(corpo)
   return wrapper
@@ -312,11 +312,21 @@ function colecaoVazia() {
  *  normal e o "só navegação" pedida na task — os dois leem os MESMOS números
  *  com a MESMA hierarquia visual, só o agrupamento ao redor muda.
  *
- *  Cores: `text-accent` (não `text-accent-forte`) pro valor — é o único
- *  dourado da marca que NÃO troca entre os dois temas (ver --acao em
- *  globals.css), e todo mostrador vive sobre fundo navy fixo (bg-meter ou o
- *  cartão instrumento da onda 24), não sobre --superficie; `accent-forte` é
- *  calibrado pro par oposto. Rótulo/unidade usam `text-meter-dim` pelo
+ *  Cores: `text-accent` (não `text-accent-forte`) pro valor.
+ *
+ *  ONDA 95 (achado 5.8) — ESTA LINHA DIZIA O CONTRÁRIO DO QUE O TOKEN FAZ.
+ *  O texto anterior afirmava que `--acao` "é o único dourado da marca que NÃO
+ *  troca entre os dois temas". Troca: `globals.css` declara um dourado no
+ *  claro e um limão no escuro, e quem lê a linha antiga acredita que pode
+ *  cravar o valor dela em qualquer lugar — que é exatamente a deriva que a
+ *  catraca de cor literal existe pra impedir. Comentário errado é pior que
+ *  comentário nenhum: ele autoriza.
+ *  O MOTIVO REAL da escolha é outro, e continua valendo: todo mostrador vive
+ *  sobre fundo navy FIXO (bg-meter, ou o cartão de instrumento da onda 24),
+ *  nunca sobre --superficie. `--acao-forte` é calibrado pro par oposto — no
+ *  tema claro ele é um dourado escuro, feito pra ler sobre branco, e sobre o
+ *  navy fixo ele praticamente some. `--acao` é o valor que lê sobre navy nos
+ *  DOIS temas, cada um com o seu tom. Rótulo/unidade usam `text-meter-dim` pelo
  *  mesmo motivo (nunca `text-dim`, que segue o TEMA do app — leria mal aqui
  *  dentro). `tamanho="lg"` é o destaque do painel de rota (onda 24, bloco 4:
  *  "valor grande dourado"); o padrão "sm" segue compacto pra caber na barra
@@ -336,7 +346,7 @@ function Mostrador({
 }) {
   if (variante === "cartao") {
     return (
-      <div className="rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums">
+      <div className="rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums">
         <p className="rotulo-dado !text-meter-dim">{rotulo}</p>
         <p className="text-2xl text-accent">
           {valor} {unidade && <span className="text-sm text-meter-dim">{unidade}</span>}
@@ -1690,7 +1700,7 @@ export function NavegarMapa({
             inclusive "só navegação" (onda 23). Por isso fica FORA do
             wrapper colapsável logo abaixo, não dentro dele. */}
         {garrando && (
-          <div role="alert" className="sombra-2 animate-pulse rounded-[12px] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
+          <div role="alert" className="sombra-2 animate-pulse rounded-[var(--raio-cartao)] border border-crit bg-crit px-4 py-3 text-center text-sm font-bold text-white">
             GARRANDO — verifique o fundeio
           </div>
         )}
@@ -1721,7 +1731,7 @@ export function NavegarMapa({
             largura fixa flutuando sobre o mapa em QUALQUER tela — é isso
             que este teto imita. `w-full` mantém o celular idêntico a antes
             (a coluna já mede menos que 380px lá). */}
-        <div className="sombra-2 w-full overflow-hidden rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto sm:max-w-[380px]">
+        <div className="sombra-2 w-full overflow-hidden rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto sm:max-w-[380px]">
           <div className="flex items-center">
             <button
               type="button"
@@ -1731,7 +1741,7 @@ export function NavegarMapa({
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span
-                  className={`size-2 shrink-0 rounded-full ${
+                  className={`size-2 shrink-0 rounded-[var(--raio-pilula)] ${
                     estado === "gravando" || resumoSondagem.coletando ? "animate-pulse bg-crit" : "bg-meter-dim"
                   }`}
                 />
@@ -1758,7 +1768,7 @@ export function NavegarMapa({
                     (painel.velKt, que é a velocidade média entre pontos
                     gravados e continua só existindo durante a gravação). */}
                 {sogKt != null && (
-                  <span className="rounded-full border border-mapa-instrumento-borda bg-meter px-2.5 py-1 font-mono-instr text-xs tabular-nums text-accent">
+                  <span className="rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-meter px-2.5 py-1 font-mono-instr text-xs tabular-nums text-accent">
                     {sogKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt
                   </span>
                 )}
@@ -1782,7 +1792,7 @@ export function NavegarMapa({
             >
               <span
                 aria-hidden="true"
-                className="flex size-5 items-center justify-center rounded-full border border-mapa-instrumento-borda text-[11px] font-bold"
+                className="flex size-5 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda text-[11px] font-bold"
               >
                 ?
               </span>
@@ -1810,7 +1820,7 @@ export function NavegarMapa({
                   cartão escuro).
                   max=40 nós — teto generoso de lancha/iate a planar; zonas
                   default do componente (metade/três-quartos/resto). */}
-              <div className="rounded-[10px] border border-line bg-panel px-2 pb-1 pt-2">
+              <div className="rounded-[var(--raio-cartao)] border border-line bg-panel px-2 pb-1 pt-2">
                 <p className="rotulo-dado text-center text-dim">Velocidade</p>
                 {/* ONDA 89 (achado 4.3) — A ESCALA DO MEDIDOR SAI DE 9,5px.
                     O `viewBox` do Medidor é 200×160 e os números da escala
@@ -1833,7 +1843,7 @@ export function NavegarMapa({
               <div
                 role="tablist"
                 aria-label="Instrumentos"
-                className="mt-3 grid grid-cols-3 gap-1 rounded-[10px] border border-mapa-instrumento-borda bg-black/15 p-1"
+                className="mt-3 grid grid-cols-3 gap-1 rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-black/15 p-1"
               >
                 {(
                   [
@@ -1848,7 +1858,7 @@ export function NavegarMapa({
                     role="tab"
                     aria-selected={abaAtiva === valor}
                     onClick={() => setAbaAtiva(valor)}
-                    className={`flex min-h-9 items-center justify-center rounded-lg px-1 text-xs font-semibold ${
+                    className={`flex min-h-9 items-center justify-center rounded-[var(--raio-controle)] px-1 text-xs font-semibold ${
                       abaAtiva === valor ? "bg-accent text-acao-texto" : "text-meter-dim"
                     }`}
                   >
@@ -1872,9 +1882,9 @@ export function NavegarMapa({
                   sustentar o número — ver as duas constantes acima do
                   `return`. */}
               <div className={abaAtiva === "trilha" ? "mt-3" : "hidden"}>
-                {msg && <p className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
+                {msg && <p className="rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2 text-sm">{msg}</p>}
                 {estado === "parado" && (
-                  <p className={`rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2 text-sm text-meter-dim ${msg ? "mt-2" : ""}`}>
+                  <p className={`rounded-[var(--raio-controle)] border border-mapa-instrumento-borda bg-black/15 px-3 py-2 text-sm text-meter-dim ${msg ? "mt-2" : ""}`}>
                     GPS parado — a trilha está pronta para salvar.
                   </p>
                 )}
@@ -1907,7 +1917,7 @@ export function NavegarMapa({
                 </div>
 
                 {estado === "pronto" && (
-                  <button onClick={iniciar} className="mt-3 w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto">
+                  <button onClick={iniciar} className="mt-3 w-full rounded-[var(--raio-controle)] bg-accent py-3.5 text-base font-semibold text-acao-texto">
                     Iniciar gravação
                   </button>
                 )}
@@ -1925,13 +1935,13 @@ export function NavegarMapa({
                         // texto explícito (não herda o meter-texto do cartão):
                         // bg-campo continua seguindo o TEMA (branco no claro),
                         // então a cor do texto também precisa seguir o tema
-                        className="w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base text-texto"
+                        className="w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 text-base text-texto"
                       />
                     </div>
                     <button
                       onClick={encerrarESalvar}
                       disabled={estado === "salvando"}
-                      className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white disabled:opacity-60"
+                      className="mt-3 w-full rounded-[var(--raio-controle)] bg-crit py-3.5 text-base font-semibold text-white disabled:opacity-60"
                     >
                       {estado === "salvando" ? "Salvando…" : estado === "parado" ? "Tentar salvar de novo" : "Encerrar e salvar no diário"}
                     </button>
@@ -1981,7 +1991,7 @@ export function NavegarMapa({
         // virada/restante), mostrar os dois juntos duplicaria a leitura.
         <div
           aria-hidden={!modoSoNavegacao}
-          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 transition-all duration-200 ${
+          className={`sombra-2 pointer-events-none absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento px-4 py-2 transition-all duration-200 ${
             garrando ? "top-16" : "top-3"
           } ${modoSoNavegacao ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"}`}
         >
@@ -2030,7 +2040,7 @@ export function NavegarMapa({
             // `w-72` e não `w-64`: a linha "origem → destino" precisa de
             // largura pra truncar tarde, e 288px continua caindo folgado num
             // celular de 390.
-            <div className="sombra-2 pointer-events-auto w-72 max-w-[calc(100vw-1.5rem)] rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
+            <div className="sombra-2 pointer-events-auto w-72 max-w-[calc(100vw-1.5rem)] rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
               {/* Onda 62 (canvas tela-1c) — a anatomia do cabeçalho do
                   painel: o estado como pílula verde à direita, cor E
                   palavra, mesmo Selo do resto do app (o override de --ok em
@@ -2096,7 +2106,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={() => setPerseguicaoPausada(false)}
-              className="sombra-2 pointer-events-auto flex h-11 items-center gap-1.5 rounded-full border border-accent bg-accent px-4 text-sm font-semibold text-acao-texto"
+              className="sombra-2 pointer-events-auto flex h-11 items-center gap-1.5 rounded-[var(--raio-pilula)] border border-accent bg-accent px-4 text-sm font-semibold text-acao-texto"
             >
               <Icone nome="embarcacao" className="size-4" />
               Voltar ao barco
@@ -2151,7 +2161,7 @@ export function NavegarMapa({
               // no mapa vai fazer algo diferente do normal.
               aria-label="Definir destino"
               title="Definir destino"
-              className={`sombra-2 flex h-11 items-center justify-center gap-2 rounded-full border text-sm font-medium ${
+              className={`sombra-2 flex h-11 items-center justify-center gap-2 rounded-[var(--raio-pilula)] border text-sm font-medium ${
                 modoDefinirDestino
                   ? "border-accent bg-accent px-4 text-acao-texto"
                   : "w-11 border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
@@ -2173,7 +2183,7 @@ export function NavegarMapa({
               onClick={() => router.push("/navegar/viagem/nova")}
               aria-label="Planejar viagem"
               title="Planejar viagem"
-              className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+              className="sombra-2 flex size-11 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
             >
               <Icone nome="estrela" className="size-5 shrink-0" />
             </button>
@@ -2185,14 +2195,14 @@ export function NavegarMapa({
               onClick={() => setArmandoAncora(true)}
               aria-label="Fundeei — armar alarme de âncora"
               title="Fundeei — armar alarme de âncora"
-              className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+              className="sombra-2 flex size-11 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
             >
               <Icone nome="ancora" className="size-5 shrink-0" />
             </button>
           )}
           {!ancora && armandoAncora && (
-            <div className="sombra-2 w-56 rounded-[12px] border border-line bg-panel/97 p-3">
-              <label htmlFor="raio-ancora" className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-[.14em] text-dim">
+            <div className="sombra-2 w-56 rounded-[var(--raio-cartao)] border border-line bg-panel/97 p-3">
+              <label htmlFor="raio-ancora" className="rotulo mb-1 flex items-center justify-between text-dim">
                 Raio do alarme
                 <span className="font-mono-instr tabular-nums text-dim">{raioM} m</span>
               </label>
@@ -2211,7 +2221,7 @@ export function NavegarMapa({
                 <button
                   type="button"
                   onClick={fundear}
-                  className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto"
+                  className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto"
                 >
                   <Icone nome="ancora" className="size-4" />
                   Armar alarme
@@ -2223,7 +2233,7 @@ export function NavegarMapa({
                   <button
                     type="button"
                     onClick={pedirPosicao}
-                    className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-sm font-semibold text-acao-texto"
+                    className="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto"
                   >
                     Ativar localização
                   </button>
@@ -2242,7 +2252,7 @@ export function NavegarMapa({
             <button
               type="button"
               onClick={desarmarAncora}
-              className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
+              className="sombra-2 flex h-11 items-center gap-1.5 rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 text-sm font-medium text-meter-texto"
             >
               {/* text-accent (não accent-forte, que troca de tom por tema e
                   perderia contraste aqui) sinaliza "âncora armada" mesmo
@@ -2274,7 +2284,7 @@ export function NavegarMapa({
               onClick={alternarModoNavegando}
               aria-pressed={modoNavegando}
               aria-label={modoNavegando ? "Sair do modo navegando" : "Modo navegando"}
-              className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full border transition-all duration-200 ${
+              className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-[var(--raio-pilula)] border transition-all duration-200 ${
                 modoNavegando
                   ? "border-accent bg-accent text-acao-texto"
                   : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
@@ -2290,7 +2300,7 @@ export function NavegarMapa({
             onClick={alternarSoNavegacao}
             aria-pressed={modoSoNavegacao}
             aria-label={modoSoNavegacao ? "Sair do modo só navegação" : "Modo só navegação"}
-            className="sombra-2 flex size-11 items-center justify-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+            className="sombra-2 flex size-11 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
           >
             <span aria-hidden="true" className="flex items-center">
               <Icone nome="chevron" className={`size-4 ${modoSoNavegacao ? "rotate-180" : ""}`} />
@@ -2315,7 +2325,7 @@ export function NavegarMapa({
             // "quebrado".
             aria-label={posAtual ? "Homem ao mar" : "Homem ao mar — indisponível sem posição GPS"}
             title={posAtual ? undefined : "Sem posição GPS — o MOB marca onde o barco está"}
-            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-full font-bold transition-all duration-200 ${
+            className={`sombra-2 flex h-11 items-center justify-center gap-1.5 rounded-[var(--raio-pilula)] font-bold transition-all duration-200 ${
               posAtual
                 ? "bg-crit text-white"
                 : "border-2 border-crit/70 bg-mapa-instrumento text-crit"
@@ -2335,7 +2345,7 @@ export function NavegarMapa({
           // TEMA do app, não o fundo fixo daqui); text-warn continua
           // text-warn — o cartão herda o override de --warn/--crit "seguro
           // pra navy" via .bg-mapa-instrumento em globals.css.
-          <div className="sombra-2 pointer-events-auto w-full rounded-[14px] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
+          <div className="sombra-2 pointer-events-auto w-full rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-mapa-instrumento px-3 py-2.5 text-meter-texto">
             <div className="flex items-center justify-between gap-2">
               <span className="corpo flex min-w-0 items-center gap-2">
                 <Icone nome="mapa" className="size-4 shrink-0 text-accent" />
@@ -2366,7 +2376,7 @@ export function NavegarMapa({
                 <button
                   type="button"
                   onClick={pedirPosicao}
-                  className="mt-2 flex h-11 w-full items-center justify-center rounded-lg border border-mapa-instrumento-borda text-sm font-medium"
+                  className="mt-2 flex h-11 w-full items-center justify-center rounded-[var(--raio-controle)] border border-mapa-instrumento-borda text-sm font-medium"
                 >
                   Ativar localização
                 </button>
@@ -2378,7 +2388,7 @@ export function NavegarMapa({
                 posicao conhecida (sem GPS ja tem o aviso acima). */}
             {posAtual && estadoRotaAtual.tipo === "calculando" && (
               <p className="apoio mt-2 flex items-center gap-1.5 border-t border-mapa-instrumento-borda pt-2 text-meter-dim">
-                <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden="true" />
+                <span className="size-1.5 shrink-0 animate-pulse rounded-[var(--raio-pilula)] bg-accent" aria-hidden="true" />
                 Calculando rota pela água…
               </p>
             )}

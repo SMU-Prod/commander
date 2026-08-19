@@ -33,7 +33,7 @@ export function UsarPosicao() {
   return (
     <div>
       <button type="button" onClick={usar} disabled={ocupado}
-        className="w-full rounded-xl border border-line py-3 text-sm font-medium disabled:opacity-60">
+        className="w-full rounded-[var(--raio-controle)] border border-line py-3 text-sm font-medium disabled:opacity-60">
         Usar minha posição atual
       </button>
       {msg && <p className="mt-2 text-xs text-dim">{msg}</p>}

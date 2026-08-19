@@ -55,20 +55,20 @@ export default async function DetalheSolicitacaoGoldPage({
     <main>
       <CabecalhoDetalhe voltarHref="/barco/selos/gold" voltarRotulo="Commander Gold" titulo={nomeEmbarcacao} />
 
-      {ok && <p className="corpo mt-3 rounded-lg border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="titulo-card">{ROTULO_ESTADO_SOLICITACAO[solicitacao.estado]}</p>
         <p className="apoio mt-1 text-dim">{DESCRICAO_ESTADO_SOLICITACAO[solicitacao.estado]}</p>
       </div>
 
       {solicitacao.estado !== "cancelado" && (
-        <div className="sombra-1 mt-3 rounded-[14px] border border-line bg-panel px-4">
+        <div className="sombra-1 mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
           {PASSOS_GOLD.map((passo, i) => (
             <div key={passo} className="flex items-center gap-3 border-b border-line py-2.5 last:border-0">
               <span
-                className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-mono-instr text-xs ${
+                className={`flex size-6 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border font-mono-instr text-xs ${
                   i <= passoAtual ? "border-accent-forte text-accent-forte" : "border-line text-dim"
                 }`}
               >
@@ -81,7 +81,7 @@ export default async function DetalheSolicitacaoGoldPage({
       )}
 
       {solicitacao.estado === "aguardando_pagamento" && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Pagamento da avaliação</p>
           <p className="corpo">
             {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]} —{" "}
@@ -94,14 +94,14 @@ export default async function DetalheSolicitacaoGoldPage({
           {sobConsulta ? (
             /* §16, "81+ pés: Sob consulta". Nenhuma cobrança é gerada aqui —
                nem um botão que finja que dá. */
-            <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+            <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
               {TEXTO_SOB_CONSULTA}
             </p>
           ) : pagamento?.link_pagamento && pagamento.status === "pendente" ? (
             solicitacao.quem_paga === "interessado" ? (
               <div className="mt-3 space-y-2">
                 <p className="apoio text-dim">Envie este link para quem vai pagar. Ele mostra Pix e cartão, com QR Code na própria página.</p>
-                <p className="corpo break-all rounded-lg border border-line bg-panel2 px-3 py-2 font-mono-instr text-xs">
+                <p className="corpo break-all rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 font-mono-instr text-xs">
                   {pagamento.link_pagamento}
                 </p>
                 <a
@@ -113,7 +113,7 @@ export default async function DetalheSolicitacaoGoldPage({
                 </a>
               </div>
             ) : (
-              <a href={pagamento.link_pagamento} className="mt-3 block rounded-xl bg-accent py-3 text-center font-semibold text-acao-texto">
+              <a href={pagamento.link_pagamento} className="mt-3 block rounded-[var(--raio-controle)] bg-accent py-3 text-center font-semibold text-acao-texto">
                 Continuar para pagamento
               </a>
             )
@@ -121,7 +121,7 @@ export default async function DetalheSolicitacaoGoldPage({
             <form action={iniciarPagamentoGold} className="mt-3 space-y-3">
               <input type="hidden" name="solicitacao_id" value={solicitacao.id} />
               {!chaveComAsaas && (
-                <p className="apoio rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+                <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
                   A contratação online ainda está sendo preparada — ao confirmar, registramos seu
                   interesse e a equipe Commander entra em contato para o pagamento.
                 </p>
@@ -135,7 +135,7 @@ export default async function DetalheSolicitacaoGoldPage({
                 id="email" name="email" type="email" required
               />
               <Campo label="CPF" id="cpf" name="cpf" required inputMode="numeric" placeholder="000.000.000-00" />
-              <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
+              <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">
                 {solicitacao.quem_paga === "proprio" ? "Continuar para pagamento" : "Gerar link de pagamento"}
               </button>
             </form>
@@ -144,7 +144,7 @@ export default async function DetalheSolicitacaoGoldPage({
       )}
 
       {agendamento && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 text-dim">Avaliação presencial</p>
           <p className="corpo font-medium">
             {new Date(agendamento.data_hora).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" })}
@@ -155,7 +155,7 @@ export default async function DetalheSolicitacaoGoldPage({
       )}
 
       {avaliacao && (
-        <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo mb-2 inline-flex items-center gap-1.5 text-dim">
             <SeloGold size={18} variant={avaliacao.resultado === "aprovado" ? "ativo" : "convite"} /> Commander Gold
           </p>
@@ -187,7 +187,7 @@ export default async function DetalheSolicitacaoGoldPage({
       )}
 
       {solicitacao.estado === "reprovado" && (
-        <p className="apoio mt-3 rounded-lg border border-line bg-panel p-3 text-dim">
+        <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel p-3 text-dim">
           Esta avaliação não atingiu os critérios do Commander Gold. Você pode solicitar uma nova
           avaliação quando quiser.
         </p>

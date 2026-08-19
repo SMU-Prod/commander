@@ -66,6 +66,11 @@ export default async function CombustivelPage({
   type Mov = {
     id: string; tanque_id: string; tipo: "entrada" | "saida" | "medicao"
     litros: number; destino_livre: string | null; destino_embarcacao_id: string | null
+    // AUDITORIA 19/08, A15 — `fornecedor` era pedido no formulário (logo
+    // abaixo), gravado por `movimentarTanque` e não existia neste tipo: o
+    // histórico não tinha como mostrá-lo nem por engano. Quem digitou "Posto
+    // Ilha" numa entrada de 800 litros nunca mais viu de quem comprou.
+    fornecedor: string | null
     valor_centavos: number | null; motivo: string | null; criado_em: string
   }
 
@@ -248,6 +253,12 @@ export default async function CombustivelPage({
                           <span className="font-mono-instr tabular-nums">
                             {new Date(m.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                           </span>
+                          {/* A15 — de quem veio o combustível. Só aparece
+                              quando foi anotado: movimento sem fornecedor não
+                              é movimento "sem fornecedor", é movimento em que
+                              ninguém digitou — e escrever um travessão ali
+                              seria afirmar o contrário. */}
+                          {m.fornecedor && ` · ${m.fornecedor}`}
                           {m.motivo && ` · ${m.motivo}`}
                         </span>
                       </span>

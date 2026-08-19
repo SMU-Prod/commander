@@ -90,7 +90,7 @@ export default function ParceirosPage() {
         <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-5xl">
           Seu ponto no mapa que os donos de barco já usam.
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-dim">
+        <p className="mx-auto mt-6 max-w-xl text-lg text-dim">
           Quem navega no Commander vê seu negócio na hora certa: no meio do trajeto, procurando onde parar.
           Autoatendimento, sem mensalidade de agência.
         </p>
@@ -102,7 +102,7 @@ export default function ParceirosPage() {
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           {CATEGORIAS.map((c) => (
-            <span key={c.rotulo} className="apoio inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-3 py-1.5 text-dim">
+            <span key={c.rotulo} className="apoio inline-flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel px-3 py-1.5 text-dim">
               <Icone nome={c.icone} className="size-3.5 text-accent" /> {c.rotulo}
             </span>
           ))}
@@ -115,7 +115,7 @@ export default function ParceirosPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {GANHOS.map((g) => (
             <div key={g.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-5">
-              <span className="flex size-10 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
+              <span className="flex size-10 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/12 text-accent-forte">
                 <Icone nome={g.icone} className="size-5" />
               </span>
               <h2 className="titulo-card mt-4">{g.titulo}</h2>
@@ -131,7 +131,7 @@ export default function ParceirosPage() {
         <ol className="mt-10 grid gap-8 sm:grid-cols-3">
           {PASSOS.map((p, i) => (
             <li key={p.titulo} className="text-center sm:text-left">
-              <span className="mx-auto flex size-9 items-center justify-center rounded-full border border-accent/40 font-mono-instr text-sm font-semibold text-accent-forte sm:mx-0">
+              <span className="mx-auto flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-accent/40 font-mono-instr text-sm font-semibold text-accent-forte sm:mx-0">
                 {i + 1}
               </span>
               <h2 className="titulo-card mt-3">{p.titulo}</h2>

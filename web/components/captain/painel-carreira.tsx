@@ -54,7 +54,7 @@ export async function PainelCarreira({
     <div className="mt-4 space-y-3">
       {/* 1. O perfil está no ar? É a primeira pergunta de quem abre esta tela. */}
       <div
-        className={`sombra-1 rounded-[14px] border p-4 ${
+        className={`sombra-1 rounded-[var(--raio-cartao)] border p-4 ${
           noAr ? "border-ok/40 bg-panel" : "border-accent/30 bg-panel"
         }`}
       >
@@ -74,7 +74,7 @@ export async function PainelCarreira({
         {!noAr && visivel && (
           <Link
             href="/assinar?perfil=captain"
-            className="mt-3 inline-block rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
+            className="mt-3 inline-block rounded-[var(--raio-controle)] bg-accent px-4 py-2.5 text-sm font-semibold text-acao-texto"
           >
             Assinar o {planoExigido.rotulo} — {formatarPreco(planoExigido.valorCentavos ?? 0)}/mês
           </Link>
@@ -85,11 +85,11 @@ export async function PainelCarreira({
              consegue provar. Só aparecem com número real; um "0 de 0" em
              cima do formulário só desanimaria quem está começando. */}
       {(reputacao.quantidade > 0 || trabalhos > 0) && (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Seu histórico no Commander</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {trabalhos > 0 && (
-              <span className="apoio inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-dim">
+              <span className="apoio inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim">
                 <Icone nome="guardado" className="size-3.5 text-ok" />
                 {trabalhos === 1 ? "1 trabalho confirmado" : `${trabalhos} trabalhos confirmados`}
               </span>
@@ -104,7 +104,7 @@ export async function PainelCarreira({
 
       {/* 3. Disponibilidade publicada (§11.3) — o perfil mostra, mas o dado
              mora no Marketplace; daqui só se navega até lá. */}
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">Sua disponibilidade publicada</p>
         {disponibilidades.length === 0 ? (
           <p className="apoio mt-1 text-dim">
@@ -128,7 +128,7 @@ export async function PainelCarreira({
       {/* 4. O que a assinatura entrega — só para quem ainda não tem. Repetir a
              lista para quem já paga seria vender o que a pessoa já comprou. */}
       {!noAr && (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">O que o {planoExigido.rotulo} libera</p>
           {/* A lista detalhada é a do §12 (Captain). O Partner Prestador tem
               a régua própria do §13.1, que ainda não foi implementada em
@@ -146,7 +146,7 @@ export async function PainelCarreira({
           ) : (
             <p className="apoio mt-2 text-dim">{planoExigido.regra}</p>
           )}
-          <p className="apoio mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+          <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
             O que ela <strong>não</strong> muda: o acesso às embarcações que você opera. Isso vem do convite do
             proprietário e das permissões que ele deu — nunca de assinatura.
           </p>

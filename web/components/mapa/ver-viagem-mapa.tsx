@@ -21,8 +21,8 @@ import { parseDecimalPtBr } from "@/lib/domain/numeros"
 // pra lib/mapa/camadas-viagem.ts: eram um bloco copiado byte a byte de
 // PlanejarViagemMapa, e passar a ler token exigiria manter DUAS repinturas
 // de tema em sincronia.
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 text-base"
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+const campo = "w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 text-base"
+const rotulo = "rotulo mb-1.5 block text-dim"
 
 /**
  * Ver viagem (onda 19): mostra a viagem já planejada — rota completa
@@ -144,6 +144,8 @@ export function VerViagemMapa({
   })
 
   return (
+    // Ver a nota do mesmo `-mt-5` em `planejar-viagem-mapa.tsx`: é a negação
+    // exata do `pt-5` de `moldura-app.tsx`, não um degrau de espaçamento.
     <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
       <h1 className="sr-only">{nome}</h1>
       <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
@@ -152,7 +154,7 @@ export function VerViagemMapa({
         <button
           type="button"
           onClick={() => router.push("/navegar")}
-          className="sombra-2 flex h-11 items-center gap-1.5 rounded-full border border-line bg-panel/95 px-4 text-sm font-medium backdrop-blur"
+          className="sombra-2 flex h-11 items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel/95 px-4 text-sm font-medium backdrop-blur"
         >
           <Icone nome="voltar" className="size-4" />
           Navegar
@@ -175,7 +177,7 @@ export function VerViagemMapa({
               })
               router.push(`/navegar?${params.toString()}`)
             }}
-            className="sombra-2 flex h-11 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+            className="sombra-2 flex h-11 items-center gap-1.5 rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
           >
             <Icone nome="embarcacao" className="size-4" />
             Iniciar navegação

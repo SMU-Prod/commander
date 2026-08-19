@@ -177,6 +177,11 @@ export function PlanejarViagemMapa({
   }
 
   return (
+    // O `-mt-5` NÃO é espaçamento escolhido no olho, e por isso não virou
+    // `-mt-6` na varredura do achado 5.11: ele é a NEGAÇÃO exata do `pt-5` de
+    // `components/moldura-app.tsx`, a mesma técnica de tela cheia de
+    // `NavegarMapa`. Os dois números andam juntos ou o mapa sobe/desce 4px
+    // sobre a barra de cima — mexer aqui sozinho quebra o encaixe.
     <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
       <h1 className="sr-only">Planejar viagem</h1>
       <MapaNautico aoIniciar={setMapaPronto} className="h-full w-full" />
@@ -186,7 +191,7 @@ export function PlanejarViagemMapa({
           type="button"
           onClick={() => setModoAdicionar((v) => !v)}
           aria-pressed={modoAdicionar}
-          className={`sombra-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium backdrop-blur ${
+          className={`sombra-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-pilula)] border px-4 text-sm font-medium backdrop-blur ${
             modoAdicionar ? "border-accent bg-accent text-acao-texto" : "border-line bg-panel/95 text-dim"
           }`}
         >
@@ -208,7 +213,7 @@ export function PlanejarViagemMapa({
             type="button"
             onClick={() => router.push("/navegar")}
             aria-label="Cancelar e voltar para Navegar"
-            className="-mr-2 flex h-11 items-center gap-1 rounded-lg px-2 text-dim"
+            className="-mr-2 flex h-11 items-center gap-1 rounded-[var(--raio-controle)] px-2 text-dim"
           >
             <Icone nome="mais" className="size-4 rotate-45" />
             <span className="rotulo">Cancelar</span>
@@ -221,7 +226,7 @@ export function PlanejarViagemMapa({
           <div className="space-y-2">
             {paradas.map((p, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/15 font-mono-instr text-xs font-semibold text-accent-forte">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/15 font-mono-instr text-xs font-semibold text-accent-forte">
                   {i + 1}
                 </span>
                 <input
@@ -335,13 +340,13 @@ export function PlanejarViagemMapa({
             </div>
           )}
 
-          {erro && <p className="rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+          {erro && <p className="rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
           <button
             type="button"
             onClick={salvar}
             disabled={salvando || algumaCalculando || paradas.length < 2}
-            className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-sm font-semibold text-acao-texto disabled:opacity-50"
+            className="flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto disabled:opacity-50"
           >
             {salvando ? "Salvando…" : "Salvar viagem"}
           </button>

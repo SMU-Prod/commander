@@ -62,15 +62,19 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
   }
   return (
     <>
+      {/* Onda 93 (achado 5.12) — os três rótulos eram
+          `text-[11px] uppercase tracking-[.12em]`, que é `.rotulo` reescrita à
+          mão com o tracking derivado (.12 contra .16). O `font-mono-instr` do
+          pai já dava a fonte; agora a classe dá as quatro coisas de uma vez. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
-        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
+        <span><span className="rotulo mr-1.5 text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
         <span>
-          <span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Vento</span>
+          <span className="rotulo mr-1.5 text-dim">Vento</span>
           {boletim.ventoKt != null
             ? `${Math.round(boletim.ventoKt)} kt${boletim.ventoGraus != null ? ` ${pontoCardeal(boletim.ventoGraus)}` : ""}`
             : "—"}
         </span>
-        <span><span className="mr-1.5 text-[11px] uppercase tracking-[.12em] text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
+        <span><span className="rotulo mr-1.5 text-dim">Água</span>{boletim.aguaC != null ? `${Math.round(boletim.aguaC)} °C` : "—"}</span>
         {/* Onda 57 — era uma pílula escrita à mão aqui (border + cor por
             nível, mais uma das doze cópias que a varredura de 15/08 achou).
             Agora é o mesmo `Selo` do estado do barco: uma anatomia só de
@@ -582,7 +586,7 @@ export default async function HojePage({
                   <Avatar key={t.id} url={urlsTripulacao.get(t.id) ?? null} nome={t.nome} tamanho="size-9" />
                 ))}
                 {tripulantesExtras > 0 && (
-                  <span className="flex size-9 items-center justify-center rounded-full border border-line bg-panel2 font-mono-instr text-xs text-dim">
+                  <span className="flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 font-mono-instr text-xs text-dim">
                     +{tripulantesExtras}
                   </span>
                 )}

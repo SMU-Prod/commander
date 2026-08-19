@@ -109,7 +109,7 @@ export default async function DocumentosPage({
         // parte desta tela, e mandar pra outra rota seria inventar um passo.
         acoes={editavel ? <BotaoFicha icone="mais" href="#novo">Novo documento</BotaoFicha> : undefined}
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a
           palavra no selo e as duas ações — ver o arquivo que está lá e
@@ -181,7 +181,7 @@ export default async function DocumentosPage({
           única alavanca que o componente expõe — e aqui a folga larga é a
           certa: esta seção vem depois do cartão de destaque. */}
       <SecaoPagina icone="documento">Todos os documentos</SecaoPagina>
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {restantes.length === 0 && avulsos.length === 0 && (
           <EstadoVazio
             variant="linha"
@@ -218,7 +218,7 @@ export default async function DocumentosPage({
               <LinhaLista
                 key={i.id}
                 href={hrefEditar}
-                leading={<span aria-label="sem data de validade" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+                leading={<span aria-label="sem data de validade" className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-dim/60 bg-transparent" />}
                 titulo={i.nome}
                 subtitulo="Sem data de validade informada"
                 trailing={<Selo estado="neutro">Incompleto</Selo>}
@@ -258,7 +258,7 @@ export default async function DocumentosPage({
                         Anexar
                         <input type="file" name="arquivo" accept={ACEITA_ARQUIVO} className="sr-only" />
                       </label>
-                      <button className="apoio rounded-lg border border-line px-2.5 py-1 text-dim">Enviar</button>
+                      <button className="apoio rounded-[var(--raio-controle)] border border-line px-2.5 py-1 text-dim">Enviar</button>
                     </form>
                   ) : null}
                 </span>
@@ -271,7 +271,7 @@ export default async function DocumentosPage({
           return (
             <LinhaLista
               key={d.id}
-              leading={<span aria-label="arquivo sem vencimento" className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent" />}
+              leading={<span aria-label="arquivo sem vencimento" className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-dim/60 bg-transparent" />}
               titulo={d.nome}
               subtitulo="Arquivo sem vencimento"
               trailing={
@@ -289,7 +289,7 @@ export default async function DocumentosPage({
       </div>
 
       <SecaoPagina id="novo" className="scroll-mt-4" icone="mais">Novo documento</SecaoPagina>
-      <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={criarDocumento} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <Campo label="Nome" id="nome" name="nome" required list="tipos-doc" placeholder="Ex.: Seguro da embarcação">
           <datalist id="tipos-doc">
             <option value="Seguro da embarcação" /><option value="TIE" />
@@ -308,7 +308,7 @@ export default async function DocumentosPage({
           accept="application/pdf,image/jpeg,image/png,image/webp"
           ajuda="PDF, JPG, PNG ou WebP"
         />
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Salvar documento</button>
+        <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">Salvar documento</button>
       </form>
     </main>
   )

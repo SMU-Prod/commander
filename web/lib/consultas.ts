@@ -60,8 +60,43 @@ export const carregarPainel = cache(async (): Promise<{
    */
   perfil: { nome: string | null; avatarPath: string | null } | null
 } | null> => {
+  // ONDA 96 — CINCO IDAS AO BANCO EM FILA VIRARAM TRÊS.
+  //
+  // Esta função roda em QUASE TODA tela do app, e o que ela fazia era esperar
+  // cinco vezes em sequência: conta → vínculos → embarcação → (equipamentos +
+  // itens) → (barcos + perfil). Cada espera é uma volta de rede até o banco,
+  // e elas se somavam ANTES de a tela começar a existir — junto com a volta
+  // que o middleware já paga (ver `middleware.ts`, mesma onda).
+  //
+  // O que a fila escondia é que a maior parte dela era falsa. O grafo real de
+  // dependência tem três níveis, e só três:
+  //
+  //   1. quem é a pessoa                 → `getUser`
+  //   2. a quais barcos ela tem acesso   → `vinculos` (precisa do id dela)
+  //   3. TODO O RESTO                    → só precisa do id do BARCO e do id
+  //                                        da PESSOA, os dois já conhecidos
+  //
+  // O caso que mais enganava: `equipamentos` e `itens` eram buscados por
+  // `embarcacao.id` e por isso esperavam a embarcação carregar. Só que esse
+  // id é `vinculo.embarcacao_id` — o MESMO valor que a consulta da embarcação
+  // usa como filtro. Eles nunca precisaram esperar; esperavam por causa de
+  // onde a variável foi lida, não por dependência de dado.
+  //
+  // `lerEmbarcacaoAtiva` sobe para o primeiro nível porque não é banco: é
+  // leitura de cookie. Ficava no meio da fila cobrando o preço de uma espera
+  // sem ser uma.
+  //
+  // O QUE ISTO CUSTA, e por que é aceitável: se a embarcação tiver sido
+  // apagada mas o vínculo sobreviver, as consultas de equipamentos, itens e
+  // barcos saem à toa antes do `return null`. É um caso raro (a FK apaga em
+  // cascata) e sem custo de tempo — as três já estão em voo junto com a que
+  // detecta o problema. Trocar essa folga por uma espera a mais em TODA
+  // navegação seria pagar caro pelo caso que quase nunca acontece.
   const supabase = await supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [{ data: { user } }, ativa] = await Promise.all([
+    supabase.auth.getUser(),
+    lerEmbarcacaoAtiva(),
+  ])
 
   // O barco exibido segue o vínculo do usuário: prioriza o que está marcado
   // como ativo no cookie; sem cookie (ou apontando pra barco sem vínculo),
@@ -73,26 +108,11 @@ export const carregarPainel = cache(async (): Promise<{
     .eq("usuario_id", user?.id ?? "")
     .order("created_at")
   if (erroVinculos) throw new Error("Não foi possível carregar seu acesso. Recarregue a página.")
-  const ativa = await lerEmbarcacaoAtiva()
   const vinculo =
     (ativa ? (meusVinculos ?? []).find((v) => v.embarcacao_id === ativa) : undefined) ??
     (meusVinculos ?? []).find((v) => v.papel === "PROP") ??
     (meusVinculos ?? [])[0]
   if (!vinculo) return null
-
-  const { data: embarcacao, error } = await supabase
-    .from("embarcacoes")
-    .select("*")
-    .eq("id", vinculo.embarcacao_id)
-    .maybeSingle()
-  if (error) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
-  if (!embarcacao) return null
-
-  const [{ data: equipamentos, error: equipamentosError }, { data: itens, error: itensError }] = await Promise.all([
-    supabase.from("equipamentos").select("*").eq("embarcacao_id", embarcacao.id).order("posicao"),
-    supabase.from("itens_monitorados").select("*").eq("embarcacao_id", embarcacao.id).order("created_at"),
-  ])
-  if (equipamentosError || itensError) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
 
   // `.in()` pelos vínculos que já estão em memória: sem ele esta consulta
   // varria `embarcacoes` INTEIRA a cada navegação autenticada — a RLS
@@ -101,13 +121,25 @@ export const carregarPainel = cache(async (): Promise<{
   // dono): 1,3 ms com 2 barcos, ~456 ms projetados com 1.000 assinantes, em
   // TODA página. Era a consulta mais cara do app (auditoria CTO 18/08).
   const idsDoUsuario = (meusVinculos ?? []).map((v) => v.embarcacao_id)
-  const [{ data: todas }, { data: perfilBruto }] = await Promise.all([
+  const [
+    { data: embarcacao, error },
+    { data: equipamentos, error: equipamentosError },
+    { data: itens, error: itensError },
+    { data: todas },
+    { data: perfilBruto },
+  ] = await Promise.all([
+    supabase.from("embarcacoes").select("*").eq("id", vinculo.embarcacao_id).maybeSingle(),
+    supabase.from("equipamentos").select("*").eq("embarcacao_id", vinculo.embarcacao_id).order("posicao"),
+    supabase.from("itens_monitorados").select("*").eq("embarcacao_id", vinculo.embarcacao_id).order("created_at"),
     supabase.from("embarcacoes").select("id, nome").in("id", idsDoUsuario).order("nome"),
-    // Uma linha por id, indexada — e em paralelo com a de cima. Ver o
-    // comentário de `perfil` no tipo de retorno: quem já fazia esta consulta
-    // por conta própria (`/hoje`, `/menu/ajustes`) passa a reusar esta.
+    // Uma linha por id, indexada. Ver o comentário de `perfil` no tipo de
+    // retorno: quem já fazia esta consulta por conta própria (`/hoje`,
+    // `/menu/ajustes`) passa a reusar esta.
     supabase.from("profiles").select("nome, avatar_path").eq("id", user?.id ?? "").maybeSingle(),
   ])
+  if (error) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
+  if (!embarcacao) return null
+  if (equipamentosError || itensError) throw new Error("Não foi possível carregar os dados da embarcação. Recarregue a página.")
 
   const papel = vinculo.papel as "PROP" | "CMDT"
   const permissoes = papel === "PROP" ? null : normalizarPermissoes(vinculo.permissoes)

@@ -54,7 +54,7 @@ export function ImportarFrotaCliente() {
   return (
     <>
       <SecaoPagina icone="mais">Cole a planilha</SecaoPagina>
-      <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <CampoTextarea
           label="Selecione as linhas no Excel ou no Google Sheets e cole aqui"
           id="planilha"
@@ -76,7 +76,7 @@ export function ImportarFrotaCliente() {
       {temTexto && (
         <>
           <SecaoPagina icone="relatorio">Conferência</SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             <div className="flex items-center gap-2">
               <p className="titulo-card min-w-0 flex-1">{resumoDaImportacao(validacao)}</p>
               {validacao.erros.length > 0 && <Selo estado="atencao">Confira</Selo>}
@@ -125,7 +125,7 @@ export function ImportarFrotaCliente() {
               type="button"
               onClick={confirmar}
               disabled={enviando}
-              className={`${ACAO_NAO_ESTICA} mt-3 rounded-xl bg-accent py-3.5 font-semibold text-acao-texto disabled:opacity-60`}
+              className={`${ACAO_NAO_ESTICA} mt-3 rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto disabled:opacity-60`}
             >
               {enviando
                 ? "Importando…"
@@ -139,9 +139,9 @@ export function ImportarFrotaCliente() {
         <>
           <SecaoPagina icone="calendario">Resultado</SecaoPagina>
           {resultado.recusa ? (
-            <p className="corpo rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{resultado.recusa}</p>
+            <p className="corpo rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{resultado.recusa}</p>
           ) : (
-            <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+            <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <p className="titulo-card">
                 {resultado.criadas === 0
                   ? "Nenhuma unidade entrou"

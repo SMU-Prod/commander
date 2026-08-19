@@ -444,41 +444,45 @@ export const PROMOCOES: Record<PromocaoId, Promocao> = {
   },
 }
 
-/**
- * §2.1, última linha: "Benefícios promocionais de migração não acumulam com a
- * oferta de entrada direta pelo Gold."
+/*
+ * AUDITORIA 19/08, A20 — AQUI MORAVAM `escolherPromocao`,
+ * `economiaDaPromocao` E `validadeDaPromocao`. AS TRÊS FORAM APAGADAS.
  *
- * O PRD não diz QUAL das duas vence quando as duas se aplicam, então a regra
- * aqui é a única defensável do lado do cliente: vence a que economiza mais
- * dinheiro no total (duração × desconto por mês). Com os números congelados
- * hoje, `entrada_gold` (6 × R$ 49,90 = R$ 299,40) ganha de
- * `migracao_concorrente` (3 × R$ 25,00 = R$ 75,00) — mas a conta é calculada,
- * não decorada, pra continuar certa se o dono mexer nos valores.
+ * As três eram funções do momento de CONCEDER uma promoção: qual das duas
+ * ofertas vence quando as duas se aplicam (§2.1, "não acumulam"), quanto cada
+ * uma economiza, e até que dia a concessão vale. Nenhuma tinha consumidor
+ * fora do próprio teste, e o motivo não é esquecimento — é que o app NÃO TEM
+ * como conceder promoção, e não é questão de faltar tela:
  *
- * Empate: vence a primeira da lista de candidatas (determinístico).
+ *   Medido em `pg_policies` no banco de hoje: `assinatura_promocoes` tem RLS
+ *   ligada e UMA policy, "promocoes: ver a propria", de SELECT. Não existe
+ *   policy de INSERT. Nenhum código autenticado do Commander consegue gravar
+ *   uma linha ali — a concessão é ato da operação, feito por fora. A tabela
+ *   tem 0 linhas.
+ *
+ * Manter as três seria o defeito que o A20 aponta: código que só o próprio
+ * teste usa dá a impressão de que a funcionalidade existe. Quem lesse
+ * `escolherPromocao` com 11 casos verdes concluiria que o Commander decide
+ * entre as duas ofertas — ele não decide, porque nunca chega a ter duas
+ * candidatas na mão. Mesmo tratamento que a onda 57 deu a `rotuloDoSelo` e
+ * esta mesma auditoria deu a `alertaViraAfazerAutomaticamente`.
+ *
+ * O QUE FICA, porque tem consumidor de verdade: `PROMOCOES` (a tabela de
+ * ofertas, lida na tela de assinar), `precoVigenteCentavos` (usada por
+ * `/assinar` e por `lib/acoes/assinatura.ts`) e `precoGoldComDesconto` —
+ * esta última ligada nesta rodada em `lib/acoes/gold.ts`, no ponto em que o
+ * valor da avaliação vira cobrança.
+ *
+ * O QUE PRECISA EXISTIR PARA AS TRÊS VOLTAREM (nesta ordem): uma policy de
+ * INSERT em `assinatura_promocoes` — provavelmente restrita a papel de
+ * admin/suporte, como as demais tabelas de operação — e a tela que concede.
+ * Aí a regra de desempate volta a ser decisão de código e volta com teste.
+ *
+ * A REGRA EM SI, para não se perder junto com o código: quando as duas
+ * ofertas se aplicam, vence a que economiza mais no total (duração × desconto
+ * por mês); e a validade soma meses de calendário, com 31/01 + 1 mês caindo
+ * em 28/02 e nunca em 03/03, pra ninguém perder dia por causa de mês curto.
  */
-export function escolherPromocao(candidatas: readonly PromocaoId[]): PromocaoId | null {
-  let melhor: PromocaoId | null = null
-  let melhorEconomia = -1
-  for (const id of candidatas) {
-    const economia = economiaDaPromocao(id)
-    if (economia > melhorEconomia) {
-      melhor = id
-      melhorEconomia = economia
-    }
-  }
-  return melhor
-}
-
-/** Quanto a promoção economiza no total, em centavos. Plano alvo sem preço
- *  (grátis ou "a definir") economiza 0 — não dá desconto sobre o que não é
- *  cobrado. */
-export function economiaDaPromocao(id: PromocaoId): number {
-  const promo = PROMOCOES[id]
-  const cheio = PLANOS[promo.planoAlvo].valorCentavos
-  if (cheio == null) return 0
-  return Math.max(0, cheio - promo.valorPromocionalCentavos) * promo.duracaoMeses
-}
 
 /** Quanto cobrar por mês agora: o valor da promoção quando ela ainda vale,
  *  senão o preço cheio do plano. `null` = plano sem preço definido. */
@@ -504,23 +508,6 @@ export function precoGoldComDesconto(
   const pct = PROMOCOES[promocao.promocao].descontoGoldPercentual
   if (pct <= 0) return valorCentavos
   return Math.floor((valorCentavos * (100 - pct)) / 100)
-}
-
-/**
- * Até quando a promoção vale, a partir da data de início (AAAA-MM-DD).
- * Soma meses de calendário — 31/01 + 1 mês cai em 28/02 (ou 29 em bissexto),
- * nunca em 03/03: o cliente nunca perde dia por causa de mês curto.
- */
-export function validadeDaPromocao(inicioISO: string, id: PromocaoId): string {
-  const [ano, mes, dia] = inicioISO.split("-").map(Number)
-  const meses = PROMOCOES[id].duracaoMeses
-  const alvoMes = mes - 1 + meses
-  const alvoAno = ano + Math.floor(alvoMes / 12)
-  const mesNormalizado = ((alvoMes % 12) + 12) % 12
-  const ultimoDiaDoMes = new Date(Date.UTC(alvoAno, mesNormalizado + 1, 0)).getUTCDate()
-  const diaFinal = Math.min(dia, ultimoDiaDoMes)
-  const d = new Date(Date.UTC(alvoAno, mesNormalizado, diaFinal))
-  return d.toISOString().slice(0, 10)
 }
 
 /** "R$ 49,90" — usado em toda tela que fala de dinheiro. O `replace` troca o

@@ -94,7 +94,7 @@ export function AtivarAlertas() {
   }
 
   return (
-    <div className="rounded-[14px] border border-line bg-panel p-4">
+    <div className="rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
       <p className="text-sm font-semibold">Neste aparelho</p>
       {estado === "sem-suporte" && (
         <p className="mt-1.5 text-xs text-dim">
@@ -108,18 +108,18 @@ export function AtivarAlertas() {
            `ACAO_NAO_ESTICA` mantém a linha inteira no celular e devolve a
            largura do conteúdo no monitor. */
         <button onClick={ativar} disabled={ocupado}
-          className={`${ACAO_NAO_ESTICA} mt-3 rounded-xl bg-accent py-3 font-semibold text-acao-texto disabled:opacity-60`}>
+          className={`${ACAO_NAO_ESTICA} mt-3 rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto disabled:opacity-60`}>
           Ativar avisos neste aparelho
         </button>
       )}
       {estado === "ativo" && (
         <div className="mt-3 flex gap-2 sm:max-w-[26rem]">
           <button onClick={teste} disabled={ocupado}
-            className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium disabled:opacity-60">
+            className="flex-1 rounded-[var(--raio-controle)] border border-line py-2.5 text-sm font-medium disabled:opacity-60">
             Enviar teste
           </button>
           <button onClick={desativar} disabled={ocupado}
-            className="flex-1 rounded-xl border border-crit/40 py-2.5 text-sm font-medium text-crit disabled:opacity-60">
+            className="flex-1 rounded-[var(--raio-controle)] border border-crit/40 py-2.5 text-sm font-medium text-crit disabled:opacity-60">
             Desativar
           </button>
         </div>

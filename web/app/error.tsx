@@ -22,14 +22,17 @@ export default function Erro({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col items-center justify-center px-6 text-center">
-      <p className="font-mono-instr text-[11px] uppercase tracking-[.2em] text-dim">Commander</p>
+      {/* Onda 93 (achado 5.12) — era `.rotulo` reescrita à mão com o tracking
+          derivado (.2 contra .16). A marca é a mesma nas três telas públicas;
+          o tracking é que tinha três valores. */}
+      <p className="rotulo text-dim">Commander</p>
       <h1 className="titulo-pagina mt-3">Algo deu errado</h1>
       <p className="mt-2 text-sm text-dim">
         Não foi possível carregar seus dados. Verifique a conexão e tente de novo.
       </p>
       <button
         onClick={reset}
-        className="mt-6 rounded-xl bg-accent px-6 py-3 font-semibold text-acao-texto"
+        className="mt-6 rounded-[var(--raio-controle)] bg-accent px-6 py-3 font-semibold text-acao-texto"
       >
         Tentar de novo
       </button>

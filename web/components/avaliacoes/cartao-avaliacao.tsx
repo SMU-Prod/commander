@@ -35,7 +35,7 @@ export function CartaoAvaliacao({
 
   return (
     <div
-      className={`sombra-1 rounded-[14px] border p-4 ${
+      className={`sombra-1 rounded-[var(--raio-cartao)] border p-4 ${
         oculta ? "border-crit/40 bg-crit/5" : "border-line bg-panel"
       }`}
     >
@@ -63,13 +63,13 @@ export function CartaoAvaliacao({
 
       {/* §14 — o selo que separa isto de nota de site aberto continua no
           cartão, agora abaixo do cabeçalho (o canto direito é da nota). */}
-      <p className="apoio mt-2.5 inline-flex items-center gap-1 rounded-full border border-ok/40 px-2 py-0.5 text-ok">
+      <p className="apoio mt-2.5 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-ok/40 px-2 py-0.5 text-ok">
         <Icone nome="guardado" className="size-3.5" />
         {SELO_NEGOCIO_CONFIRMADO}
       </p>
 
       {oculta && (
-        <p className="apoio mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">
+        <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">
           Ocultada por violação após análise da equipe Commander — não aparece para outras pessoas e não
           entra na média.
           {avaliacao.ocultacao_nota && <> Motivo registrado: {avaliacao.ocultacao_nota}</>}
@@ -78,7 +78,7 @@ export function CartaoAvaliacao({
 
       {/* §14.1 — a resposta do avaliado, sempre uma das frases padronizadas. */}
       {resposta && (
-        <div className="mt-3 rounded-lg border border-line bg-panel2 px-3 py-2">
+        <div className="mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2">
           <p className="rotulo text-dim">Resposta de {avaliacao.avaliado_nome}</p>
           <p className="corpo mt-0.5">{textoDaResposta(resposta.resposta_codigo)}</p>
         </div>
@@ -87,7 +87,7 @@ export function CartaoAvaliacao({
       {/* §14 — "Problema solucionado": muda o selo, nunca a nota. */}
       {estadoSolucao !== "nenhuma" && (
         <p
-          className={`apoio mt-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 ${
+          className={`apoio mt-3 inline-flex items-center gap-1.5 rounded-[var(--raio-controle)] border px-2.5 py-1.5 ${
             estadoSolucao === "confirmada" ? "border-ok/40 text-ok" : "border-line text-dim"
           }`}
         >
@@ -100,13 +100,13 @@ export function CartaoAvaliacao({
       {/* §14 — contestação em análise NÃO tira a avaliação do ar. A tela diz
           isso com todas as letras pra ninguém achar que sumiu. */}
       {contestacao && contestacao.status === "pendente" && (
-        <p className="apoio mt-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2">
+        <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2">
           Contestada — em análise pela equipe Commander. A avaliação continua publicada e contando na média
           até a decisão. Motivo: {textoDoMotivo(contestacao.motivo_codigo)}
         </p>
       )}
       {contestacao && contestacao.status === "analisada" && contestacao.decisao === "manter" && (
-        <p className="apoio mt-3 rounded-lg border border-line px-3 py-2 text-dim">
+        <p className="apoio mt-3 rounded-[var(--raio-controle)] border border-line px-3 py-2 text-dim">
           Contestada e analisada — a equipe Commander manteve a avaliação.
         </p>
       )}

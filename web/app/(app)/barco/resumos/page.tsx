@@ -177,7 +177,7 @@ export default async function ResumosPage({
           </ChipLinha>
 
           {vazio && (
-            <p className="mt-4 rounded-lg border border-line bg-panel px-3 py-2.5 corpo text-dim">
+            <p className="mt-4 rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2.5 corpo text-dim">
               Nenhuma atividade registrada em {r.rotulo.toLowerCase()}. O que está cadastrado no barco hoje continua
               logo abaixo — nenhum número foi inventado pra preencher o período.
             </p>
@@ -239,9 +239,9 @@ export default async function ResumosPage({
                       <span className="corpo font-medium">{g.grupo}</span>
                       <span className="font-mono-instr valor font-semibold">{formatarReais(g.totalCentavos)}</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-panel2">
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
                       <div
-                        className={`h-full rounded-full ${i === 0 ? "bg-texto" : "bg-dim"}`}
+                        className={`h-full rounded-[var(--raio-pilula)] ${i === 0 ? "bg-texto" : "bg-dim"}`}
                         style={{ width: `${g.percentual}%` }}
                       />
                     </div>
@@ -412,7 +412,7 @@ export default async function ResumosPage({
             icone="embarcacao"
             titulo={`Nenhuma saída registrada em ${anoAtual}`}
             descricao="Registre as saídas no Diário de Bordo e o ano no mar se monta sozinho."
-            className="mt-5"
+            className="mt-6"
           />
         ) : (
           <>

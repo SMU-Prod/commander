@@ -40,9 +40,9 @@ export default async function NovoSistemaPage({
         titulo="Novo sistema"
         descricao="Um sistema é uma parte do equipamento — Arrefecimento, Injeção, Elétrica do motor, Transmissão... o nome é livre."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={criarSistema} className="mt-5 space-y-4">
+      <form action={criarSistema} className="mt-6 space-y-4">
         <input type="hidden" name="equipamento_id" value={id} />
         <Campo label="Nome do sistema" id="nome" name="nome" required list="sistemas-sugestoes" placeholder="Ex.: Arrefecimento">
           <datalist id="sistemas-sugestoes">
@@ -51,7 +51,7 @@ export default async function NovoSistemaPage({
           </datalist>
         </Campo>
         {(documentos ?? []).length === 0 ? (
-          <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+          <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
             Sem documentos no acervo ainda. <Link href="/barco/documentos" className="text-accent-forte">Adicione o manual em Documentos</Link> e volte aqui pra vincular.
           </p>
         ) : (
@@ -64,7 +64,7 @@ export default async function NovoSistemaPage({
         )}
         <Campo label="Página do manual — opcional" id="pagina" name="pagina" inputMode="numeric" placeholder="Ex.: 42" className="font-mono-instr tabular-nums" />
         <Campo label="Observação — opcional" id="observacao" name="observacao" placeholder="Ex.: trocar o termostato a cada 2 anos" />
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
       </form>
     </main>
   )

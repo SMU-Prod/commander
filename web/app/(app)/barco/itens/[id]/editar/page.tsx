@@ -130,9 +130,9 @@ export default async function EditarItemPage({
           </form>
         }
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={salvarItemMonitorado} className="mt-5 space-y-4">
+      <form action={salvarItemMonitorado} className="mt-6 space-y-4">
         <input type="hidden" name="item_id" value={id} />
         <Campo label="Nome" id="nome" name="nome" required defaultValue={item.nome} placeholder="Ex.: Antifouling" />
         <div className="grid grid-cols-2 gap-3">
@@ -196,7 +196,7 @@ export default async function EditarItemPage({
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal"
             defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className="font-mono-instr tabular-nums" />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>
           {ehDocumento ? "Salvar vencimento" : "Salvar manutenção"}
         </button>
       </form>

@@ -236,7 +236,7 @@ export function FaixaTopo({
         <Link
           href="/menu/ajustes"
           aria-label="Sua conta e ajustes"
-          className="flex size-11 items-center justify-center rounded-full"
+          className="flex size-11 items-center justify-center rounded-[var(--raio-pilula)]"
         >
           <Avatar url={null} nome={nomeDoAvatar(nome ?? null, email)} tamanho="size-9" />
         </Link>

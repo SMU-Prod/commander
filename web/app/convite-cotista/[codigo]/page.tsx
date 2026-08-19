@@ -99,7 +99,7 @@ export default async function ConviteCotistaPage({
       {/* O erro devolvido pela action vem antes de tudo: é a resposta ao
           último gesto da pessoa, e ela precisa lê-lo sem procurar. */}
       {erro && (
-        <p className="mx-auto mt-5 max-w-[320px] rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">
+        <p className="mx-auto mt-6 max-w-[320px] rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">
           {erro}
         </p>
       )}
@@ -153,7 +153,7 @@ export default async function ConviteCotistaPage({
           </p>
           <form action={entrarComoCotista} className="mx-auto mt-6 max-w-[320px]">
             <input type="hidden" name="codigo" value={codigo} />
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+            <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto">
               Entrar como cotista
             </button>
           </form>

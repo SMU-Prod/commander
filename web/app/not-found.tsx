@@ -32,7 +32,9 @@ export default function NaoEncontrada() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col items-center justify-center px-6 text-center">
-      <p className="font-mono-instr text-[11px] uppercase tracking-[.2em] text-dim">Commander</p>
+      {/* Onda 93 (achado 5.12) — `.rotulo`, e não a cópia à mão dela com
+          tracking derivado. Mesmo caso de `app/error.tsx`. */}
+      <p className="rotulo text-dim">Commander</p>
       <h1 className="titulo-pagina mt-3">Esta página não existe</h1>
       <p className="mt-2 text-sm text-dim">
         O endereço pode ter mudado de lugar ou o link estar velho. Nada foi perdido — seu barco e
@@ -41,13 +43,13 @@ export default function NaoEncontrada() {
       <div className="mt-6 flex w-full flex-col gap-2">
         <button
           onClick={() => router.back()}
-          className="flex min-h-11 w-full items-center justify-center rounded-xl bg-accent px-6 font-semibold text-acao-texto"
+          className="flex min-h-11 w-full items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 font-semibold text-acao-texto"
         >
           Voltar
         </button>
         <Link
           href="/hoje"
-          className="flex min-h-11 w-full items-center justify-center rounded-xl border border-line px-6 font-semibold text-dim"
+          className="flex min-h-11 w-full items-center justify-center rounded-[var(--raio-controle)] border border-line px-6 font-semibold text-dim"
         >
           Ir para a Início
         </Link>

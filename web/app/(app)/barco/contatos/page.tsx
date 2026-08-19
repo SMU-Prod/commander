@@ -45,23 +45,23 @@ export default async function ContatosPage({
         acao={
           <Link
             href="#novo"
-            className="flex h-11 shrink-0 items-center rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+            className="flex h-11 shrink-0 items-center rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
           >
             + Contato
           </Link>
         }
       />
       {volta && (
-        <p className="mt-3 rounded-lg border border-line bg-panel2 px-3 py-2 corpo text-dim-chip">
+        <p className="mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 corpo text-dim-chip">
           Cadastre o prestador e volte pro registro — o que você já preencheu lá continua salvo.
         </p>
       )}
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* Emergência primeiro, sempre no topo — no mar não se procura telefone.
           Só o que é universal e verdadeiro pra qualquer barco no Brasil
           (lib/domain/contatos.ts); os contatos DO barco vêm logo abaixo. */}
-      <p className="rotulo mt-5 mb-2 text-dim">Emergência</p>
+      <p className="rotulo mt-6 mb-2 text-dim">Emergência</p>
       <div className="rounded-[var(--raio-cartao)] border border-crit/35 bg-panel px-3">
         {CONTATOS_EMERGENCIA.map((c) => {
           const href = c.telefone ? telefoneHref(c.telefone) : null
@@ -76,7 +76,7 @@ export default async function ContatosPage({
                 <a
                   href={href}
                   aria-label={`Ligar para ${c.nome}`}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-crit/40 text-crit"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-crit/40 text-crit"
                 >
                   <Icone nome="telefone" className="size-[18px]" />
                 </a>
@@ -86,7 +86,7 @@ export default async function ContatosPage({
         })}
       </div>
 
-      <p className="rotulo mt-5 mb-2 text-dim">Do barco</p>
+      <p className="rotulo mt-6 mb-2 text-dim">Do barco</p>
       <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-3">
         {(contatos ?? []).length === 0 && (
           <p className="corpo py-4 text-dim">Salve aqui o mecânico, o eletricista e todo mundo que cuida do barco.</p>
@@ -108,7 +108,7 @@ export default async function ContatosPage({
                   <a
                     href={ligar}
                     aria-label={`Ligar para ${c.nome}`}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line"
                   >
                     <Icone nome="telefone" className="size-[18px]" />
                   </a>
@@ -119,7 +119,7 @@ export default async function ContatosPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`WhatsApp de ${c.nome}`}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-full border border-ok/40 text-ok"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-ok/40 text-ok"
                   >
                     <Icone nome="chat" className="size-[18px]" />
                   </a>
@@ -148,7 +148,7 @@ export default async function ContatosPage({
       <p className="apoio mt-3 text-dim">Emergência primeiro, sempre no topo — no mar não se procura telefone.</p>
 
       <p id="novo" className="rotulo text-dim mt-6 mb-2 scroll-mt-4">Novo contato</p>
-      <form action={criarContato} className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+      <form action={criarContato} className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         {/* Esta tela é meio-caminho de outro fluxo: quem chega com `?volta=`
             veio de um registro do Diário pra cadastrar o prestador. Perder o
             que digitou aqui por um erro custa DOIS formulários, não um. */}
@@ -163,7 +163,7 @@ export default async function ContatosPage({
         <Campo label="E-mail (opcional)" id="email" name="email" type="email" inputMode="email" placeholder="contato@nautica.com.br" />
         <CampoTextarea label="Observações (opcional)" id="observacoes" name="observacoes" rows={2}
           placeholder="Atende sábado, cobra deslocamento de Angra" />
-        <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Salvar contato</button>
+        <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">Salvar contato</button>
       </form>
     </main>
   )

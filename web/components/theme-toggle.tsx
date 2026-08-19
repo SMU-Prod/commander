@@ -26,7 +26,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className="inline-flex rounded-[10px] border border-line bg-panel2 p-1" role="group" aria-label="Tema do aplicativo">
+    <div className="inline-flex rounded-[var(--raio-cartao)] border border-line bg-panel2 p-1" role="group" aria-label="Tema do aplicativo">
       {opcoes.map((o) => (
         <button
           key={o.valor}
@@ -37,7 +37,7 @@ export function ThemeToggle() {
           // margem negativa como no `SecaoPagina`: o par de botões vive
           // dentro de uma moldura com `p-1`, e encolher por fora faria o
           // fundo do grupo cortar o botão ativo.
-          className={`flex min-h-11 items-center rounded-lg px-4 text-sm font-medium ${
+          className={`flex min-h-11 items-center rounded-[var(--raio-controle)] px-4 text-sm font-medium ${
             tema === o.valor ? "bg-accent text-acao-texto" : "text-dim-chip"
           }`}
         >

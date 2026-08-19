@@ -153,7 +153,7 @@ export function ExplorarMapa({
               vitrine fica a um toque, do mesmo jeito que a ida pro mapa. */}
           <Link
             href="/explorar"
-            className="sombra-2 flex h-11 shrink-0 items-center rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-3.5 text-sm font-medium text-meter-texto"
+            className="sombra-2 flex h-11 shrink-0 items-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento px-3.5 text-sm font-medium text-meter-texto"
           >
             Vitrine
           </Link>
@@ -165,7 +165,7 @@ export function ExplorarMapa({
             que quase sempre acha nada leria como app vazio, não como paywall
             (§24: limite dito em voz alta, nunca encenado). */}
         {!amostraFree && (
-          <div className="pointer-events-auto sombra-2 flex h-11 items-center gap-2.5 rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento px-4">
+          <div className="pointer-events-auto sombra-2 flex h-11 items-center gap-2.5 rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento px-4">
             <Icone nome="buscar" className="size-[17px] shrink-0 text-meter-dim" />
             <input
               type="search"
@@ -180,7 +180,7 @@ export function ExplorarMapa({
         {/* Onda 62 (canvas tela-3h) — o chip flutuante sobe pro alvo de 44px
             da régua do app (era h-9/36px, abaixo do que a varredura cobra). */}
         <div
-          className="rolagem-lateral pointer-events-auto sombra-2 flex gap-1.5 overflow-x-auto rounded-full border border-mapa-instrumento-borda bg-mapa-instrumento p-1"
+          className="rolagem-lateral pointer-events-auto sombra-2 flex gap-1.5 overflow-x-auto rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento p-1"
           style={{ scrollbarWidth: "none" }}
         >
           {CATEGORIAS.map((c) => (
@@ -189,7 +189,7 @@ export function ExplorarMapa({
               type="button"
               onClick={() => setCategoria(c.valor)}
               aria-pressed={categoria === c.valor}
-              className={`h-11 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm ${
+              className={`h-11 shrink-0 whitespace-nowrap rounded-[var(--raio-pilula)] px-3.5 text-sm ${
                 categoria === c.valor ? "bg-accent font-semibold text-acao-texto" : "font-medium text-meter-texto"
               }`}
             >
@@ -201,7 +201,7 @@ export function ExplorarMapa({
 
       {amostraFree && (
         <div className="pointer-events-auto absolute inset-x-3 bottom-24 z-10">
-          <div className="sombra-2 rounded-[14px] border border-accent/30 bg-mapa-instrumento p-3 text-center">
+          <div className="sombra-2 rounded-[var(--raio-cartao)] border border-accent/30 bg-mapa-instrumento p-3 text-center">
             <p className="corpo font-medium text-meter-texto">Você está vendo uma amostra</p>
             <p className="apoio mt-1 text-meter-texto/70">
               No plano gratuito o Explorar mostra alguns parceiros só com nome e foto. Assine o Commander para
@@ -209,7 +209,7 @@ export function ExplorarMapa({
             </p>
             <Link
               href="/menu/assinatura"
-              className="mt-2.5 inline-block rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-acao-texto"
+              className="mt-2.5 inline-block rounded-[var(--raio-controle)] bg-accent px-4 py-2 text-sm font-semibold text-acao-texto"
             >
               Ver planos
             </Link>
@@ -223,8 +223,8 @@ export function ExplorarMapa({
           (o CardParceiro ocupa o mesmo lugar) e na amostra Free (ali o aviso
           de amostra é a mensagem mais importante do rodapé). */}
       {!amostraFree && !parceiroAberto && centro && (
-        <div className="sombra-2 absolute inset-x-0 bottom-0 z-10 rounded-t-2xl border-t border-mapa-instrumento-borda bg-mapa-instrumento px-4 pb-3 pt-3">
-          <div aria-hidden="true" className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-mapa-instrumento-borda" />
+        <div className="sombra-2 absolute inset-x-0 bottom-0 z-10 rounded-t-[var(--raio-painel)] border-t border-mapa-instrumento-borda bg-mapa-instrumento px-4 pb-3 pt-3">
+          <div aria-hidden="true" className="mx-auto mb-2.5 h-1 w-9 rounded-[var(--raio-pilula)] bg-mapa-instrumento-borda" />
           <div className="mb-1 flex items-baseline gap-2">
             <p className="rotulo flex-1 text-meter-dim">
               <span className="tabular-nums">{proximos.length}</span>
@@ -250,7 +250,7 @@ export function ExplorarMapa({
                 onClick={() => setParceiroAberto(p)}
                 className="flex min-h-11 w-full items-center gap-3 border-b border-mapa-instrumento-borda py-2.5 text-left last:border-0"
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-mapa-instrumento-borda bg-meter">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-controle)] border border-mapa-instrumento-borda bg-meter">
                   <Icone nome={ICONE_TIPO_PARTNER[p.categoria]} className="size-5 text-meter-dim" />
                 </span>
                 <span className="min-w-0 flex-1">

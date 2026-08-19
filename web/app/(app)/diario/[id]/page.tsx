@@ -20,7 +20,10 @@ import { supabaseServer } from "@/lib/supabase/server"
 import type { Evento } from "@/lib/db/types"
 import { CompartilharBotao } from "./compartilhar-botao"
 
-const instrumento = "rounded-[12px] border border-line bg-panel p-3"
+// Onda 93 (achado 5.9) — era `12px`, que não é token nenhum. Vira
+// `--raio-cartao` (14px) pelo critério de quem se toca / quem contém: este
+// bloco não se toca, ele CONTÉM o par rótulo/valor. Cartão, então 14.
+const instrumento = "rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
 // Onda 87 — era `font-mono-instr text-[11px] uppercase tracking-[.14em]`,
 // que é `.rotulo` reescrito à mão com o tracking derivado (.14 contra .16).
 const rotuloInstrumento = "rotulo text-dim"
@@ -174,7 +177,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
           vivo pelo app, e o dono precisa saber disso olhando a tela. */}
       {e.importado_do_plotter && (
-        <p className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-line bg-panel px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
+        <p className="mt-1.5 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
           <Icone nome="guardado" className="size-3" /> Importada do plotter
         </p>
       )}
@@ -267,7 +270,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       {checklist.length > 0 && (
         <div>
           <SecaoPagina icone="guardado">Checklist da saída</SecaoPagina>
-          <div className="sombra-1 divide-y divide-line rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 divide-y divide-line rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {checklist.map((item) => {
               const ocorrencia = (ocorrenciasDaSaida ?? []).find((o) => o.aba === item.hub)
               return (

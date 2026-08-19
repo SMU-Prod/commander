@@ -58,7 +58,7 @@ export function CartaoProfissional({
             própria pessoa — quando declarou, o verde de "dá pra chamar";
             quando não, "Sem dados" neutro, nunca inventado. */}
         <span
-          className={`max-w-[40%] shrink-0 truncate rounded-full border px-2 py-1 font-mono-instr text-[11px] tracking-wide ${
+          className={`max-w-[40%] shrink-0 truncate rounded-[var(--raio-pilula)] border px-2 py-1 font-mono-instr text-[11px] tracking-wide ${
             perfil.disponibilidade ? "border-ok/40 text-ok" : "border-line text-dim"
           }`}
         >
@@ -68,19 +68,19 @@ export function CartaoProfissional({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         {kpis.map((k) => (
-          <span key={k.rotulo} className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1">
-            <span className="font-mono-instr text-[11px] uppercase tracking-[.12em] text-dim">{k.rotulo}</span>
+          <span key={k.rotulo} className="inline-flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1">
+            <span className="rotulo text-dim">{k.rotulo}</span>
             <span className="font-mono-instr text-xs font-semibold tabular-nums">{k.valor}</span>
           </span>
         ))}
         {rep.quantidade > 0 ? (
           <SeloReputacao reputacao={rep} href={`/avaliacoes/${perfil.usuario_id}`} />
         ) : (
-          <span className="rounded-full border border-line px-2.5 py-1 font-mono-instr text-[11px] tracking-wide text-dim">
+          <span className="rounded-[var(--raio-pilula)] border border-line px-2.5 py-1 font-mono-instr text-[11px] tracking-wide text-dim">
             Sem avaliações
           </span>
         )}
-        <span className="rounded-full border border-line px-2.5 py-1 font-mono-instr text-[11px] uppercase tracking-[.1em] text-dim">
+        <span className="rounded-[var(--raio-pilula)] border border-line px-2.5 py-1 rotulo text-dim">
           {perfil.verificado ? "Verificado" : "Documentação declarada"}
         </span>
       </div>
@@ -92,7 +92,7 @@ export function CartaoProfissional({
         <a
           href={`https://wa.me/55${perfil.telefone.replace(/\D/g, "")}`}
           target="_blank" rel="noopener noreferrer"
-          className="mt-3 flex h-11 w-full items-center justify-center rounded-lg border border-ok/40 text-sm font-medium text-ok"
+          className="mt-3 flex h-11 w-full items-center justify-center rounded-[var(--raio-controle)] border border-ok/40 text-sm font-medium text-ok"
         >
           Chamar no WhatsApp
         </a>

@@ -91,7 +91,7 @@ export default async function AdminParceirosPage({
       {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <div className="mt-5 space-y-3">
+      <div className="mt-6 space-y-3">
         {parceiros.length === 0 ? (
           <EstadoVazio
             icone="ancora"

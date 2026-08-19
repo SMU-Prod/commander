@@ -10,7 +10,7 @@ import {
 } from "@/lib/domain/connect"
 import type { Equipamento } from "@/lib/db/types"
 
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+const rotulo = "rotulo mb-1.5 block text-dim"
 
 /** Grupo de radio "Sim / Não / Não sei" — mesmo visual de cartão marcável
  *  usado em `/assinar` (`has-[:checked]:border-accent`), só que com 3
@@ -34,7 +34,7 @@ function GrupoSimNaoNaoSei({
       {OPCOES.map((o) => (
         <label
           key={o.v}
-          className="sombra-1 flex min-h-11 cursor-pointer items-center justify-center rounded-[12px] border border-line bg-panel px-2 text-center has-[:checked]:border-accent has-[:checked]:bg-panel2"
+          className="sombra-1 flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--raio-controle)] border border-line bg-panel px-2 text-center has-[:checked]:border-accent has-[:checked]:bg-panel2"
         >
           <input
             type="radio"
@@ -75,7 +75,7 @@ export function FormularioInteresseConnect({ motorPrincipal }: { motorPrincipal:
   }, [redeNmea2000, dadosMotorNaRede, motorDigitalConhecido, perguntaSecundariaRespondida])
 
   return (
-    <div className="mt-5 space-y-5">
+    <div className="mt-6 space-y-5">
       <div>
         <p className={rotulo}>Sua embarcação já tem uma rede NMEA 2000 instalada?</p>
         <p className="apoio mb-2 text-dim">A mesma rede que hoje alimenta o chartplotter/MFD, quando existe.</p>
@@ -97,7 +97,7 @@ export function FormularioInteresseConnect({ motorPrincipal }: { motorPrincipal:
       )}
 
       {classificacao && (
-        <div className="sombra-1 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <div className="flex items-center gap-2">
             <Icone nome="escudo" className="size-4 text-dim" />
             <span className="rotulo text-dim">Resultado preliminar</span>
@@ -108,7 +108,7 @@ export function FormularioInteresseConnect({ motorPrincipal }: { motorPrincipal:
       )}
 
       {classificacao === "consultar" && (
-        <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Ajude a Commander a analisar (opcional, mas ajuda bastante)</p>
           <Campo label="Marca do motor" id="motor_marca" name="motor_marca" defaultValue={motorPrincipal?.marca ?? ""} placeholder="Ex.: Mercury, Yamaha, Volvo Penta" />
           <Campo label="Modelo" id="motor_modelo" name="motor_modelo" defaultValue={motorPrincipal?.modelo ?? ""} placeholder="Ex.: Verado 350" />
@@ -136,7 +136,7 @@ export function FormularioInteresseConnect({ motorPrincipal }: { motorPrincipal:
       )}
 
       {classificacao && (
-        <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">Registrar interesse</button>
+        <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto">Registrar interesse</button>
       )}
     </div>
   )

@@ -181,7 +181,7 @@ export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; class
   if (!TOKEN) {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-2 rounded-[14px] border border-line bg-meter p-6 text-center ${className ?? ""}`}
+        className={`flex flex-col items-center justify-center gap-2 rounded-[var(--raio-cartao)] border border-line bg-meter p-6 text-center ${className ?? ""}`}
       >
         <Icone nome="mapa" className="size-7 text-accent" />
         <p className="apoio text-meter-texto">
@@ -193,5 +193,5 @@ export function TrilhaMapa({ pontos, className }: { pontos: PontoTrilha[]; class
     )
   }
 
-  return <div ref={containerRef} className={`overflow-hidden rounded-[14px] border border-line ${className ?? ""}`} />
+  return <div ref={containerRef} className={`overflow-hidden rounded-[var(--raio-cartao)] border border-line ${className ?? ""}`} />
 }

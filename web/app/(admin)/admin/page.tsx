@@ -140,7 +140,7 @@ function Atalhos({ papeis }: { papeis: PapelAdmin[] }) {
   const visiveis = ATALHOS.filter((a) => podeAcessar(papeis, a.area))
   const porPapel = ATALHOS_POR_PAPEL.filter((a) => temPapelAdmin(papeis, a.papel))
   return (
-    <div className="mt-5 space-y-2">
+    <div className="mt-6 space-y-2">
       {/* A porta de entrada do Admin era dez linhas de lista escritas à mão —
           e sem `active:`, ou seja, dez alvos que não davam retorno nenhum ao
           toque. `LinhaLista variant="cartao"` é a peça, e ela traz a

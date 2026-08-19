@@ -1,7 +1,22 @@
 @import "tailwindcss";
 
-/* Commander — tokens dos dois temas. Light é o padrão (uso sob sol na marina);
-   dark é preferência do usuário via [data-theme="dark"] no <html>. */
+/* Commander — tokens dos dois temas.
+
+   ONDA 95 (achado 5.8) — ESTE CABEÇALHO DESCREVIA UM APP QUE NÃO EXISTE MAIS,
+   e ele é a PRIMEIRA coisa que alguém lê no arquivo de tokens.
+   Dizia: "Light é o padrão (uso sob sol na marina); dark é preferência do
+   usuário". É o contrário desde a fundação visual: `app/layout.tsx` roda um
+   script antes da pintura que põe [data-theme="dark"] no <html> a menos que a
+   pessoa tenha escolhido claro — ou seja, o ESCURO é o que abre, e o claro é
+   que virou preferência (Ajustes → Aparência; a leitura sob sol na marina
+   continua sendo o motivo dele existir).
+   Por que isso importa mais do que uma linha errada qualquer: quem calibra
+   uma cor nova pelo bloco de cima está calibrando contra o tema que a maioria
+   NÃO vê. O bloco `:root` aqui é o tema CLARO; o escuro mora em
+   [data-theme="dark"], mais abaixo — e é ele que abre.
+
+   O par de blocos não mudou de lugar nesta onda: só o texto que os apresenta
+   passou a dizer a verdade. */
 :root {
   --fundo: #f5f7fa;
   --superficie: #ffffff;
@@ -333,7 +348,7 @@ body.fundo-tela-mapa {
      ONDA 91 — quem pede é `Cartao nivel="painel"`, o padrão do componente. */
   .painel-lustro { background-image: var(--lustro-painel); }
   /* O raio de primeiro nível (§3.2). Existe como classe pra tela não
-     escrever `rounded-[16px]` na mão e o número virar 16 em 40 lugares —
+     escrever `rounded-[var(--raio-painel)]` na mão e o número virar 16 em 40 lugares —
      mesmo consumidor do lustro acima, e pelo mesmo motivo: as duas peças do
      "primeiro nível" andam juntas ou a profundidade fica pela metade. */
   .raio-painel { border-radius: var(--raio-painel); }
@@ -567,9 +582,19 @@ body.fundo-tela-mapa {
   overflow: hidden;
 }
 .mapboxgl-ctrl-group button {
-  /* Tamanho NÃO mexido de propósito (fica nos 32px default do mapbox-gl.css)
-     — os sprites dos ícones são posicionados/dimensionados pelo próprio
-     mapbox-gl.css contra esse tamanho; sobrescrever aqui desalinharia. */
+  /* ONDA 95 (achado 5.8) — ESTE COMENTÁRIO PROMETIA 32px E O BOTÃO JÁ SAI A 44.
+     Ele dizia "Tamanho NÃO mexido de propósito (fica nos 32px default do
+     mapbox-gl.css)". Deixou de ser verdade quando o achado 4.2 subiu o alvo de
+     toque: `components/mapa/mapa-nautico.tsx` injeta
+     `.mapboxgl-ctrl-group button { width: 44px; height: 44px }` com
+     `!important` no momento em que o mapa monta, e mantém o SPRITE em 32
+     (`background-size: 32px 32px`, centralizado) — que é a parte que este
+     comentário acertava e que continua valendo: o ícone é imagem de fundo, não
+     conteúdo, então a caixa cresce sem desalinhar o desenho.
+     A regra de tamanho mora LÁ, e não aqui, de propósito: é onde o mapa é
+     montado, e quem lê aquele arquivo vê a régua de 44px valendo. O que sobra
+     aqui é só a pintura. Quem quiser mexer no tamanho: é `mapa-nautico.tsx`,
+     não esta linha. */
   background: transparent !important;
 }
 .mapboxgl-ctrl-group button + button {

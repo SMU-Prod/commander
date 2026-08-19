@@ -63,14 +63,14 @@ export default async function EletricaPage() {
         <h1 className="titulo-pagina">Elétrica</h1>
         {editavel && (
           <Link href="/barco/equipamento/novo?tipo=gerador"
-            className="inline-flex items-center gap-1 rounded-full bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
+            className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
             <Icone nome="mais" className="size-4" /> Equipamento
           </Link>
         )}
       </div>
       <p className="apoio mt-1 text-dim">Gerador, baterias e painel de bordo.</p>
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (
           <div className="py-6 text-center">
             <Icone nome="raio" className="mx-auto size-7 text-dim" />
@@ -118,7 +118,7 @@ export default async function EletricaPage() {
           >
             Suporte e peças
           </SecaoPagina>
-          <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
             {contatosEletrica.length === 0 && (
               <p className="corpo py-4 text-dim">
                 Nenhum contato de elétrica cadastrado ainda. Salve o eletricista de confiança para
@@ -136,7 +136,7 @@ export default async function EletricaPage() {
                 {c.telefone && (
                   <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-lg border border-ok/40 px-2.5 py-1.5 text-xs text-ok">
+                    className="rounded-[var(--raio-controle)] border border-ok/40 px-2.5 py-1.5 text-xs text-ok">
                     WhatsApp
                   </a>
                 )}

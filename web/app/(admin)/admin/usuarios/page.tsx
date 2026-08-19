@@ -53,7 +53,7 @@ export default async function AdminUsuariosPage({
           aria-label="Buscar usuário pelo nome"
           className="corpo h-11 min-w-0 flex-1 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3"
         />
-        <button className={`h-11 shrink-0 rounded-full border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}>
+        <button className={`h-11 shrink-0 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}>
           Buscar
         </button>
       </form>

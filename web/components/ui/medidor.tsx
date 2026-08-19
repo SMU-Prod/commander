@@ -122,8 +122,19 @@ export function Medidor({
     return { de, ate, cor, corFim, a, b, id: idDefs("zona", cor, corFim, a.x, a.y, b.x, b.y) }
   })
 
-  const grauPonteiro = grauDe(f)
-  const pontaPonteiro = pontoNoArco(CX, CY, RAIO - 15, grauPonteiro)
+  // O PONTEIRO É DESENHADO SEMPRE NO ZERO E CHEGA AO VALOR POR ROTAÇÃO.
+  // A ponta é constante (o pé esquerdo do arco) e o que muda entre um render
+  // e o seguinte é UM número: o giro. Ver o comentário do bloco do ponteiro,
+  // no JSX, para o porquê — em resumo, é o que permite ao navegador
+  // interpolar o movimento.
+  //
+  // `VARREDURA * f` e não `GRAU_INICIO - grauDe(f)`: é a mesma conta, escrita
+  // do jeito que se lê ("quantos graus dos 240 já foram andados"). O sinal é
+  // POSITIVO porque `rotate()` do SVG gira no sentido horário enquanto os
+  // graus de `pontoNoArco` são convenção matemática (anti-horário) — as duas
+  // inversões se cancelam, e é por isso que não há um menos aqui.
+  const pontaPonteiro = pontoNoArco(CX, CY, RAIO - 15, GRAU_INICIO)
+  const giroPonteiro = VARREDURA * f
 
   const textoAcessivel = semLeitura
     ? `${rotulo ?? "Medidor"}: sem leitura`
@@ -232,9 +243,49 @@ export function Medidor({
 
           {/* Ponteiro. Fica em `--texto` (e não na cor da zona) porque a agulha
               é o INSTRUMENTO, não o alarme: quem diz o estado é o chip e a zona
-              atrás dela. Agulha colorida sobre zona colorida some. */}
+              atrás dela. Agulha colorida sobre zona colorida some.
+
+              ONDA 95 (achado 3.4 da auditoria de 19/08) — A AGULHA PARA DE
+              TELEPORTAR.
+              -----------------------------------------------------------------
+              A agulha ia de 6 nós para 14 sem passar por 10: entre um render e
+              o outro, o `x2`/`y2` da linha simplesmente virava outro par de
+              números. Num instrumento isso não é só falta de acabamento — o
+              MOVIMENTO é o que diz "isto está medindo agora". Um velocímetro
+              que salta parece um número atualizando, não um barco acelerando,
+              e a diferença aparece justamente em /navegar, onde o valor chega
+              do GPS de segundo em segundo.
+
+              POR QUE ROTAÇÃO E NÃO x2/y2 ANIMADOS: só dá pra transicionar o
+              que é PROPRIEDADE CSS, e `x2`/`y2` de `<line>` são atributo
+              geométrico do SVG — nenhuma transição os alcança. `transform`, em
+              SVG2, É a propriedade CSS de mesmo nome: o atributo escrito aqui
+              entra na cascata e o navegador interpola `rotate(a …)` →
+              `rotate(b …)` sozinho, sem estado, sem efeito e sem `useId` — o
+              que mantém este componente de SERVIDOR, que é o que ele precisa
+              ser. Os dois círculos do eixo ficam DENTRO do grupo de propósito:
+              girar em torno do próprio centro não os move um pixel, e tirá-los
+              dali só criaria dois nós a mais.
+
+              PREFERS-REDUCED-MOTION, E POR QUE A TRANSIÇÃO SOBREVIVE À REGRA
+              WILDCARD: `globals.css` zera `transition-duration` de TUDO com
+              `!important` para quem pediu menos movimento. Uma transição com
+              duração ~0 não congela no meio — ela chega ao fim no mesmo quadro,
+              ou seja, degrada exatamente para o salto de antes, que é o
+              comportamento certo aqui (o ponteiro continua no lugar certo, só
+              sem o caminho). `motion-reduce:transition-none` está escrito assim
+              mesmo, no ponto de uso, pelo mesmo motivo do `TOQUE` de
+              `lib/ui/acoes.ts`: a intenção fica legível aqui em vez de ser
+              inferida de uma regra a 600 linhas daqui.
+
+              500ms com `ease-out`, e não os 100ms do toque: aquilo confirma um
+              gesto, isto acompanha uma grandeza física. Rápido demais volta a
+              ler como salto; devagar demais faz a agulha ficar atrás do dado. */}
           {!semLeitura && (
-            <g>
+            <g
+              className="transition-transform duration-500 ease-out motion-reduce:transition-none"
+              transform={`rotate(${giroPonteiro} ${CX} ${CY})`}
+            >
               <line
                 x1={CX}
                 y1={CY}

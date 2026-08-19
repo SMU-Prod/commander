@@ -38,7 +38,7 @@ export function PaginaLegal({
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <span className="flex size-11 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
+        <span className="flex size-11 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/12 text-accent-forte">
           <Icone nome={icone} className="size-5" />
         </span>
         <h1 className="titulo-pagina mt-4 text-3xl sm:text-4xl">{titulo}</h1>
@@ -91,7 +91,7 @@ export function SecaoLegal({ titulo, children }: { titulo: string; children: Rea
  *  importantes — sondagem/corredores, limitação de responsabilidade). */
 export function DestaqueLegal({ children }: { children: ReactNode }) {
   return (
-    <div className="sombra-1 rounded-[14px] border border-accent/30 bg-accent/5 p-4">
+    <div className="sombra-1 rounded-[var(--raio-cartao)] border border-accent/30 bg-accent/5 p-4">
       <div className="corpo space-y-3 text-texto [&_strong]:font-semibold">{children}</div>
     </div>
   )

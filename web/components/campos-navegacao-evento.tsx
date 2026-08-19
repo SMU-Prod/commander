@@ -13,7 +13,7 @@ import {
 } from "@/lib/domain/diario"
 import { GRADE_LADRILHOS } from "@/lib/ui/superficies"
 
-const rotulo = "mb-1.5 block font-mono-instr text-[11px] uppercase tracking-[.14em] text-dim"
+const rotulo = "rotulo mb-1.5 block text-dim"
 
 const TIPOS: { valor: string; rotulo: string; icone: NomeIcone }[] = [
   { valor: "manutencao", rotulo: "Manutenção", icone: "ferramenta" },
@@ -168,7 +168,7 @@ export function FormularioNovoEvento({
                   type="button"
                   aria-pressed={selecionado}
                   onClick={() => setTipo(t.valor)}
-                  className={`flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[14px] border px-3 py-4 text-sm font-medium ${
+                  className={`flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[var(--raio-cartao)] border px-3 py-4 text-sm font-medium ${
                     selecionado ? "border-accent-forte bg-accent/10 text-accent-forte" : "border-line bg-panel2 text-dim-chip"
                   }`}
                 >
@@ -290,7 +290,7 @@ export function FormularioNovoEvento({
                   ocorrência já vinculada ao setor certo ao salvar (onda 32,
                   mesmo `inserirOcorrenciaDoDiario` de sempre) — sem obrigar a
                   pessoa a tocar em nada quando não aconteceu nada. */}
-              <details className="group rounded-[14px] border border-line bg-panel">
+              <details className="group rounded-[var(--raio-cartao)] border border-line bg-panel">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 [&::-webkit-details-marker]:hidden">
                   <span className={rotulo}>Checklist rápido dos hubs — opcional</span>
                   <Icone nome="chevron" className="size-4 shrink-0 text-dim transition-transform group-open:rotate-90" />
@@ -391,7 +391,7 @@ export function FormularioNovoEvento({
           {mostraCustoAnexo && !mostraMaisDetalhes && campoAnexo}
 
           {mostraMaisDetalhes && (
-            <details className="group rounded-[14px] border border-line bg-panel2" open={contatoInicial !== ""}>
+            <details className="group rounded-[var(--raio-cartao)] border border-line bg-panel2" open={contatoInicial !== ""}>
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 [&::-webkit-details-marker]:hidden">
                 <span className={rotulo}>Mais detalhes</span>
                 <Icone nome="chevron" className="size-4 shrink-0 text-dim transition-transform group-open:rotate-90" />

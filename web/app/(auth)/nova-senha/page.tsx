@@ -58,7 +58,7 @@ export default async function NovaSenhaPage({
         </p>
 
         {textoErro && (
-          <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">
+          <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">
             {textoErro}
           </p>
         )}

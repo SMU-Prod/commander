@@ -225,11 +225,11 @@ function Interruptor({ ligado, aoAlternar, rotulo }: { ligado: boolean; aoAltern
       aria-checked={ligado}
       aria-label={rotulo}
       onClick={aoAlternar}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${ligado ? "bg-accent" : "bg-line"}`}
+      className={`relative h-6 w-11 shrink-0 rounded-[var(--raio-pilula)] transition-colors ${ligado ? "bg-accent" : "bg-line"}`}
     >
       <span
         aria-hidden="true"
-        className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${ligado ? "translate-x-5" : "translate-x-0"}`}
+        className={`absolute top-0.5 left-0.5 size-5 rounded-[var(--raio-pilula)] bg-white shadow transition-transform ${ligado ? "translate-x-5" : "translate-x-0"}`}
       />
     </button>
   )
@@ -683,7 +683,7 @@ export function MapaNautico({
   if (!TOKEN) {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-3 rounded-[14px] border border-line bg-meter p-8 text-center ${className ?? ""}`}
+        className={`flex flex-col items-center justify-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-meter p-8 text-center ${className ?? ""}`}
       >
         {/* o plano pedia "bussola", que nao existe no conjunto de 28 — "mapa" e o mais proximo */}
         <Icone nome="mapa" className="size-8 text-accent" />
@@ -721,7 +721,7 @@ export function MapaNautico({
               setFalhaMapa(null)
               setTentativaMapa((t) => t + 1)
             }}
-            className="min-h-11 rounded-[14px] bg-accent px-6 font-semibold text-acao-texto"
+            className="min-h-11 rounded-[var(--raio-cartao)] bg-accent px-6 font-semibold text-acao-texto"
           >
             Tentar de novo
           </button>
@@ -746,7 +746,7 @@ export function MapaNautico({
           // `mt-2` é o MESMO gap-2 (8px) que as colunas de flutuantes desta
           // tela já usam entre um cartão e o próximo — margem vale em
           // elemento posicionado, então ela soma ao `top` medido.
-          className={`sombra-2 absolute right-3 z-30 mt-2 w-72 max-w-[calc(100%-1.5rem)] rounded-[14px] border border-line bg-panel/97 p-4 ${
+          className={`sombra-2 absolute right-3 z-30 mt-2 w-72 max-w-[calc(100%-1.5rem)] rounded-[var(--raio-cartao)] border border-line bg-panel/97 p-4 ${
             alturaControlesPx == null ? "top-3" : ""
           }`}
         >
@@ -778,7 +778,7 @@ export function MapaNautico({
                       role="radio"
                       aria-checked={selecionado}
                       onClick={() => escolherEstilo(estilo)}
-                      className={`flex flex-col items-center gap-1 rounded-[10px] border px-2 py-2.5 text-center ${
+                      className={`flex flex-col items-center gap-1 rounded-[var(--raio-controle)] border px-2 py-2.5 text-center ${
                         selecionado ? "border-accent bg-accent/10 text-accent-forte" : "border-line text-dim"
                       }`}
                     >
@@ -817,7 +817,7 @@ export function MapaNautico({
               />
             </div>
             {camadas.profundidade && (
-              <p className="apoio rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
+              <p className="apoio rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
                 Profundidade aproximada — ~450 m de resolução perto da região de operação, ~3,7 km no resto da costa
                 brasileira e mar adjacente. Orientação geral, NÃO substitui a carta náutica oficial.
               </p>

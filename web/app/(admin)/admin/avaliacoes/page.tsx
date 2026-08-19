@@ -102,13 +102,13 @@ export default async function AdminAvaliacoesPage({
                 <div className="flex gap-2">
                   <button
                     name="decisao" value="manter"
-                    className={`h-11 flex-1 rounded-full border border-line bg-panel2 text-sm font-medium ${TOQUE}`}
+                    className={`h-11 flex-1 rounded-[var(--raio-pilula)] border border-line bg-panel2 text-sm font-medium ${TOQUE}`}
                   >
                     Manter
                   </button>
                   <button
                     name="decisao" value="ocultar"
-                    className={`h-11 flex-1 rounded-full border border-crit/40 text-sm font-medium text-crit ${TOQUE}`}
+                    className={`h-11 flex-1 rounded-[var(--raio-pilula)] border border-crit/40 text-sm font-medium text-crit ${TOQUE}`}
                   >
                     Ocultar por violação
                   </button>

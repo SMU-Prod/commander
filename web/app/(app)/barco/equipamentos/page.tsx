@@ -47,7 +47,7 @@ export default async function EquipamentosPage() {
         <h1 className="titulo-pagina">Equipamentos</h1>
         {editavel && (
           <Link href="/barco/equipamento/novo?tipo=outro"
-            className="inline-flex items-center gap-1 rounded-full bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
+            className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 py-2 corpo font-semibold text-acao-texto">
             <Icone nome="mais" className="size-4" /> Equipamento
           </Link>
         )}
@@ -56,7 +56,7 @@ export default async function EquipamentosPage() {
         Bote, guincho, ar-condicionado, dessalinizador — o que você quiser acompanhar a bordo.
       </p>
 
-      <div className="sombra-1 mt-5 rounded-[14px] border border-line bg-panel px-4">
+      <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (
           <div className="py-2">
             <EstadoVazio

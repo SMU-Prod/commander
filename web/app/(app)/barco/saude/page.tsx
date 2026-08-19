@@ -107,7 +107,7 @@ export default async function SaudePage() {
               borda na cor do estado, e embaixo a contagem do que pesa —
               a mesma linha da Início (`contagemDaSaude`). Ver
               `lib/domain/saude.ts` pro histórico da decisão. */}
-          <div className={`sombra-1 mt-5 rounded-[var(--raio-cartao)] border bg-panel p-4 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].borda}`}>
+          <div className={`sombra-1 mt-6 rounded-[var(--raio-cartao)] border bg-panel p-4 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].borda}`}>
             <div className="flex items-center gap-2.5">
               <Icone nome="escudo" className={`size-5 shrink-0 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`} />
               <p className={`text-lg font-semibold leading-tight ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`}>
@@ -134,7 +134,7 @@ export default async function SaudePage() {
           </p>
 
           {saude.fatores.length === 0 ? (
-            <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-4 corpo text-dim">
+            <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 corpo text-dim">
               Nada pendente agora. Bom vento e mar calmo.
             </div>
           ) : (
@@ -147,7 +147,7 @@ export default async function SaudePage() {
               <p className="rotulo mt-6 mb-2 text-dim">
                 O que pesa hoje — <span className="tabular-nums">{saude.fatores.length}</span>
               </p>
-              <div className="sombra-1 rounded-[14px] border border-line bg-panel px-4">
+              <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
                 {saude.fatores.map((f) => (
                   <LinhaLista
                     key={`${f.tipo}-${f.id}`}
@@ -168,12 +168,12 @@ export default async function SaudePage() {
                   Em dia — <span className="tabular-nums">{saude.emDia}</span>
                 </p>
               )}
-              <div className={`sombra-1 rounded-[14px] border border-line bg-panel p-3.5 ${emDiaPorAba.length === 0 ? "mt-6" : ""}`}>
+              <div className={`sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5 ${emDiaPorAba.length === 0 ? "mt-6" : ""}`}>
                 {emDiaPorAba.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {emDiaPorAba.map((c) => (
                       <span key={c.aba} className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5">
-                        <span aria-hidden="true" className="size-1.5 rounded-full bg-ok" />
+                        <span aria-hidden="true" className="size-1.5 rounded-[var(--raio-pilula)] bg-ok" />
                         <span className="apoio text-dim">
                           {ROTULO_ABA[c.aba]} <span className="font-mono-instr tabular-nums text-texto">{c.quantidade}</span>
                         </span>

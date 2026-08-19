@@ -69,14 +69,14 @@ export default async function FotosPage({
           editavel && liberadoParaSubir ? (
             <Link
               href="#adicionar"
-              className="flex h-11 shrink-0 items-center rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+              className="flex h-11 shrink-0 items-center rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
             >
               + Adicionar
             </Link>
           ) : undefined
         }
       />
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <ChipLinha className="mt-4">
         {ALBUNS.map((a) => (
@@ -108,7 +108,10 @@ export default async function FotosPage({
             const url = urlPorPath.get(f.arquivo_path)
             const ehCapa = painel.embarcacao.foto_capa_path === f.arquivo_path
             return (
-              <div key={f.id} className="overflow-hidden rounded-[10px] border border-line bg-panel sombra-1">
+              /* Onda 93 (achado 5.9) — era `10px` cravado. Vira `--raio-cartao`
+                 (14px) pelo critério de quem se toca / quem contém: este quadrado
+                 CONTÉM foto, legenda e dois botões. Cartão, então 14. */
+              <div key={f.id} className="overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-panel sombra-1">
                 <div className="relative">
                   {url && (
                     /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
@@ -118,7 +121,7 @@ export default async function FotosPage({
                       nos dois temas (a foto não segue o tema; mesmo raciocínio
                       de --mapa-instrumento em globals.css). */}
                   {ehCapa && (
-                    <span className="absolute bottom-1.5 left-1.5 rounded-full border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 rotulo font-semibold text-meter-texto">
+                    <span className="absolute bottom-1.5 left-1.5 rounded-[var(--raio-pilula)] border border-meter-texto/30 bg-mapa-instrumento px-2 py-0.5 rotulo font-semibold text-meter-texto">
                       Capa
                     </span>
                   )}
@@ -150,11 +153,17 @@ export default async function FotosPage({
           })}
           {/* O convite "+ foto" do canvas: último quadrado da grade, tracejado,
               levando à mesma seção de envio. Só existe quando dá pra enviar —
-              convite pra porta fechada seria mentira. */}
+              convite pra porta fechada seria mentira.
+              Onda 93 (achado 5.9): `--raio-cartao` e não `--raio-controle`,
+              apesar de ser um link que se toca — este quadrado é a última
+              CÉLULA da mesma grade, ao lado das fotos. Dar 8 a ele e 14 às
+              vizinhas quebraria a linha do canto no mesmo gesto de olho: a
+              coerência da grade vence o critério aqui, e fica registrado que
+              é exceção. */}
           {editavel && liberadoParaSubir && (
             <Link
               href="#adicionar"
-              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-line text-dim"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[var(--raio-cartao)] border border-dashed border-line text-dim"
             >
               <Icone nome="camera" className="size-5" />
               {/* `rotulo-dado` e não `.rotulo`: o convite é caixa de frase —
@@ -187,7 +196,7 @@ export default async function FotosPage({
         <>
           <SecaoPagina className="scroll-mt-4" id="adicionar">Adicionar foto</SecaoPagina>
           {liberadoParaSubir ? (
-            <form action={subirFoto} className="space-y-3 rounded-[14px] border border-line bg-panel p-4 sombra-1">
+            <form action={subirFoto} className="space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 sombra-1">
               <input type="hidden" name="album" value={albumAtivo} />
               {/* `CampoArquivo` e não `Campo type="file"`: o input nativo
                   desenha o próprio botão em inglês ("Choose File · No file
@@ -200,14 +209,14 @@ export default async function FotosPage({
                 ajuda="JPG, PNG ou WebP, até 10 MB"
               />
               <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
-              <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
+              <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
             </form>
           ) : (
             <>
               {/* §23 — nada do acervo é apagado quando o teto muda; o aviso
                   diz isso antes do cadeado. `null` quando não há excedente. */}
               {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos) && (
-                <p className="corpo mb-3 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">
+                <p className="corpo mb-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
                   {avisoAcervoAcimaDoTeto("fotos", nivel, usoFotos)}
                 </p>
               )}

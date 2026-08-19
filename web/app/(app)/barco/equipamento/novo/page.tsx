@@ -38,15 +38,15 @@ export default async function NovoEquipamentoPage({
         titulo="Novo equipamento"
         descricao="Gerador, baterias, motor — tudo que tem manutenção própria."
       />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={criarEquipamento} className="mt-5 space-y-4">
+      <form action={criarEquipamento} className="mt-6 space-y-4">
         {/* Formulário mais longo da ficha (12 campos). `criarEquipamento`
             trata falha com `redirect("/barco/equipamento/novo?erro=")`, que
             devolve a página em branco — sem a guarda, um erro de rede na
             marina apagava o cadastro inteiro. */}
         <GuardaFormulario chave="barco:equipamento-novo" />
-        <div className="sombra-1 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <div className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <CamposTipoEquipamento tipoInicial={tipoInicial} />
           {/* Onda 64 — o catálogo vem ANTES de Marca/Modelo porque é o
               caminho melhor quando existe: dá identidade ao motor e, na onda
@@ -91,7 +91,7 @@ export default async function NovoEquipamentoPage({
             ajuda="JPG, PNG ou WebP"
           />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Criar equipamento</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Criar equipamento</button>
       </form>
     </main>
   )

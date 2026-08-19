@@ -172,7 +172,7 @@ export function ImportarGpxCliente() {
   // Concluido: resumo do que aconteceu, com caminho de volta claro.
   if (resultado) {
     return (
-      <div className="sombra-1 mt-4 rounded-[14px] border border-line bg-panel p-5">
+      <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-5">
         <p className="titulo-card">
           {resultado.importadas > 0
             ? `${resultado.importadas} saída${resultado.importadas > 1 ? "s" : ""} importada${resultado.importadas > 1 ? "s" : ""} do plotter`
@@ -186,7 +186,7 @@ export function ImportarGpxCliente() {
           </p>
         )}
         {resultado.erros.length > 0 && (
-          <div className="mt-2 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">
+          <div className="mt-2 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">
             {resultado.erros.map((e, i) => (
               <p key={i} className="apoio">{e.nome ? `${e.nome}: ` : ""}{e.erro}</p>
             ))}
@@ -196,7 +196,7 @@ export function ImportarGpxCliente() {
           {resultado.importadas > 0 && (
             <Link
               href="/diario"
-              className="flex min-h-11 flex-1 items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto"
+              className="flex min-h-11 flex-1 items-center justify-center rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
             >
               Ver no Diário
             </Link>
@@ -204,7 +204,7 @@ export function ImportarGpxCliente() {
           <button
             type="button"
             onClick={() => { limparPrevia(); router.refresh() }}
-            className="flex min-h-11 flex-1 items-center justify-center rounded-full border border-line px-4 text-sm text-dim"
+            className="flex min-h-11 flex-1 items-center justify-center rounded-[var(--raio-pilula)] border border-line px-4 text-sm text-dim"
           >
             Importar outro arquivo
           </button>
@@ -216,12 +216,12 @@ export function ImportarGpxCliente() {
   return (
     <div className="mt-4">
       {/* Passo 1: escolher arquivo */}
-      <div className="sombra-1 rounded-[14px] border border-line bg-panel p-5 text-center">
+      <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-5 text-center">
         <Icone nome="guardado" className="mx-auto size-7 text-dim" />
         <p className="corpo mt-2 text-dim">
           Escolha o arquivo GPX exportado do seu plotter (Garmin, Raymarine, Navionics — todos exportam nesse formato).
         </p>
-        <label className="mt-3 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-accent/40 px-4 text-sm font-semibold text-accent-forte">
+        <label className="mt-3 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[var(--raio-pilula)] border border-accent/40 px-4 text-sm font-semibold text-accent-forte">
           {lendo ? "Lendo arquivo…" : nomeArquivo ? "Escolher outro arquivo" : "Escolher arquivo .gpx"}
           <input
             ref={inputRef}
@@ -238,7 +238,7 @@ export function ImportarGpxCliente() {
       </div>
 
       {erroArquivo && (
-        <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erroArquivo}</p>
+        <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erroArquivo}</p>
       )}
 
       {/* Passo 2: previa honesta */}
@@ -260,7 +260,7 @@ export function ImportarGpxCliente() {
 
           <div className="space-y-2">
             {candidatas.map((c) => (
-              <div key={c.id} className={`sombra-1 rounded-[14px] border p-4 ${c.duplicada ? "border-line bg-panel opacity-70" : "border-line bg-panel"}`}>
+              <div key={c.id} className={`sombra-1 rounded-[var(--raio-cartao)] border p-4 ${c.duplicada ? "border-line bg-panel opacity-70" : "border-line bg-panel"}`}>
                 <label className="flex min-h-11 cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
@@ -277,7 +277,7 @@ export function ImportarGpxCliente() {
                       {c.pontosDescartados > 0 && ` · ${c.pontosDescartados} ponto(s) com coordenada inválida descartado(s)`}
                     </p>
                     {c.duplicada && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono-instr text-[11px] text-dim">
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr text-[11px] text-dim">
                         Já importada antes — será pulada
                       </p>
                     )}
@@ -318,14 +318,14 @@ export function ImportarGpxCliente() {
           </label>
 
           {erroGeral && (
-            <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erroGeral}</p>
+            <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erroGeral}</p>
           )}
 
           <button
             type="button"
             onClick={confirmar}
             disabled={selecionadas.length === 0 || importando}
-            className="mt-4 flex min-h-11 w-full items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto disabled:opacity-50"
+            className="mt-4 flex min-h-11 w-full items-center justify-center rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto disabled:opacity-50"
           >
             {importando
               ? "Importando…"

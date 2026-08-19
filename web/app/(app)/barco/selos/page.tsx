@@ -61,7 +61,7 @@ export default async function SelosPage() {
           o chip de situação diz o estado por extenso. */}
       <Link
         href="/barco/selos/verified"
-        className={`sombra-1 mt-5 block rounded-[var(--raio-cartao)] border bg-panel p-4 ${
+        className={`sombra-1 mt-6 block rounded-[var(--raio-cartao)] border bg-panel p-4 ${
           verifiedAtivo ? "border-ok/40" : "border-line"
         }`}
       >
@@ -85,7 +85,7 @@ export default async function SelosPage() {
                   {i.ok ? (
                     <Icone nome="check" className="size-4 shrink-0 text-ok" />
                   ) : (
-                    <span aria-hidden="true" className="size-4 shrink-0 rounded-full border border-dim" />
+                    <span aria-hidden="true" className="size-4 shrink-0 rounded-[var(--raio-pilula)] border border-dim" />
                   )}
                   <span className={`apoio flex-1 ${i.ok ? "text-dim" : ""}`}>{i.rotulo}</span>
                 </div>
@@ -106,7 +106,10 @@ export default async function SelosPage() {
                 <p className="titulo-card inline-flex items-center gap-1.5">
                   <SeloGold size={20} variant="ativo" /> Commander Gold
                 </p>
-                <span className="font-mono-instr text-xs uppercase tracking-[.08em] text-dim">
+                {/* Onda 93 (achado 5.12) — `.rotulo` no lugar de
+                    `font-mono-instr text-xs uppercase tracking-[.08em]`: mesma
+                    voz, com o piso de 11px e o tracking declarado. */}
+                <span className="rotulo text-dim">
                   {ROTULO_STATUS_SELO[statusSelo]}
                 </span>
               </div>
@@ -144,7 +147,7 @@ export default async function SelosPage() {
           </div>
           <Link
             href={`/barco/selos/gold/${relatorioGold.selo.solicitacao_id}`}
-            className="mt-4 block rounded-xl bg-accent py-3 text-center font-semibold text-acao-texto"
+            className="mt-4 block rounded-[var(--raio-controle)] bg-accent py-3 text-center font-semibold text-acao-texto"
           >
             Ver relatório
           </Link>

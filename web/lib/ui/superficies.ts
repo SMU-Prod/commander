@@ -274,6 +274,19 @@ export const OFFSET_TRILHO = "lg:pl-[88px]"
  * degrau da escala de espaçamento (docs/DESIGN.md §5), e o mesmo respiro
  * que o `px-4`/`right-4` já dá do lado. A safe-area continua somada: ver o
  * comentário das folgas acima.
+ *
+ * ONDA 95 (achado 4.6 da auditoria de 19/08) — A ELEVAÇÃO VOLTA PRA ESCALA.
+ *
+ * Era `shadow-lg shadow-accent/30`: sombra do Tailwind, tingida do dourado da
+ * marca. O `docs/DESIGN.md` §5 declara TRÊS elevações — plano, `sombra-1`
+ * (separa do fundo) e `sombra-2` (isto flutua) — e essa não era nenhuma das
+ * três. Custava duas coisas ao mesmo tempo: o desfoque do Tailwind não segue
+ * `--sombra-2`, que muda entre os temas (no escuro a sombra é mais funda e
+ * mais opaca, porque sombra clara em fundo quase-preto lê como borrão), e o
+ * tingimento dourado fazia a única ação flutuante do app projetar uma luz
+ * que nenhuma outra superfície projeta — decoração onde a régua pede sistema.
+ * `sombra-2` é literalmente a linha "isto flutua", que é o que esta pastilha
+ * é. Nenhuma outra classe muda: forma, cor e altura ficam iguais.
  */
 export const SLOT_ACAO_FLUTUANTE =
-  "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto shadow-lg shadow-accent/30"
+  "sombra-2 fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-[var(--raio-pilula)] bg-accent px-5 py-3.5 text-sm font-semibold text-acao-texto"

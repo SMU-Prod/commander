@@ -6,7 +6,11 @@ import { salvarLocalMarina } from "@/lib/acoes/local"
 import { carregarPainel } from "@/lib/consultas"
 import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 
-const campo = "w-full rounded-[10px] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
+// Onda 93 (achado 5.9) — era `10px` cravado. Vira `--raio-controle` (8px) pelo
+// mesmo critério que vestiu o grupo de controles do Mapbox em globals.css: quem
+// se TOCA é controle, quem CONTÉM conteúdo é cartão. Campo de formulário é
+// controle, então 8.
+const campo = "w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
 // Onda 87 — `.rotulo` já É mono, 11px, caixa alta e rastreada; o que estava
 // aqui era ela reescrita à mão, com o tracking derivado (.14 contra .16).
 const rotulo = "mb-1.5 block rotulo text-dim"
@@ -32,9 +36,9 @@ export default async function LocalPage({
         É daqui que saem o boletim do mar da tela Início e, no futuro, o modo marina.
         Vá até o barco e toque em “Usar minha posição atual” — ou preencha as coordenadas.
       </p>
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
-      <form action={salvarLocalMarina} className="mt-5 space-y-4">
+      <form action={salvarLocalMarina} className="mt-6 space-y-4">
         <UsarPosicao />
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -48,7 +52,7 @@ export default async function LocalPage({
               defaultValue={embarcacao.marina_lon ?? undefined} className={campo} />
           </div>
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>
           Salvar posição
         </button>
       </form>

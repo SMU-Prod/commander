@@ -34,7 +34,7 @@ export default async function AdminLogsPage() {
         }
       />
 
-      <div className="mt-5">
+      <div className="mt-6">
         {logs.length === 0 ? (
           <EstadoVazio
             icone="documento"

@@ -97,7 +97,7 @@ export const ALVO_ACAO = `group -my-[7px] inline-flex min-h-[var(--altura-contro
  * na borda — o suficiente para confirmar o alvo sem gastar tinta.
  */
 export const PILULA_ACAO =
-  "inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-panel2 px-3 text-xs font-medium text-texto transition-colors group-hover:border-accent/40 group-hover:bg-panel"
+  "inline-flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3 text-xs font-medium text-texto transition-colors group-hover:border-accent/40 group-hover:bg-panel"
 
 /**
  * A MESMA FORMA, UM TAMANHO ACIMA — para a ação que é um BLOCO, não um
@@ -136,7 +136,7 @@ export const PILULA_ACAO =
  * `<Link>`/`<button>` de fora, senão o alvo vira 36px e aí sim é violação.
  */
 export const PILULA_ACAO_BLOCO =
-  `inline-flex h-9 items-center whitespace-nowrap rounded-full border border-line bg-panel2 px-4 text-sm text-texto ${TOQUE}`
+  `inline-flex h-9 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border border-line bg-panel2 px-4 text-sm text-texto ${TOQUE}`
 
 /**
  * A ação PRINCIPAL de uma tela vazia — cheia, dourada.
@@ -152,7 +152,7 @@ export const PILULA_ACAO_BLOCO =
  * pra não haver duas listas divergindo.
  */
 export const PILULA_ACAO_PRINCIPAL =
-  `inline-flex h-9 items-center whitespace-nowrap rounded-full bg-accent px-4 text-sm font-semibold text-acao-texto ${TOQUE}`
+  `inline-flex h-9 items-center whitespace-nowrap rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto ${TOQUE}`
 
 /**
  * A AÇÃO DE LARGURA CHEIA NÃO MORA AQUI — ELA É `BotaoEnviar`.

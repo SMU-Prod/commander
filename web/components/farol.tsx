@@ -8,7 +8,7 @@ const COR: Record<StatusFarol, string> = {
 }
 
 export function Farol({ status }: { status: StatusFarol }) {
-  return <span aria-label={status} className={`inline-block size-2 shrink-0 rounded-full ${COR[status]}`} />
+  return <span aria-label={status} className={`inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] ${COR[status]}`} />
 }
 
 /**
@@ -28,7 +28,7 @@ export function FarolOcorrencia({ estado }: { estado: EstadoOcorrencia }) {
   return (
     <span
       aria-label={ROTULO_ESTADO[estado]}
-      className="inline-block size-2 shrink-0 rounded-full border border-dim/60 bg-transparent"
+      className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-dim/60 bg-transparent"
     />
   )
 }

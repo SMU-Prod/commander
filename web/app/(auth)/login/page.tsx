@@ -118,10 +118,10 @@ export default async function LoginPage({
       </p>
 
       {textoErro && (
-        <p className="corpo mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{textoErro}</p>
+        <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{textoErro}</p>
       )}
       {textoAviso && (
-        <p className="corpo mt-4 rounded-lg border border-line bg-panel px-3 py-2">{textoAviso}</p>
+        <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2">{textoAviso}</p>
       )}
 
       <form
@@ -203,7 +203,7 @@ export default async function LoginPage({
       {reenviar === "1" && !recuperar && (
         <form
           action={reenviarConfirmacao}
-          className="mt-5 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
+          className="mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
         >
           <p className="titulo-card">Reenviar confirmação</p>
           <p className="apoio mt-1 text-dim">

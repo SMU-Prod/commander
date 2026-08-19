@@ -36,10 +36,10 @@ export function AvisoNavegar({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
       <div className="sombra-2 fixed inset-x-0 bottom-0 z-50 rounded-t-[20px] border-t border-line bg-panel">
         <div className="mx-auto max-w-[430px] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
           <div className="flex justify-center">
-            <span className="h-1 w-10 rounded-full bg-line" />
+            <span className="h-1 w-10 rounded-[var(--raio-pilula)] bg-line" />
           </div>
           <div className="mt-3 flex items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-warn/15 text-warn">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-warn/15 text-warn">
               <Icone nome="alerta" className="size-5" />
             </span>
             <div className="min-w-0">
@@ -56,7 +56,7 @@ export function AvisoNavegar({ aberto, aoFechar }: { aberto: boolean; aoFechar: 
           <button
             type="button"
             onClick={aoFechar}
-            className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-accent text-sm font-semibold text-acao-texto"
+            className="mt-6 flex h-11 w-full items-center justify-center rounded-[var(--raio-controle)] bg-accent text-sm font-semibold text-acao-texto"
           >
             Entendi
           </button>

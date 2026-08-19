@@ -48,12 +48,17 @@ export default async function AfazeresPage({
   // /patio): a unidade aberta. A diferença é o `is.null`, que precisa entrar
   // junto — tarefa "da base" não pertence a unidade nenhuma e sumiria com um
   // `.eq()` puro, e ela é justamente a que vale para a frota inteira.
-  const [{ data }, { data: vinculo }] = await Promise.all([
+  const [{ data }, { data: vinculo }, { data: equipeBruta }] = await Promise.all([
     supabase.from("afazeres").select("*")
       .or(`embarcacao_id.eq.${painel.embarcacao.id},embarcacao_id.is.null`)
       .order("criado_em", { ascending: false }).limit(60),
     supabase.from("vinculos").select("modo_aprovacao")
       .eq("embarcacao_id", painel.embarcacao.id).eq("papel", painel.papel).maybeSingle(),
+    // AUDITORIA 19/08, A16 — quem pode receber a tarefa. É a MESMA lista que
+    // a policy de INSERT confere (`vinculos` sem `suspenso_em`), lida aqui
+    // para o formulário só oferecer o que o banco vai aceitar.
+    supabase.from("vinculos").select("usuario_id")
+      .eq("embarcacao_id", painel.embarcacao.id).is("suspenso_em", null),
   ])
 
   // O nome sai do id da própria tarefa, nunca da unidade ativa. Com o filtro
@@ -64,11 +69,39 @@ export default async function AfazeresPage({
   type Afazer = {
     id: string; titulo: string; detalhe: string | null; destino: DestinoAfazer
     prazo: string | null; estado: EstadoAfazer; origem_tipo: string | null
-    embarcacao_id: string | null
+    embarcacao_id: string | null; responsavel_id: string | null
   }
   const lista = (data ?? []) as Afazer[]
   const abertos = lista.filter((a) => a.estado !== "concluido")
   const feitos = lista.filter((a) => a.estado === "concluido")
+
+  // Um id por pessoa: a mesma conta pode ter mais de um vínculo na unidade, e
+  // o select não pode listar o mesmo nome duas vezes.
+  const idsDaEquipe = [...new Set(
+    ((equipeBruta ?? []) as { usuario_id: string }[]).map((v) => v.usuario_id),
+  )]
+  // Os nomes saem numa consulta só, e ela cobre a UNIÃO de dois conjuntos que
+  // não coincidem: quem pode receber tarefa HOJE (equipe ativa) e quem já
+  // recebeu ALGUMA (responsáveis das tarefas na tela). Quem foi suspenso
+  // depois de receber sai do primeiro e continua no segundo — sem a união, o
+  // cartão dele passaria a dizer um nome errado ou nenhum.
+  const idsParaNome = [...new Set([
+    ...idsDaEquipe,
+    ...lista.map((a) => a.responsavel_id).filter((id): id is string => id != null),
+  ])]
+  const { data: perfis } = idsParaNome.length > 0
+    ? await supabase.from("profiles").select("id, nome").in("id", idsParaNome)
+    : { data: [] as { id: string; nome: string | null }[] }
+  // Conta sem nome cadastrado vira "Alguém da equipe" e NÃO some: sumir
+  // tiraria da tela uma pessoa que existe e pode receber tarefa. Já a AUSÊNCIA
+  // da chave quer dizer outra coisa — a policy de `profiles` só devolve quem
+  // divide um vínculo com quem abriu a tela, então id sem linha é gente que
+  // saiu da unidade. As duas leituras são diferentes e a tela diz cada uma.
+  const nomeDaPessoa = new Map(
+    (perfis ?? []).map((p: { id: string; nome: string | null }) =>
+      [p.id, p.nome?.trim() || "Alguém da equipe"] as const),
+  )
+  const equipe = idsDaEquipe.map((id) => ({ id, nome: nomeDaPessoa.get(id) ?? "Alguém da equipe" }))
 
   // §20: "Operações pode criar tarefa própria somente se autorizado" — e a
   // autorização é a mesma régua de confiança do §3, não uma permissão nova.
@@ -86,7 +119,14 @@ export default async function AfazeresPage({
       </div>
       {a.detalhe && <p className="apoio mt-1 text-dim">{a.detalhe}</p>}
       <p className="apoio mt-1 text-dim">
-        {ROTULO_DESTINO_AFAZER[a.destino]}
+        {/* A16 — de quem é. Quando alguém foi escolhido, o NOME substitui o
+            destino genérico: "Operações" responde a que time a tarefa
+            pertence, "Marcos" responde quem vai fazer — e a segunda pergunta
+            é a que a lista precisa responder. Sem responsável, continua o
+            destino, que é o que existe. */}
+        {a.responsavel_id
+          ? nomeDaPessoa.get(a.responsavel_id) ?? "alguém que não está mais na unidade"
+          : ROTULO_DESTINO_AFAZER[a.destino]}
         {a.embarcacao_id
           ? ` · ${nomeDaUnidade.get(a.embarcacao_id) ?? "outra unidade"}`
           : " · da base"}
@@ -162,6 +202,28 @@ export default async function AfazeresPage({
               </CampoSelect>
               <Campo label="Prazo" id="prazo" name="prazo" type="date" className="font-mono-instr" />
             </div>
+            {/* AUDITORIA 19/08, A16 — O SELETOR QUE FALTAVA.
+                `responsavel_id` era validado pela policy de INSERT e nenhuma
+                tela o enviava; sem ele, a tarefa que o ADM abria "para
+                Operações" ficava INVISÍVEL para Operações, porque a policy de
+                SELECT enxerga por `dono_id` ou `responsavel_id`.
+                Só aparece quando há mais de uma pessoa com vínculo ativo na
+                unidade: com uma só, o único destinatário possível é quem está
+                criando, e um select de um item é enfeite. */}
+            {equipe.length > 1 && (
+              <CampoSelect
+                label="De quem é — opcional"
+                id="responsavel_id"
+                name="responsavel_id"
+                defaultValue=""
+                dica="Quem receber passa a ver a tarefa na lista dele e pode marcar como feita."
+              >
+                <option value="">Ninguém ainda</option>
+                {equipe.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </CampoSelect>
+            )}
             <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--raio-controle)] border border-line bg-campo px-3.5">
               <input type="checkbox" name="da_unidade" defaultChecked className="size-4 shrink-0 accent-[var(--acao)]" />
               <span className="corpo">É desta unidade ({painel.embarcacao.nome})</span>

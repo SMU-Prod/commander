@@ -124,7 +124,7 @@ export function CardEmbarcacao({
           <svg viewBox="0 0 48 34" className="h-3.5 w-auto" aria-hidden="true">
             <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="#d4af37" />
           </svg>
-          <span className="rounded-full bg-[#0b1d2d]/75 px-2 py-0.5 font-mono-instr text-[11px] uppercase tracking-[.16em] text-meter-texto backdrop-blur">
+          <span className="rounded-[var(--raio-pilula)] bg-[#0b1d2d]/75 px-2 py-0.5 rotulo text-meter-texto backdrop-blur">
             Commander
           </span>
         </span>
@@ -140,9 +140,9 @@ export function CardEmbarcacao({
           </div>
         </div>
         {statusGeral && (
-          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-[#0b1d2d]/80 px-2.5 py-1.5 backdrop-blur">
+          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-[var(--raio-pilula)] bg-[#0b1d2d]/80 px-2.5 py-1.5 backdrop-blur">
             <Icone nome="escudo" className={`size-3.5 ${COR[statusGeral]}`} />
-            <span className={`font-mono-instr text-[11px] uppercase tracking-[.1em] ${COR[statusGeral]}`}>
+            <span className={`rotulo ${COR[statusGeral]}`}>
               {ROTULO[statusGeral]}
             </span>
           </div>

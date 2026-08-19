@@ -106,7 +106,7 @@ export default async function DiarioPage({
         <div className="mt-2 flex justify-end">
           <Link
             href="/diario/importar"
-            className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-accent-forte"
+            className="rotulo inline-flex min-h-11 items-center gap-1.5 rounded-[var(--raio-pilula)] px-2 text-accent-forte"
           >
             <Icone nome="guardado" className="size-3.5" /> Importar do plotter
           </Link>
@@ -118,7 +118,7 @@ export default async function DiarioPage({
           editar — fale com o proprietário.
         </p>
       )}
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* ONDA 59 — a barra engole o ChipLinha de filtros e ganha a ação de
           criar, que saiu do cabeçalho. §27.2 continua valendo: a ação só

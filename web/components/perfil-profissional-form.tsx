@@ -48,7 +48,7 @@ export function PerfilProfissionalForm({
   const rotuloLista = tipo === "comandante" ? "comandantes" : "prestadores"
   return (
     <>
-      <form action={salvarPerfilComandante} className="mt-5 space-y-4">
+      <form action={salvarPerfilComandante} className="mt-6 space-y-4">
         <input type="hidden" name="tipo" value={tipo} />
 
         <Campo

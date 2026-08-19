@@ -57,8 +57,8 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
     <main>
       <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" />
 
-      <div className="mt-5 flex items-center gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/12 text-accent-forte">
+      <div className="mt-6 flex items-center gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/12 text-accent-forte">
           <Icone nome="relogio" className="size-5" />
         </span>
         <div className="min-w-0">
@@ -73,7 +73,7 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
         <EstadoVazio icone="motor" titulo="Nenhum motor cadastrado nesta embarcação ainda" className="mt-6" />
       ) : (
         <form action={registrarVoltaAoMar} className="mt-6 space-y-4">
-          <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+          <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
             Leia o horímetro no painel e digite o número que está lá. O Commander não calcula essas horas
             pela duração da saída — motor parado no fundeio não roda horímetro.
           </p>
@@ -100,7 +100,7 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
               </Campo>
             ))}
           </div>
-          <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+          <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto">
             Atualizar
           </button>
         </form>

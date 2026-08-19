@@ -143,7 +143,7 @@ export default async function ParceiroPerfilPage({
       {ok && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
       {erro && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={salvarParceiro} className="mt-5 space-y-5">
+      <form action={salvarParceiro} className="mt-6 space-y-5">
         <section className="sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <p className="rotulo text-dim">Tipo do seu negócio</p>
           <div className="grid grid-cols-2 gap-2.5">

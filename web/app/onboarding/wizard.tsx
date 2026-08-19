@@ -145,7 +145,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
         {PASSOS.map((p, i) => (
           <span
             key={p.titulo}
-            className={`h-[3px] flex-1 rounded-full ${i <= passo ? "bg-accent" : "bg-line"}`}
+            className={`h-[3px] flex-1 rounded-[var(--raio-pilula)] ${i <= passo ? "bg-accent" : "bg-line"}`}
           />
         ))}
       </div>
@@ -187,7 +187,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
               {TIPOS_EMBARCACAO.map((t) => (
                 <label
                   key={t}
-                  className={`flex h-11 cursor-pointer items-center rounded-full border border-line px-4 text-sm text-dim has-[:checked]:border-accent has-[:checked]:font-semibold has-[:checked]:text-accent-forte has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 ${TOQUE}`}
+                  className={`flex h-11 cursor-pointer items-center rounded-[var(--raio-pilula)] border border-line px-4 text-sm text-dim has-[:checked]:border-accent has-[:checked]:font-semibold has-[:checked]:text-accent-forte has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 ${TOQUE}`}
                 >
                   <input type="radio" name="tipo" value={t} className="sr-only" />
                   {ROTULO_TIPO_EMBARCACAO[t]}

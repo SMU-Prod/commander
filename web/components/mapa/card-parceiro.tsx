@@ -68,7 +68,7 @@ export function CardParceiro({
       <div className="sombra-2 fixed inset-x-0 bottom-0 z-30 rounded-t-[20px] border-t border-line bg-panel">
         <div className="mx-auto max-h-[75dvh] max-w-[430px] overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <div className="flex justify-center">
-            <span className="h-1 w-10 rounded-full bg-line" />
+            <span className="h-1 w-10 rounded-[var(--raio-pilula)] bg-line" />
           </div>
 
           <div className="mt-2 flex items-start gap-3">
@@ -77,7 +77,7 @@ export function CardParceiro({
                 branco + anel branco (dourado se "destaque"), pra legibilidade
                 sobre qualquer cor da paleta. */}
             <div
-              className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
+              className={`flex size-10 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] ${
                 parceiro.plano === "destaque" ? "ring-2 ring-accent" : "ring-2 ring-white"
               }`}
               style={{ backgroundColor: parceiro.cor }}
@@ -103,12 +103,12 @@ export function CardParceiro({
           {(parceiro.plano === "destaque" || parceiro.tem_poita) && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {parceiro.plano === "destaque" && (
-                <span className="apoio rounded-full border border-accent/50 bg-accent/10 px-2 py-0.5 text-accent-forte">
+                <span className="apoio rounded-[var(--raio-pilula)] border border-accent/50 bg-accent/10 px-2 py-0.5 text-accent-forte">
                   Destaque
                 </span>
               )}
               {parceiro.tem_poita && (
-                <span className="apoio rounded-full border border-line px-2 py-0.5 text-dim">
+                <span className="apoio rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim">
                   Poita{parceiro.qtd_poitas ? ` (${parceiro.qtd_poitas})` : ""}
                 </span>
               )}
@@ -119,7 +119,7 @@ export function CardParceiro({
             <div className="mt-3 flex gap-2">
               {fotosUrl.map((url) => (
                 // eslint-disable-next-line @next/next/no-img-element -- URL pública do bucket parceiros
-                <img key={url} src={url} alt={parceiro.nome} className="h-20 flex-1 rounded-[10px] object-cover" loading="lazy" />
+                <img key={url} src={url} alt={parceiro.nome} className="h-20 flex-1 rounded-[var(--raio-cartao)] object-cover" loading="lazy" />
               ))}
             </div>
           )}
@@ -167,7 +167,7 @@ export function CardParceiro({
 
           <p className="apoio mt-2 text-dim">Cadastro atualizado {atualizado}</p>
           {precoDesatualizado && (
-            <p className="apoio mt-1 rounded-lg border border-warn/40 bg-warn/10 px-2.5 py-1.5 text-warn">
+            <p className="apoio mt-1 rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-2.5 py-1.5 text-warn">
               Os preços não são atualizados há mais de {DIAS_DESATUALIZADO} dias. Confirme por telefone
               antes de contar com eles.
             </p>
@@ -177,7 +177,7 @@ export function CardParceiro({
             {parceiro.telefone && (
               <a
                 href={`tel:${telefoneLimpo}`}
-                className="corpo flex h-11 flex-1 items-center justify-center rounded-lg border border-line"
+                className="corpo flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line"
               >
                 Ligar
               </a>
@@ -186,14 +186,14 @@ export function CardParceiro({
               href={`https://www.google.com/maps/dir/?api=1&destination=${parceiro.lat},${parceiro.lng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="corpo flex h-11 flex-1 items-center justify-center rounded-lg border border-line"
+              className="corpo flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] border border-line"
             >
               Como chegar
             </a>
             <button
               type="button"
               onClick={() => aoTracarRumo?.(parceiro)}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg bg-accent font-semibold text-acao-texto"
+              className="flex h-11 flex-1 items-center justify-center rounded-[var(--raio-controle)] bg-accent font-semibold text-acao-texto"
             >
               Traçar rumo
             </button>

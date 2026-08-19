@@ -54,6 +54,56 @@ export function podeCriarAfazerProprio(
   return false
 }
 
+/**
+ * DE QUEM É A TAREFA (AUDITORIA 19/08, A16).
+ *
+ * `afazeres.responsavel_id` existia desde a migration 066 e NENHUMA tela o
+ * enviava. A policy de INSERT do banco valida esse campo — ela aceita a linha
+ * só quando o responsável é nulo, é o próprio dono, ou tem vínculo NÃO
+ * SUSPENSO na embarcação da tarefa. Era validação de um campo que ninguém
+ * mandava.
+ *
+ * Duas coisas destravam quando o campo passa a ser preenchido, e as duas já
+ * estão escritas no banco de hoje (medido em `pg_policies`, não deduzido):
+ *
+ *   · A policy de SELECT lê `responsavel_id = auth.uid()`. Sem responsável,
+ *     um funcionário de Operações só enxerga a tarefa que ELE criou — a
+ *     tarefa que o ADM abriu "para Operações" era invisível justamente para
+ *     quem tinha que fazê-la. Delegar é o que a faz aparecer na lista certa.
+ *   · A policy de UPDATE lê o mesmo campo. Sem ele, só o autor podia marcar
+ *     "Comecei" e "Concluir".
+ *
+ * A ARMADILHA QUE ESTA FUNÇÃO EXISTE PARA EVITAR: tarefa "da base" tem
+ * `embarcacao_id` nulo, e o `EXISTS` da policy compara `v.embarcacao_id =
+ * afazeres.embarcacao_id` — comparação com NULL nunca é verdadeira. Delegar
+ * uma tarefa da base a outra pessoa seria recusado pelo banco com a mensagem
+ * genérica de sempre ("Não deu pra criar a tarefa"), e ninguém entenderia por
+ * quê. A recusa sai daqui, com motivo, antes de o insert acontecer.
+ *
+ * Devolve o MOTIVO da recusa, ou `null` quando o banco vai aceitar — decisão
+ * e explicação juntas, como `podePublicarParaCotistas`.
+ */
+export function recusaDoResponsavel(alvo: {
+  responsavelId: string | null
+  donoId: string
+  embarcacaoId: string | null
+  /** Quem tem vínculo NÃO suspenso na embarcação da tarefa. */
+  vinculadosAtivos: readonly string[]
+}): string | null {
+  const { responsavelId, donoId, embarcacaoId, vinculadosAtivos } = alvo
+  // Ninguém responsável é o padrão do §20 e continua válido: tarefa da equipe
+  // não precisa de dono para existir.
+  if (responsavelId === null) return null
+  if (responsavelId === donoId) return null
+  if (embarcacaoId === null) {
+    return "Tarefa da base não tem como ter responsável — marque “É desta unidade” para poder passar a tarefa a alguém."
+  }
+  if (!vinculadosAtivos.includes(responsavelId)) {
+    return "Essa pessoa não tem acesso ativo nesta unidade. Escolha alguém da equipe ou deixe sem responsável."
+  }
+  return null
+}
+
 /*
  * §20, a última linha e a mais importante: *"NÃO GERAR AUTOMATICAMENTE uma
  * tarefa para cada alerta."*

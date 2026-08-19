@@ -222,7 +222,7 @@ export function SondagemPainel({
   // pra este fundo fixo). Onda 80 — rótulo em CAIXA DE FRASE
   // (`.rotulo-dado`, ver app/globals.css), não mais uppercase rastreado: é
   // a mesma troca que o resto da tela fez, ver navegar-mapa.tsx.
-  const mostrador = "rounded-[10px] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
+  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
   const etiqueta = "rotulo-dado !text-meter-dim"
 
   return (
@@ -232,7 +232,7 @@ export function SondagemPainel({
           {consentimento ? (
             <button
               onClick={iniciarColeta}
-              className="w-full rounded-xl bg-accent py-3.5 text-base font-semibold text-acao-texto"
+              className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 text-base font-semibold text-acao-texto"
             >
               Iniciar coleta {usaNativo ? "" : "via Signal K"}
             </button>
@@ -241,7 +241,7 @@ export function SondagemPainel({
             // sobre por que o botão não funciona, com o caminho pra decidir —
             // nunca um checkbox reaparecendo em cima do mapa (ver comentário
             // grande no topo do arquivo).
-            <div className="rounded-[10px] border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
+            <div className="rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
               <p>Sondagem colaborativa desligada neste aparelho.</p>
               <Link href="/menu/ajustes#navegacao" className="mt-1 inline-block font-medium text-accent underline">
                 Ativar em Ajustes → Navegação
@@ -280,7 +280,7 @@ export function SondagemPainel({
 
           <button
             onClick={pararColeta}
-            className="mt-3 w-full rounded-xl bg-crit py-3.5 text-base font-semibold text-white"
+            className="mt-3 w-full rounded-[var(--raio-controle)] bg-crit py-3.5 text-base font-semibold text-white"
           >
             Parar coleta
           </button>
@@ -291,7 +291,7 @@ export function SondagemPainel({
           saída anterior sem sinal pode continuar guardada esperando pra
           subir. Ninguém deve achar que perdeu a saída. */}
       {(totalGuardado > 0 || fila.ultimoEnvioEm != null) && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
+        <div className="mt-3 flex items-start gap-2 rounded-[var(--raio-controle)] border border-mapa-instrumento-borda bg-black/15 px-3 py-2.5 text-sm text-meter-dim">
           <Icone nome="guardado" className="mt-0.5 size-4 shrink-0 text-meter-dim" />
           <p>
             {totalGuardado > 0 ? (

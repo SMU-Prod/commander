@@ -46,7 +46,7 @@ export default async function TransferirPage({
         descricao={`${painel.embarcacao.nome} passa a ter outro proprietário.`}
       />
 
-      {erro && <p className="mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
+      {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       <div className="mt-4 rounded-[var(--raio-cartao)] border border-warn/35 bg-warn/10 p-3">
         <p className="corpo font-semibold">O que acontece quando for aceito</p>
@@ -58,7 +58,7 @@ export default async function TransferirPage({
       </div>
 
       {criado && transferencia && (
-        <p className="mt-4 rounded-lg border border-ok/40 bg-panel px-3 py-2 corpo">
+        <p className="mt-4 rounded-[var(--raio-controle)] border border-ok/40 bg-panel px-3 py-2 corpo">
           Link de transferência criado — compartilhe com quem vai assumir o barco.
         </p>
       )}
@@ -70,7 +70,7 @@ export default async function TransferirPage({
             Para <span className="text-texto">{transferencia.destinatario_email}</span> · expira em{" "}
             {new Date(transferencia.expira_em).toLocaleDateString("pt-BR")}
           </p>
-          <p className="mt-3 break-all rounded-lg border border-line bg-campo px-3 py-2 font-mono-instr text-xs text-dim">
+          <p className="mt-3 break-all rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 font-mono-instr text-xs text-dim">
             {linkTransferencia(transferencia.codigo)}
           </p>
           {/* A fileira do canvas (tela-4d): compartilhar em contorno ocupando a
@@ -91,7 +91,7 @@ export default async function TransferirPage({
           </div>
         </div>
       ) : (
-        <form action={iniciarTransferencia} className="mt-4 space-y-3 rounded-[14px] border border-line bg-panel p-4">
+        <form action={iniciarTransferencia} className="mt-4 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
           <Campo
             label="E-mail de quem vai assumir"
             id="email"
@@ -101,7 +101,7 @@ export default async function TransferirPage({
             placeholder="novo.dono@email.com"
             dica="Ele(a) confirma pelo próprio Commander — se ainda não tiver conta, cria na hora."
           />
-          <button className="w-full rounded-xl bg-accent py-3 font-semibold text-acao-texto">
+          <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">
             Enviar convite de transferência
           </button>
         </form>

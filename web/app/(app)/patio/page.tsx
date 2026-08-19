@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoTextarea } from "@/components/ui/campo"
+import { CampoArquivo } from "@/components/ui/campo-arquivo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
@@ -15,7 +17,6 @@ import {
 import { podeEditar } from "@/lib/domain/permissoes"
 import { ROTULO_TIPO_EMBARCACAO } from "@/lib/domain/tipo-embarcacao"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 
 /**
  * A HOME DE CAMPO (onda 70b — PRD-UPGRADE-3-COTAS §6).
@@ -75,12 +76,31 @@ export default async function PatioPage({
   // só sai quando a unidade é Jet — numa lancha isso seria trabalho jogado
   // fora em toda abertura da tela mais usada do dia.
   const unidadeEhJet = ehJet(painel.embarcacao.tipo)
+  const supabase = await supabaseServer()
   let semPlano: string[] = []
   if (unidadeEhJet) {
-    const supabase = await supabaseServer()
     const { data: itens } = await supabase.from("itens_monitorados")
       .select("nome").eq("embarcacao_id", painel.embarcacao.id)
     semPlano = componentesJetSemPlano((itens ?? []).map((i: { nome: string }) => i.nome))
+  }
+
+  // AUDITORIA 19/08, A6 — as fotos do check-out e do check-in, agora que há
+  // escrita que as grava. Uma chamada só para todos os caminhos da tela (a
+  // saída aberta e o histórico), no mesmo padrão de `/barco/fotos`: uma
+  // assinatura por linha faria oito idas ao storage na tela mais aberta do
+  // dia. `createSignedUrls` devolve `signedUrl` vazio no path que não existe
+  // mais, e aí o cartão simplesmente não desenha nada.
+  const pathsDeFoto = [
+    aberto?.saida_foto_path,
+    ...historico.flatMap((m) => [m.saida_foto_path, m.retorno_foto_path]),
+  ].filter((p): p is string => p != null)
+  const urlPorPath = new Map<string, string>()
+  if (pathsDeFoto.length > 0) {
+    const { data: assinadas } = await supabase.storage.from("acervo")
+      .createSignedUrls([...new Set(pathsDeFoto)], 3600)
+    for (const a of assinadas ?? []) {
+      if (a.signedUrl) urlPorPath.set(a.path ?? "", a.signedUrl)
+    }
   }
 
   return (
@@ -175,6 +195,19 @@ export default async function PatioPage({
                     nomeDe(aberto.responsavel_id),
                   ].filter(Boolean).join(" · ") || "Nada anotado além do horário"}
                 </p>
+                {/* A6 — a foto de como a unidade SAIU, aberta ao lado do
+                    formulário de retorno. É exatamente aqui que ela vale:
+                    quem está recebendo o barco compara a imagem com o que
+                    tem na frente antes de escrever "tudo normal". */}
+                {aberto.saida_foto_path && urlPorPath.get(aberto.saida_foto_path) && (
+                  /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
+                  <img
+                    src={urlPorPath.get(aberto.saida_foto_path)}
+                    alt="Condição da unidade no momento da saída"
+                    className="mt-2 h-48 w-full rounded-[var(--raio-controle)] border border-line object-cover"
+                    loading="lazy"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -200,6 +233,16 @@ export default async function PatioPage({
                 rows={3}
                 placeholder="Ex.: tudo normal. Ou: barulho na turbina acima de 4.000 rpm."
               />
+              {/* A6 — a foto do retorno. Opcional como todo o resto do §6, e
+                  a dica diz o PORQUÊ: é o que decide a conversa sobre avaria
+                  quando ela acontecer, semanas depois, com o barco já no
+                  berço e ninguém lembrando de nada. */}
+              <CampoArquivo
+                label="Foto de como voltou — opcional"
+                name="retorno_foto"
+                accept="image/jpeg,image/png,image/webp"
+                ajuda="Fica guardada com este retorno. É a prova dos dois lados numa discussão sobre avaria."
+              />
 
               {/* Ver o cabeçalho, decisão 3: caixa, não dedução. */}
               <label className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 py-2.5">
@@ -212,9 +255,12 @@ export default async function PatioPage({
                 </span>
               </label>
             </div>
-            <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
-              Registrar retorno
-            </button>
+            {/* A6 — `BotaoEnviar` e não `<button>` cru: com a foto no
+                formulário, o envio passou a demorar de verdade, e o silêncio
+                da tela é o que faz a pessoa tocar de novo. O segundo toque
+                aqui grava um retorno em cima do outro. É o caso que o próprio
+                componente cita ("upload de foto de ocorrência"). */}
+            <BotaoEnviar rotulo="Registrar retorno" />
           </form>
         </>
       ) : (
@@ -249,10 +295,17 @@ export default async function PatioPage({
                 placeholder="Ex.: casco limpo, sem avaria aparente."
                 dica="O horário e o seu nome entram sozinhos."
               />
+              {/* A6 — a foto do check-out. O §6 pede as duas pontas, e é a de
+                  SAÍDA que protege a marina: sem ela, "já estava riscado
+                  quando saiu" não tem como ser mostrado. */}
+              <CampoArquivo
+                label="Foto de como saiu — opcional"
+                name="saida_foto"
+                accept="image/jpeg,image/png,image/webp"
+                ajuda="Aparece no check-in, ao lado do formulário de retorno."
+              />
             </div>
-            <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>
-              Registrar saída
-            </button>
+            <BotaoEnviar rotulo="Registrar saída" />
           </form>
         </>
       )}
@@ -326,6 +379,38 @@ export default async function PatioPage({
                     {m.retorno_estado && (
                       <p className="apoio text-dim"><span className="rotulo">Voltou:</span> {m.retorno_estado}</p>
                     )}
+                  </div>
+                )}
+                {/* A6 — as duas fotos lado a lado, na ordem em que
+                    aconteceram. É a comparação inteira do §6 numa imagem: o
+                    que a frase "casco limpo" e a frase "risco na borda" nunca
+                    conseguem resolver sozinhas. Uma grade de duas colunas
+                    mesmo quando só há uma foto — a coluna vazia diz que a
+                    outra ponta não foi fotografada, que é a informação certa. */}
+                {(m.saida_foto_path || m.retorno_foto_path) && (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {([
+                      ["Saiu", m.saida_foto_path],
+                      ["Voltou", m.retorno_foto_path],
+                    ] as const).map(([rotulo, path]) => {
+                      const url = path ? urlPorPath.get(path) : undefined
+                      return (
+                        <div key={rotulo}>
+                          <p className="rotulo text-dim">{rotulo}</p>
+                          {url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
+                            <img
+                              src={url}
+                              alt={`Unidade no momento em que ${rotulo === "Saiu" ? "saiu" : "voltou"}`}
+                              className="mt-1 h-28 w-full rounded-[var(--raio-controle)] border border-line object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <p className="apoio mt-1 text-dim">Sem foto</p>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

@@ -45,7 +45,7 @@ export default async function ConvitePage({
       <main className="pt-8 text-center">
         <div className="text-base"><Logo /></div>
         {erro && (
-          <p className="mx-auto mt-5 max-w-[320px] rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
+          <p className="mx-auto mt-6 max-w-[320px] rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
         )}
         {!infoTransferencia.valido ? (
           <p className="mx-auto mt-6 max-w-[300px] text-sm text-dim">
@@ -62,7 +62,7 @@ export default async function ConvitePage({
                 Este convite foi enviado para {infoTransferencia.destinatario_email}. Entre com essa conta pra aceitar.
               </p>
             ) : (
-              <div className="mx-auto mt-6 max-w-[320px] rounded-[14px] border border-warn/40 bg-warn/10 p-4 text-left">
+              <div className="mx-auto mt-6 max-w-[320px] rounded-[var(--raio-cartao)] border border-warn/40 bg-warn/10 p-4 text-left">
                 <p className="text-sm font-semibold">Ao aceitar:</p>
                 <ul className="mt-1.5 space-y-1 text-sm text-dim">
                   <li>· Você vira o proprietário — o dono anterior perde o acesso.</li>
@@ -74,7 +74,7 @@ export default async function ConvitePage({
                   <Confirmar
                     rotulo="Aceitar e virar proprietário"
                     mensagem="Confirma? Não dá pra desfazer depois."
-                    className="w-full rounded-xl bg-accent py-3.5 text-center font-semibold text-acao-texto"
+                    className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 text-center font-semibold text-acao-texto"
                   />
                 </form>
               </div>
@@ -89,7 +89,7 @@ export default async function ConvitePage({
     <main className="pt-8 text-center">
       <div className="text-base"><Logo /></div>
       {erro && (
-        <p className="mx-auto mt-5 max-w-[320px] rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
+        <p className="mx-auto mt-6 max-w-[320px] rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
       )}
       {!infoConvite ? (
         <p className="mx-auto mt-6 max-w-[300px] text-sm text-dim">
@@ -107,7 +107,7 @@ export default async function ConvitePage({
           </p>
           <form action={aceitarConvite} className="mx-auto mt-6 max-w-[320px]">
             <input type="hidden" name="codigo" value={codigo} />
-            <button className="w-full rounded-xl bg-accent py-3.5 font-semibold text-acao-texto">
+            <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto">
               Entrar na tripulação
             </button>
           </form>

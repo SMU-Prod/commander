@@ -41,14 +41,14 @@ export default async function EditarSistemaPage({
   return (
     <main className={TETO_FORMULARIO}>
       <CabecalhoDetalhe voltarHref={`/barco/equipamento/${id}`} titulo="Editar sistema" />
-      {erro && <p className="corpo mt-3 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
+      {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={salvarSistema} className="mt-5 space-y-4">
+      <form action={salvarSistema} className="mt-6 space-y-4">
         <input type="hidden" name="equipamento_id" value={id} />
         <input type="hidden" name="sistema_id" value={sistemaId} />
         <Campo label="Nome do sistema" id="nome" name="nome" required defaultValue={s.nome} />
         {(documentos ?? []).length === 0 ? (
-          <p className="apoio rounded-lg border border-line bg-panel px-3 py-2 text-dim">
+          <p className="apoio rounded-[var(--raio-controle)] border border-line bg-panel px-3 py-2 text-dim">
             Sem documentos no acervo ainda. <Link href="/barco/documentos" className="text-accent-forte">Adicione o manual em Documentos</Link> e volte aqui pra vincular.
           </p>
         ) : (
@@ -68,7 +68,7 @@ export default async function EditarSistemaPage({
           className="font-mono-instr tabular-nums"
         />
         <Campo label="Observação — opcional" id="observacao" name="observacao" defaultValue={s.observacao ?? ""} />
-        <button className={`${ACAO_NAO_ESTICA} rounded-xl bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
+        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
       </form>
 
       <form action={excluirSistema} className="mt-8 flex justify-center">

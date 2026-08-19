@@ -48,8 +48,21 @@ export function Logo({ compacto = false }: { compacto?: boolean }) {
         height={40}
         className="h-[1.6em] w-[1.6em] shrink-0 rounded-[var(--raio-controle)]"
       />
+      {/* ONDA 95 (achado 5.12) — O `.28em` ERA O MAIOR DOS ONZE, E MORREU.
+          A auditoria mediu 11 valores de `tracking-[…]` para um gesto só
+          ("palavra em caixa alta, rastreada") e apontou este como o primeiro
+          a cair: `.28em` não era degrau de nada, era o dobro do que a régua
+          declara. O valor passa a ser o `.16em` de `.rotulo`.
+          NÃO virou a classe `.rotulo`, e a razão é medível: `.rotulo` crava
+          `font-size: 11px` e a família mono, e este wordmark é dimensionado
+          POR QUEM CHAMA — `text-lg` no painel do parceiro, `text-base` nas
+          telas de convite, `text-sm` no login do celular, `text-[11px]` no
+          onboarding — com o `<img>` ao lado medindo `1.6em` do mesmo corpo.
+          Com a classe, a palavra congelaria em 11px, o símbolo continuaria
+          escalando, e a marca sairia desalinhada em cinco telas. Aqui a
+          escala é a informação; o que estava errado era só o rastreio. */}
       {!compacto && (
-        <span className="font-semibold uppercase tracking-[.28em] text-texto">Commander</span>
+        <span className="font-semibold uppercase tracking-[.16em] text-texto">Commander</span>
       )}
     </span>
   )

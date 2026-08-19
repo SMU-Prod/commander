@@ -7,6 +7,7 @@ import {
   importacaoVazia,
   lerPlanilha,
   podeCriarAfazerProprio,
+  recusaDoResponsavel,
   resumoDaImportacao,
   ROTULO_DESTINO_AFAZER,
   ROTULO_ESTADO_AFAZER,
@@ -42,6 +43,45 @@ describe("afazeres (§20)", () => {
 
     it("cotista não cria tarefa nenhuma", () => {
       expect(podeCriarAfazerProprio("COTISTA", "sem_aprovacao")).toBe(false)
+    })
+  })
+
+  describe("de quem é a tarefa (A16)", () => {
+    const base = {
+      donoId: "dono", embarcacaoId: "emb-1", vinculadosAtivos: ["dono", "op-1"],
+    }
+
+    it("sem responsável é o padrão e continua válido", () => {
+      expect(recusaDoResponsavel({ ...base, responsavelId: null })).toBeNull()
+    })
+
+    it("quem cria pode ficar com a própria tarefa, inclusive na base", () => {
+      expect(recusaDoResponsavel({ ...base, responsavelId: "dono" })).toBeNull()
+      expect(recusaDoResponsavel({
+        ...base, responsavelId: "dono", embarcacaoId: null, vinculadosAtivos: [],
+      })).toBeNull()
+    })
+
+    it("delegar a quem tem vínculo ativo na unidade passa", () => {
+      expect(recusaDoResponsavel({ ...base, responsavelId: "op-1" })).toBeNull()
+    })
+
+    it("delegar a quem não tem vínculo ativo é recusado com motivo", () => {
+      // Suspenso e estranho caem no mesmo lugar de propósito: a lista de
+      // ativos é a única fonte, e ela já exclui quem foi suspenso.
+      const r = recusaDoResponsavel({ ...base, responsavelId: "estranho" })
+      expect(r).toBeTruthy()
+      expect(r).toContain("acesso ativo")
+    })
+
+    it("tarefa da base não pode ser delegada — o EXISTS da policy compara com NULL", () => {
+      // Esta é a que o banco recusaria em silêncio: `v.embarcacao_id = NULL`
+      // nunca é verdadeiro, e a tela mostraria a mensagem genérica de erro.
+      const r = recusaDoResponsavel({
+        ...base, responsavelId: "op-1", embarcacaoId: null,
+      })
+      expect(r).toBeTruthy()
+      expect(r).toContain("É desta unidade")
     })
   })
 

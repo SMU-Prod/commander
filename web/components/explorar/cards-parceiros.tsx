@@ -53,13 +53,13 @@ export function CardsParceiros({
             <span className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#0B1D2D]/90 to-transparent" />
 
             {c.destaque && (
-              <span className="apoio absolute left-2 top-2 rounded-full bg-[#0B1D2D]/70 px-2 py-0.5 text-[#D4AF37]">
+              <span className="apoio absolute left-2 top-2 rounded-[var(--raio-pilula)] bg-[#0B1D2D]/70 px-2 py-0.5 text-[#D4AF37]">
                 Destaque
               </span>
             )}
             {bloqueado && (
               <span
-                className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-[#0B1D2D]/70"
+                className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-[#0B1D2D]/70"
                 aria-hidden
               >
                 <Icone nome="cadeado" className="size-3.5 text-white/90" />
@@ -79,13 +79,13 @@ export function CardsParceiros({
         return (
           <li key={c.id}>
             {bloqueado ? (
-              <div className="sombra-1 relative aspect-square overflow-hidden rounded-[14px] border border-line bg-panel2">
+              <div className="sombra-1 relative aspect-square overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-panel2">
                 {miolo}
               </div>
             ) : (
               <Link
                 href={`/explorar/${c.id}`}
-                className="sombra-1 relative block aspect-square overflow-hidden rounded-[14px] border border-line bg-panel2"
+                className="sombra-1 relative block aspect-square overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-panel2"
               >
                 {miolo}
               </Link>

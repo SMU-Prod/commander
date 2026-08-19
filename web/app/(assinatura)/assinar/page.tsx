@@ -169,7 +169,7 @@ export default async function AssinarPage({
 
       {erro && <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
-      <form action={assinar} className="mt-5 space-y-4">
+      <form action={assinar} className="mt-6 space-y-4">
         <div className="space-y-2.5">
           {planos.map((p) => {
             const preco = precoVigenteCentavos(p.id, promo, hoje)
@@ -190,7 +190,7 @@ export default async function AssinarPage({
                 <div key={p.id} className="rounded-[var(--raio-cartao)] border border-line bg-panel2 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className="titulo-card text-dim">{p.rotulo}</span>
-                    <span className="rotulo rounded-full bg-panel px-2.5 py-1 text-dim-chip">{etiqueta}</span>
+                    <span className="rotulo rounded-[var(--raio-pilula)] bg-panel px-2.5 py-1 text-dim-chip">{etiqueta}</span>
                   </div>
                   <p className="apoio mt-1 text-dim">{p.regra}</p>
                   {/* §12 — o Captain Free não é uma versão capada esperando

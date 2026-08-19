@@ -60,7 +60,7 @@ export default async function NovoEventoPage({
       <main className={TETO_FORMULARIO}>
         <CabecalhoDetalhe voltarHref="/diario" voltarRotulo="Diário" titulo={titulo} />
         {aviso && (
-          <p className="corpo mt-4 rounded-lg border border-line bg-panel2 px-3 py-2 text-dim">{aviso}</p>
+          <p className="corpo mt-4 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">{aviso}</p>
         )}
         <BloqueioPremium {...mensagemBloqueio("diario_registros", usoDiario)} className="mt-4" />
       </main>
@@ -94,9 +94,9 @@ export default async function NovoEventoPage({
         titulo={titulo}
         descricao={ehSaida ? "O essencial primeiro. O resto você completa depois, se quiser." : undefined}
       />
-      {erro && <p className="mt-4 rounded-lg border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
+      {erro && <p className="mt-4 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>}
 
-      <form action={criarEvento} className="mt-5 space-y-4">
+      <form action={criarEvento} className="mt-6 space-y-4">
         {/* Formulário mais usado do app e o de texto mais longo (descrição do
             serviço). Só funciona junto com o `&tipo=` que `criarEvento`
             agora devolve no erro: sem ele a tela volta no seletor e os

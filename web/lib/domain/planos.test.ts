@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
-  economiaDaPromocao,
   ehCobravel,
   ehPlanoEnterprise,
-  escolherPromocao,
   viewersIncluidos,
   formatarPreco,
   freeEquivalente,
@@ -16,7 +14,6 @@ import {
   precoVigenteCentavos,
   PROMOCOES,
   proximoUpgrade,
-  validadeDaPromocao,
   type PlanoId,
 } from "./planos"
 
@@ -161,15 +158,14 @@ describe("promocoes §2.1 e §2.2", () => {
     expect(PROMOCOES.entrada_gold.planoAlvo).toBe("commander")
   })
 
-  it("nao acumulam: com as duas candidatas sai UMA so, a que economiza mais", () => {
-    expect(escolherPromocao(["migracao_concorrente", "entrada_gold"])).toBe("entrada_gold")
-    expect(escolherPromocao(["entrada_gold", "migracao_concorrente"])).toBe("entrada_gold")
-    expect(economiaDaPromocao("entrada_gold")).toBeGreaterThan(economiaDaPromocao("migracao_concorrente"))
-  })
-
-  it("sem candidata nenhuma, nenhuma promocao", () => {
-    expect(escolherPromocao([])).toBeNull()
-  })
+  /* AUDITORIA 19/08, A20 — saíram daqui os casos de `escolherPromocao`,
+     `economiaDaPromocao` e `validadeDaPromocao`, junto com as três funções.
+     Elas descreviam o momento de CONCEDER uma promoção, e o app não concede:
+     `assinatura_promocoes` tem RLS ligada e uma única policy, de SELECT — não
+     há INSERT possível para nenhum código autenticado. Teste verde numa
+     função inalcançável é a pior das provas: ele afirma que a regra está
+     valendo em algum lugar. Ver o comentário em `planos.ts` para a regra e
+     para o que precisa existir antes de elas voltarem. */
 
   it("preco vigente usa a promocao enquanto ela vale e volta ao cheio depois", () => {
     const promo = { promocao: "migracao_concorrente" as const, validoAte: "2026-11-15" }
@@ -195,11 +191,12 @@ describe("promocoes §2.1 e §2.2", () => {
     expect(precoGoldComDesconto(249000, promo, HOJE)).toBe(249000)
   })
 
-  it("validade soma meses de calendario e nunca estoura pra um mes seguinte", () => {
-    expect(validadeDaPromocao("2026-08-15", "migracao_concorrente")).toBe("2026-11-15")
-    expect(validadeDaPromocao("2026-08-15", "entrada_gold")).toBe("2027-02-15")
-    // 30/11 + 3 meses cairia em 30/02, que nao existe: fica no ultimo dia
-    expect(validadeDaPromocao("2026-11-30", "migracao_concorrente")).toBe("2027-02-28")
+  it("arredonda o desconto pra baixo — nunca cobra mais que o anunciado", () => {
+    // A20: agora este número vira COBRANÇA de verdade em
+    // `lib/acoes/gold.ts`, e não mais só um `expect`. 199,9 centavos de
+    // desconto viram 199, não 200.
+    const promo = { promocao: "migracao_concorrente" as const, validoAte: "2026-11-15" }
+    expect(precoGoldComDesconto(999, promo, HOJE)).toBe(799)
   })
 })
 

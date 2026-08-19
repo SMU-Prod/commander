@@ -14,7 +14,7 @@ function estadoInicial(): Estados {
 }
 
 const botaoEstado = (ativo: boolean, cor: "ok" | "warn") =>
-  `min-h-11 min-w-11 rounded-full border px-3 py-1 text-xs font-medium ${
+  `min-h-11 min-w-11 rounded-[var(--raio-pilula)] border px-3 py-1 text-xs font-medium ${
     ativo
       ? cor === "ok" ? "border-ok bg-ok/10 text-ok" : "border-warn bg-warn/10 text-warn"
       : "border-line text-dim"
@@ -67,14 +67,14 @@ export function ChecklistDiario() {
       <button
         type="button"
         onClick={tudoOk}
-        className={`flex min-h-11 w-full items-center justify-center rounded-xl border px-3 py-2.5 text-sm font-semibold ${
+        className={`flex min-h-11 w-full items-center justify-center rounded-[var(--raio-controle)] border px-3 py-2.5 text-sm font-semibold ${
           todosOk ? "border-ok bg-ok/10 text-ok" : "border-line bg-panel2 text-texto"
         }`}
       >
         {todosOk ? "✓ Tudo OK" : "✓ OK GERAL — motores, casco, elétrica, hidráulica, segurança"}
       </button>
 
-      <div className="divide-y divide-line rounded-[14px] border border-line bg-panel">
+      <div className="divide-y divide-line rounded-[var(--raio-cartao)] border border-line bg-panel">
         {HUBS_CHECKLIST_DIARIO.map((hub) => {
           const linha = estados[hub]
           return (
@@ -108,7 +108,7 @@ export function ChecklistDiario() {
                     onChange={(e) => atualizarNota(hub, e.target.value)}
                     placeholder={`O que aconteceu em ${ROTULO_HUB_CHECKLIST[hub]}?`}
                     rows={2}
-                    className="w-full rounded-[10px] border border-line bg-campo px-3 py-2 text-sm"
+                    className="w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 text-sm"
                   />
                   <label className="flex min-h-11 items-center gap-2 text-sm text-dim">
                     <input

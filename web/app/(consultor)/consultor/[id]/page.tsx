@@ -71,7 +71,7 @@ export default async function ConsultorProtocoloPage({
               // confirmação de toque.
               <button
                 name="status" value="confirmado"
-                className={`h-11 rounded-full border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}
+                className={`h-11 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-5 text-sm font-medium ${TOQUE}`}
               >
                 Confirmar
               </button>
