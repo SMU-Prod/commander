@@ -1,4 +1,4 @@
-# Upgrade 3 em ondas — Cotas Enterprise e 3D do Motor
+﻿# Upgrade 3 em ondas — Cotas Enterprise e 3D do Motor
 
 > Decisão do dono, 18/08/2026: os dois PRDs **não são produtos novos**. São
 > ondas dentro do Commander. E o 3D é **só do motor** — não do barco.
@@ -163,7 +163,7 @@ Commander já faz e é o padrão a manter.
 Junto: ativar `commander_enterprise` com as faixas do §2 (5/10/20/30/40
 unidades, R$ 199,90 a R$ 999,90), que hoje está com preço `null`.
 
-### Onda 70 — Commander Jet e o pátio (P0, §5, §6)
+### Onda 70 — Commander Jet e o pátio (P0, §5, §6) — **ENTREGUE 18/08/2026**
 
 A ficha específica de PWC do §5 (propulsão jet: impeller, wear ring, intake
 grate, jet pump) — a fundação é o `embarcacoes.tipo` que já existe.
@@ -173,7 +173,7 @@ horas, combustível, estado, fotos, hora automática e responsável; a
 comparação entre os dois; e a conversão imediata em avaria quando o retorno
 acusa problema. Botão grande, poucos passos — é ferramenta de pátio.
 
-### Onda 71 — Cotistas (P0, §13, §16)
+### Onda 71 — Cotistas (P0, §13, §16) — **ENTREGUE 18/08/2026**
 
 Convite por link com vagas (1/10 … 10/10), bloqueio ao atingir o limite,
 remoção que libera vaga. Viewer da própria unidade. Chat só com a
