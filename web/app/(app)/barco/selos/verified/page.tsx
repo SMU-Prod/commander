@@ -9,6 +9,7 @@ import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { carregarPainel, carregarVerified } from "@/lib/consultas"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { DIAS_REGULARIZACAO_VERIFIED, type ItemVerified } from "@/lib/domain/verified"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 /**
  * Checklist do Commander Verified — verificação DIGITAL (cadastro +
@@ -44,8 +45,11 @@ function LinhaPilar({ item }: { item: ItemVerified }) {
       subtitulo={!item.ok ? item.dica : undefined}
       trailing={
         !item.ok ? (
-          <Link href={item.href} className="shrink-0 text-sm text-texto underline underline-offset-2">
-            Resolver
+          // Onda 82 — pílula de contorno no lugar do sublinhado: "Resolver" é
+          // a ação que esta tela inteira existe pra oferecer, repetida por
+          // requisito. Ver `lib/ui/acoes.ts`.
+          <Link href={item.href} className={ALVO_ACAO}>
+            <span className={PILULA_ACAO}>Resolver</span>
           </Link>
         ) : undefined
       }

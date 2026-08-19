@@ -22,6 +22,7 @@ import { carregarSeloGold } from "@/lib/consultas-gold"
 import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
 import { podeVer, podeEditar, type Aba } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 export default async function BarcoPage({
   searchParams,
@@ -217,16 +218,19 @@ export default async function BarcoPage({
               titulo={ROTULO_CASCO[c]}
               trailing={
                 doGrupo.length === 0 ? (
-                  // Onda 63 — sublinhado neutro, não dourado: o Casco tem
-                  // quatro categorias e num barco novo as quatro estão
-                  // vazias, ou seja, QUATRO "Adicionar" dourados de uma vez.
-                  // É o mesmo raciocínio (e o mesmo vestido) do
-                  // `enfase="discreta"` de `EstadoVazio`.
+                  // Onda 63 — neutro, não dourado: o Casco tem seis categorias
+                  // e num barco novo as seis estão vazias, ou seja, SEIS
+                  // "Adicionar" dourados de uma vez. É o mesmo raciocínio (e o
+                  // mesmo vestido) do `enfase="discreta"` de `EstadoVazio`.
+                  // Onda 82 — o vestido deixou de ser sublinhado e virou
+                  // pílula de contorno: era a coluna de "Adicionar" desta
+                  // seção que o dono apontou como texto comum fingindo ser
+                  // ação. Ver `lib/ui/acoes.ts`.
                   <Link
                     href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${c}`)}`}
-                    className="shrink-0 text-xs underline underline-offset-2"
+                    className={ALVO_ACAO}
                   >
-                    Adicionar
+                    <span className={PILULA_ACAO}>Adicionar</span>
                   </Link>
                 ) : (
                   <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">{doGrupo.length} itens</span>

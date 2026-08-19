@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 /**
  * Cabeçalho de seção dentro de uma página (rótulo uppercase espaçado, ícone
@@ -66,12 +67,29 @@ export function SecaoPagina({
         // proprietário usa no "Ver tudo" das seções é, dígito por dígito, o
         // valor de `--texto-dim` no tema escuro. `text-dim` é a referência
         // literal — não uma adaptação dela.
-        <Link
-          href={acao.href}
-          className="corpo -my-2.5 -mr-1 inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-dim"
-        >
-          {acao.icone && <Icone nome={acao.icone} className="size-4" />}
-          {acao.rotulo}
+        //
+        // ONDA 82 — TIRAR A COR FOI META CERTA COM MEIO ERRADO. O diagnóstico
+        // do dono, olhando o app pronto: "os destaques têm muita coisa que é
+        // clicável e não é perceptível, parecendo um texto comum". Ele está
+        // certo, e a onda 63 é a causa: sem o dourado, o que sobrou foi
+        // TEXTO CINZA — e texto cinza é exatamente o que o app usa para
+        // rótulo e apoio, ou seja, para o que NÃO se toca. A ação virou a
+        // coisa menos visível da linha.
+        //
+        // Na referência nenhuma ação é texto pelado: é pílula preenchida,
+        // pílula de contorno, ou botão-círculo com ícone (spec §3, item 5).
+        // Quem diz "aqui se toca" é a FORMA, não a cor — e é por isso que a
+        // correção não desfaz a onda 63: o dourado continua reservado à ação
+        // principal da tela, e esta ganha contorno, que custa zero do
+        // orçamento de dois dourados.
+        //
+        // A forma mora em `lib/ui/acoes.ts` — ver lá a briga de dois números
+        // (desenho de 30px, alvo de 44px) e por que ela é compartilhada.
+        <Link href={acao.href} className={`${ALVO_ACAO} -mr-1 px-1`}>
+          <span className={PILULA_ACAO}>
+            {acao.icone && <Icone nome={acao.icone} className="size-3.5" />}
+            {acao.rotulo}
+          </span>
         </Link>
       )}
     </div>

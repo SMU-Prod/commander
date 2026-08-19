@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { PILULA_ACAO_BLOCO, PILULA_ACAO_PRINCIPAL } from "@/lib/ui/acoes"
 
 /**
  * Estado vazio: ícone + frase na voz do app + caminho. Um cartão vazio sem
@@ -52,9 +53,19 @@ export function EstadoVazio({
   const base = variant === "cartao"
     ? "sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4"
     : "py-6"
-  const corDaAcao = enfase === "discreta"
-    ? "text-texto underline underline-offset-2"
-    : "text-accent-forte"
+  // ONDA 82 — DE TEXTO A FORMA. As duas ênfases eram texto: dourado numa,
+  // sublinhado na outra. Num cartão vazio — que é uma caixa com um ícone
+  // apagado, uma frase e mais uma frase — a linha de texto que É a saída
+  // ficava indistinguível das duas que só explicam. O dono resumiu:
+  // "parecendo um texto comum".
+  //
+  // Agora as duas ênfases são pílulas, e a diferença entre elas passa a ser
+  // o PESO da pílula, não a existência dela: cheia (a ação principal de uma
+  // tela vazia — o dourado cabe folgado no orçamento de dois por tela) e de
+  // contorno (o cartão vazio aninhado, que não é a ação principal de nada).
+  // O alvo de 44px continua vindo do `min-h-11` do link em volta; a pílula
+  // desenha 36px dentro dele.
+  const estiloDaAcao = enfase === "discreta" ? PILULA_ACAO_BLOCO : PILULA_ACAO_PRINCIPAL
   return (
     <div className={`${base} text-center ${className}`}>
       <Icone nome={icone} className="mx-auto size-6 text-dim" />
@@ -71,11 +82,8 @@ export function EstadoVazio({
           `inline-flex` pra altura valer, e `mt-1` no lugar de `mt-3` porque a
           altura nova já traz o respiro que o `mt-3` dava. */}
       {acao && (
-        <Link
-          href={acao.href}
-          className={`apoio mt-1 inline-flex min-h-11 items-center px-2 ${corDaAcao}`}
-        >
-          {acao.rotulo}
+        <Link href={acao.href} className="mt-1 inline-flex min-h-11 items-center px-2">
+          <span className={estiloDaAcao}>{acao.rotulo}</span>
         </Link>
       )}
     </div>

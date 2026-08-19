@@ -11,6 +11,7 @@ import { nomeDoEquipamento } from "@/lib/domain/diario"
 import { ROTULO_ZONA, ZONAS, type ZonaEmbarcacao } from "@/lib/domain/mapa-embarcacao"
 import { ROTULO_ESTADO, ROTULO_GRAVIDADE } from "@/lib/domain/ocorrencias"
 import { rotuloDoFarol, seloDoFarol, textoRestante, type StatusFarol } from "@/lib/domain/semaforo"
+import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 
 /**
  * MAPA DA EMBARCAÇÃO (onda 61, T4) — a tela que junta as três camadas do
@@ -292,11 +293,12 @@ export default async function MapaEmbarcacaoPage({
                       // conteúdo desta tela é 1 (o contorno da zona
                       // selecionada), e esta ação se repete por linha —
                       // mesmo tratamento de `EstadoVazio enfase="discreta"`.
+                      // Onda 82 — pílula de contorno; ver `lib/ui/acoes.ts`.
                       <Link
                         href={`/barco/equipamento/${e.equipamento.id}/editar`}
-                        className="apoio flex min-h-11 shrink-0 items-center text-texto underline underline-offset-2"
+                        className={ALVO_ACAO}
                       >
-                        Definir zona
+                        <span className={PILULA_ACAO}>Definir zona</span>
                       </Link>
                     }
                   />
