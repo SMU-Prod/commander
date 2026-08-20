@@ -73,6 +73,35 @@ describe("hubs", () => {
     expect([...noCss].sort()).toEqual(HUBS.map((h) => h.chave).sort())
   })
 
+  /**
+   * ONDA 135 — O GUARDIÃO DESCE ATÉ AS TELAS. As oito páginas de hub agora
+   * escrevem UMA classe de cor à mão: a `classeAtiva` das abas em pílula
+   * (literal por obrigação do Tailwind — ver o cabeçalho de `hubs.ts`). É
+   * exatamente o cenário do copia-e-cola: duplicar a tela de um hub pro
+   * vizinho e esquecer de trocar `bg-hub-motores` deixaria a aba ativa da
+   * Elétrica vestida de Motores — quatro canais certos e um errado, invisível
+   * em revisão. Aqui vira medida: a página do hub X só pode nomear hub-X.
+   */
+  it.each(HUBS)("a tela de $chave só veste a própria cor de hub", (h) => {
+    const fonte = readFileSync(
+      path.resolve(path.dirname(fileURLToPath(import.meta.url)), `../../app/(app)/barco/${h.chave}/page.tsx`),
+      "utf-8",
+    )
+    const nomeados = [...fonte.matchAll(/hub-([a-z]+)/g)].map((m) => m[1])
+    expect(
+      nomeados.length,
+      `app/(app)/barco/${h.chave}/page.tsx não nomeia token de hub nenhum — ` +
+        `a aba ativa em pílula precisa da classe literal do próprio hub.`,
+    ).toBeGreaterThan(0)
+    for (const nome of nomeados) {
+      expect(
+        nome,
+        `app/(app)/barco/${h.chave}/page.tsx nomeia hub-${nome}. ` +
+          `A cor do hub X só aparece no hub X (§5 do Guia de Design).`,
+      ).toBe(h.chave)
+    }
+  })
+
   it("hub() lança em chave desconhecida em vez de devolver nada", () => {
     // @ts-expect-error — é exatamente o erro de programação que o lançamento existe pra pegar.
     expect(() => hub("propulsao")).toThrow(/Hub desconhecido/)
