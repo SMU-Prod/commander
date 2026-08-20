@@ -216,22 +216,34 @@ function Hidraulica() {
  * base e encavalada no extintor — que foi o que o dono viu.
  */
 function Seguranca() {
-  const rBoia = 17
-  const [ax, ay] = p(-16, 0, 4)
+  /**
+   * O FURO DA BOIA PRECISA SER MAIOR QUE O TRAÇO, SENÃO NÃO É BOIA.
+   * A primeira versão usava raio 17 com traço 10: sobrava um furo de 7 no eixo
+   * curto e, a 96px de altura, isso fecha — o desenho lia como uma bolha verde,
+   * que foi o que o dono viu. Com raio 21 e traço 7 o furo tem 14, e a silhueta
+   * volta a ser um anel.
+   */
+  const rBoia = 21
+  const traco = 7
+  const [ax, ay] = p(-15, 0, 4)
   const rx = rBoia * 2 * C
   return (
     <>
-      <Caixa x={-36} y={-22} z={0} dx={72} dy={44} dz={3} />
+      <Caixa x={-38} y={-24} z={0} dx={76} dy={48} dz={3} />
       <ellipse
         cx={ax} cy={ay} rx={rx} ry={rBoia}
-        fill="none" stroke="currentColor" strokeOpacity={LUZ.direita + 0.14} strokeWidth={10}
+        fill="none" stroke="currentColor" strokeOpacity={LUZ.direita + 0.14} strokeWidth={traco}
       />
       <ellipse
-        cx={ax} cy={ay - 3.5} rx={rx} ry={rBoia}
-        fill="none" stroke="currentColor" strokeOpacity={LUZ.topo} strokeWidth={5}
+        cx={ax} cy={ay - 3} rx={rx} ry={rBoia}
+        fill="none" stroke="currentColor" strokeOpacity={LUZ.topo} strokeWidth={traco - 3}
       />
-      <Cilindro cx={26} cy={0} z={3} r={9} h={26} />
-      <Cilindro cx={26} cy={0} z={29} r={4} h={7} />
+      {/* O extintor sai de x=26 para x=32: com a boia maior, 26 punha o
+          cilindro em cima do traço direito dela. Em isometria "mais x" é mais à
+          direita E mais à frente, então ele também passa a ficar claramente na
+          frente, sem depender de sorte na ordem de pintura. */}
+      <Cilindro cx={32} cy={4} z={3} r={9} h={26} />
+      <Cilindro cx={32} cy={4} z={29} r={4} h={8} />
     </>
   )
 }
