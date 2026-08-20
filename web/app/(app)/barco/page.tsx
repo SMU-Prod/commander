@@ -364,29 +364,20 @@ export default async function BarcoPage({
           antes de qualquer cartão. */}
       <TituloTela subtitulo={embarcacao.nome}>Meu Barco</TituloTela>
 
-      {/* ONDA 134 — a linha do mock sob o título: o escudo de Saúde geral à
-          esquerda e o chip "Fotos do proprietário" à direita (o herói de
-          foto saiu desta tela na onda 133; este chip é a porta que fica).
-          O escudo só desenha quando há dado real — `null` não vira verde. */}
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="flex h-4 items-center gap-1.5">
-          {saudeGeral ? (
-            <>
-              <Farol status={saudeGeral} />
-              <span className="rotulo-dado text-dim">Saúde geral</span>
-              <span className={`rotulo-dado font-semibold ${saudeGeral === "vencido" ? "text-crit" : saudeGeral === "atencao" ? "text-warn" : "text-ok"}`}>
-                {rotuloDoFarol(saudeGeral)}
-              </span>
-            </>
-          ) : null}
+      {/* ONDA 134 — o escudo de Saúde geral sob o título, como no mock; o
+          chip "Fotos do proprietário" que estreou junto SAIU a pedido do
+          dono no mesmo dia (a porta das fotos é a ação rápida "Foto", logo
+          abaixo). O escudo só desenha quando há dado real — `null` não
+          vira verde. */}
+      {saudeGeral && (
+        <p className="mt-3 flex items-center gap-1.5">
+          <Farol status={saudeGeral} />
+          <span className="rotulo-dado text-dim">Saúde geral</span>
+          <span className={`rotulo-dado font-semibold ${saudeGeral === "vencido" ? "text-crit" : saudeGeral === "atencao" ? "text-warn" : "text-ok"}`}>
+            {rotuloDoFarol(saudeGeral)}
+          </span>
         </p>
-        <Link
-          href="/barco/fotos"
-          className="transicao-ui inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3.5 text-sm font-medium text-texto hover:bg-panel3"
-        >
-          <Icone nome="camera" className="size-4" /> Fotos do proprietário
-        </Link>
-      </div>
+      )}
 
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
