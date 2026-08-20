@@ -56,25 +56,17 @@ export function CarrosselBarco({
 
   return (
     <section aria-label={`Fotos de ${nomeBarco}`} className="relative">
-      <div
-        className="relative"
-        style={{
-          /* `black`/`transparent` por extenso: numa máscara só o CANAL ALFA
-             existe — isto não é cor pintada, e hex aqui gastaria o teto do
-             guardião de tokens com um valor que nunca aparece na tela. */
-          maskImage:
-            "linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent), linear-gradient(to bottom, transparent, black 32px, black calc(100% - 32px), transparent)",
-          maskComposite: "intersect",
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent), linear-gradient(to bottom, transparent, black 32px, black calc(100% - 32px), transparent)",
-          WebkitMaskComposite: "source-in",
-        }}
-      >
+      {/* `mascara-borda-esvaida` (app/globals.css) — nasceu aqui na onda 120
+          e virou classe da casa na 122, quando o Diário passou a usar o mesmo
+          contorno no barco do topo. O trilho NÃO veste `rolagem-lateral`: a
+          máscara de borda direita dela, aninhada nesta, só duplicaria o fade. */}
+      <div className="mascara-borda-esvaida relative">
         <div
           ref={trilhoRef}
           onScroll={aoRolar}
           tabIndex={0}
-          className="rolagem-lateral flex snap-x snap-mandatory overflow-x-auto"
+          className="flex snap-x snap-mandatory overflow-x-auto"
+          style={{ scrollbarWidth: "none" }}
         >
           {urls.map((url, i) => (
             <img

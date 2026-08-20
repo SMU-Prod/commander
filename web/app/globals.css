@@ -650,6 +650,28 @@ body.fundo-tela-mapa [data-bottom-nav] {
     mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
   }
 
+  /* ONDA 122 — BORDAS ESVAÍDAS, agora classe da casa. Nasceu no carrossel da
+     Início (pedido do dono: "a linha do card não deve existir... como se as
+     bordas fossem diminuindo a opacidade") e o Diário usa o MESMO contorno no
+     barco do topo — a imagem 5 do guia desenha o iate flutuando sobre o
+     fundo, sem caixa. Na segunda tela a assinatura deixou de ser de uma peça
+     e virou vocabulário; por isso saiu do `style` inline e entrou aqui.
+     Dois gradientes lineares compostos por INTERSEÇÃO, e não um radial: o
+     radial derrete as diagonais muito antes das laterais e come os cantos da
+     imagem; a interseção esvai 32px uniformes em cada uma das quatro bordas.
+     `black`/`transparent` por extenso porque máscara só tem canal alfa —
+     isto não é cor pintada. */
+  .mascara-borda-esvaida {
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent),
+      linear-gradient(to bottom, transparent, black 32px, black calc(100% - 32px), transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent),
+      linear-gradient(to bottom, transparent, black 32px, black calc(100% - 32px), transparent);
+    mask-composite: intersect;
+  }
+
   /* Escala tipográfica — 4 vozes, nada abaixo de 11px.
      Onda 57 — a nav inferior (components/bottom-nav.tsx) teve, até aqui,
      exceção documentada rodando a 9.5px: 5 abas dividem 375px em 75px cada,

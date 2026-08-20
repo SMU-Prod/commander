@@ -109,20 +109,17 @@ export default async function DiarioPage({
     <main>
       <h1 className="titulo-pagina">Diário de Bordo</h1>
 
-      {/* ONDA 118 — O BARCO ABRE O DIÁRIO, como na imagem 5 do guia: a tela
-          de Diário de lá tem a embarcação em 3D no topo, antes dos filtros e
-          da linha do tempo. A cena é a MESMA do hub Casco (`ObjetoHub`),
-          pintada em `--dado` (o azul-aço de série) e não na cor do hub: aqui
-          o barco não é o hub Casco, é o protagonista do Diário — usar o âmbar
-          do Casco diria "isto é sobre estrutura", e é sobre navegar.
-          `h-28` e não os 176px do herói de hub: a imagem 5 desenha o objeto
-          MENOR nas telas operacionais ("elementos 3D nestas telas são menores
-          e de apoio; nunca competem com dados e tarefas", §9 do guia). */}
-      {/* ONDA 119 — o render do iate holográfico (recorte da imagem 1, ver
-          `objeto-hub.tsx`) no lugar da cena desenhada: é literalmente o barco
-          que a imagem 5 põe no topo do Diário. */}
-      <div aria-hidden="true" className="raio-painel relative mt-4 h-32 overflow-hidden border border-line bg-panel">
-        <ObjetoHub chave="iate" className="h-full w-full" />
+      {/* ONDA 118 — O BARCO ABRE O DIÁRIO, como na imagem 5 do guia; onda 119
+          pôs o render do iate holográfico no lugar da cena desenhada.
+          ONDA 122 — A MOLDURA CAI. A imagem 5 não desenha caixa nenhuma em
+          volta do barco: ele FLUTUA sobre o fundo da tela. A borda + painel
+          que este bloco vestia era exatamente a "linha do card" que o dono
+          mandou não existir na Início — mesmo pedido, mesma resposta: a
+          máscara de bordas esvaídas (`mascara-borda-esvaida`, globals.css).
+          `h-36` e não os 176px de herói de hub: §9 do guia — o objeto nas
+          telas operacionais é menor e de apoio, nunca compete com os dados. */}
+      <div aria-hidden="true" className="mascara-borda-esvaida relative mt-2 h-36">
+        <ObjetoHub chave="iate" className="h-full w-full !rounded-none" />
       </div>
       {/* A frase de baixo do título é a do canvas (tela-3a): diz de uma vez o
           que mora aqui, pra primeira visita não precisar deduzir do filtro. */}
@@ -191,7 +188,13 @@ export default async function DiarioPage({
       {grupos.map((g) => (
         <section key={g.rotulo}>
           <SecaoPagina>{g.rotulo}</SecaoPagina>
-          <div className="flex flex-col gap-2">
+          {/* ONDA 122 — o FIO da linha do tempo: um traço de 1px atrás da
+              coluna de medalhões (centro do círculo de 36px = 18px), ligando
+              os registros do mês como a imagem 5 desenha. `top-2/bottom-4`
+              param o fio no primeiro e no último medalhão em vez de vazar
+              pelas pontas da lista. */}
+          <div className="relative flex flex-col gap-2">
+            <span aria-hidden="true" className="absolute bottom-4 left-[18px] top-2 w-px bg-line" />
             {g.eventos.map((e) => {
               const eq = e.equipamento_id ? porId.get(e.equipamento_id) : null
               const urlAnexo = e.anexo_path ? urlsAnexo.get(e.id) : null
@@ -233,30 +236,26 @@ export default async function DiarioPage({
                 : ""
               const titulo = ehSaida
                 ? tituloDaSaida(e.local_saida, e.destino) ?? TIPO_ROTULO[e.tipo]
-                : tituloDoRegistro(e.tipo, TIPO_ROTULO[e.tipo] ?? e.tipo, e.descricao, eq ? nomeDoEquipamento(eq) : null)
+                : tituloDoRegistro(TIPO_ROTULO[e.tipo] ?? e.tipo, e.descricao, eq ? nomeDoEquipamento(eq) : null)
+              // ONDA 122 — O CARTÃO GANHA A ANATOMIA DA IMAGEM 5 DO GUIA:
+              // a primeira linha é o CARTUCHO "data · tipo" (a imagem escreve
+              // "18 ago 2026 · Navegação" em cima de cada registro, na cor do
+              // tipo), o título vem na segunda, e o chevron fecha a linha SÓ
+              // na saída — que é o único cartão que navega; chevron em cartão
+              // que não abre nada seria promessa quebrada. O ícone que morava
+              // aqui desceu pro MEDALHÃO da linha do tempo, ao lado do cartão.
+              // A data sai do canto direito: dentro de um grupo que já se
+              // chama "Agosto", "18/08" à esquerda conta a mesma história sem
+              // disputar a borda com o chevron.
+              const corDoTipo = ehSaida ? "text-accent-forte" : e.tipo === "avaria" ? "text-crit" : "text-dim"
               const conteudo = (
                 <>
-                  <div className="flex items-center gap-2">
-                    {/* ONDA 92 (eixo 1.1 da auditoria de 19/08) — A PASTILHA DE
-                        30px ERA QUEM MANDAVA NA ALTURA DA PRIMEIRA LINHA.
-                        O título de uma linha mede 20,25px (`.titulo-card`,
-                        15px × 1,35); a pastilha media 30. Ou seja: 10px por
-                        cartão gastos numa moldura decorativa que repetia o que
-                        o título já diz ("Docagem" com o ícone de âncora).
-                        Ícone de 20px na linha do título entrega a mesma
-                        leitura e devolve os 10px.
-                        O dourado da saída — "a atividade, o coração do feed" —
-                        continua, agora no traço em vez de num fundo: mesma
-                        distinção, uma superfície dourada a menos por cartão
-                        num feed que empilha dezenas deles. */}
-                    <Icone
-                      nome={ICONE_TIPO[e.tipo] ?? "mais"}
-                      className={`size-5 shrink-0 ${ehSaida ? "text-accent-forte" : "text-dim"}`}
-                    />
+                  <p className={`rotulo-dado tabular-nums ${corDoTipo}`}>
+                    {formatarDataCurta(e.data)} · {TIPO_ROTULO[e.tipo] ?? e.tipo}
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-2">
                     <p className="titulo-card min-w-0 flex-1 line-clamp-2">{titulo}</p>
-                    <span className="shrink-0 tabular-nums text-xs tabular-nums text-dim">
-                      {formatarDataCurta(e.data)}
-                    </span>
+                    {ehSaida && <Icone nome="chevron" className="size-4 shrink-0 text-dim" />}
                   </div>
                   {ehSaida && (
                     /* ONDA 93 — A FILEIRA VOLTA PRA CASA. Estas três pílulas
@@ -382,15 +381,44 @@ export default async function DiarioPage({
               // não dentro dela) OU alinhamento ao topo, pra ícone e data não
               // flutuarem no meio de um bloco de três linhas. Prop nova em
               // componente de outro dono — vai no relatório, não aqui.
-              const casca = "block rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
-              return ehSaida ? (
-                <Link key={e.id} href={`/diario/${e.id}`} className={casca}>
-                  {conteudo}
-                </Link>
-              ) : (
-                <div key={e.id} className={casca}>
-                  {conteudo}
-                </div>
+              //
+              // (Nota da onda 122: a conta acima descreve o cartão ANTES da
+              // linha do tempo — ícone e data moravam na linha do título. O
+              // cartucho "data · tipo" acrescenta ~15px por cartão e o
+              // medalhão come 48px de largura; o preço está medido na prova
+              // visual da onda, e a régua das alternativas descartadas segue
+              // valendo: fileira de chips a 390px continua no limite.)
+              // ONDA 122 — O MEDALHÃO DA LINHA DO TEMPO (imagem 5): o círculo
+              // com o ícone do tipo, ligado ao vizinho pelo fio que a `<div>`
+              // do grupo desenha atrás. A cor obedece a régua do feed: ouro só
+              // na saída (a atividade), vermelho só na avaria (semântico), o
+              // resto neutro — a imagem pinta cada tipo de uma cor, mas seis
+              // cores empilhadas era exatamente o "zoneado" que o redesign
+              // veio matar; escopo de cor é a regra da casa (§5).
+              // `bg-panel2` opaco de propósito: é quem esconde o fio na
+              // passagem por trás do círculo.
+              const casca = "block min-w-0 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
+              const corMedalhao = ehSaida
+                ? "border-accent/40 text-accent-forte"
+                : e.tipo === "avaria"
+                  ? "border-crit/40 text-crit"
+                  : "border-line text-dim"
+              return (
+                <article key={e.id} className="flex gap-3">
+                  <span
+                    aria-hidden="true"
+                    className={`relative z-[1] mt-1.5 flex size-9 shrink-0 items-center justify-center rounded-full border bg-panel2 ${corMedalhao}`}
+                  >
+                    <Icone nome={ICONE_TIPO[e.tipo] ?? "mais"} className="size-4" />
+                  </span>
+                  {ehSaida ? (
+                    <Link href={`/diario/${e.id}`} className={casca}>
+                      {conteudo}
+                    </Link>
+                  ) : (
+                    <div className={casca}>{conteudo}</div>
+                  )}
+                </article>
               )
             })}
           </div>

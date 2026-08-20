@@ -64,16 +64,18 @@ describe("tituloDaSaida", () => {
 
 describe("tituloDoRegistro", () => {
   it("a descricao digitada vira o titulo, com o equipamento atras", () => {
-    expect(tituloDoRegistro("manutencao", "Manutenção", "troca de impelidor", "Motor BB"))
+    expect(tituloDoRegistro("Manutenção", "troca de impelidor", "Motor BB"))
       .toBe("Troca de impelidor — Motor BB")
   })
-  it("abastecimento mantem o rotulo na frente: a descricao dele e quantidade, nao verbo", () => {
-    expect(tituloDoRegistro("abastecimento", "Abastecimento", "320 L", null))
-      .toBe("Abastecimento — 320 L")
+  // Onda 122: o cartucho do cartao ja diz "Abastecimento" — o titulo
+  // repetindo o tipo era a mesma redundancia dos subtitulos que o dono
+  // mandou cortar. A descricao fica sozinha.
+  it("o titulo nao repete o tipo que o cartucho ja diz", () => {
+    expect(tituloDoRegistro("Abastecimento", "320 L", null)).toBe("320 L")
   })
-  it("sem descricao, sobra o rotulo do tipo — nunca titulo inventado", () => {
-    expect(tituloDoRegistro("avaria", "Avaria", null, null)).toBe("Avaria")
-    expect(tituloDoRegistro("docagem", "Docagem", "  ", "Motor BE")).toBe("Docagem — Motor BE")
+  it("sem descricao, o equipamento responde; sem os dois, sobra o rotulo do tipo — nunca titulo inventado", () => {
+    expect(tituloDoRegistro("Avaria", null, null)).toBe("Avaria")
+    expect(tituloDoRegistro("Docagem", "  ", "Motor BE")).toBe("Motor BE")
   })
 })
 

@@ -125,6 +125,48 @@ export default async function globalSetup(config: FullConfig) {
       capa ??= destino
     }
     if (capa) await admin.from("embarcacoes").update({ foto_capa_path: capa }).eq("id", barco.id)
+    // DIÁRIO DE BORDO (onda 122). A prova visual fotografava um Diário
+    // eternamente vazio — o estado que NÃO é o da tela (linha do tempo,
+    // medalhões, cartucho de tipo). Cinco registros em dois meses cobrem os
+    // ramos que importam: saída com GPS e sem GPS, abastecimento, avaria
+    // (medalhão vermelho) e manutenção com custo + horímetro. Datas fixas,
+    // não relativas: a prova compara capturas entre rodadas, e um feed que
+    // muda de mês sozinho viraria diff perpétuo. Morrem com o usuário no
+    // teardown (cascade via embarcação).
+    await admin.from("eventos").insert([
+      {
+        embarcacao_id: barco.id, tipo: "navegacao", data: "2026-08-16",
+        local_saida: "Marina da Glória", destino: "Ilhas Cagarras",
+        hora_saida: "09:30", hora_retorno: "13:50", distancia_nm: 14.2,
+        mar_onda_m: 0.8, mar_vento_kt: 12, tripulacao: [], passageiros: ["Ana", "Pedro"],
+        importado_do_plotter: false, trilha_sem_horario: false, criado_por: criado.user.id,
+      },
+      {
+        embarcacao_id: barco.id, tipo: "abastecimento", data: "2026-08-12",
+        descricao: "Diesel, 180 L", custo_centavos: 68000,
+        tripulacao: [], passageiros: [], importado_do_plotter: false, trilha_sem_horario: false,
+        criado_por: criado.user.id,
+      },
+      {
+        embarcacao_id: barco.id, tipo: "navegacao", data: "2026-07-27",
+        local_saida: "Marina da Glória", destino: "Itaipu",
+        hora_saida: "10:00", hora_retorno: "16:20",
+        tripulacao: [], passageiros: ["Marcos"],
+        importado_do_plotter: false, trilha_sem_horario: false, criado_por: criado.user.id,
+      },
+      {
+        embarcacao_id: barco.id, tipo: "avaria", data: "2026-07-19",
+        descricao: "Bomba de porão sem partida",
+        tripulacao: [], passageiros: [], importado_do_plotter: false, trilha_sem_horario: false,
+        criado_por: criado.user.id,
+      },
+      {
+        embarcacao_id: barco.id, tipo: "manutencao", data: "2026-07-10",
+        descricao: "Troca de óleo e filtros", custo_centavos: 240000, horas_no_momento: 605,
+        tripulacao: [], passageiros: [], importado_do_plotter: false, trilha_sem_horario: false,
+        criado_por: criado.user.id,
+      },
+    ])
     console.log("[e2e] embarcação de teste semeada.")
   }
 

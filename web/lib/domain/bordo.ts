@@ -93,23 +93,28 @@ export function tituloDaSaida(localSaida: string | null, destino: string | null)
 
 /**
  * O titulo de um registro NAO-saida no feed (canvas tela-3a: "Troca de
- * impelidor — Motor BB", "Abastecimento — 320 L"): o verbo no titulo, como
- * a nota do canvas pede — a descricao digitada vira o titulo, com o
- * equipamento atras; abastecimento mantem o rotulo do tipo na frente
- * porque a descricao dele e quantidade ("320 L"), nao verbo. Sem descricao,
- * sobra o rotulo do tipo — nunca titulo inventado.
+ * impelidor — Motor BB"): a descricao digitada vira o titulo, com o
+ * equipamento atras.
+ *
+ * ONDA 122 — O TITULO PAROU DE REPETIR O TIPO. O cartao do feed ganhou o
+ * cartucho "data · tipo" da imagem 5 do guia ("12/08 · Abastecimento"), e
+ * com ele os dois casos que escreviam o rotulo do tipo no titulo viraram
+ * eco: "Abastecimento — 320 L" embaixo de "Abastecimento" e a mesma
+ * redundancia dos subtitulos que o dono mandou cortar. Agora a descricao
+ * fica sozinha; sem descricao, o equipamento responde ("Motor BE"); so sem
+ * os dois e que sobra o rotulo do tipo — o cartao precisa de UM titulo, e
+ * nesse caso degenerado o eco e menos ruim que um vazio. Nunca titulo
+ * inventado. (O parametro `tipo` saiu junto: so existia pro caso especial
+ * do abastecimento.)
  */
 export function tituloDoRegistro(
-  tipo: string,
   rotuloTipo: string,
   descricao: string | null,
   nomeEquipamento: string | null,
 ): string {
-  const sufixo = nomeEquipamento ? ` — ${nomeEquipamento}` : ""
   const texto = descricao?.trim() || null
-  if (!texto) return `${rotuloTipo}${sufixo}`
-  if (tipo === "abastecimento") return `${rotuloTipo} — ${texto}`
-  return `${texto.charAt(0).toUpperCase()}${texto.slice(1)}${sufixo}`
+  if (texto) return `${texto.charAt(0).toUpperCase()}${texto.slice(1)}${nomeEquipamento ? ` — ${nomeEquipamento}` : ""}`
+  return nomeEquipamento ?? rotuloTipo
 }
 
 /**
