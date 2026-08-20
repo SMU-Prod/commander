@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { Logo } from "@/components/logo"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 import { RotaPorCalado } from "@/components/landing/rota-por-calado"
 import { VencePrimeiro } from "@/components/landing/vence-primeiro"
 import { asaasConfigurado } from "@/lib/asaas"
@@ -243,26 +244,26 @@ export default async function LandingPage() {
       </header>
 
       {/* ===================================================================
-          HERÓI — A DECISÃO ASSUMIDA DA PÁGINA (docs/DESIGN.md §4)
+          HERÓI — O PRODUTO APARECE NO PRIMEIRO SEGUNDO (onda 129)
           ===================================================================
-          Uma decisão grande, não sete médias. Aqui ela é a carta náutica com o
-          A* rodando: é o que o produto tem de mais característico e o que
-          nenhum concorrente daqui tem. Todo o resto da página é instrumento e
-          se comporta como instrumento.
+          Diagnóstico do dono, 20/08: "a landing destoa totalmente da estética
+          visual do nosso app". Tinha razão, e a causa não era token — era
+          LINGUAGEM: o herói abria com o demo do A* (uma caixa escura escrita
+          "lendo a malha de costa…" e jargão de célula) antes de mostrar UM
+          pixel do produto. O demo é diferencial real e CONTINUA na página —
+          três seções abaixo, depois que a pessoa viu o que está comprando.
+          O herói agora é o do app: o iate em render com as bordas esvaídas
+          (`mascara-borda-esvaida`, a mesma assinatura da Início e do Diário).
 
-          O H1 sai em 24px no celular e 32 no resto — os degraus H1 e Display XL
-          do HAULIX §08–11. O tamanho é escrito à mão, e não pela classe
-          `.titulo-pagina`, por um motivo mecânico: a utilitária crava
-          `font-size: 1.5rem` e, por vir depois no CSS em cascade layers, vence
-          qualquer `sm:text-[32px]` na mesma tag. Peso, entrelinha e aperto
-          replicam a voz dela — é a mesma classe, num corpo maior, não uma voz
-          nova. (A página anterior fazia o mesmo em 36/48/60px: aqui o teto
-          desce para o degrau que o documento declara, porque "tipografia
-          superdimensionada" está na lista do §58 do que não fazer.) */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:pb-24 lg:pt-16">
+          O H1 sobe para 32/40 — o Display XL, topo da escala declarada. A
+          vitrine é o ÚNICO lugar do produto que usa esse degrau (dentro do
+          app o teto de tela é 24): aqui ele é manchete, não título de tela.
+          Escrito à mão pelo motivo mecânico de sempre: `.titulo-pagina` crava
+          1.5rem em cascade layer e venceria o `sm:`. */}
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-24 lg:pt-16">
         <div>
           <p className="rotulo text-dim">Navegação e ficha do barco no mesmo app</p>
-          <h1 className="mt-3 text-2xl font-[650] leading-[1.25] tracking-[-0.022em] text-balance sm:text-[32px]">
+          <h1 className="mt-3 text-[32px] font-[650] leading-[1.15] tracking-[-0.022em] text-balance sm:text-[40px]">
             A rota passa onde o seu barco passa.
           </h1>
           <p className="corpo mt-4 max-w-md text-dim">
@@ -278,9 +279,52 @@ export default async function LandingPage() {
               Ver planos
             </a>
           </div>
-          <p className="apoio mt-4 text-dim">
-            Arraste o calado ao lado. A rota é recalculada no seu aparelho, com a mesma malha de costa que o
-            app usa.
+        </div>
+        {/* O iate esvaindo pro fundo — sem moldura, sem legenda: é atmosfera,
+            e o `aria-hidden` do ObjetoHub já o tira do leitor de tela. */}
+        <div className="mascara-borda-esvaida relative h-56 sm:h-72 lg:h-80">
+          <ObjetoHub chave="iate" className="h-full w-full !rounded-none" />
+        </div>
+      </section>
+
+      {/* ===================================================================
+          AS TELAS DE VERDADE — a vitrine mostra o produto, não o descreve
+          ===================================================================
+          Três capturas REAIS, gravadas pela prova visual do repositório (os
+          mesmos PNGs que o robô fotografa a cada onda, copiados para
+          `public/imagens/landing/`). Zero mock desenhado à mão: quando o app
+          muda, a próxima cópia da prova atualiza a vitrine — e a landing
+          nunca mais mente sobre o produto (a lição do mock falso que a onda
+          103 apagou). Moldura mínima de aparelho: raio grande + borda da
+          casa; fileira rolável no celular, a régua de toda fileira. */}
+      <section className="mx-auto max-w-6xl px-6 pb-14 sm:pb-20">
+        <div className="rolagem-lateral flex snap-x gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:gap-6" style={{ scrollbarWidth: "none" }}>
+          {[
+            { src: "/imagens/landing/tela-inicio.png", alt: "Tela Início do Commander: carrossel de fotos do barco, saúde e diário" },
+            { src: "/imagens/landing/tela-motores.png", alt: "Hub Motores: horímetros, manutenções e alertas em abas" },
+            { src: "/imagens/landing/tela-diario.png", alt: "Diário de Bordo: linha do tempo de saídas, abastecimentos e avarias" },
+          ].map((tela) => (
+            <div key={tela.src} className="w-60 shrink-0 snap-center overflow-hidden rounded-[28px] border border-line bg-panel p-1.5 sombra-1 lg:w-auto">
+              {/* eslint-disable-next-line @next/next/no-img-element -- captura estática da prova visual */}
+              <img src={tela.src} alt={tela.alt} loading="lazy" className="w-full rounded-[22px]" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ===================================================================
+          O DEMO DO CALADO — o diferencial continua, no lugar certo
+          ===================================================================
+          Era o herói; onda 129 o desceu para depois do produto. O argumento
+          de engenharia convence DEPOIS que a estética abriu a porta — e
+          aqui ele ganha o contexto que o herói não dava. */}
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-14 sm:py-20 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+        <div>
+          <p className="rotulo text-dim">Navegação</p>
+          <h2 className="titulo-secao mt-2">Arraste o calado — a rota desvia sozinha.</h2>
+          <p className="corpo mt-3 max-w-md text-dim">
+            Isto não é um vídeo: é o mesmo cálculo do app, rodando agora no seu aparelho, com a mesma malha
+            de costa e a mesma grade de profundidade. Nenhum aplicativo de rua sabe onde o seu barco não cabe.
           </p>
         </div>
         <RotaPorCalado />
@@ -289,21 +333,25 @@ export default async function LandingPage() {
       {/* ===================================================================
           A EXTENSÃO — "não tem 1/4 do que nosso app disponibiliza"
           ===================================================================
-          Quatro colunas densas, sem cartão e sem ícone por linha. A régua é a
-          do §5 do docs/DESIGN.md: densidade é respeito, e informação espalhada
-          em cartões arejados obriga a rolar. Um ícone por ATO — quatro na
-          página inteira — porque ícone em toda linha é a assinatura visual que
-          o §1 nomeia. */}
+          ONDA 129 — os quatro atos vestem o CARTÃO da casa. A versão anterior
+          defendia colunas soltas ("densidade é respeito"), e a densidade
+          fica; o que muda é a gramática: o app inteiro fala por cartões com
+          borda e raio sobre o navy, e a vitrine falando por texto solto era
+          exatamente o "destoa totalmente" que o dono nomeou. Um ícone por
+          ATO continua — agora no medalhão circular do Diário, a moldura de
+          ícone da casa. */}
       <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
         <h2 className="titulo-secao">A vida do barco, do começo ao fim</h2>
         <p className="corpo mt-2 max-w-xl text-dim">
           O que o Commander faz, na ordem em que o dia acontece.
         </p>
-        <div className="mt-10 grid gap-10 sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ATOS.map((ato) => (
-            <div key={ato.ordem}>
-              <div className="flex items-center gap-2 border-b border-line pb-3">
-                <Icone nome={ato.icone} className="size-4 shrink-0 text-dim" />
+            <div key={ato.ordem} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-dim">
+                  <Icone nome={ato.icone} className="size-4" />
+                </span>
                 <span className="rotulo tabular-nums text-dim">{ato.ordem}</span>
               </div>
               <h3 className="titulo-card mt-3">{ato.titulo}</h3>
@@ -347,9 +395,10 @@ export default async function LandingPage() {
           =================================================================== */}
       <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
         <h2 className="titulo-secao">Três coisas que só existem aqui</h2>
-        <dl className="mt-8 grid gap-x-8 gap-y-8 sm:grid-cols-3">
+        {/* ONDA 129 — cartões da casa, mesma razão dos quatro atos acima. */}
+        <dl className="mt-8 grid gap-4 sm:grid-cols-3">
           {SO_AQUI.map((s) => (
-            <div key={s.titulo} className="border-t border-line pt-4">
+            <div key={s.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
               <dt className="titulo-card">{s.titulo}</dt>
               <dd className="corpo mt-2 text-dim">{s.corpo}</dd>
             </div>
