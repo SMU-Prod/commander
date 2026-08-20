@@ -7,6 +7,7 @@ import { Avatar } from "@/components/avatar"
 import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { CaminhoInicial } from "@/components/onboarding/caminho-inicial"
 import { Icone, type NomeIcone } from "@/components/icone"
+import { ThemeToggleCompacto } from "@/components/theme-toggle"
 import { TituloTela } from "@/components/titulo-tela"
 import { Cartao } from "@/components/ui/cartao"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -656,7 +657,15 @@ export default async function HojePage({
           No lugar entra o que o mockup põe e o app não tinha: o NOME DA ÁREA,
           com o filete dourado. */}
       <div className="lg:col-span-3">
-        <TituloTela>Início</TituloTela>
+        {/* ONDA 137 — o atalho de tema do sócio ("um atalhozinho na Home"):
+            lua no claro, sol no escuro, encostado à direita do título. O
+            segmentado completo continua em Ajustes → Aparência. */}
+        <div className="relative">
+          <TituloTela>Início</TituloTela>
+          <div className="absolute right-0 top-1">
+            <ThemeToggleCompacto />
+          </div>
+        </div>
       </div>
 
       {erro && (

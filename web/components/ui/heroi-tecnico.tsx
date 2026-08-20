@@ -77,7 +77,13 @@ export function HeroiTecnico({
          "imagem: motor" aqui repetiria a palavra anterior — e o §14 é explícito
          em que asset decorativo usa alternativo vazio. */
       aria-hidden="true"
-      className={`raio-painel relative flex h-44 items-center justify-center overflow-hidden border bg-panel sm:h-52 ${h.borda} ${h.tom} ${className}`}
+      /* ONDA 137 — `bg-meter` e não `bg-panel`: o palco do herói é CARTUCHO
+         DE INSTRUMENTO (navy fixo nos dois temas, a mesma regra do
+         horímetro). O motivo é medido: os renders têm fundo navy assado no
+         arquivo, e sobre painel CLARO eles viravam um retângulo escuro
+         boiando — o "quadrado" que o dono condenou, de volta por outra
+         porta. Sobre o navy fixo a emenda some nos dois temas. */
+      className={`raio-painel relative flex h-44 items-center justify-center overflow-hidden border bg-meter sm:h-52 ${h.borda} ${h.tom} ${className}`}
     >
       <span className={`absolute inset-0 ${h.halo}`} />
 
@@ -114,19 +120,12 @@ export function HeroiTecnico({
         <ellipse cx="180" cy="132" rx="94" ry="19" strokeOpacity=".18" />
         <ellipse cx="180" cy="132" rx="56" ry="11" strokeOpacity=".30" />
 
-        {/* 4 — o HUD: quatro cantos de enquadramento e dois traços de escala. */}
-        <g strokeOpacity=".25" strokeWidth="1.5">
-          <path d="M14 34 v-12 h12" />
-          <path d="M346 34 v-12 h-12" />
-          <path d="M14 166 v12 h12" />
-          <path d="M346 166 v12 h-12" />
-        </g>
-        <g strokeOpacity=".18">
-          <line x1="14" y1="92" x2="24" y2="92" />
-          <line x1="14" y1="104" x2="20" y2="104" />
-          <line x1="346" y1="92" x2="336" y2="92" />
-          <line x1="346" y1="104" x2="340" y2="104" />
-        </g>
+        {/* 4 — o HUD SAIU (onda 137). Os quatro cantos de enquadramento eram
+            os únicos ângulos retos vivos num app onde toda quina é
+            arredondada, e o dono nomeou o defeito: "todos os cantos não têm
+            ponta, aí você coloca quadrados com pontas nos hubs pra quê?". O
+            §2 pedia HUD discreto; a leitura de 20/08 é que a discrição aqui
+            é a ausência — atmosfera quem faz é o véu, a grade e os anéis. */}
       </svg>
 
       {/* O OBJETO — agora é `ObjetoHub`, ilustração isométrica desenhada peça a

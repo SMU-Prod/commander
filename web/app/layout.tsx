@@ -75,25 +75,26 @@ export const metadata: Metadata = {
 }
 
 // `themeColor` pinta a barra do navegador/sistema — tem que ser o MESMO
-// valor de `--fundo` do tema escuro, senão a moldura do celular fica de uma
-// cor e o app de outra. Era o navy antigo até a onda 79 medir a paleta da
-// referência e o chão virar cinza puro.
+// valor do `--fundo` do tema que ABRE, senão a moldura do celular fica de
+// uma cor e o app de outra. Onda 137: o padrão virou o CLARO, então o valor
+// é o fundo claro de globals.css.
 //
 // É o único hexadecimal legítimo do app fora de globals.css: `Viewport` do
 // Next é metadado estático, não CSS — não existe `var()` aqui. Por isso o
 // teto de cor literal deste arquivo em `lib/ui/tokens.test.ts` é 1, e o
 // número acima é ele. Nem em comentário cabe um segundo: o guarda conta
 // ocorrência de hexadecimal no arquivo inteiro, comentário incluído.
-export const viewport: Viewport = { themeColor: "#101010", viewportFit: "cover" }
+export const viewport: Viewport = { themeColor: "#eef2f6", viewportFit: "cover" }
 
-// O ESCURO É O PADRÃO (spec da fundação §7: "o tema escuro vira o padrão da
-// vitrine"). A referência que o dono aprovou é escura; a onda 57 construiu a
-// paleta inteira — e esta linha a deixava atrás de um toggle que ninguém
-// apertava: o dono passou três ondas olhando o tema claro e chamando o app
-// de genérico, com razão. O claro CONTINUA existindo (leitura sob sol na
-// marina, Ajustes → Aparência) — só deixa de ser o que abre.
-// Roda antes da pintura para não piscar claro em quem escolheu claro.
-const temaInicial = `try{if(localStorage.getItem("tema")!=="light")document.documentElement.dataset.theme="dark"}catch(e){document.documentElement.dataset.theme="dark"}`
+// ONDA 137 — O CLARO VOLTA A SER O PADRÃO, por decisão do dono e do sócio
+// (20/08: "deixa o app iniciar com claro, é melhor"). A história completa em
+// uma linha: o escuro virou padrão na onda 104 porque a referência aprovada
+// era escura; com o app testado no dia a dia, o veredito de uso é o
+// contrário — sob sol na marina o claro lê melhor, e o escuro fica a um
+// toque (atalho na Início + Ajustes → Aparência). Quem já ESCOLHEU escuro
+// continua abrindo escuro: a preferência salva vence o padrão.
+// Roda antes da pintura para não piscar claro em quem escolheu escuro.
+const temaInicial = `try{if(localStorage.getItem("tema")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

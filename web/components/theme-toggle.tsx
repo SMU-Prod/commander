@@ -1,10 +1,47 @@
 "use client"
 import { useEffect, useState } from "react"
+import { Icone } from "@/components/icone"
 
 const opcoes = [
   { valor: "light", rotulo: "Claro" },
   { valor: "dark", rotulo: "Escuro" },
 ] as const
+
+/**
+ * ONDA 137 — O ATALHO DA INÍCIO (pedido do sócio, 20/08: "coloca claro e
+ * escuro um atalhozinho na Home"). Um botão só, que mostra o tema PARA ONDE
+ * o toque leva (lua no claro, sol no escuro) — o segmentado completo
+ * continua em Ajustes → Aparência. Mesma mecânica do irmão de cima:
+ * `data-theme` no `<html>` + `localStorage("tema")`.
+ */
+export function ThemeToggleCompacto({ className = "" }: { className?: string }) {
+  const [tema, setTema] = useState<"light" | "dark">("light")
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza estado inicial com o DOM pos-hydration
+    setTema(document.documentElement.dataset.theme === "dark" ? "dark" : "light")
+  }, [])
+  function alternar() {
+    const novo = tema === "dark" ? "light" : "dark"
+    setTema(novo)
+    if (novo === "dark") document.documentElement.dataset.theme = "dark"
+    else delete document.documentElement.dataset.theme
+    try {
+      localStorage.setItem("tema", novo)
+    } catch {}
+  }
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      aria-label={tema === "dark" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
+      className={`transicao-ui flex size-11 items-center justify-center ${className}`}
+    >
+      <span className="flex size-8 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 text-dim">
+        <Icone nome={tema === "dark" ? "sol" : "lua"} className="size-4" />
+      </span>
+    </button>
+  )
+}
 
 export function ThemeToggle() {
   const [tema, setTema] = useState<"light" | "dark">("light")

@@ -51,6 +51,10 @@ const PATHS = {
   // "compartilhar" (seta saindo da caixa): compartilhar ENTREGA, copiar
   // GUARDA pra colar onde a pessoa quiser.
   copiar: <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M15 5H6a2 2 0 0 0-2 2v9" /></>,
+  // Onda 137 (atalho de tema na Início): sol e lua — o desenho universal de
+  // claro/escuro. O botão mostra o tema PARA ONDE o toque leva.
+  sol: <><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" /></>,
+  lua: <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />,
   // Onda 20 (tempo no mar): três linhas de vento com voltas, ícone universal
   // de "vento" (mesmo desenho da família Feather) — usado no cabeçalho do
   // painel de Tempo, distinto da seta rotacionada (essa é SVG à parte, não
