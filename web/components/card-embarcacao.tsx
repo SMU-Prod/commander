@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Icone } from "@/components/icone"
 import type { StatusFarol } from "@/lib/domain/semaforo"
 import type { Embarcacao } from "@/lib/db/types"
+import { Logo } from "@/components/logo"
 
 const ROTULO: Record<StatusFarol, string> = {
   ok: "Tudo em dia",
@@ -230,11 +231,27 @@ export function CardEmbarcacao({
    */
   const NOME_DO_BARCO = "text-2xl font-[650] uppercase tracking-[.06em] text-meter-texto"
   const legendaDoBarco = [embarcacao.marina, legenda].filter(Boolean).join(" · ")
+  /**
+   * ONDA 111 — O SELO DO HERÓI TINHA DOIS DEFEITOS NA MESMA LINHA.
+   * ==========================================================================
+   * 1. Era o MONOGRAMA ANTIGO, escrito à mão em `<path>` — o mesmo que estava
+   *    no topo do trilho, e o motivo do *"ainda tem lugar usando o logo
+   *    antigo"* do dono. A identidade aprovada é `public/logo-commander.svg`.
+   * 2. E cravava o DOURADO ANTERIOR em hexadecimal. O ouro da marca mudou de
+   *    valor na onda 104 (§4 do guia) — então o selo do herói vinha saindo num
+   *    ouro que nenhum outro pixel do app usa, na peça de identidade mais
+   *    visível da Início. Duas cores de marca lado a lado é pior do que uma
+   *    errada: lê como erro de renderização.
+   * O `<img>` do `Logo` resolve os dois: símbolo certo, e a cor vem de dentro
+   * do arquivo da marca em vez de ser recopiada aqui.
+   * (Os dois valores NÃO estão escritos neste comentário de propósito: o teto
+   * de `lib/ui/tokens.test.ts` conta cor literal por arquivo e não distingue
+   * comentário de código — citar o hexadecimal subiria o teto por causa de uma
+   * citação. A catraca está certa em ser burra; quem cita é que muda.)
+   */
   const burgee = (
-    <span className="flex items-center gap-1.5">
-      <svg viewBox="0 0 48 34" className="h-3.5 w-auto" aria-hidden="true">
-        <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="#d4af37" />
-      </svg>
+    <span className="flex items-center gap-1.5 text-[14px]">
+      <Logo compacto />
       <span className="rounded-[var(--raio-pilula)] bg-[#0b1d2d]/75 px-2 py-0.5 rotulo text-meter-texto backdrop-blur">
         Commander
       </span>

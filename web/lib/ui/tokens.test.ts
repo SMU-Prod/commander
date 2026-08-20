@@ -54,7 +54,12 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   // claro quando o app abre no escuro. Os 17 que sobram são as três luzes
   // vivas do semáforo de instrumento, o dourado do burgee e os navys/véus do
   // gradiente do herói — cada um com o porquê escrito no próprio arquivo.
-  "components/card-embarcacao.tsx": 17,
+  // ONDA 111 — 17 → 16. O burgee do herói parou de desenhar o monograma
+  // ANTIGO num `<path>` escrito à mão com o ouro anterior cravado, e passou a
+  // usar `Logo` (o `public/logo-commander.svg`, a identidade aprovada). Era a
+  // mesma peça que o topo do trilho desenhava, e as duas eram o "ainda tem
+  // lugar usando o logo antigo" que o dono viu no app publicado.
+  "components/card-embarcacao.tsx": 16,
   "components/selos/selo-verified.tsx": 9,
   "app/(app)/barco/equipamento/[id]/page.tsx": 8,
   "components/explorar/cards-parceiros.tsx": 4,

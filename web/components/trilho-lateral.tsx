@@ -5,6 +5,7 @@ import { AREA_AGENDA } from "@/lib/domain/agenda"
 import { podeVer, type Aba, type Permissoes } from "@/lib/domain/permissoes"
 import { ContadorAvisos } from "./ui/contador-avisos"
 import { Icone, type NomeIcone } from "./icone"
+import { Logo } from "@/components/logo"
 
 /**
  * ONDA 57 — A NAVEGAÇÃO DE DESKTOP QUE NÃO EXISTIA.
@@ -101,14 +102,20 @@ export function TrilhoLateral({
       // seja `visible` neste <nav> corta o rótulo no meio da palavra.
       className="no-imprimir fixed inset-y-0 left-0 z-20 hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-5 lg:flex"
     >
-      {/* ONDA 62 — a marca no alto do trilho (canvas tela-3n): o M dourado do
-          Commander abre a coluna, como no desenho do dono. Decorativa
-          (`aria-hidden`), não é alvo — o caminho pra casa continua sendo o
-          primeiro destino logo abaixo. É o dourado DE MARCA, que a regra da
-          moldura sempre permitiu ao lado do de navegação. */}
-      <svg viewBox="0 0 48 34" className="mb-3.5 h-[22px] w-auto" aria-hidden="true">
-        <path d="M4 32 V10 L15 22 24 5 33 22 44 10 V32 H36 V24 L28 32 H20 L12 24 V32 Z" fill="var(--acao)" />
-      </svg>
+      {/* ONDA 111 — A MARCA DO TRILHO ERA UM MONOGRAMA ESCRITO À MÃO.
+          =====================================================================
+          O dono, olhando o app publicado: *"AINDA TEM LUGAR USANDO O LOGO
+          ANTIGO"*. Era aqui. Estas duas linhas desenhavam um `<path>` de 12
+          coordenadas — o "M" da identidade ANTERIOR — enquanto a identidade
+          aprovada mora em `public/logo-commander.svg` e é o que o componente
+          `Logo` serve em todos os outros lugares do app.
+          Não era deriva de cor nem de tamanho: era OUTRO SÍMBOLO, na peça mais
+          visível do desktop (topo do trilho, presente em toda tela).
+          `Logo compacto` é o símbolo sem o wordmark — que é o que cabe numa
+          coluna de 72px, e é a mesma peça que o Menu e a vitrine já usam. */}
+      <span className="mb-3.5 block text-[22px]">
+        <Logo compacto />
+      </span>
       {DESTINOS.filter((d) => d.aba == null || podeVer(permissoes, d.aba)).map((d) => {
         // `startsWith` com a barra: sem ela `/barco` acenderia junto com
         // qualquer rota que só COMECE com essas letras.

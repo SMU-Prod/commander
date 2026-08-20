@@ -1068,15 +1068,45 @@ export default async function HojePage({
               <BoletimDoMar lat={embarcacao.marina_lat} lon={embarcacao.marina_lon} />
             </Suspense>
           )}
-          {/* Iniciar navegação mora aqui e não num botão dourado próprio: é a
-              ação do MAR, e o dourado da tela já tem dono. */}
-          <LinhaLista
-            className="mt-3"
+          {/* ==================================================================
+              ONDA 111 — NAVEGAR DEIXA DE SER A ÚLTIMA LINHA DE UM CARD DE CLIMA.
+              ==================================================================
+              O dono: *"A PARTE DE NAVEGAÇÃO E MAPA A BORDO É MUITO IMPORTANTE E
+              ACHO QUE DEVERÍAMOS MELHORAR O CARD, TORNAR MAIS ATRATIVO E MELHOR
+              DIAGRAMADO"*.
+
+              O que estava aqui era um `LinhaLista` — a MESMA peça que desenha
+              "Histórico" e "Relatórios" no rodapé da /barco. Ou seja: a função
+              que diferencia o Commander de uma planilha tinha exatamente o peso
+              visual de um link de navegação secundária, no rodapé de um cartão
+              cujo assunto é onda e vento.
+
+              O ARGUMENTO ANTIGO ERA BOM E CONTINUA VALENDO: "é a ação do MAR, e
+              o dourado da tela já tem dono". Ele impedia um segundo botão
+              dourado — e continua impedindo. O que ele NÃO decidia é que a peça
+              tivesse que ser uma linha de lista. Um bloco de largura cheia, com
+              borda de acento e a seta, é mais alto na hierarquia sem gastar um
+              grama de ouro de preenchimento: a régua do §3.4 é sobre ÁREA de
+              dourado, e uma borda de 1px não é área.
+
+              POR QUE `--dado` E NÃO A COR DE UM HUB: navegar não é um dos oito
+              hubs técnicos — é a operação. `--dado` é o azul-aço que a casa
+              reserva para o que não é marca nem semáforo, e é a mesma família
+              do instrumento de /navegar, que é para onde este bloco leva. */}
+          <Link
             href="/navegar"
-            leading={<Icone nome="mapa" className="size-4 shrink-0 text-dim" />}
-            titulo="Iniciar navegação"
-            subtitulo="Grave a trilha desta saída no mapa"
-          />
+            className={`raio-controle transicao-ui mt-4 flex min-h-[var(--altura-campo)] w-full items-center gap-3 border border-dado/45 bg-dado/10 px-3 hover:bg-dado/15 hover:border-dado/70 ${TOQUE}`}
+          >
+            <Icone nome="mapa" aria-hidden="true" className="size-6 shrink-0 text-dado" />
+            <span className="min-w-0 flex-1">
+              <span className="corpo block font-semibold text-texto">Iniciar navegação</span>
+              {/* A linha de apoio diz o que a trilha VIRA, e não o que ela é:
+                  "grave a trilha" descrevia o mecanismo; o Diário e a milhagem
+                  do ano são o motivo de alguém tocar. */}
+              <span className="apoio block text-dim">Vira saída no Diário, com milha e tempo</span>
+            </span>
+            <Icone nome="chevron" aria-hidden="true" className="size-4 shrink-0 text-dado" />
+          </Link>
         </Cartao>
 
         {/* 5 colunas desde a onda 43 (Agenda entrou aqui): em 375px sobram
