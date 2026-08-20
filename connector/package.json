@@ -1,6 +1,6 @@
 {
   "name": "signalk-commander-connector",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Envia dados do seu barco (Signal K) para a sua conta no Commander — opt-in por categoria, lotes resilientes, somente leitura.",
   "keywords": [
     "signalk-node-server-plugin",
@@ -12,10 +12,12 @@
   "main": "plugin/index.js",
   "files": [
     "plugin",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "license": "Apache-2.0",
-  "author": "Commander",
+  "author": "SMU / Commander (https://soumardivers.com)","repository": { "type": "git", "url": "git+https://github.com/SMU-Prod/commander.git", "directory": "connector" },"homepage": "https://commander-tau.vercel.app","bugs": { "url": "https://github.com/SMU-Prod/commander/issues" },
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
