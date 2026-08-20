@@ -70,7 +70,10 @@ export function NumerosDoHub({
           /* ONDA 108 — o cartão respira. `py-3`/`gap-1` (12/4) espremia um
              rótulo de 11px, um número de 28px e um ícone de 16 em 60px de
              altura útil; a escala do §5 põe 16 de caixa e 8 entre as peças. */
-          className={`raio-cartao flex flex-col items-center gap-2 border bg-panel px-2 py-4 text-center ${h.borda}`}
+          /* ONDA 134 — `h.tinta`: o vidro tintado do mock, na dose da casa
+             (gradiente 10→5% sobre o vidro; a régua está no card de avaria
+             do Diário). É "cor do hub no card daquele sistema" — §5. */
+          className={`raio-cartao flex flex-col items-center gap-2 border bg-panel px-2 py-4 text-center ${h.borda} ${h.tinta}`}
         >
           {/* O rótulo primeiro e o valor depois — ordem de leitura da imagem, e
               a que faz sentido em áudio: "Em dia, 22" é uma frase; "22, em

@@ -143,7 +143,8 @@ export default async function MotoresPage({
       <Abas
         className="mb-4"
         ativa={aba}
-        classeAtiva="border-hub-motores"
+        pilula
+        classeAtiva="border-transparent bg-hub-motores font-semibold text-acao-texto"
         abas={[
           { valor: "geral", rotulo: "Visão geral", href: "/barco/motores" },
           { valor: "manutencoes", rotulo: "Manutenções", href: "/barco/motores?aba=manutencoes", contagem: itensDosMotores.length },

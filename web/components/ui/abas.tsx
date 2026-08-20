@@ -41,6 +41,7 @@ export function Abas({
   abas,
   ativa,
   classeAtiva = "border-accent-forte",
+  pilula = false,
   className = "",
 }: {
   abas: { valor: string; rotulo: string; href: string; contagem?: number }[]
@@ -56,28 +57,40 @@ export function Abas({
    * Fora dos hubs, o padrão dourado continua o de sempre.
    */
   classeAtiva?: string
+  /**
+   * ONDA 134 — a forma de PÍLULA do mock dos hubs: aba vira cápsula, e a
+   * ativa é PREENCHIDA (a página do hub passa `abaAtiva` de lib/ui/hubs —
+   * fundo na cor do hub, texto da cor do chão; o contraste vem do fundo
+   * claro, não de texto colorido, então o corolário do §3.2 fica de pé).
+   * O sublinhado continua sendo o padrão fora dos hubs.
+   */
+  pilula?: boolean
   className?: string
 }) {
   return (
     <nav
       aria-label="Seções desta tela"
-      className={`rolagem-lateral flex gap-1 overflow-x-auto border-b border-line ${className}`}
+      className={`rolagem-lateral flex overflow-x-auto ${pilula ? "gap-2" : "gap-1 border-b border-line"} ${className}`}
       style={{ scrollbarWidth: "none" }}
     >
       {abas.map((a) => {
         const ehAtiva = a.valor === ativa
+        const desenho = pilula
+          ? // A cápsula: mesma régua do Chip — alvo de 44px, desenho de 34px.
+            `rounded-[var(--raio-pilula)] border px-3.5 ${
+              ehAtiva ? classeAtiva : "border-line bg-panel2 text-dim"
+            }`
+          : `border-b-2 px-3 ${ehAtiva ? `${classeAtiva} text-texto` : "border-transparent text-dim"}`
         return (
           <Link
             key={a.valor}
             href={a.href}
             aria-current={ehAtiva ? "page" : undefined}
-            className={`flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium ${
-              ehAtiva ? `${classeAtiva} text-texto` : "border-transparent text-dim"
-            }`}
+            className={`flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium ${desenho}`}
           >
             {a.rotulo}
             {a.contagem != null && (
-              <span className="tabular-nums text-xs tabular-nums text-dim">{a.contagem}</span>
+              <span className={`tabular-nums text-xs tabular-nums ${pilula && ehAtiva ? "" : "text-dim"}`}>{a.contagem}</span>
             )}
           </Link>
         )

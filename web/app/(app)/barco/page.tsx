@@ -124,6 +124,12 @@ export default async function BarcoPage({
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
 
+  // ONDA 134 — o escudo "Saúde geral" da linha do mock, sob o título: o pior
+  // farol do barco inteiro. `null` quando ninguém tem dado suficiente pra
+  // votar, e aí a linha simplesmente não desenha escudo — verde por ausência
+  // de dado é o defeito que as ondas 93/94 arrancaram daqui.
+  const saudeGeral = piorFarol(itens)
+
   const itensDe = (eqs: { id: string }[]) => itens.filter((i) => eqs.some((e) => e.id === i.equipamento_id))
 
   /**
@@ -358,6 +364,30 @@ export default async function BarcoPage({
           antes de qualquer cartão. */}
       <TituloTela subtitulo={embarcacao.nome}>Meu Barco</TituloTela>
 
+      {/* ONDA 134 — a linha do mock sob o título: o escudo de Saúde geral à
+          esquerda e o chip "Fotos do proprietário" à direita (o herói de
+          foto saiu desta tela na onda 133; este chip é a porta que fica).
+          O escudo só desenha quando há dado real — `null` não vira verde. */}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="flex h-4 items-center gap-1.5">
+          {saudeGeral ? (
+            <>
+              <Farol status={saudeGeral} />
+              <span className="rotulo-dado text-dim">Saúde geral</span>
+              <span className={`rotulo-dado font-semibold ${saudeGeral === "vencido" ? "text-crit" : saudeGeral === "atencao" ? "text-warn" : "text-ok"}`}>
+                {rotuloDoFarol(saudeGeral)}
+              </span>
+            </>
+          ) : null}
+        </p>
+        <Link
+          href="/barco/fotos"
+          className="transicao-ui inline-flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-3.5 text-sm font-medium text-texto hover:bg-panel3"
+        >
+          <Icone nome="camera" className="size-4" /> Fotos do proprietário
+        </Link>
+      </div>
+
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       {/* §23, downgrade Commander Pro → Commander: "não apagar embarcações
@@ -416,7 +446,7 @@ export default async function BarcoPage({
                `.transicao-ui` e não `transition-colors` — `TOQUE_AMPLO` já
                pede `transition-transform` e as duas utilitárias brigam (o
                porquê medido está em `app/globals.css`). */
-            className={`raio-painel sombra-1 transicao-ui group relative flex min-h-40 flex-col justify-end overflow-hidden border bg-panel ${h.borda} ${TOQUE_AMPLO}`}
+            className={`raio-painel sombra-1 transicao-ui group relative flex min-h-40 flex-col overflow-hidden border bg-panel ${h.borda} ${TOQUE_AMPLO}`}
           >
             {/* O render cobre o card; `group-hover:scale-105` é o realce de
                 apontar — subir superfície não existe mais aqui porque não há
@@ -425,48 +455,49 @@ export default async function BarcoPage({
               chave={h.chave}
               className="transicao-ui absolute inset-0 h-full w-full !rounded-none group-hover:scale-105"
             />
-            {/* O véu de leitura da base — o MESMO gesto do herói com foto:
-                texto sobre imagem só é legível com gradiente atrás, e o véu
-                usa `--meter` porque os renders são navy fixo, não seguem o
-                tema. Some no topo para a imagem respirar. */}
-            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-meter/85 via-meter/25 to-transparent" />
-            <div className="relative flex flex-col gap-0.5 p-3 text-left">
-              {/* `<h2>`: os oito hubs são a estrutura da tela (achado da
-                  auditoria de 19/08 — não havia h2 nenhum). `!text-meter-texto`
-                  porque `.titulo-card` crava `--texto` e aqui o chão é o navy
+            {/* ONDA 134 — a anatomia do mock do dono: NOME NO TOPO, chevron
+                na base, e o brilho da cor do hub por cima do render (`h.halo`
+                — §5, cor do hub no card dele). O véu de leitura vira duplo:
+                denso no topo pro nome, denso na base pro estado; `--meter`
+                porque os renders são navy fixo e não seguem o tema. */}
+            <span aria-hidden="true" className={`absolute inset-0 ${h.halo}`} />
+            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-meter/75 via-meter/15 to-meter/80" />
+            <div className="relative flex min-h-40 flex-col justify-between p-3 text-left">
+              {/* `<h2>`: os oito hubs são a estrutura da tela. `!text-meter-texto`
+                  porque `.titulo-card` crava `--texto` e o chão aqui é o navy
                   fixo da imagem: no tema claro, navy sobre navy sumiria. */}
               <h2 className="titulo-card !text-meter-texto">{h.rotulo}</h2>
-            {/* O RODAPÉ TEM ALTURA FIXA E FICA VAZIO NA MAIORIA DOS CARDS, e
-                as duas coisas são de propósito: `h-4` reserva a linha para que
-                os oito tenham a mesma geometria (senão o `flex-1` acima
-                distribui folga diferente em cada um), e o silêncio é a resposta
-                de um hub que não está pedindo nada. Só falam aqui os dois casos
-                que mudam o que a pessoa faz hoje — o critério inteiro está na
-                tabela `hubs`, lá em cima. */}
-            <p className="apoio flex h-4 items-center gap-1.5 text-meter-dim">
-              {h.quantidade === 0 ? (
-                <>
-                  {/* Anel vazio, nunca farol: verde num hub sem nada dentro
-                      diria "está tudo bem" sobre um dado que não existe. */}
-                  <span
-                    aria-hidden="true"
-                    className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-line"
-                  />
-                  Nada cadastrado
-                </>
-              ) : h.status === "vencido" || h.status === "atencao" ? (
-                <>
-                  {/* Cor E palavra — a regra 3 do §6 do DESIGN. Até esta onda o
-                      `Farol` vinha sozinho e o estado só existia no
-                      `aria-label`: quem não distingue âmbar de vermelho lia
-                      dois pontinhos iguais. */}
-                  <Farol status={h.status} />
-                  <span className={h.status === "vencido" ? "text-crit" : "text-warn"}>
-                    {rotuloDoFarol(h.status)}
-                  </span>
-                </>
-              ) : null}
-            </p>
+              <div className="flex items-end justify-between gap-2">
+                {/* O rodapé fala só quando o hub pede algo — o silêncio é a
+                    resposta de um hub em paz; o critério está na tabela
+                    `hubs`, lá em cima. `h-4` fixa a geometria dos oito. */}
+                <p className="apoio flex h-4 items-center gap-1.5 text-meter-dim">
+                  {h.quantidade === 0 ? (
+                    <>
+                      {/* Anel vazio, nunca farol: verde num hub sem nada dentro
+                          diria "está tudo bem" sobre um dado que não existe. */}
+                      <span
+                        aria-hidden="true"
+                        className="inline-block size-2 shrink-0 rounded-[var(--raio-pilula)] border border-line"
+                      />
+                      Nada cadastrado
+                    </>
+                  ) : h.status === "vencido" || h.status === "atencao" ? (
+                    <>
+                      {/* Cor E palavra — regra 3 do §6 do DESIGN. */}
+                      <Farol status={h.status} />
+                      <span className={h.status === "vencido" ? "text-crit" : "text-warn"}>
+                        {rotuloDoFarol(h.status)}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+                {/* O chevron do mock: promessa de porta, num disco que lê
+                    sobre qualquer trecho do render. */}
+                <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-full bg-meter/60 text-meter-texto">
+                  <Icone nome="chevron" className="size-3.5" />
+                </span>
+              </div>
             </div>
           </Link>
         ))}

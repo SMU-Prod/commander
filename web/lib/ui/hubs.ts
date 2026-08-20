@@ -62,6 +62,16 @@ export type Hub = {
   filete: string
   /** O anel do cartucho de ícone no cabeçalho da tela do hub. */
   anel: string
+  /** ONDA 134 — o VIDRO TINTADO do hub (mock do dono, 20/08): gradiente da
+   *  cor do hub a 10→5% por cima do vidro, a mesma dose da tinta semântica
+   *  de alerta (a régua mora em app/(app)/diario/page.tsx). Vai no card do
+   *  próprio hub — grade da /barco, trinca de números — e em lugar nenhum
+   *  fora dele (§5, escopo). */
+  tinta: string
+  /** A pílula de aba ATIVA dentro da tela do hub (mock: preenchida na cor
+   *  do hub, texto da cor do chão — contraste vem do fundo claro da pílula,
+   *  não de texto colorido, então o corolário do §3.2 segue de pé). */
+  abaAtiva: string
 }
 
 export const HUBS: readonly Hub[] = [
@@ -76,6 +86,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-motores/10",
     filete: "bg-hub-motores",
     anel: "border-hub-motores/40",
+    tinta: "bg-gradient-to-b from-hub-motores/10 to-hub-motores/5",
+    abaAtiva: "border-transparent bg-hub-motores font-semibold text-acao-texto",
   },
   {
     // `embarcacao` e não `escudo`: na grade, o Casco fica vizinho da Segurança,
@@ -91,6 +103,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-casco/10",
     filete: "bg-hub-casco",
     anel: "border-hub-casco/40",
+    tinta: "bg-gradient-to-b from-hub-casco/10 to-hub-casco/5",
+    abaAtiva: "border-transparent bg-hub-casco font-semibold text-acao-texto",
   },
   {
     chave: "eletrica",
@@ -103,6 +117,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-eletrica/10",
     filete: "bg-hub-eletrica",
     anel: "border-hub-eletrica/40",
+    tinta: "bg-gradient-to-b from-hub-eletrica/10 to-hub-eletrica/5",
+    abaAtiva: "border-transparent bg-hub-eletrica font-semibold text-acao-texto",
   },
   {
     chave: "hidraulica",
@@ -115,6 +131,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-hidraulica/10",
     filete: "bg-hub-hidraulica",
     anel: "border-hub-hidraulica/40",
+    tinta: "bg-gradient-to-b from-hub-hidraulica/10 to-hub-hidraulica/5",
+    abaAtiva: "border-transparent bg-hub-hidraulica font-semibold text-acao-texto",
   },
   {
     chave: "seguranca",
@@ -127,6 +145,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-seguranca/10",
     filete: "bg-hub-seguranca",
     anel: "border-hub-seguranca/40",
+    tinta: "bg-gradient-to-b from-hub-seguranca/10 to-hub-seguranca/5",
+    abaAtiva: "border-transparent bg-hub-seguranca font-semibold text-acao-texto",
   },
   {
     chave: "equipamentos",
@@ -139,6 +159,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-equipamentos/10",
     filete: "bg-hub-equipamentos",
     anel: "border-hub-equipamentos/40",
+    tinta: "bg-gradient-to-b from-hub-equipamentos/10 to-hub-equipamentos/5",
+    abaAtiva: "border-transparent bg-hub-equipamentos font-semibold text-acao-texto",
   },
   {
     chave: "documentos",
@@ -151,6 +173,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-documentos/10",
     filete: "bg-hub-documentos",
     anel: "border-hub-documentos/40",
+    tinta: "bg-gradient-to-b from-hub-documentos/10 to-hub-documentos/5",
+    abaAtiva: "border-transparent bg-hub-documentos font-semibold text-acao-texto",
   },
   {
     // A CHAVE DE PERMISSÃO É `embarcacao`, E ISSO NÃO É ERRO DE DIGITAÇÃO.
@@ -168,6 +192,8 @@ export const HUBS: readonly Hub[] = [
     halo: "bg-hub-manutencoes/10",
     filete: "bg-hub-manutencoes",
     anel: "border-hub-manutencoes/40",
+    tinta: "bg-gradient-to-b from-hub-manutencoes/10 to-hub-manutencoes/5",
+    abaAtiva: "border-transparent bg-hub-manutencoes font-semibold text-acao-texto",
   },
 ]
 
