@@ -6,10 +6,10 @@ import { carregarPainel, hojeISO } from "@/lib/consultas"
 import {
   MODOS_CARTEIRA, saldoCarteira, statusInicialMovimento, validarMovimento, type ModoCarteira,
 } from "@/lib/domain/carteira"
-import { CATEGORIAS_FINANCEIRAS, centavosDeReais, type CategoriaFinanceira } from "@/lib/domain/financeiro"
-import { parseDecimalPtBr } from "@/lib/domain/numeros"
+import { CATEGORIAS_FINANCEIRAS } from "@/lib/domain/financeiro"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { validar, type Esquema } from "@/lib/validacao"
 import type { Carteira, CarteiraMovimento } from "@/lib/db/types"
 
 /**
@@ -80,6 +80,17 @@ async function contexto(carteiraId: string) {
   }
 }
 
+/** Os schemas das actions de movimento (auditoria 360 de 20/08, recomendação
+ *  nº 10). As mensagens de valor são as MESMAS de `validarMovimento` — o
+ *  domínio continua rodando depois, dono das regras que cruzam campos
+ *  (comprovante exigido pela carteira, teto do saldo na devolução). O schema
+ *  cobre o que o domínio não cobria: teto de R$ 10 milhões, teto de 500
+ *  caracteres por texto e data que existe no calendário. */
+const ESQUEMA_NOVA_CARTEIRA = {
+  tripulante_id: { tipo: "texto", obrigatorio: true, max: 100, erro: "Escolha para quem é a Carteira." },
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
+
 /** Só o proprietário cria/libera uma Carteira, "para um tripulante
  *  específico em uma embarcação específica" (PRD §9.4). */
 export async function criarCarteira(formData: FormData) {
@@ -90,9 +101,9 @@ export async function criarCarteira(formData: FormData) {
   if (!painel) redirect("/onboarding")
   if (painel.papel !== "PROP") erroLista("Só o proprietário libera uma Carteira.")
 
-  const t = texto(formData)
-  const tripulanteId = t("tripulante_id")
-  if (!tripulanteId) redirect(`/carteira/nova?erro=${encodeURIComponent("Escolha para quem é a Carteira.")}`)
+  const form = validar(formData, ESQUEMA_NOVA_CARTEIRA)
+  if (!form.ok) redirect(`/carteira/nova?erro=${encodeURIComponent(form.erro)}`)
+  const tripulanteId = form.dados.tripulante_id
 
   // O tripulante precisa ter vínculo com ESTA embarcação — a RLS repete a
   // checagem, mas aqui a mensagem consegue explicar o que houve.
@@ -102,8 +113,10 @@ export async function criarCarteira(formData: FormData) {
     redirect(`/carteira/nova?erro=${encodeURIComponent("Essa pessoa não está na tripulação desta embarcação.")}`)
   }
 
+  // Fora do schema de propósito: modo inválido cai no padrão seguro
+  // ("aprovacao"), que é mais gentil que recusar um radio que a tela mandou.
   const modo = ((): ModoCarteira => {
-    const v = t("modo")
+    const v = texto(formData)("modo")
     return (MODOS_CARTEIRA as readonly string[]).includes(v ?? "") ? (v as ModoCarteira) : "aprovacao"
   })()
 
@@ -112,7 +125,7 @@ export async function criarCarteira(formData: FormData) {
     tripulante_id: tripulanteId,
     modo,
     exige_comprovante: formData.get("exige_comprovante") != null,
-    observacao: t("observacao"),
+    observacao: form.dados.observacao,
     criado_por: user.id,
   }).select("id").maybeSingle()
   if (error || !criada) {
@@ -127,6 +140,10 @@ export async function criarCarteira(formData: FormData) {
   redirect(`/carteira/${criada.id}?ok=${encodeURIComponent("Carteira liberada")}`)
 }
 
+const ESQUEMA_REGRAS_CARTEIRA = {
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
+
 /** Regras da carteira: comprovante obrigatório ou opcional, Registro Direto
  *  ou Aprovação do Proprietário (PRD §9.4), e encerrar/reabrir. */
 export async function salvarRegrasCarteira(formData: FormData) {
@@ -134,9 +151,10 @@ export async function salvarRegrasCarteira(formData: FormData) {
   const { supabase, ehProprietario } = await contexto(id)
   if (!ehProprietario) erroCarteira(id, "Só o proprietário muda as regras da Carteira.")
 
-  const t = texto(formData)
+  const form = validar(formData, ESQUEMA_REGRAS_CARTEIRA)
+  if (!form.ok) erroCarteira(id, form.erro)
   const modo = ((): ModoCarteira => {
-    const v = t("modo")
+    const v = texto(formData)("modo")
     return (MODOS_CARTEIRA as readonly string[]).includes(v ?? "") ? (v as ModoCarteira) : "aprovacao"
   })()
 
@@ -144,13 +162,20 @@ export async function salvarRegrasCarteira(formData: FormData) {
     modo,
     exige_comprovante: formData.get("exige_comprovante") != null,
     ativa: formData.get("ativa") != null,
-    observacao: t("observacao"),
+    observacao: form.dados.observacao,
   }).eq("id", id).select("id").maybeSingle()
   if (error || !data) erroCarteira(id, "Não deu para salvar as regras agora. Tente de novo em instantes.")
 
   revalidarCarteira(id)
   redirect(`/carteira/${id}?ok=${encodeURIComponent("Regras salvas")}`)
 }
+
+const ESQUEMA_REPASSE = {
+  valor: { tipo: "dinheiro", obrigatorio: true, erro: "Informe um valor maior que zero (ex.: 500,00)." },
+  descricao: { tipo: "texto" },
+  data: { tipo: "data", erro: "Confira a data do repasse — esse dia não existe no calendário." },
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
 
 /** Repasse: dinheiro entregue pelo proprietário. NÃO é despesa — o PRD é
  *  explícito ("vira saldo sob responsabilidade do tripulante"), então nada
@@ -162,20 +187,18 @@ export async function registrarRepasse(formData: FormData) {
   if (!ehProprietario) erroCarteira(id, "Só o proprietário registra repasse.")
   if (!carteira.ativa) erroCarteira(id, "Esta carteira está encerrada. Reabra nas regras para movimentar.")
 
-  const t = texto(formData)
-  const valorCentavos = centavosDeReais(parseDecimalPtBr(t("valor") ?? ""))
-  const descricao = t("descricao") ?? "Repasse"
-  if (valorCentavos == null || valorCentavos <= 0) {
-    erroCarteira(id, "Informe um valor maior que zero (ex.: 500,00).")
-  }
+  const form = validar(formData, ESQUEMA_REPASSE)
+  if (!form.ok) erroCarteira(id, form.erro)
+  const valorCentavos = form.dados.valor
+  const descricao = form.dados.descricao ?? "Repasse"
 
   const { data, error } = await supabase.from("carteira_movimentos").insert({
     carteira_id: id,
     tipo: "repasse",
     valor_centavos: valorCentavos,
-    data: t("data") ?? hojeISO(),
+    data: form.dados.data ?? hojeISO(),
     descricao,
-    observacao: t("observacao"),
+    observacao: form.dados.observacao,
     // A20 — `"aprovado"` estava fixo aqui. Dá no mesmo HOJE, porque a linha 160
     // acima só deixa o proprietário repassar, e proprietário não espera
     // aprovação de si mesmo. O literal era o problema: ele guardava essa
@@ -192,6 +215,14 @@ export async function registrarRepasse(formData: FormData) {
   redirect(`/carteira/${id}?ok=${encodeURIComponent("Repasse registrado")}`)
 }
 
+const ESQUEMA_GASTO = {
+  valor: { tipo: "dinheiro", obrigatorio: true, erro: "Informe um valor maior que zero (ex.: 350,00)." },
+  descricao: { tipo: "texto", obrigatorio: true, erro: "Diga em uma linha do que se trata — ex.: “Diesel no posto da marina”." },
+  categoria: { tipo: "opcao", valores: CATEGORIAS_FINANCEIRAS, obrigatorio: true, erro: "Escolha a categoria — é por ela que o gasto entra no Financeiro do barco." },
+  data: { tipo: "data", erro: "Confira a data do gasto — esse dia não existe no calendário." },
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
+
 /** Gasto do tripulante: reduz o saldo e alimenta o Financeiro da embarcação
  *  (PRD §9.4). Quem escreve é a função do banco — ver o comentário no topo
  *  deste arquivo. */
@@ -204,13 +235,9 @@ export async function registrarGasto(formData: FormData) {
   if (!podeUsar) erroCarteira(id, "Seu acesso não permite registrar gastos nesta Carteira.")
   if (!carteira.ativa) erroCarteira(id, "Esta carteira está encerrada e não aceita novos gastos.")
 
-  const t = texto(formData)
-  const valorCentavos = centavosDeReais(parseDecimalPtBr(t("valor") ?? ""))
-  const descricao = t("descricao")
-  const categoriaBruta = t("categoria")
-  const categoria = (CATEGORIAS_FINANCEIRAS as readonly string[]).includes(categoriaBruta ?? "")
-    ? (categoriaBruta as CategoriaFinanceira)
-    : null
+  const form = validar(formData, ESQUEMA_GASTO)
+  if (!form.ok) erroCarteira(id, form.erro)
+  const { valor: valorCentavos, descricao, categoria } = form.dados
 
   const arquivo = formData.get("comprovante")
   const temArquivo = arquivo instanceof File && arquivo.size > 0
@@ -236,11 +263,11 @@ export async function registrarGasto(formData: FormData) {
   const { error } = await supabase.rpc("carteira_registrar_gasto", {
     p_carteira_id: id,
     p_valor_centavos: valorCentavos,
-    p_data: t("data") ?? hojeISO(),
+    p_data: form.dados.data ?? hojeISO(),
     p_descricao: descricao,
     p_categoria: categoria,
     p_comprovante_path: comprovante,
-    p_observacao: t("observacao"),
+    p_observacao: form.dados.observacao,
   })
   if (error) {
     if (comprovante) await supabase.storage.from("acervo").remove([comprovante])
@@ -259,6 +286,13 @@ export async function registrarGasto(formData: FormData) {
   )}`)
 }
 
+const ESQUEMA_DEVOLUCAO = {
+  valor: { tipo: "dinheiro", obrigatorio: true, erro: "Informe um valor maior que zero (ex.: 350,00)." },
+  descricao: { tipo: "texto" },
+  data: { tipo: "data", erro: "Confira a data da devolução — esse dia não existe no calendário." },
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
+
 /** Devolução de saldo — "confirmada pelo proprietário" (PRD §9.4). Quando é
  *  o próprio dono que registra, já nasce confirmada (ele é quem confirmaria).
  *  Devolução NÃO vira entrada no Financeiro: o dinheiro nunca foi receita do
@@ -272,12 +306,14 @@ export async function registrarDevolucao(formData: FormData) {
   if (!podeUsar) erroCarteira(id, "Seu acesso não permite registrar devolução nesta Carteira.")
   if (!carteira.ativa) erroCarteira(id, "Esta carteira está encerrada. Reabra nas regras para movimentar.")
 
-  const t = texto(formData)
-  const valorCentavos = centavosDeReais(parseDecimalPtBr(t("valor") ?? ""))
+  const form = validar(formData, ESQUEMA_DEVOLUCAO)
+  if (!form.ok) erroCarteira(id, form.erro)
+  const valorCentavos = form.dados.valor
+  const descricao = form.dados.descricao ?? "Devolução de saldo"
   const v = validarMovimento({
     tipo: "devolucao",
     valorCentavos,
-    descricao: t("descricao") ?? "Devolução de saldo",
+    descricao,
     categoria: null,
     temComprovante: false,
     exigeComprovante: false,
@@ -289,9 +325,9 @@ export async function registrarDevolucao(formData: FormData) {
     carteira_id: id,
     tipo: "devolucao",
     valor_centavos: valorCentavos,
-    data: t("data") ?? hojeISO(),
-    descricao: t("descricao") ?? "Devolução de saldo",
-    observacao: t("observacao"),
+    data: form.dados.data ?? hojeISO(),
+    descricao,
+    observacao: form.dados.observacao,
     // A20 — a devolução do tripulante nasce pendente porque o §9.4 pede que o
     // proprietário CONFIRME o recebimento; a do próprio dono já nasce aprovada.
     // A regra é a mesma dos outros dois tipos e agora sai do mesmo lugar.
@@ -308,6 +344,10 @@ export async function registrarDevolucao(formData: FormData) {
   )}`)
 }
 
+const ESQUEMA_DECISAO = {
+  motivo: { tipo: "texto" },
+} as const satisfies Esquema
+
 /** Aprovar ou recusar o que está pendente. Só o proprietário — a função do
  *  banco recusa qualquer outro, mesmo que este guard falhasse. */
 export async function decidirMovimento(formData: FormData) {
@@ -317,7 +357,11 @@ export async function decidirMovimento(formData: FormData) {
 
   const movimentoId = String(formData.get("movimento_id") ?? "")
   const decisao = String(formData.get("decisao") ?? "") === "aprovado" ? "aprovado" : "recusado"
-  const motivo = String(formData.get("motivo") ?? "").trim() || null
+  // O motivo é o único texto digitado aqui — o schema só põe o teto de
+  // tamanho; vazio segue virando null (recusar sem justificativa é permitido).
+  const form = validar(formData, ESQUEMA_DECISAO)
+  if (!form.ok) erroCarteira(id, form.erro)
+  const motivo = form.dados.motivo
 
   const { error } = await supabase.rpc("carteira_decidir_movimento", {
     p_movimento_id: movimentoId,

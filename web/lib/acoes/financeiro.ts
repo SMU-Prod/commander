@@ -6,14 +6,14 @@ import { carregarNivelPlano, carregarPainel, hojeISO } from "@/lib/consultas"
 import { carregarMapaTaxonomia, tituloDeDemanda } from "@/lib/consultas-marketplace"
 import {
   CATEGORIAS_FINANCEIRAS, FORMAS_PAGAMENTO, FREQUENCIAS, TIPOS_LANCAMENTO,
-  categoriaFinanceiraDaDemanda, centavosDeReais, validarLancamento, validarRecorrente,
-  type CategoriaFinanceira, type FormaPagamento, type Frequencia, type TipoLancamento,
+  categoriaFinanceiraDaDemanda, validarLancamento, validarRecorrente,
+  type TipoLancamento,
 } from "@/lib/domain/financeiro"
 import { estadoDoNegocio, type ConfirmacaoNegocio } from "@/lib/domain/marketplace"
-import { parseDecimalPtBr } from "@/lib/domain/numeros"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { supabaseServer } from "@/lib/supabase/server"
+import { validar, type Esquema } from "@/lib/validacao"
 import type { Demanda, Negocio, RecorrenciaFinanceira } from "@/lib/db/types"
 
 /**
@@ -64,27 +64,46 @@ function opcao<T extends string>(valor: string | null, lista: readonly T[]): T |
   return valor != null && (lista as readonly string[]).includes(valor) ? (valor as T) : null
 }
 
-/** Campos comuns a lançamento e recorrente. Devolve os valores já
- *  normalizados; quem chama decide a mensagem de erro (cada tela volta pra
- *  um lugar diferente). */
+/** Campos comuns a lançamento e recorrente, agora DESCRITOS em vez de lidos à
+ *  mão (auditoria 360 de 20/08, recomendação nº 10): o schema garante tipo,
+ *  obrigatoriedade, teto de texto, teto de R$ 10 milhões e data que existe no
+ *  calendário — antes de qualquer escrita. As mensagens são as mesmas que
+ *  `validarLancamento` sempre mostrou; o que muda é o POST forjado (valor
+ *  negativo, "2026-02-31", texto de 100 mil caracteres) morrer aqui com frase
+ *  de gente em vez de virar erro genérico do banco. */
+const ESQUEMA_LANCAMENTO = {
+  tipo: { tipo: "opcao", valores: TIPOS_LANCAMENTO, obrigatorio: true, erro: "Escolha se é uma despesa ou uma entrada." },
+  descricao: { tipo: "texto", obrigatorio: true, erro: "Descreva o lançamento — ex.: “Vaga molhada de agosto”." },
+  categoria: { tipo: "opcao", valores: CATEGORIAS_FINANCEIRAS, obrigatorio: true, erro: "Escolha uma categoria." },
+  valor: { tipo: "dinheiro", obrigatorio: true, erro: "Informe um valor maior que zero (ex.: 1.850,00)." },
+  data: { tipo: "data", erro: "Confira a data do lançamento — esse dia não existe no calendário." },
+  fornecedor: { tipo: "texto" },
+  forma_pagamento: { tipo: "opcao", valores: FORMAS_PAGAMENTO, erro: "Escolha uma forma de pagamento da lista." },
+  observacao: { tipo: "texto" },
+} as const satisfies Esquema
+
+/** Devolve os campos já no formato do banco, ou a primeira mensagem de erro;
+ *  quem chama decide o destino dela (cada tela volta pra um lugar diferente). */
 function camposDoFormulario(formData: FormData) {
-  const texto = ler(formData)
-  const valorBruto = texto("valor")
-  const reais = valorBruto != null ? parseDecimalPtBr(valorBruto) : null
+  const r = validar(formData, ESQUEMA_LANCAMENTO)
+  if (!r.ok) return r
   return {
-    tipo: opcao<TipoLancamento>(texto("tipo"), TIPOS_LANCAMENTO),
-    categoria: opcao<CategoriaFinanceira>(texto("categoria"), CATEGORIAS_FINANCEIRAS),
-    descricao: texto("descricao"),
-    valorCentavos: centavosDeReais(reais),
-    data: texto("data") ?? hojeISO(),
-    fornecedor: texto("fornecedor"),
-    formaPagamento: opcao<FormaPagamento>(texto("forma_pagamento"), FORMAS_PAGAMENTO),
-    observacao: texto("observacao"),
-    // "pago/pendente ou recebido/pendente" — a caixa da tela marca "já foi
-    // pago/recebido"; desmarcada, o lançamento fica pendente. O PRD é firme
-    // em que orçamento NÃO é despesa: pendente aqui é conta assumida, e o
-    // texto da tela diz isso.
-    status: formData.get("pago") != null ? ("pago" as const) : ("pendente" as const),
+    ok: true as const,
+    campos: {
+      tipo: r.dados.tipo,
+      categoria: r.dados.categoria,
+      descricao: r.dados.descricao,
+      valorCentavos: r.dados.valor,
+      data: r.dados.data ?? hojeISO(),
+      fornecedor: r.dados.fornecedor,
+      formaPagamento: r.dados.forma_pagamento,
+      observacao: r.dados.observacao,
+      // "pago/pendente ou recebido/pendente" — a caixa da tela marca "já foi
+      // pago/recebido"; desmarcada, o lançamento fica pendente. O PRD é firme
+      // em que orçamento NÃO é despesa: pendente aqui é conta assumida, e o
+      // texto da tela diz isso.
+      status: formData.get("pago") != null ? ("pago" as const) : ("pendente" as const),
+    },
   }
 }
 
@@ -95,8 +114,9 @@ export async function criarLancamento(formData: FormData) {
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
 
-  const c = camposDoFormulario(formData)
-  const tipoUrl = c.tipo ?? "despesa"
+  // O tipo é lido antes do schema só pra montar a URL de volta — inválido cai
+  // em "despesa", a aba padrão da tela de novo lançamento.
+  const tipoUrl = opcao<TipoLancamento>(ler(formData)("tipo"), TIPOS_LANCAMENTO) ?? "despesa"
   if (!podeEditar(painel.permissoes, "gastos")) {
     erroNovo(tipoUrl, "Seu acesso não permite lançar no Financeiro.")
   }
@@ -106,6 +126,12 @@ export async function criarLancamento(formData: FormData) {
   if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
     erroNovo(tipoUrl, mensagemBloqueio("financeiro_lancar").descricao)
   }
+  const r = camposDoFormulario(formData)
+  if (!r.ok) erroNovo(tipoUrl, r.erro)
+  const c = r.campos
+  // O domínio continua sendo a autoridade da regra de negócio — o schema é a
+  // porta. Passar duas vezes não custa nada e garante que nenhuma regra
+  // antiga se perdeu na mudança.
   const v = validarLancamento(c)
   if (!v.ok) erroNovo(tipoUrl, v.erro)
 
@@ -165,7 +191,9 @@ export async function salvarLancamento(formData: FormData) {
     erroLancamento(id, "Seu acesso não permite alterar o Financeiro.")
   }
 
-  const c = camposDoFormulario(formData)
+  const r = camposDoFormulario(formData)
+  if (!r.ok) erroLancamento(id, r.erro)
+  const c = r.campos
   const v = validarLancamento(c)
   if (!v.ok) erroLancamento(id, v.erro)
 
@@ -266,6 +294,15 @@ export async function excluirLancamento(formData: FormData) {
  * diferir do proposto; por isso o formulário pergunta em vez de copiar a
  * proposta, e o campo chega preenchido quando o negócio já tem valor.
  */
+const ESQUEMA_NEGOCIO_FINANCEIRO = {
+  // Os dois são opcionais DE PROPÓSITO: sem valor vale o valor final gravado
+  // no negócio, sem data vale a data dele. Mas presença é diferente de
+  // validade — "1.5oo,00" digitado errado caía no fallback EM SILÊNCIO, e a
+  // pessoa lançava no extrato um número que não foi o que digitou.
+  valor: { tipo: "dinheiro", erro: "Confira o valor — use números, como 1.850,00." },
+  data: { tipo: "data", erro: "Confira a data — esse dia não existe no calendário." },
+} as const satisfies Esquema
+
 export async function adicionarNegocioAoFinanceiro(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -286,6 +323,10 @@ export async function adicionarNegocioAoFinanceiro(formData: FormData) {
   if (!recursoLiberado("financeiro_lancar", await carregarNivelPlano())) {
     erroNegocio(mensagemBloqueio("financeiro_lancar").descricao)
   }
+  // Schema antes de qualquer consulta: o que vier torto do formulário morre
+  // aqui, com frase de gente, sem gastar viagem ao banco.
+  const form = validar(formData, ESQUEMA_NEGOCIO_FINANCEIRO)
+  if (!form.ok) erroNegocio(form.erro)
 
   const { data: negocioBruto } = await supabase
     .from("negocios").select("*").eq("id", negocioId).maybeSingle()
@@ -314,12 +355,10 @@ export async function adicionarNegocioAoFinanceiro(formData: FormData) {
   const demanda = demandaBruta as Demanda | null
   if (!demanda) erroNegocio("Esse pedido não existe mais. Recarregue a página.")
 
-  const texto = ler(formData)
-  const reais = parseDecimalPtBr(texto("valor") ?? "")
   // Preferência pelo que a pessoa digitou agora; o valor final gravado no
   // negócio é o padrão do formulário e o fallback de um POST sem campo.
-  const valorCentavos = centavosDeReais(reais) ?? negocio.valor_final_centavos
-  const data = texto("data") ?? negocio.criado_em.slice(0, 10)
+  const valorCentavos = form.dados.valor ?? negocio.valor_final_centavos
+  const data = form.dados.data ?? negocio.criado_em.slice(0, 10)
   const categoria = categoriaFinanceiraDaDemanda(demanda.tipo)
   // Título derivado dos campos, o mesmo que a ficha do pedido mostra (§11.2:
   // ninguém digita título no Marketplace) — o extrato fica reconhecível sem
@@ -362,6 +401,14 @@ export async function adicionarNegocioAoFinanceiro(formData: FormData) {
   redirect(`${rota}?ok=${encodeURIComponent("Negócio lançado no Financeiro")}`)
 }
 
+/** O que a recorrente pergunta além do lançamento: frequência e fim opcional.
+ *  O `fim` não tinha validação NENHUMA — texto qualquer viajava até o
+ *  Postgres pra ser recusado lá, com mensagem genérica. */
+const ESQUEMA_RECORRENTE_EXTRA = {
+  frequencia: { tipo: "opcao", valores: FREQUENCIAS, obrigatorio: true, erro: "Escolha de quanto em quanto tempo isso se repete." },
+  fim: { tipo: "data", erro: "Confira a data final — esse dia não existe no calendário." },
+} as const satisfies Esquema
+
 export async function criarRecorrente(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -376,10 +423,14 @@ export async function criarRecorrente(formData: FormData) {
     erroRecorrenteNova(mensagemBloqueio("financeiro_lancar").descricao)
   }
 
-  const texto = ler(formData)
-  const c = camposDoFormulario(formData)
-  const frequencia = opcao<Frequencia>(texto("frequencia"), FREQUENCIAS)
-  const fim = texto("fim")
+  const r = camposDoFormulario(formData)
+  if (!r.ok) erroRecorrenteNova(r.erro)
+  const c = r.campos
+  const extra = validar(formData, ESQUEMA_RECORRENTE_EXTRA)
+  if (!extra.ok) erroRecorrenteNova(extra.erro)
+  const { frequencia, fim } = extra.dados
+  // O cruzamento "fim antes do início" continua no domínio: o schema valida
+  // campo a campo; quem compara dois campos entre si é `validarRecorrente`.
   const v = validarRecorrente({ ...c, frequencia, fim })
   if (!v.ok) erroRecorrenteNova(v.erro)
 
@@ -418,6 +469,11 @@ export async function criarRecorrente(formData: FormData) {
  *    valor da série faria o app dizer que a vaga da marina sempre custou o
  *    preço de hoje.
  */
+const ESQUEMA_VALOR_RECORRENTE = {
+  valor: { tipo: "dinheiro", obrigatorio: true, erro: "Informe um valor maior que zero (ex.: 1.850,00)." },
+  data: { tipo: "data", obrigatorio: true, erro: "Escolha a partir de qual vencimento o valor muda." },
+} as const satisfies Esquema
+
 export async function alterarValorRecorrente(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -429,15 +485,14 @@ export async function alterarValorRecorrente(formData: FormData) {
     erroRecorrente(id, "Seu acesso não permite alterar recorrentes.")
   }
 
-  const texto = ler(formData)
-  const reais = parseDecimalPtBr(texto("valor") ?? "")
-  const valorCentavos = centavosDeReais(reais)
-  if (valorCentavos == null || valorCentavos <= 0) {
-    erroRecorrente(id, "Informe um valor maior que zero (ex.: 1.850,00).")
-  }
-  const data = texto("data")
-  if (!data) erroRecorrente(id, "Escolha a partir de qual vencimento o valor muda.")
-  const escopo = texto("escopo") === "proximos" ? "proximos" : "somente_este"
+  // Valor e vencimento pelo schema. O ganho que não aparece na tela: `data`
+  // chegava aqui sem validação nenhuma, e uma string qualquer estourava
+  // exceção no cálculo do dia anterior lá embaixo — agora morre nesta linha,
+  // com frase de gente.
+  const form = validar(formData, ESQUEMA_VALOR_RECORRENTE)
+  if (!form.ok) erroRecorrente(id, form.erro)
+  const { valor: valorCentavos, data } = form.dados
+  const escopo = ler(formData)("escopo") === "proximos" ? "proximos" : "somente_este"
 
   const { data: bruta } = await supabase.from("recorrencias_financeiras")
     .select("*").eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()
@@ -548,6 +603,12 @@ export async function alternarRecorrente(formData: FormData) {
  *  linha no banco pela primeira vez: até este clique ele só existia
  *  calculado (`vencimentosNoIntervalo`), porque o PRD proíbe considerar
  *  pago o que ninguém confirmou. */
+const ESQUEMA_VENCIMENTO_PAGO = {
+  // A mensagem fala em atualizar a página porque o vencimento vem de link
+  // gerado pelo app, não de digitação — se chegou torto, a página está velha.
+  data: { tipo: "data", obrigatorio: true, erro: "Vencimento inválido. Atualize a página." },
+} as const satisfies Esquema
+
 export async function marcarVencimentoPago(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -558,8 +619,11 @@ export async function marcarVencimentoPago(formData: FormData) {
   if (!podeEditar(painel.permissoes, "gastos")) {
     erroRecorrente(id, "Seu acesso não permite lançar no Financeiro.")
   }
-  const data = String(formData.get("data") ?? "")
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) erroRecorrente(id, "Vencimento inválido. Atualize a página.")
+  // Schema no lugar do regex de formato que morava aqui: "2026-02-31" passava
+  // no regex e só ia quebrar no Postgres, com mensagem genérica.
+  const form = validar(formData, ESQUEMA_VENCIMENTO_PAGO)
+  if (!form.ok) erroRecorrente(id, form.erro)
+  const data = form.dados.data
 
   const { data: bruta } = await supabase.from("recorrencias_financeiras")
     .select("*").eq("id", id).eq("embarcacao_id", painel.embarcacao.id).maybeSingle()

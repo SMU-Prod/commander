@@ -12,6 +12,7 @@ import {
 } from "@/lib/domain/planos"
 import { supabaseServer } from "@/lib/supabase/server"
 import { supabaseServico } from "@/lib/supabase/servico"
+import { validar, type Esquema } from "@/lib/validacao"
 import type { Assinatura } from "@/lib/db/types"
 
 /**
@@ -45,6 +46,17 @@ function cpfLimpo(bruto: string): string | null {
   return d.length === 11 ? d : null
 }
 
+/** O que a pessoa digita ao assinar (auditoria 360 de 20/08, recomendação
+ *  nº 10). O preço NUNCA está aqui — sai do catálogo, ver o cabeçalho do
+ *  arquivo. O schema cobre o que sobra: nome e CPF, que seguem direto pro
+ *  gateway e por isso ganham o teto de tamanho. As regras finas (nome com
+ *  sobrenome, CPF com 11 dígitos) continuam nas linhas seguintes da action —
+ *  o schema é a porta, não o cadastro. */
+const ESQUEMA_ASSINAR = {
+  nome: { tipo: "texto", obrigatorio: true, erro: "Informe seu nome completo." },
+  cpf: { tipo: "texto", obrigatorio: true, erro: "Informe um CPF válido (11 dígitos)." },
+} as const satisfies Esquema
+
 export async function assinar(formData: FormData) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -57,9 +69,11 @@ export async function assinar(formData: FormData) {
   if (!(plano in PLANOS)) erroAssinar("Escolha um plano.")
   if (!ehCobravel(plano)) erroAssinar("Este plano ainda não está disponível para contratação.")
 
-  const nome = String(formData.get("nome") ?? "").trim()
+  const form = validar(formData, ESQUEMA_ASSINAR)
+  if (!form.ok) erroAssinar(form.erro)
+  const nome = form.dados.nome
   if (nome.length < 5 || !nome.includes(" ")) erroAssinar("Informe seu nome completo.")
-  const cpf = cpfLimpo(String(formData.get("cpf") ?? ""))
+  const cpf = cpfLimpo(form.dados.cpf)
   if (!cpf) erroAssinar("Informe um CPF válido (11 dígitos).")
 
   // ja tem assinatura viva? nao cria outra — reaproveita a cobranca aberta
