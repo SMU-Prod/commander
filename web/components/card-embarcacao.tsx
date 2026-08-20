@@ -4,6 +4,7 @@ import type { StatusFarol } from "@/lib/domain/semaforo"
 import type { Embarcacao } from "@/lib/db/types"
 import { Logo } from "@/components/logo"
 import { ObjetoHub } from "@/components/ui/objeto-hub"
+import { CarrosselBarco } from "@/components/carrossel-barco"
 
 const ROTULO: Record<StatusFarol, string> = {
   ok: "Tudo em dia",
@@ -157,6 +158,7 @@ export function CardEmbarcacao({
   statusGeral,
   saude,
   urlCapa,
+  urlsCarrossel,
   podeEditarFotos,
   temFotos = false,
   semNome = false,
@@ -181,6 +183,18 @@ export function CardEmbarcacao({
    */
   saude?: SaudeNoHeroi
   urlCapa: string | null
+  /**
+   * ONDA 120 — O HERÓI VIRA CARROSSEL, E O CARD DEIXA DE TER LINHA.
+   * Pedido do dono, literal: *"precisamos do carrossel de imagens do barco,
+   * mas a linha do card não deve existir... como se as bordas fossem
+   * diminuindo a opacidade, para tornar mais premium"*. Quando esta lista
+   * vem com pelo menos uma URL (a Início passa `carregarFotosDoHeroi()`,
+   * capa primeiro), o herói troca a moldura de cartão pela máscara do
+   * `CarrosselBarco`: sem sombra, sem raio, sem fundo — a foto esvai para o
+   * fundo da página. Sem a lista (ou vazia), os dois ramos de sempre
+   * continuam valendo, e `/barco` segue com o herói de cartão.
+   */
+  urlsCarrossel?: string[]
   podeEditarFotos: boolean
   /**
    * ONDA 97 — O CONVITE MANDAVA SUBIR FOTO PRA QUEM JÁ TINHA SUBIDO.
@@ -231,6 +245,12 @@ export function CardEmbarcacao({
    * do herói em Inter.
    */
   const NOME_DO_BARCO = "text-2xl font-[650] uppercase tracking-[.06em] text-meter-texto"
+  /* Uma const, dois ramos (foto única e carrossel): o teto de
+     lib/ui/tokens.test.ts conta notação funcional de cor por arquivo — e a
+     catraca não distingue comentário de código, então nem a sigla da notação
+     entra aqui. Duplicar a sombra inline pagaria uma ocorrência a mais pela
+     mesma tinta. */
+  const SOMBRA_DO_NOME = { textShadow: "0 1px 8px rgb(11 29 45 / .8)" }
   const legendaDoBarco = [embarcacao.marina, legenda].filter(Boolean).join(" · ")
   /**
    * ONDA 111 — O SELO DO HERÓI TINHA DOIS DEFEITOS NA MESMA LINHA.
@@ -275,8 +295,41 @@ export function CardEmbarcacao({
        ANINHADO", 16 é "quem contém e está no primeiro nível". Em `/hoje` ele
        desenhava 12px encostado em nove `Cartao` de 16, e o raio, que existe
        pra significar profundidade, dizia que o herói estava DENTRO de algo. */
-    <div className={`sombra-1 raio-painel overflow-hidden ${className}`}>
-      {urlCapa ? (
+    /* ONDA 120 — no modo carrossel a moldura de cartão some INTEIRA: sombra
+       desenha aresta, raio + overflow pressupõem caixa, e a caixa é
+       exatamente a "linha do card" que o dono mandou não existir. As bordas
+       agora são a máscara do próprio carrossel. */
+    <div className={urlsCarrossel?.length ? className : `sombra-1 raio-painel overflow-hidden ${className}`}>
+      {urlsCarrossel?.length ? (
+        /* COM CARROSSEL, A FOTO É A SUPERFÍCIE. Nada de `bg` aqui: qualquer
+           fundo pintaria um retângulo atrás das bordas esvaídas e traria a
+           linha de volta. A sobreposição (nome, legenda, leitura, anel) é a
+           MESMA anatomia do ramo de foto única — `pointer-events-none` no
+           conjunto para o swipe atravessar, devolvido só no anel, que é
+           `Link`. O véu de leitura vem de DENTRO da máscara (`veuInferior`),
+           pelo motivo escrito no próprio CarrosselBarco. */
+        <div className="relative">
+          <CarrosselBarco urls={urlsCarrossel} nomeBarco={embarcacao.nome} veuInferior />
+          <span className="pointer-events-none absolute left-3 top-3">{burgee}</span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end gap-3 p-4 pb-5">
+            <div className="min-w-0 flex-1">
+              {!semNome && (
+                <h2 className={NOME_DO_BARCO} style={SOMBRA_DO_NOME}>
+                  {embarcacao.nome}
+                </h2>
+              )}
+              {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+              {saude?.partes && <LeituraDaSaude partes={saude.partes} />}
+            </div>
+            {saude && (
+              <span className="pointer-events-auto">
+                <AnelSaude {...saude} />
+              </span>
+            )}
+          </div>
+          {statusGeral && !saude && <div className="absolute right-3 top-3">{selo}</div>}
+        </div>
+      ) : urlCapa ? (
         /* COM FOTO, A FOTO CRESCE. Era `h-44 lg:h-64` — a MESMA altura do
            convite vazio, ou seja, o barco do dono valia exatamente o que vale
            um botão. O dono escreveu "fotos reais da embarcação" na lista do
@@ -314,7 +367,7 @@ export function CardEmbarcacao({
                   Dois `<h1>` na mesma página deixam o leitor de tela sem saber
                   qual é o assunto — e o nome do barco é, de fato, um nível
                   abaixo do nome da área. */}
-              <h2 className={NOME_DO_BARCO} style={{ textShadow: "0 1px 8px rgb(11 29 45 / .8)" }}>
+              <h2 className={NOME_DO_BARCO} style={SOMBRA_DO_NOME}>
                 {embarcacao.nome}
               </h2>
               {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}

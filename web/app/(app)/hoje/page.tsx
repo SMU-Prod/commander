@@ -32,7 +32,7 @@ import {
 import { AREA_AGENDA } from "@/lib/domain/agenda"
 import { formatarCarimbo } from "@/lib/domain/datas"
 import { formatarReais, resumoGastos, variacaoPercentual } from "@/lib/domain/gastos"
-import { carregarCapaDoHeroi, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarCapaDoHeroi, carregarFotosDoHeroi, carregarPainel, carregarProximaViagem, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoItem, nomeDoEquipamento } from "@/lib/domain/diario"
 import {
   apoioDaRevisao,
@@ -391,6 +391,7 @@ export default async function HojePage({
 
   const [
     { urlCapa, temFotos },
+    urlsCarrossel,
     { data: comandantes },
     { data: eventosSaida },
     proximaViagem,
@@ -399,6 +400,11 @@ export default async function HojePage({
     tripulacao,
   ] = await Promise.all([
     carregarCapaDoHeroi(),
+    // ONDA 120 — o herói da Início vira carrossel: TODAS as fotos do álbum
+    // (capa primeiro), não só a capa. A capa continua carregada ao lado
+    // porque é o fallback do herói se a lista vier vazia (ex.: assinatura de
+    // URL falhou) — o card degrada pro desenho de foto única de sempre.
+    carregarFotosDoHeroi(),
     supabase
       .from("perfis_comandante").select("usuario_id, nome_publico, categoria, disponibilidade")
       .eq("tipo", "comandante").eq("visivel", true).limit(2),
@@ -696,6 +702,7 @@ export default async function HojePage({
           embarcacao={embarcacao}
           saude={saudeNoHeroi}
           urlCapa={urlCapa}
+          urlsCarrossel={urlsCarrossel}
           podeEditarFotos={podeEditar(permissoes, "fotos")}
           temFotos={temFotos}
         />

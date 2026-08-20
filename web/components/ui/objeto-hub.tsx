@@ -46,7 +46,11 @@ export function ObjetoHub({
 }) {
   return (
     <img
-      src={`/imagens/hubs/${chave}.png`}
+      /* ONDA 120 — .jpg: as três imagens em alta que o dono mandou (motor,
+         casco, elétrica) entraram em 720px, e PNG fotográfico nesse tamanho
+         custa ~600KB por card. JPEG a 85 entrega o mesmo olho a ~70KB. Os
+         recortes menores foram convertidos junto — uma extensão só. */
+      src={`/imagens/hubs/${chave}.jpg`}
       alt=""
       aria-hidden="true"
       draggable={false}

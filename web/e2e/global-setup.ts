@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { randomUUID } from "node:crypto"
 import { chromium, type FullConfig } from "@playwright/test"
@@ -6,6 +6,10 @@ import { createClient } from "@supabase/supabase-js"
 
 export const ARQUIVO_SESSAO = path.join(__dirname, ".auth", "usuario-teste.json")
 export const ARQUIVO_ID_USUARIO = path.join(__dirname, ".auth", "usuario-teste-id.txt")
+// O id do barco também vai pra disco (onda 120): o teardown precisa dele pra
+// apagar as fotos semeadas no bucket `acervo` — storage não entra no cascade
+// que apaga as LINHAS quando o usuário morre; os OBJETOS ficariam órfãos.
+export const ARQUIVO_ID_BARCO = path.join(__dirname, ".auth", "barco-teste-id.txt")
 
 // E-mail ÚNICO por execução, não fixo. Com um e-mail compartilhado, duas
 // rodadas simultâneas (CI + local, ou dois agentes) derrubam a sessão uma da
@@ -95,6 +99,32 @@ export default async function globalSetup(config: FullConfig) {
       { embarcacao_id: barco.id, tipo: "motor", posicao: "BB", marca: "Volvo Penta", modelo: "D6-400", horas_atuais: 612 },
       { embarcacao_id: barco.id, tipo: "motor", posicao: "BE", marca: "Volvo Penta", modelo: "D6-400", horas_atuais: 608 },
     ])
+    // FOTOS DO BARCO DE TESTE (onda 120). O herói da Início virou carrossel,
+    // e sem pelo menos duas fotos a prova visual fotografa o ramo da plaqueta
+    // e o carrossel fica pra sempre sem vigilância. Os arquivos são os
+    // renders de `public/imagens/hubs` — a prova mede DESENHO (máscara nas
+    // bordas, dots, contador, véu de leitura), não fotografia. Objetos no
+    // storage ficam sob o id do barco; o teardown apaga o prefixo inteiro.
+    writeFileSync(ARQUIVO_ID_BARCO, barco.id, "utf8")
+    const pastaRenders = path.join(__dirname, "..", "public", "imagens", "hubs")
+    let capa: string | null = null
+    for (const nome of ["iate.jpg", "casco.jpg", "motores.jpg"]) {
+      const destino = `${barco.id}/fotos/e2e-${nome}`
+      const corpo = readFileSync(path.join(pastaRenders, nome))
+      const { error: erroUpload } = await admin.storage
+        .from("acervo")
+        .upload(destino, corpo, { contentType: "image/jpeg", upsert: true })
+      if (erroUpload) {
+        console.log(`[e2e] upload de foto de teste falhou (${erroUpload.message}) — carrossel sai da prova desta rodada.`)
+        continue
+      }
+      await admin.from("fotos").insert({
+        embarcacao_id: barco.id, album: "exterior", arquivo_path: destino,
+        bytes: corpo.byteLength, criado_por: criado.user.id,
+      })
+      capa ??= destino
+    }
+    if (capa) await admin.from("embarcacoes").update({ foto_capa_path: capa }).eq("id", barco.id)
     console.log("[e2e] embarcação de teste semeada.")
   }
 

@@ -421,72 +421,35 @@ export default async function BarcoPage({
           <Link
             key={h.href}
             href={h.href}
-            /* ONDA 102 — O CARD DE HUB PASSA A SER PAINEL DE PRIMEIRO NÍVEL,
-               COMO OS DA INÍCIO. Ele desenhava `--raio-cartao` (12px, "cartão
-               ANINHADO") e nenhum lustro, enquanto todo `Cartao` de `/hoje` sai
-               em `--raio-painel` (16px) + `.painel-lustro`. Os oito cards estão
-               direto sobre o fundo da página — são primeiro nível pela
-               definição do `docs/DESIGN.md` §5, e desenhavam o degrau de baixo.
-               O lustro é os 2,8% de gradiente que o §3.1 do spec da onda 79
-               mediu na referência: é ele que faz o card parecer superfície com
-               luz em cima em vez de recorte de papel — metade da resposta a
-               "cards cinza quase idênticos", com a outra metade no cartucho.
-               `group` + `hover:bg-panel2` é o §49 ao pé da letra: apontar sobe
-               UM nível de superfície (1 → 2), nunca desce.
-
-               `.transicao-ui` e não `transition-colors`: `TOQUE_AMPLO` já pede
-               `transition-transform`, e `transition-property` é UMA
-               propriedade — as duas utilitárias brigam e quem ganha é a ordem
-               do bundle, não quem escreveu a tela (o porquê medido está em
-               `app/globals.css`, na definição da classe). A classe entrega as
-               quatro propriedades, os 150ms e a curva do §49 de uma vez. */
-            className={`painel-lustro raio-painel sombra-1 transicao-ui group flex min-h-30 flex-col items-center border bg-panel p-3 text-center hover:bg-panel2 ${h.borda} ${TOQUE_AMPLO}`}
+            /* ONDA 120 — O CARD VIRA A IMAGEM, como na grade da imagem 1 do
+               guia: o render preenche o card INTEIRO (full-bleed), o nome fica
+               sobreposto na base sobre um véu de leitura, e o estado ao lado.
+               O dono foi literal: "essas imagens precisam preencher o card
+               todo, senão fica esquisito". `p-0` + `overflow-hidden`: o
+               conteúdo agora é camada sobre a foto, não fluxo com padding.
+               `.transicao-ui` e não `transition-colors` — `TOQUE_AMPLO` já
+               pede `transition-transform` e as duas utilitárias brigam (o
+               porquê medido está em `app/globals.css`). */
+            className={`raio-painel sombra-1 transicao-ui group relative flex min-h-40 flex-col justify-end overflow-hidden border bg-panel ${h.borda} ${TOQUE_AMPLO}`}
           >
-            {/* ONDA 7 — O ÍCONE É O ASSUNTO DO CARD: grande, centrado, no topo,
-                com o rótulo embaixo. É a anatomia do mockup e é a metade que
-                faltava para o card "ler como objeto" antes de qualquer palavra
-                — o que o cartucho de 40px vinha fazendo por um ícone de 24.
-                `flex-1 justify-center` num bloco PRÓPRIO, e não
-                `justify-center` no card inteiro: assim o par ícone+rótulo cai
-                no MESMO lugar nos oito, mesmo quando alguns têm linha de estado
-                e outros não. Sem isso a fileira de ícones sobe e desce card a
-                card, e oito quadrados deixam de ler como um painel.
-                `<div>` e não `<span>`: `<a>` tem modelo de conteúdo
-                transparente, e o `<h2>` aqui dentro é conteúdo de fluxo. */}
-            <div className="flex flex-1 flex-col items-center justify-center gap-2">
-              {/* O HALO — o "rim light na cor do hub" do §6 do guia. Nos renders
-                  3D das imagens normativas ele é luz de recorte; sem os assets
-                  3D (ver o desvio de biblioteca em `docs/DESIGN-SYSTEM.md`), o
-                  equivalente honesto é um disco desfocado atrás do traço. É
-                  `blur-md` e a 10% de propósito: ele precisa ler como luz, não
-                  como um segundo cartucho — cartucho de borda dura ao lado de
-                  uma moldura colorida daria DOIS retângulos por card.
-                  O ícone vai num irmão `relative`, e não dentro do disco: filho
-                  de elemento borrado herda o `filter`, e o traço sairia
-                  desfocado junto. */}
-              {/* ONDA 118 — O OBJETO 3D ENTRA NO CARD, como nas imagens 1, 6 e
-                  7 do guia. O dono comparou o app com o PRD e a diferença que
-                  gritava era esta: nas imagens, cada um dos oito cards carrega
-                  o OBJETO do hub (motor, casco, baterias...), não um ícone de
-                  linha. `ObjetoHub` é a mesma cena isométrica do herói da tela
-                  do hub, em miniatura — mesma câmera, mesma luz, mesma cor, o
-                  que faz o card e a tela de destino serem visivelmente a mesma
-                  coisa. O halo fica atrás, que é o "rim light" do §6. */}
-              {/* ONDA 119 — o render recortado do guia preenche a largura do
-                  card, como na imagem 1. O halo desenhado saiu: o render traz
-                  a própria luz de recorte, e luz atrás de imagem opaca é
-                  código morto. */}
-              <ObjetoHub chave={h.chave} className="h-20 w-full" />
-              {/* `<h2>` E NÃO `<p>`, e isto é conserto de achado, não capricho: a
-                  auditoria de 19/08 mediu "nenhum `<h2>` ou `<h3>` na tela
-                  inteira — 23 blocos e um único `<h1>`. Para leitor de tela,
-                  /barco é uma parede sem estrutura". Os oito hubs são a estrutura
-                  desta tela, então são eles que viram cabeçalho de nível 2 —
-                  debaixo do `<h1>` que é o título da área. Cabeçalho dentro de
-                  link é válido (o modelo de conteúdo de `<a>` é transparente) e
-                  `.titulo-card` já é usada em `<h2>` pelo `Cartao`. */}
-              <h2 className="titulo-card">{h.rotulo}</h2>
-            </div>
+            {/* O render cobre o card; `group-hover:scale-105` é o realce de
+                apontar — subir superfície não existe mais aqui porque não há
+                superfície à vista, há imagem. */}
+            <ObjetoHub
+              chave={h.chave}
+              className="transicao-ui absolute inset-0 h-full w-full !rounded-none group-hover:scale-105"
+            />
+            {/* O véu de leitura da base — o MESMO gesto do herói com foto:
+                texto sobre imagem só é legível com gradiente atrás, e o véu
+                usa `--meter` porque os renders são navy fixo, não seguem o
+                tema. Some no topo para a imagem respirar. */}
+            <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-meter/85 via-meter/25 to-transparent" />
+            <div className="relative flex flex-col gap-0.5 p-3 text-left">
+              {/* `<h2>`: os oito hubs são a estrutura da tela (achado da
+                  auditoria de 19/08 — não havia h2 nenhum). `!text-meter-texto`
+                  porque `.titulo-card` crava `--texto` e aqui o chão é o navy
+                  fixo da imagem: no tema claro, navy sobre navy sumiria. */}
+              <h2 className="titulo-card !text-meter-texto">{h.rotulo}</h2>
             {/* O RODAPÉ TEM ALTURA FIXA E FICA VAZIO NA MAIORIA DOS CARDS, e
                 as duas coisas são de propósito: `h-4` reserva a linha para que
                 os oito tenham a mesma geometria (senão o `flex-1` acima
@@ -494,7 +457,7 @@ export default async function BarcoPage({
                 de um hub que não está pedindo nada. Só falam aqui os dois casos
                 que mudam o que a pessoa faz hoje — o critério inteiro está na
                 tabela `hubs`, lá em cima. */}
-            <p className="apoio flex h-4 items-center gap-1.5 text-dim">
+            <p className="apoio flex h-4 items-center gap-1.5 text-meter-dim">
               {h.quantidade === 0 ? (
                 <>
                   {/* Anel vazio, nunca farol: verde num hub sem nada dentro
@@ -518,6 +481,7 @@ export default async function BarcoPage({
                 </>
               ) : null}
             </p>
+            </div>
           </Link>
         ))}
       </div>

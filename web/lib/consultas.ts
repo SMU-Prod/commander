@@ -539,6 +539,35 @@ export const carregarCapaDoHeroi = cache(async (): Promise<{
 })
 
 /**
+ * ONDA 120 — AS FOTOS DO CARROSSEL DO HERÓI (pedido do dono: "a página Início
+ * precisa do carrossel de imagens do barco"). Capa primeiro, depois as mais
+ * recentes do acervo, até 6 — o teto existe porque cada URL é assinada e um
+ * carrossel de 40 fotos na Início viraria 40 assinaturas por abertura de app;
+ * `createSignedUrls` assina o LOTE numa chamada só. Com zero fotos volta
+ * lista vazia e o herói segue no estado sem foto (o iate ilustrativo).
+ */
+export const carregarFotosDoHeroi = cache(async (max = 6): Promise<string[]> => {
+  const painel = await carregarPainel()
+  if (!painel) return []
+  const supabase = await supabaseServer()
+  const { data: fotos } = await supabase
+    .from("fotos")
+    .select("arquivo_path, created_at")
+    .eq("embarcacao_id", painel.embarcacao.id)
+    .order("created_at", { ascending: false })
+    .limit(max)
+  const capa = painel.embarcacao.foto_capa_path
+  // A capa lidera e não duplica; o resto segue por recência.
+  const caminhos = [
+    ...(capa ? [capa] : []),
+    ...((fotos ?? []).map((f) => f.arquivo_path).filter((p) => p !== capa)),
+  ].slice(0, max)
+  if (caminhos.length === 0) return []
+  const { data: urls } = await supabase.storage.from("acervo").createSignedUrls(caminhos, 3600)
+  return (urls ?? []).map((u) => u.signedUrl).filter((u): u is string => Boolean(u))
+})
+
+/**
  * CENTRAL DE NOTIFICAÇÕES (onda 44, PRD §5.2) — monta a lista viva de avisos
  * desta pessoa, neste barco.
  *
