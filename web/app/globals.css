@@ -95,21 +95,24 @@
      escuro (7,87:1 sobre o vidro) e sobre o cartão claro entrega 1,93:1 —
      ilegível. Os dois sentidos do token brigam num chão claro: para LER
      COMO TEXTO ele precisa de luminância baixa; para SERVIR DE FUNDO com
-     texto claro em cima, também. Então no claro o dourado desce de degrau
-     DENTRO DA MESMA FAMÍLIA — matiz 41°, o do guia, medido no próprio
-     #D6A53A — e o par `--acao-texto` vira o claro, espelhando exatamente o
-     que o escuro faz ao contrario.
+     texto claro em cima, também. Então no claro o acento desce de degrau
+     DENTRO DA MESMA FAMÍLIA — e o par `--acao-texto` vira o claro,
+     espelhando exatamente o que o escuro faz ao contrario.
+
+     ONDA 127 — a família mudou de dourado (41°) para CHAMPANHE (34°, o
+     matiz do #D2B48C que o dono escolheu no escuro): mesma cor dos dois
+     lados do chão, como manda a regra da onda 104 acima.
 
      Medido nos três chãos (cartão / página / superfície de chip):
-       --acao        #79560c → 6,37  5,93  5,51
-       --acao-forte  #5e4308 → 8,80  8,19  7,60
-       --acao-texto  #f8fafc sobre os dois: 6,37 e 8,80
+       --acao        #715633 → 6,5  6,0  5,6
+       --acao-forte  #564125 → 9,2  8,5  7,9
+       --acao-texto  #f8fafc sobre os dois: 6,5 e 9,2
 
      O QUE NÃO MUDOU: o acento sobre o navy fixo do instrumento (/navegar)
      não segue esta escada — o instrumento tem chão próprio e acento próprio,
      no bloco `.bg-meter, .bg-mapa-instrumento` mais abaixo. */
-  --acao: #79560c;
-  --acao-forte: #5e4308;
+  --acao: #715633;
+  --acao-forte: #564125;
   --acao-texto: #f8fafc;
   --campo: #fcfdfe;
   /* O cartucho de instrumento é navy FIXO nos dois temas, e agora ele é o
@@ -278,11 +281,20 @@
      `app/layout.tsx` põe [data-theme="dark"] antes da pintura, a menos que a
      pessoa tenha escolhido claro), então é aqui que o guia vale sem tradução.
 
-     O §4 declara dois chãos e um só dourado, e este bloco os copia byte a
-     byte:
+     O §4 declara dois chãos e um só dourado, e este bloco copiava os três
+     byte a byte:
        --fundo       #07111C   "Base · fundo principal"
        --superficie  #0B1926   "Base · superfície / glass"
        --acao        #D6A53A   "Marca · ação principal / identidade"
+
+     ONDA 127 — O DOURADO DO §4 DEU LUGAR AO CHAMPANHE, POR DECISÃO DO DONO.
+     Testando o app pronto (20/08) ele bateu o martelo: "essa cor
+     amarelo/dourado não está combinando". O estudo comparou cinco acentos
+     sobre a Início real (dourado do guia, azul-gelo, verde-água, champanhe,
+     coral) e ele escolheu o CHAMPANHE — mesma família da marca, matiz 34°,
+     menos amarelo e menos saturado: "navy e ouro" continua, o grito não.
+     Os chãos do §4 seguem intactos; só o acento andou:
+       --acao        #D2B48C   (9,6:1 sobre o fundo — o dourado dava 8,4)
 
      O §3 é explícito sobre o que NÃO pode: "fundo azul-marinho quase preto,
      nunca preto puro". #07111C é isso — e é 3 pontos de luminância acima do
@@ -339,11 +351,13 @@
      dourados usados com moderação". A régua da casa que cobra isso continua
      valendo — no máximo duas peças douradas por tela.
      `--acao-forte` é MAIS CLARO num chão escuro porque "forte" quer dizer
-     mais contraste: 10,61:1 contra os 7,87:1 do acento.
+     mais contraste: 11,6:1 contra os 9,0:1 do acento sobre o vidro.
      `--acao-texto` é da cor do CHÃO, que é a regra da casa e aqui coincide
-     com o #07111C do guia: 8,41:1 sobre o ouro. */
-  --acao: #d6a53a;
-  --acao-forte: #e8c46b;
+     com o #07111C do guia: 9,6:1 sobre o champanhe.
+     (Onda 127 — champanhe no lugar do dourado do §4, decisão do dono; a
+     história completa está no bloco da paleta, mais acima.) */
+  --acao: #d2b48c;
+  --acao-forte: #e3ceac;
   --acao-texto: #07111c;
   --campo: #0a1622;
   /* O cartucho de instrumento é o navy mais fundo da escada. Continua abaixo
@@ -475,12 +489,14 @@
      Medido sobre o cartucho (--meter #040C15) e sobre o flutuante do mapa
      (--mapa-instrumento #07111C, que é o mais claro dos dois e portanto o
      que reprova primeiro): ok 9,01 · atenção 8,33 · crítico 5,23 ·
-     acento 7,58 · acento forte 10,21 · texto do botão sobre o acento 8,41. */
+     acento 9,6 · acento forte 12,4 · texto do botão sobre o acento 9,6
+     (acento champanhe desde a onda 127 — mesmo valor do tema escuro,
+     porque o chão daqui É o chão do tema escuro). */
   --ok: #37d67a;
   --warn: #ff9f1c;
   --crit: #ff4d4f;
-  --acao: #d6a53a;
-  --acao-forte: #e8c46b;
+  --acao: #d2b48c;
+  --acao-forte: #e3ceac;
   /* Da cor do CHÃO, que é a regra da casa — e o chão daqui agora é o mesmo
      #07111C do §4. */
   --acao-texto: #07111c;

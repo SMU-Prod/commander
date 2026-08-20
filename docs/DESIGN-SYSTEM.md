@@ -69,7 +69,7 @@ leitura sob sol na marina) e segue a regra de tradução do §3.3.
 |---|---|---|---|
 | Base | Fundo principal | `--fundo` | `#07111C` |
 | Base | Superfície / glass | `--superficie` | `#0B1926` |
-| Marca | Ação principal / identidade | `--acao` | `#D6A53A` |
+| Marca | Ação principal / identidade | `--acao` | `#D2B48C` |
 | Motores | Informação técnica | `--hub-motores` | `#2DE3FF` |
 | Casco | Estrutura / estabilidade | `--hub-casco` | `#FFB020` |
 | Elétrica | Energia / circuitos | `--hub-eletrica` | `#238BFF` |
@@ -82,6 +82,14 @@ leitura sob sol na marina) e segue a regra de tradução do §3.3.
 **REGRA SEMÂNTICA:** verde é confirmado/em dia (`--ok`, `#37D67A`); âmbar é
 atenção/prazo (`--warn`, `#FF9F1C`); vermelho é crítico/erro/exclusão
 (`--crit`, `#FF4D4F`). Nunca usar as três apenas como ornamento.
+
+**ONDA 127 (20/08/2026) — o acento é CHAMPANHE, não mais o dourado do guia.**
+Decisão do dono testando o app pronto ("essa cor amarelo/dourado não está
+combinando"), tomada sobre um estudo de cinco candidatos fotografados na
+Início real. `#D2B48C` é a mesma família da marca (matiz 34°), menos amarela
+e menos saturada — "navy e ouro" continua, o grito não. Onde este documento
+ou o guia disserem "dourado", leia-se o champanhe; o §4 do guia fica
+superado NESTE token e intacto nos demais.
 
 ### 3.2 A regra de escopo — o que impede a paleta de virar semáforo quebrado
 
@@ -114,7 +122,8 @@ sobre o vidro — passa como grafismo, reprovaria como texto. Há teste em
 | `--texto` | `#E8EEF4` | `#07111C` | branco **frio**: a única família clara declarada no guia é o `rgba(216,225,232,…)` da borda |
 | `--texto-dim` | `#93A6B8` | `#566472` | mesmo matiz, um degrau de saturação abaixo |
 | `--texto-dim-chip` | `#9DAFC0` | `#4F5D6B` | calibrado contra `--superficie-2`, onde `--texto-dim` reprova |
-| `--acao-forte` | `#E8C46B` | `#5E4308` | "forte" = mais contraste que o acento; num chão escuro isso é mais claro |
+| `--acao-forte` | `#E3CEAC` | `#564125` | "forte" = mais contraste que o acento; num chão escuro isso é mais claro |
+| `--acao` (claro) | — | `#715633` | champanhe do outro lado do chão: mesmo matiz 34°, luminância invertida (regra do §3.3) |
 | `--acao-texto` | `#07111C` | `#F8FAFC` | **sempre da cor do chão** |
 | `--campo` | `#0A1622` | `#FCFDFE` | um degrau abaixo do vidro, para o campo parecer recuado |
 | `--meter` (cartucho de instrumento) | `#040C15` | `#07111C` | navy fixo nos dois temas |
