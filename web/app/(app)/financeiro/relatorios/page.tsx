@@ -133,7 +133,6 @@ export default async function RelatoriosPage({
   return (
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
-      <p className="apoio mt-1 text-dim">Fecha o mês, o ano ou o período que você escolher.</p>
 
       <FinanceiroNav atual="relatorios" className="mt-4" />
       <AcoesUniversais className="mt-3" />

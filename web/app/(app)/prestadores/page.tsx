@@ -70,9 +70,6 @@ export default async function PrestadoresPage({
     <main>
       <h1 className="titulo-pagina">Prestadores</h1>
       <p className="apoio mt-1 text-dim">
-        Mecânico, eletricista, fibra e outros profissionais náuticos disponíveis para contratar direto pelo WhatsApp.
-      </p>
-      <p className="apoio mt-1 text-dim">
         São PESSOAS. Marinas, postos, pousadas e restaurantes ficam em{" "}
         {/* A EXCEÇÃO que continua texto: link no meio de frase corrida. O
             sublinhado é o affordance certo aqui — pílula no meio de um

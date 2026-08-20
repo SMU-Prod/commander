@@ -91,7 +91,6 @@ export default async function FinanceiroPage({
   return (
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
-      <p className="apoio mt-1 text-dim">O dinheiro do barco: o que saiu, o que entrou e o que ainda vence.</p>
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
       <FinanceiroNav atual="visao" className="mt-4" />

@@ -156,9 +156,6 @@ export default async function ResumosPage({
       </Link>
 
       <h1 className="titulo-pagina mt-3">Relatórios</h1>
-      <p className="apoio mt-1 text-dim">
-        {embarcacao.nome} · custo por mês, uso e o que sai do bolso — do que está registrado no Diário.
-      </p>
 
       <Abas
         className="no-imprimir mt-4"

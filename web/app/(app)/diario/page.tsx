@@ -109,7 +109,6 @@ export default async function DiarioPage({
       <h1 className="titulo-pagina">Diário de Bordo</h1>
       {/* A frase de baixo do título é a do canvas (tela-3a): diz de uma vez o
           que mora aqui, pra primeira visita não precisar deduzir do filtro. */}
-      <p className="apoio mt-1 text-dim">Toda saída, abastecimento e serviço registrado a bordo.</p>
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
           Garmin/Raymarine/Navionics viram saida de uma vez, sem digitar nada.
           Segunda acao discreta pra nao competir com o "Registrar" da

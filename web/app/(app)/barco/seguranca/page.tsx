@@ -55,7 +55,6 @@ export default async function SegurancaPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="seguranca"
-        descricao="Colete, extintor, balsa e sinalização."
         /* ONDA 106 — A PÍLULA DOURADA DO CABEÇALHO SAIU. A ação desceu para o
            botão de largura cheia logo abaixo dos números, que é onde a imagem 3
            a desenha. Manter as duas seria a MESMA ação escrita duas vezes na

@@ -98,7 +98,6 @@ export default async function LancamentosPage({
   return (
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
-      <p className="apoio mt-1 text-dim">Todo lançamento do barco, do mais recente ao mais antigo.</p>
 
       <FinanceiroNav atual="lancamentos" className="mt-4" />
 

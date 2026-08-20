@@ -56,7 +56,6 @@ export default async function EquipamentosPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="equipamentos"
-        descricao="Bote, guincho, ar-condicionado, dessalinizador."
         acao={editavel ? (
           <Link
             href="/barco/equipamento/novo?tipo=outro"

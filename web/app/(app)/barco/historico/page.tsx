@@ -92,7 +92,6 @@ export default async function HistoricoPage({
   return (
     <main>
       <h1 className="titulo-pagina">Histórico</h1>
-      <p className="apoio mt-1 text-dim">Tudo que aconteceu no barco — diário, manutenções e ocorrências, num lugar só.</p>
 
       <ChipLinha className="mt-4">
         {FILTROS_SETOR.map((f) => (

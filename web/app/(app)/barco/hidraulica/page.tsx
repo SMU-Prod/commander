@@ -44,7 +44,6 @@ export default async function HidraulicaPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="hidraulica"
-        descricao="Água doce, Grey Water, Black Water e as bombas."
       />
 
       {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.

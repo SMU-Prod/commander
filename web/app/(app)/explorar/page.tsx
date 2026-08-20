@@ -289,9 +289,6 @@ function Cabecalho({ noMapa }: { noMapa: boolean }) {
     <div className="mt-3 flex items-start justify-between gap-3">
       <div>
         <h1 className="titulo-pagina">Explorar Parceiros</h1>
-        <p className="apoio mt-1 text-dim">
-          Marinas, postos, lojas, prestadores, restaurantes e pousadas da rede Commander.
-        </p>
       </div>
       <Link
         href={noMapa ? "/explorar" : "/explorar?vista=mapa"}

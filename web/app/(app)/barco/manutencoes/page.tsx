@@ -54,7 +54,6 @@ export default async function ManutencoesPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="manutencoes"
-        descricao="Vence, mas não é motor, elétrica, casco nem documento."
         acao={editavel ? (
           <Link
             href="/barco/itens/novo"

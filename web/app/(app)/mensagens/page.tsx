@@ -43,9 +43,6 @@ export default async function MensagensPage({
   return (
     <main>
       <h1 className="titulo-pagina">Mensagens</h1>
-      <p className="apoio mt-1 text-dim">
-        Suas conversas com quem publicou um pedido ou respondeu ao seu. Fica tudo registrado aqui.
-      </p>
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
       {ok && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-ok/40 bg-ok/10 px-3 py-2">{ok}</p>}
 

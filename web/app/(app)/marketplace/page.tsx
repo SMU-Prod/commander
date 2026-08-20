@@ -139,10 +139,6 @@ export default async function MarketplacePage({
   return (
     <main>
       <h1 className="titulo-pagina">Marketplace</h1>
-      <p className="apoio mt-1 text-dim">
-        Diga o que você precisa — profissional, tripulação, peça, vaga ou caminhão de combustível — e quem
-        atende a sua região responde por aqui.
-      </p>
       {aviso && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{aviso}</p>}
       <RedeNav atual="marketplace" className="mt-4" />
 

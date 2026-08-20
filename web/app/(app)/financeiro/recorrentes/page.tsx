@@ -75,7 +75,6 @@ export default async function RecorrentesPage({
   return (
     <main>
       <h1 className="titulo-pagina">Financeiro</h1>
-      <p className="apoio mt-1 text-dim">O que se repete: vaga, seguro, tripulação, financiamento.</p>
 
       <FinanceiroNav atual="recorrentes" className="mt-4" />
       <AcoesUniversais className="mt-3" />

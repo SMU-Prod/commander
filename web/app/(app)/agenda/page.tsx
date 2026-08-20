@@ -245,8 +245,7 @@ export default async function AgendaPage({
       {/* ONDA 114 — o título entra no padrão centralizado das telas
           principais (`TituloTela`, onda 105); ficar à esquerda aqui era a
           última tela de primeiro nível fora do eixo. */}
-      <TituloTela className="mb-1">Agenda</TituloTela>
-      <p className="apoio mb-2 text-center text-dim">Serviços, vencimentos e saídas planejadas.</p>
+      <TituloTela>Agenda</TituloTela>
 
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 

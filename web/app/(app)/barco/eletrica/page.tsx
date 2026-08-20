@@ -76,7 +76,6 @@ export default async function EletricaPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="eletrica"
-        descricao="Gerador, baterias e painel de bordo."
         acao={editavel ? (
           <Link
             href="/barco/equipamento/novo?tipo=gerador"
