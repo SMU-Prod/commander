@@ -215,6 +215,77 @@ class ControleCamadas implements IControl {
   }
 }
 
+/**
+ * ONDA 115 — A BÚSSOLA DE VERDADE, no lugar da setinha do Mapbox.
+ * ===========================================================================
+ * Pedido do dono: *"falta uma bússola bem discreta mas funcional no mapa"*.
+ * O mapa TINHA bússola — a do `NavigationControl` — mas ela é um sprite de
+ * 18px genérico que mais parece um ponteiro de relógio, e num app náutico a
+ * bússola não é enfeite de canto: é o instrumento que diz para onde a carta
+ * está virada.
+ *
+ * Esta é uma ROSA DOS VENTOS desenhada na linguagem de instrumento da casa:
+ * anel com os quatro pontos cardeais, agulha norte em OURO (o dourado do
+ * bloco `.bg-mapa-instrumento`, calibrado pro navy fixo — não o do tema),
+ * contra-agulha discreta. FUNCIONAL nos dois sentidos:
+ *   · a rosa INTEIRA gira com o rumo do mapa (`map.on("rotate")`), então o
+ *     "N" aponta sempre para o norte verdadeiro da carta;
+ *   · tocar nela endireita o mapa (`easeTo bearing 0, pitch 0`) — o mesmo
+ *     gesto da bússola nativa, que ninguém descobria naquele sprite.
+ *
+ * DOM puro (IControl), como todo controle deste mapa. `bg-mapa-instrumento`
+ * no botão é o que faz `var(--acao)` resolver para o ouro DE INSTRUMENTO em
+ * qualquer tema — sem a classe, o tema claro pintaria a agulha com um dourado
+ * escuro ilegível sobre navy (3,02:1, o defeito que aquele bloco existe para
+ * impedir).
+ */
+class ControleBussola implements IControl {
+  private container: HTMLDivElement | null = null
+  private rosa: SVGSVGElement | null = null
+  private mapa: MapaMapbox | null = null
+  private aoGirar = () => {
+    if (this.mapa && this.rosa) this.rosa.style.transform = `rotate(${-this.mapa.getBearing()}deg)`
+  }
+  onAdd(mapa: MapaMapbox): HTMLElement {
+    this.mapa = mapa
+    const container = document.createElement("div")
+    container.className = "mapboxgl-ctrl mapboxgl-ctrl-group"
+    const botao = document.createElement("button")
+    botao.type = "button"
+    botao.setAttribute("aria-label", "Bússola — toque para voltar ao norte")
+    botao.className = "bg-mapa-instrumento text-meter-texto"
+    botao.innerHTML =
+      // A rosa: anel, ticks cardeais, agulha norte cheia (ouro) e sul vazada.
+      // O "N" é texto de 6px — legível a 44px de botão, invisível de longe,
+      // que é exatamente o "discreta mas funcional" do pedido.
+      '<svg viewBox="0 0 24 24" width="26" height="26" style="display:block;margin:auto;transition:transform .15s ease-out">' +
+      '<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1"/>' +
+      '<g stroke="currentColor" stroke-opacity=".45" stroke-width="1">' +
+      '<line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>' +
+      '<line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></g>' +
+      '<path d="M12 4.5 14 12 H10Z" fill="var(--acao)"/>' +
+      '<path d="M12 19.5 10 12 H14Z" fill="currentColor" fill-opacity=".4"/>' +
+      '<text x="12" y="8.6" text-anchor="middle" font-size="5" font-weight="700" fill="var(--acao)">N</text>' +
+      "</svg>"
+    this.rosa = botao.querySelector("svg")
+    botao.addEventListener("click", () => {
+      this.mapa?.easeTo({ bearing: 0, pitch: 0, duration: 300 })
+    })
+    mapa.on("rotate", this.aoGirar)
+    this.aoGirar()
+    container.appendChild(botao)
+    this.container = container
+    return container
+  }
+  onRemove(): void {
+    this.mapa?.off("rotate", this.aoGirar)
+    this.container?.remove()
+    this.container = null
+    this.rosa = null
+    this.mapa = null
+  }
+}
+
 /** Chave-switch — mesmo par de cores de estado ligado/desligado usado no
  *  resto do app (bg-accent = dourado da marca). */
 function Interruptor({ ligado, aoAlternar, rotulo }: { ligado: boolean; aoAlternar: () => void; rotulo: string }) {
@@ -583,7 +654,10 @@ export function MapaNautico({
         }),
       )
       mapa.addControl(new mapboxgl.ScaleControl({ unit: "nautical" }), "bottom-left")
-      mapa.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right")
+      // ONDA 115 — a bússola nativa sai (`showCompass: false`) e entra a rosa
+      // dos ventos da casa, logo abaixo do zoom. Ver `ControleBussola`.
+      mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right")
+      mapa.addControl(new ControleBussola(), "top-right")
       mapa.addControl(
         new mapboxgl.GeolocateControl({
           positionOptions: { enableHighAccuracy: true },

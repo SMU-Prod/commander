@@ -363,9 +363,16 @@ export default async function EquipamentoPage({
             <> Média de {media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h por semana.</>
           )}
         </p>
+        {/* ONDA 115 (FIX-002 do PRD) — o destino trocou. Este botão abria
+            `/diario/novo?tipo=leitura_horas`, e o formulário do Diário NÃO TEM
+            esse tipo entre os seis cartões: o tipo chegava vazio e a pessoa
+            via Data e Descrição, sem campo de horas — o C-02 da auditoria
+            ("o principal atalho do detalhe do motor não executa sua função").
+            Agora abre a tela própria de leitura, com validação contra
+            regressão e gravação de histórico + horímetro juntos. */}
         {editavel && (
           <Link
-            href={`/diario/novo?tipo=leitura_horas&alvo=${encodeURIComponent(`eq:${id}`)}`}
+            href={`/barco/equipamento/${id}/horimetro`}
             className="mt-3.5 inline-flex h-11 items-center rounded-[var(--raio-controle)] bg-accent px-5 text-sm font-semibold text-acao-texto"
           >
             Informar leitura
