@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/avatar"
 import { AjustesNavegacao } from "@/components/ajustes-navegacao"
+import { ConectorToken } from "@/components/conector-token"
 import { AtivarAlertas } from "@/components/ativar-alertas"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
@@ -119,6 +120,10 @@ export default async function AjustesPage() {
           pra cá quando a coleta está desligada por falta de consentimento. */}
       <SecaoPagina icone="mapa" id="navegacao" className="scroll-mt-4">Navegação</SecaoPagina>
       <AjustesNavegacao />
+      {/* ONDA 140 — o token do plugin de Signal K (Commander Connector);
+          mora junto dos outros ajustes de bordo porque é daqui que a URL do
+          Signal K sempre foi configurada. */}
+      <ConectorToken />
 
       <SecaoPagina icone="embarcacao">Embarcações</SecaoPagina>
       <LinhaLista
