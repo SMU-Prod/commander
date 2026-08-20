@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { criarConvite, revogarConvite } from "@/lib/acoes/convites"
+import { CopiarLinkBotao } from "@/components/copiar-link-botao"
 import { carregarNivelPlano, carregarPainel, carregarUsoTripulacao } from "@/lib/consultas"
 import { mensagemBloqueio, vagasTripulacao } from "@/lib/domain/plano-acesso"
 import { horasNoMarCurto, usoPorTripulante, type SaidaParaTripulante } from "@/lib/domain/tripulacao"
@@ -190,13 +191,20 @@ export default async function TripulacaoPage({
               cartão vazando pro alvo. O verde continua na BORDA do cartão,
               que é onde ele significa "deu certo"; a ação veste a pílula de
               contorno como toda ação secundária do app. */}
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`Entre na tripulação da ${painel.embarcacao.nome} no Commander: ${linkConvite(criado)}`)}`}
-            target="_blank" rel="noopener noreferrer"
-            className={`${ALVO_ACAO} mt-3`}
-          >
-            <span className={PILULA_ACAO}>Compartilhar no WhatsApp</span>
-          </a>
+          {/* ONDA 120 — "Copiar link" ao lado (relato do dono em teste real):
+              o `wa.me` abre só o WhatsApp comum — quem usa o Business caía
+              num beco, e e-mail/SMS/Telegram não tinham caminho nenhum. Com
+              o link na área de transferência, qualquer app serve. */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <CopiarLinkBotao link={linkConvite(criado)} />
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Entre na tripulação da ${painel.embarcacao.nome} no Commander: ${linkConvite(criado)}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className={ALVO_ACAO}
+            >
+              <span className={PILULA_ACAO}>Compartilhar no WhatsApp</span>
+            </a>
+          </div>
         </div>
       )}
 

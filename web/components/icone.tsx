@@ -46,6 +46,11 @@ const PATHS = {
   // Onda 18 (saída como atividade): seta saindo de uma caixa — "exportar
   // esta saída pra fora do app" (Web Share API ou clipboard).
   compartilhar: <><path d="M12 14V4M8 8l4-4 4 4" /><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" /></>,
+  // Onda 120 (copiar link do convite): duas folhas sobrepostas — o desenho
+  // universal de "duplicar pra área de transferência". Distinto de
+  // "compartilhar" (seta saindo da caixa): compartilhar ENTREGA, copiar
+  // GUARDA pra colar onde a pessoa quiser.
+  copiar: <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M15 5H6a2 2 0 0 0-2 2v9" /></>,
   // Onda 20 (tempo no mar): três linhas de vento com voltas, ícone universal
   // de "vento" (mesmo desenho da família Feather) — usado no cabeçalho do
   // painel de Tempo, distinto da seta rotacionada (essa é SVG à parte, não

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
+import { CopiarLinkBotao } from "@/components/copiar-link-botao"
 import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
@@ -123,6 +124,12 @@ export default async function TransferirPage({
           <p className="mt-3 break-all rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 tabular-nums text-xs text-dim">
             {link}
           </p>
+          {/* ONDA 120 — mesmo caso do convite de tripulação: `wa.me` só abre
+              o WhatsApp comum (Business fica de fora) e e-mail não tinha
+              caminho. Copiar liberta o link do aplicativo. */}
+          <div className="mt-1">
+            {link && <CopiarLinkBotao link={link} />}
+          </div>
           {/* A fileira do canvas (tela-4d): compartilhar em contorno ocupando a
               linha, cancelar em vermelho ao lado — e cancelar SEMPRE pede
               confirmação (fluxo sensível; o link para de funcionar na hora). */}
