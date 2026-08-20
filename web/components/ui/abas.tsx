@@ -65,7 +65,7 @@ export function Abas({
           >
             {a.rotulo}
             {a.contagem != null && (
-              <span className="font-mono-instr text-xs tabular-nums text-dim">{a.contagem}</span>
+              <span className="tabular-nums text-xs tabular-nums text-dim">{a.contagem}</span>
             )}
           </Link>
         )

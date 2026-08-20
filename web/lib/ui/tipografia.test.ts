@@ -130,26 +130,32 @@ describe("tipografia", () => {
     }
   })
 
-  it("o app carrega DUAS famílias, e as duas são declaradas", () => {
-    // §16: "uma única família tipográfica em toda a aplicação". A casa tem
-    // duas, e a segunda é desvio declarado em `docs/DESIGN-SYSTEM.md` §15.2:
-    // Inter para tudo, IBM Plex Mono para o numeral de instrumento. Este teste
-    // impede a TERCEIRA — que é como a escala de tamanho chegou a 19 degraus.
+  it("o app carrega UMA família, como o §16 manda", () => {
+    // ONDA 112 — ESTE TESTE COBRAVA DUAS, E A SEGUNDA VIROU DÍVIDA PAGA.
+    // §16: "uma única família tipográfica em toda a aplicação". Até a onda 111
+    // a casa tinha duas — Inter e IBM Plex Mono para o numeral de instrumento —
+    // e isso estava registrado como desvio declarado no §15.2 do
+    // `docs/DESIGN-SYSTEM.md`. O dono olhou o app publicado e apontou:
+    // *"temos tipografias diferentes dessas novas"*.
+    // Ele estava certo, e o desvio não se sustentava: a mono não vivia num
+    // canto, desenhava TODO rótulo de seção e TODO número em 297 pontos. Saiu,
+    // e o que ela resolvia (numeral de largura fixa) passou a ser
+    // `tabular-nums` — o mecanismo que o §5 do guia prescreve e que a Inter
+    // entrega por ser variable font.
     const layout = readFileSync(path.join(RAIZ, "app/layout.tsx"), "utf-8")
     const familias = [...layout.matchAll(/import \{([^}]+)\} from "next\/font\/google"/g)]
       .flatMap((m) => m[1].split(",").map((s) => s.trim()))
       .filter(Boolean)
-    expect(familias.sort()).toEqual(["IBM_Plex_Mono", "Inter"])
+    expect(familias).toEqual(["Inter"])
   })
 
-  it("o CSS não declara família fora das duas", () => {
+  it("o CSS declara família num lugar só", () => {
+    // O `body` e mais nada. Uma `font-family` num componente é como a segunda
+    // família entra de volta — foi assim que `.rotulo` carregou a mono por
+    // cinquenta ondas sem ninguém somar o total.
     const css = readFileSync(path.join(RAIZ, "app/globals.css"), "utf-8")
     const declaradas = [...css.matchAll(/font-family:\s*([^;]+);/g)].map((m) => m[1].trim())
-    for (const d of declaradas) {
-      expect(
-        d.startsWith("var(--font-sans-app)") || d.startsWith("var(--pilha-mono-instr)"),
-        `font-family fora das duas pilhas declaradas: "${d}"`,
-      ).toBe(true)
-    }
+    expect(declaradas).toHaveLength(1)
+    expect(declaradas[0].startsWith("var(--font-sans-app)")).toBe(true)
   })
 })

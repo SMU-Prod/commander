@@ -20,7 +20,7 @@
  * já fazia e o nome do link vizinho ("Avisos") continua sendo o alvo
  * anunciado; este texto é o complemento, não o substituto.
  *
- * `font-mono-instr tabular-nums`: é número de instrumento, e "9+" ao lado de
+ * `tabular-nums tabular-nums`: é número de instrumento, e "9+" ao lado de
  * "3" precisa ter a mesma largura de dígito (docs/DESIGN.md §5, tipografia).
  */
 /**
@@ -59,7 +59,7 @@ export function ContadorAvisos({
        legível nos dois sem cor literal nova. */
     <span
       aria-label={`${avisos} avisos que pedem atenção`}
-      className={`absolute ${POSICAO[posicao]} flex h-4 min-w-4 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1 font-mono-instr text-xs font-semibold leading-4 tabular-nums text-ink`}
+      className={`absolute ${POSICAO[posicao]} flex h-4 min-w-4 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1 tabular-nums text-xs font-semibold leading-4 tabular-nums text-ink`}
     >
       {avisos > 9 ? "9+" : avisos}
     </span>

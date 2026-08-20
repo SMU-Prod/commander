@@ -221,7 +221,7 @@ export default async function AjustesPage() {
           CONTRIBUTING.md exige em toda superfície de navegação.
           `.rotulo-dado` no lugar de `text-xs`: mesmo piso de 11px, agora
           pela escala em vez de um tamanho avulso. */}
-      <p className="rotulo-dado mt-3 font-mono-instr leading-relaxed text-dim">
+      <p className="rotulo-dado mt-3 tabular-nums leading-relaxed text-dim">
         Commander {pacote.version} · não é auxílio à navegação
       </p>
     </main>

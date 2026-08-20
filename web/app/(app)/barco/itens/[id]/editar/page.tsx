@@ -145,7 +145,7 @@ export default async function EditarItemPage({
             name="part_number_oem"
             defaultValue={item.part_number_oem ?? ""}
             placeholder="Ex.: 3838852"
-            className="font-mono-instr"
+            className="tabular-nums"
             dica="O código que você usa pra comprar de novo — OEM ou equivalente."
           />
         </div>
@@ -185,16 +185,16 @@ export default async function EditarItemPage({
         </CampoSelect>
         <div className="grid grid-cols-2 gap-3">
           <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal"
-            defaultValue={numeroParaCampoPtBr(item.intervalo_horas)} placeholder="500" className="font-mono-instr tabular-nums" />
+            defaultValue={numeroParaCampoPtBr(item.intervalo_horas)} placeholder="500" className="tabular-nums tabular-nums" />
           <Campo label="E/ou a cada X meses" id="intervalo_meses" name="intervalo_meses" inputMode="numeric"
-            defaultValue={numeroParaCampoPtBr(item.intervalo_meses)} placeholder="18" className="font-mono-instr tabular-nums" />
+            defaultValue={numeroParaCampoPtBr(item.intervalo_meses)} placeholder="18" className="tabular-nums tabular-nums" />
         </div>
         <Campo label="Ou vencimento em data fixa" id="data_fixa" name="data_fixa" type="date" defaultValue={item.data_fixa ?? ""} />
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date"
             defaultValue={item.ultimo_ciclo_data ?? ""} />
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal"
-            defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className="font-mono-instr tabular-nums" />
+            defaultValue={numeroParaCampoPtBr(item.ultimo_ciclo_horas)} className="tabular-nums tabular-nums" />
         </div>
         <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>
           {ehDocumento ? "Salvar vencimento" : "Salvar manutenção"}

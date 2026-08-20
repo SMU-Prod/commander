@@ -125,7 +125,7 @@ export function SeletorModeloMotor({
                 justamente o vestido de quem mostra leitura de aparelho.
                 Mesmos 14px de antes: muda a voz declarada, não o tamanho. */}
             <span className="min-w-0 flex-1">
-              <span className="valor block truncate font-mono-instr">{nomeCompletoDoModelo(escolhido)}</span>
+              <span className="valor block truncate tabular-nums">{nomeCompletoDoModelo(escolhido)}</span>
               <span className="apoio block truncate text-dim">{detalhe(escolhido)}</span>
             </span>
             <button
@@ -212,7 +212,7 @@ export function SeletorModeloMotor({
                         o resultado dela têm que ler igual, senão escolher um
                         item parece trocar de tipografia. */}
                     <span className="min-w-0 flex-1">
-                      <span className="valor block truncate font-mono-instr">{nomeCompletoDoModelo(m)}</span>
+                      <span className="valor block truncate tabular-nums">{nomeCompletoDoModelo(m)}</span>
                       <span className="apoio block truncate text-dim">{detalhe(m)}</span>
                     </span>
                   </button>

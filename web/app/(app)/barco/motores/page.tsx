@@ -70,7 +70,7 @@ export default async function MotoresPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="motores"
-        descricao="Horímetro, revisões e o histórico de cada motor. Toque no mostrador para abrir a ficha."
+        descricao="Horímetro, revisões e histórico de cada motor."
         acao={editavel ? (
           <Link
             href="/barco/equipamento/novo?tipo=motor"

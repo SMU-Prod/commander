@@ -159,7 +159,7 @@ export default async function HistoricoPage({
                       jeito — deixá-lo seria uma linha que não faz nada. A
                       altura da linha continua a mesma: quem a define é a
                       coluna do meio (título + apoio), não esta. */}
-                  <div className="w-11 shrink-0 text-center font-mono-instr rotulo-dado tabular-nums text-dim">
+                  <div className="w-11 shrink-0 text-center tabular-nums rotulo-dado tabular-nums text-dim">
                     <span className="block text-base text-texto">{entrada.evento.data.slice(8, 10)}</span>
                     {new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" })
                       .format(new Date(`${entrada.evento.data}T00:00:00Z`)).replace(".", "")}

@@ -231,7 +231,7 @@ export function Medidor({
                   y={p.y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                   fontSize="9.5"
                   fill="var(--texto-dim)"
                 >
@@ -306,10 +306,10 @@ export function Medidor({
             de 80px. Em HTML ele obedece `clamp()` — o "responsivo total" da
             spec §5. */}
         <div className="pointer-events-none absolute inset-x-0 bottom-[2%] flex items-baseline justify-center gap-1">
-          <span className="font-mono-instr text-[clamp(1.125rem,13cqw,2.125rem)] font-semibold leading-none tabular-nums text-texto">
+          <span className="tabular-nums text-[clamp(1.125rem,13cqw,2.125rem)] font-semibold leading-none tabular-nums text-texto">
             {semLeitura ? "—" : formatarNumero(valor)}
           </span>
-          <span className="font-mono-instr text-[clamp(0.625rem,4.5cqw,0.8125rem)] leading-none text-dim">
+          <span className="tabular-nums text-[clamp(0.625rem,4.5cqw,0.8125rem)] leading-none text-dim">
             {unidade}
           </span>
         </div>

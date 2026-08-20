@@ -61,7 +61,7 @@ export default async function LancamentoPage({
         {/* O valor É o assunto desta ficha — `.valor-instrumento`, o terceiro
             degrau do número (onda 87). `text-3xl` (30px) não era degrau de
             escala nenhuma. */}
-        <p className={`mt-1 font-mono-instr valor-instrumento ${l.tipo === "entrada" ? "text-ok" : ""}`}>
+        <p className={`mt-1 tabular-nums valor-instrumento ${l.tipo === "entrada" ? "text-ok" : ""}`}>
           {formatarReais(l.valor_centavos)}
         </p>
         <p className="apoio mt-1 text-dim">{rotuloStatus(l.tipo, l.status)}</p>

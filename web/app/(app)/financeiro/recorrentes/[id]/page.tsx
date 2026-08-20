@@ -70,23 +70,23 @@ export default async function RecorrentePage({
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">{rec.tipo === "entrada" ? "Entrada recorrente" : "Despesa recorrente"}</p>
-        <p className={`mt-1 font-mono-instr text-3xl tabular-nums ${rec.tipo === "entrada" ? "text-ok" : ""}`}>
+        <p className={`mt-1 tabular-nums text-3xl tabular-nums ${rec.tipo === "entrada" ? "text-ok" : ""}`}>
           {formatarReais(rec.valor_centavos)}
         </p>
         <div className="mt-3 space-y-1 border-t border-line pt-3">
           <p className="corpo flex justify-between gap-3">
             <span className="text-dim">Começou em</span>
-            <span className="font-mono-instr tabular-nums">{formatarDataBr(rec.inicio)}</span>
+            <span className="tabular-nums tabular-nums">{formatarDataBr(rec.inicio)}</span>
           </p>
           {rec.fim && (
             <p className="corpo flex justify-between gap-3">
               <span className="text-dim">Até</span>
-              <span className="font-mono-instr tabular-nums">{formatarDataBr(rec.fim)}</span>
+              <span className="tabular-nums tabular-nums">{formatarDataBr(rec.fim)}</span>
             </p>
           )}
           <p className="corpo flex justify-between gap-3">
             <span className="text-dim">Próximo vencimento</span>
-            <span className="font-mono-instr tabular-nums">{proximo ? formatarDataBr(proximo) : "—"}</span>
+            <span className="tabular-nums tabular-nums">{proximo ? formatarDataBr(proximo) : "—"}</span>
           </p>
           {rec.fornecedor && (
             <p className="corpo flex justify-between gap-3">

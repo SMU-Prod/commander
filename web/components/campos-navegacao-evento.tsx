@@ -209,7 +209,7 @@ export function FormularioNovoEvento({
                   name="data"
                   type="date"
                   defaultValue={dataInicial}
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
                 <Campo
                   label="Saída"
@@ -218,7 +218,7 @@ export function FormularioNovoEvento({
                   type="time"
                   value={horaSaida}
                   onChange={(e) => setHoraSaida(e.target.value)}
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
                 <Campo
                   label="Retorno"
@@ -227,12 +227,12 @@ export function FormularioNovoEvento({
                   type="time"
                   value={horaRetorno}
                   onChange={(e) => setHoraRetorno(e.target.value)}
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
               </div>
 
               {duracao != null && (
-                <p className="flex items-center gap-1.5 font-mono-instr text-sm tabular-nums text-dim">
+                <p className="flex items-center gap-1.5 tabular-nums text-sm tabular-nums text-dim">
                   <Icone nome="relogio" className="size-4" /> Duração: {textoDuracao(duracao)}
                   {/* sem dizer isso em voz alta, "22:00 → 01:30 = 3 h 30" parece
                       conta errada — e uma travessia de MAIS de um dia sai
@@ -380,11 +380,11 @@ export function FormularioNovoEvento({
           {mostraCustoAnexo && (
             TIPOS_COM_HORAS.has(tipo) && temMotor ? (
               <div className="grid grid-cols-2 gap-3">
-                <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="font-mono-instr tabular-nums" />
-                <Campo label="Horas do motor agora — opcional" id="horas" name="horas" inputMode="decimal" defaultValue={horasInicial} className="font-mono-instr tabular-nums" />
+                <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="tabular-nums tabular-nums" />
+                <Campo label="Horas do motor agora — opcional" id="horas" name="horas" inputMode="decimal" defaultValue={horasInicial} className="tabular-nums tabular-nums" />
               </div>
             ) : (
-              <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="font-mono-instr tabular-nums" />
+              <Campo label="Custo (R$) — opcional" id="custo" name="custo" inputMode="decimal" defaultValue={custoInicial} placeholder="1.850,00" className="tabular-nums tabular-nums" />
             )
           )}
 

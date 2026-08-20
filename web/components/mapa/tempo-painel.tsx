@@ -200,7 +200,7 @@ function GraficoMare({ serie, proxima }: { serie: BoletimMar["serieNivelMar"]; p
 export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } | null }) {
   const { estado, tentarDeNovo } = useBoletimTempo(posicao)
 
-  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
+  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 tabular-nums tabular-nums"
   // Onda 80 — rótulo em CAIXA DE FRASE (`.rotulo-dado`, ver app/globals.css),
   // não mais uppercase rastreado: mesma troca que o resto da tela fez (ver
   // navegar-mapa.tsx, comentário do Mostrador).

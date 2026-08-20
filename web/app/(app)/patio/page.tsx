@@ -183,7 +183,7 @@ export default async function PatioPage({
           {aberto?.saida_em && (
             <>
               {" · fora há "}
-              <span className="font-mono-instr tabular-nums">
+              <span className="tabular-nums tabular-nums">
                 {textoDuracao(
                   duracaoHoras({ saidaEm: aberto.saida_em, retornoEm: new Date().toISOString() }),
                 ) ?? "pouco"}
@@ -271,14 +271,14 @@ export default async function PatioPage({
                   id="retorno_horas"
                   name="retorno_horas"
                   inputMode="decimal"
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
                 <Campo
                   label="Combustível (%)"
                   id="retorno_combustivel_pct"
                   name="retorno_combustivel_pct"
                   inputMode="numeric"
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
               </div>
               <CampoTextarea
@@ -332,14 +332,14 @@ export default async function PatioPage({
                   id="saida_horas"
                   name="saida_horas"
                   inputMode="decimal"
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
                 <Campo
                   label="Combustível (%)"
                   id="saida_combustivel_pct"
                   name="saida_combustivel_pct"
                   inputMode="numeric"
-                  className="font-mono-instr tabular-nums"
+                  className="tabular-nums tabular-nums"
                 />
               </div>
               <CampoTextarea
@@ -415,7 +415,7 @@ export default async function PatioPage({
                       retornoCombustivelPct: m.retorno_combustivel_pct,
                     })
                     return comparacao
-                      ? <p className="apoio mt-1 font-mono-instr text-dim">{comparacao}</p>
+                      ? <p className="apoio mt-1 tabular-nums text-dim">{comparacao}</p>
                       : null
                   })()}
                   {(m.saida_estado || m.retorno_estado) && (
@@ -523,7 +523,7 @@ export default async function PatioPage({
                       lia exatamente igual a uma aprovada. */}
                   <SeloDaConferencia situacao={situacaoDe(m)} />
                 </div>
-                {comparacao && <p className="apoio mt-1 font-mono-instr text-dim">{comparacao}</p>}
+                {comparacao && <p className="apoio mt-1 tabular-nums text-dim">{comparacao}</p>}
                 {linhaQuem && <p className="apoio mt-1 text-dim">{linhaQuem}</p>}
                 {/* Quem conferiu e quando — a procedência que o §22 pede. Só
                     aparece quando houve ato de gente: registro que entrou

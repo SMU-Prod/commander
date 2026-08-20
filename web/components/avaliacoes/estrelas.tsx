@@ -43,7 +43,7 @@ export function SeletorNota({ defaultValue }: { defaultValue?: number }) {
               className="flex h-14 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--raio-controle)] border border-line bg-campo text-dim peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent-forte peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent"
             >
               <Icone nome="estrela" className="size-4" />
-              <span className="font-mono-instr text-xs">{n}</span>
+              <span className="tabular-nums text-xs">{n}</span>
             </span>
           </label>
         ))}

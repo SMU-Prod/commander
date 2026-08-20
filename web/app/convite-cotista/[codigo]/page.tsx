@@ -149,7 +149,7 @@ export default async function ConviteCotistaPage({
             sozinho — quem incorpora é a administradora.
           </p>
           <p className="apoio mt-3 text-dim">
-            Vaga <span className="font-mono-instr">{vagasDeCotista(info.vagas_total, info.vagas_ocupadas).rotulo}</span>
+            Vaga <span className="tabular-nums">{vagasDeCotista(info.vagas_total, info.vagas_ocupadas).rotulo}</span>
           </p>
           <form action={entrarComoCotista} className="mx-auto mt-6 max-w-[320px]">
             <input type="hidden" name="codigo" value={codigo} />

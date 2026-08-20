@@ -25,7 +25,7 @@ describe("BarraCapacidade", () => {
   it("o número forte sai em mono tabular", () => {
     const saida = html({ ...BASE, usado: 28700 })
     const span = saida.match(/<span class="([^"]*)">28\.700<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
   })
 

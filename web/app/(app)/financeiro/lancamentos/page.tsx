@@ -115,13 +115,13 @@ export default async function LancamentosPage({
         <div className="flex gap-3">
           <div className="flex-1">
             <p className="rotulo text-dim">{rotuloPagoNoMes(hoje)}</p>
-            <p className="mt-1.5 font-mono-instr valor-forte font-semibold">
+            <p className="mt-1.5 tabular-nums valor-forte font-semibold">
               {formatarReais(totais.pagoCentavos)}
             </p>
           </div>
           <div className="flex-1">
             <p className="rotulo text-dim">A vencer</p>
-            <p className={`mt-1.5 font-mono-instr valor-forte font-semibold ${totais.aVencerCentavos > 0 ? "text-warn" : ""}`}>
+            <p className={`mt-1.5 tabular-nums valor-forte font-semibold ${totais.aVencerCentavos > 0 ? "text-warn" : ""}`}>
               {formatarReais(totais.aVencerCentavos)}
             </p>
           </div>
@@ -213,7 +213,7 @@ export default async function LancamentosPage({
                   titulo={l.descricao}
                   subtitulo={
                     <>
-                      <span className="font-mono-instr tabular-nums">{formatarDataCurta(l.data)}</span>
+                      <span className="tabular-nums tabular-nums">{formatarDataCurta(l.data)}</span>
                       {" · "}{l.fornecedor || ROTULO_CATEGORIA[l.categoria]}
                       {l.recorrencia_id && " · recorrente"}
                       {" · "}<span className={corEstado}>{estado.texto}</span>

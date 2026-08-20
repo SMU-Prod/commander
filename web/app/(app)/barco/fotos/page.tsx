@@ -89,7 +89,7 @@ export default async function FotosPage({
             {/* O contador mono do chip ativo (canvas: "Todas 18") — só no
                 ativo, que é o recorte que a grade abaixo está mostrando. */}
             {a === albumAtivo && doAlbum.length > 0 && (
-              <span className="ml-1.5 font-mono-instr tabular-nums">{doAlbum.length}</span>
+              <span className="ml-1.5 tabular-nums tabular-nums">{doAlbum.length}</span>
             )}
           </Chip>
         ))}
@@ -206,7 +206,7 @@ export default async function FotosPage({
               {/* `rotulo-dado` e não `.rotulo`: o convite é caixa de frase —
                   `.rotulo` transforma em caixa alta e o "+ FOTO" gritaria mais
                   que a própria grade de fotos. */}
-              <span className="font-mono-instr rotulo-dado">+ foto</span>
+              <span className="tabular-nums rotulo-dado">+ foto</span>
             </Link>
           )}
         </div>

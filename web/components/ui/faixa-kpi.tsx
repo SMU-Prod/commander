@@ -77,7 +77,7 @@ export function PastilhaKpi({
           liam como a mesma coisa. A pastilha tem altura fixa (`h-8`), então
           nada se move. `tabular-nums` continua explícito no markup porque
           `faixa-kpi.test.ts` confere a string — a classe já o traria. */}
-      <span className="font-mono-instr valor font-semibold tabular-nums">{valor}</span>
+      <span className="tabular-nums valor font-semibold tabular-nums">{valor}</span>
     </span>
   )
 }

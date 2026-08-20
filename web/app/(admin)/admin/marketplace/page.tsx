@@ -150,7 +150,7 @@ function Numero({ rotulo, valor, apoio }: { rotulo: string; valor: string; apoio
           no lugar dos 18px de `text-xl`, que não eram degrau de escala nenhum.
           O porquê longo está em `app/(admin)/admin/page.tsx` — não repetido
           aqui pra não haver duas versões da mesma decisão divergindo. */}
-      <p className="font-mono-instr valor-forte mt-1 font-semibold">{valor}</p>
+      <p className="tabular-nums valor-forte mt-1 font-semibold">{valor}</p>
       {apoio && <p className="apoio mt-0.5 text-dim">{apoio}</p>}
     </div>
   )

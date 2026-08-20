@@ -142,7 +142,7 @@ export default function ParceirosPage() {
         <ol className="mt-10 grid gap-8 sm:grid-cols-3">
           {PASSOS.map((p, i) => (
             <li key={p.titulo} className="text-center sm:text-left">
-              <span className="mx-auto flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-accent/40 font-mono-instr text-sm font-semibold text-accent-forte sm:mx-0">
+              <span className="mx-auto flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-accent/40 tabular-nums text-sm font-semibold text-accent-forte sm:mx-0">
                 {i + 1}
               </span>
               <h2 className="titulo-card mt-3">{p.titulo}</h2>

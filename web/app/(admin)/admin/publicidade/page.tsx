@@ -238,7 +238,7 @@ export default async function AdminPublicidadePage({
                 {/* Impressões, cliques e taxa (§21.1). Taxa some quando não
                     houve impressão: 0% diria que o anúncio não funciona,
                     quando o fato é que ele não rodou. */}
-                <p className="apoio mt-1 font-mono-instr tabular-nums text-dim">
+                <p className="apoio mt-1 tabular-nums tabular-nums text-dim">
                   {impressoes.toLocaleString("pt-BR")} impressões · {cliques.toLocaleString("pt-BR")} cliques ·{" "}
                   {formatarTaxa(taxa)}
                 </p>

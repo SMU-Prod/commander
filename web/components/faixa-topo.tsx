@@ -417,7 +417,7 @@ export function FaixaTopo({
                 className="flex shrink-0 items-center gap-2 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5"
               >
                 <span className="rotulo text-dim">{p.rotulo}</span>
-                <span className="font-mono-instr text-xs font-semibold tabular-nums text-texto">{p.valor}</span>
+                <span className="tabular-nums text-xs font-semibold tabular-nums text-texto">{p.valor}</span>
               </span>
             ))}
             {revisao && (

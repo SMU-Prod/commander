@@ -34,7 +34,7 @@ export function Kpi({
           mesmo 20px, agora vindo do degrau declarado da escala. As cores de
           COR_VALOR continuam mandando (a classe entrega a cor com
           especificidade zero — ver o bloco `:where` em globals.css). */}
-      <p className={`font-mono-instr valor-forte font-semibold ${COR_VALOR[estado]}`}>{valor}</p>
+      <p className={`tabular-nums valor-forte font-semibold ${COR_VALOR[estado]}`}>{valor}</p>
       {apoio && <p className={`apoio truncate ${COR_APOIO[apoioEstado]}`}>{apoio}</p>}
     </div>
   )

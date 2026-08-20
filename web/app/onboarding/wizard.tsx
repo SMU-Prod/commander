@@ -134,7 +134,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
         <div className="text-xs">
           <Logo />
         </div>
-        <span className="font-mono-instr text-xs tabular-nums text-dim">
+        <span className="tabular-nums text-xs tabular-nums text-dim">
           {passo + 1} de {TOTAL_PASSOS}
         </span>
       </div>

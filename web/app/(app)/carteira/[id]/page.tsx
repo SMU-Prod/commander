@@ -99,21 +99,21 @@ export default async function CarteiraDetalhePage({
             `text-3xl` e `text-sm`: o primeiro fora de qualquer escala, o
             segundo dando 14px SEM peso, SEM cor e SEM tabular — o mesmo cinza
             do rótulo logo acima, que é o que apagava a hierarquia. */}
-        <p className={`mt-1 font-mono-instr valor-instrumento ${leitura.critico ? "text-crit" : ""}`}>
+        <p className={`mt-1 tabular-nums valor-instrumento ${leitura.critico ? "text-crit" : ""}`}>
           {formatarReais(s.saldoCentavos)}
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-line pt-3">
           <div>
             <p className="rotulo text-dim">Repassado</p>
-            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.repassadoCentavos)}</p>
+            <p className="mt-0.5 tabular-nums valor">{formatarReais(s.repassadoCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Gasto</p>
-            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.gastoCentavos)}</p>
+            <p className="mt-0.5 tabular-nums valor">{formatarReais(s.gastoCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Devolvido</p>
-            <p className="mt-0.5 font-mono-instr valor">{formatarReais(s.devolvidoCentavos)}</p>
+            <p className="mt-0.5 tabular-nums valor">{formatarReais(s.devolvidoCentavos)}</p>
           </div>
         </div>
         {s.aguardandoQtd > 0 && (
@@ -146,7 +146,7 @@ export default async function CarteiraDetalhePage({
                         {m.categoria && ` · ${ROTULO_CATEGORIA[m.categoria]}`}
                       </p>
                     </div>
-                    <p className="shrink-0 font-mono-instr valor font-semibold">
+                    <p className="shrink-0 tabular-nums valor font-semibold">
                       {formatarReais(m.valor_centavos)}
                     </p>
                   </div>

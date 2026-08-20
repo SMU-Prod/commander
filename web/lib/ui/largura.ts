@@ -19,8 +19,9 @@
  *
  * ONDA 95 (achado 5.8) — A CONTA CITAVA UMA FONTE QUE O APP NÃO USA MAIS.
  * Até aqui esta linha dizia "à 16px da IBM Plex Sans". A fonte de TEXTO é
- * Inter desde a onda 80 (a Plex sobrou só como mono de instrumento, na pilha
- * `--pilha-mono-instr`), e a Inter tem largura de avanço diferente: a mesma
+ * Inter desde a onda 80 (e desde a onda 112 ela é a ÚNICA família do app — a
+ * Plex Mono, que sobrava no numeral de instrumento, saiu junto com o desvio
+ * §15.2 do sistema de design), e a Inter tem largura de avanço diferente: a mesma
  * conta de 45–75 caracteres não devolve exatamente 640. O número segue
  * defensável — 640px continua dentro da faixa de 45–75 caracteres em Inter a
  * 16px — mas a justificativa nomeava a fonte errada, e uma conta que nomeia a

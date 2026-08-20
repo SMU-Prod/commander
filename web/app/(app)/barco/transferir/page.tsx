@@ -120,7 +120,7 @@ export default async function TransferirPage({
             Nada foi apagado ainda. O Financeiro some no instante do aceite — até lá, cancelar
             desfaz tudo.
           </p>
-          <p className="mt-3 break-all rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 font-mono-instr text-xs text-dim">
+          <p className="mt-3 break-all rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-2 tabular-nums text-xs text-dim">
             {link}
           </p>
           {/* A fileira do canvas (tela-4d): compartilhar em contorno ocupando a

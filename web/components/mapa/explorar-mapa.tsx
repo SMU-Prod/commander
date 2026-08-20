@@ -262,7 +262,7 @@ export function ExplorarMapa({
                   <span className="titulo-card block truncate !text-meter-texto">{p.nome}</span>
                   <span className="apoio block text-meter-dim">{ROTULO_TIPO_PARTNER[p.categoria]}</span>
                 </span>
-                <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums text-meter-texto">
+                <span className="shrink-0 tabular-nums text-sm font-semibold tabular-nums text-meter-texto">
                   {formatarMN(p.distanciaNm)}
                 </span>
               </button>

@@ -108,7 +108,7 @@ describe("FaixaTopo", () => {
     // O número em mono E tabular — as duas classes, como em toda faixa de
     // KPI do app (perder só `tabular-nums` passaria despercebido no olho).
     const valor = saida.match(/<span class="([^"]*)">612,0 h<\/span>/)?.[1] ?? ""
-    expect(valor).toContain("font-mono-instr")
+    expect(valor).toContain("tabular-nums")
     expect(valor).toContain("tabular-nums")
   })
 

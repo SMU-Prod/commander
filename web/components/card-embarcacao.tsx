@@ -81,7 +81,7 @@ function LeituraDaSaude({ partes }: { partes: { numero: number; rotulo: string }
       {partes.map((parte, i) => (
         <span key={parte.rotulo}>
           {i > 0 && " · "}
-          <span className="font-mono-instr font-semibold tabular-nums text-meter-texto">{parte.numero}</span>{" "}
+          <span className="tabular-nums font-semibold tabular-nums text-meter-texto">{parte.numero}</span>{" "}
           {parte.rotulo}
         </span>
       ))}
@@ -113,7 +113,7 @@ function AnelSaude({ farol, rotulo, pendencias, href }: SaudeNoHeroi) {
       <span
         className={`flex size-14 items-center justify-center rounded-[var(--raio-pilula)] border-[3px] border-current ${cor}`}
       >
-        <span className="font-mono-instr text-lg font-semibold leading-none tabular-nums text-meter-texto">
+        <span className="tabular-nums text-lg font-semibold leading-none tabular-nums text-meter-texto">
           {pendencias ?? "—"}
         </span>
       </span>

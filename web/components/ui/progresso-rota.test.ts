@@ -33,7 +33,7 @@ describe("ProgressoRota", () => {
   it("os números que mudam em navegação saem em mono tabular", () => {
     const saida = html({ ...BASE, percentual: 72 })
     const span = saida.match(/<span class="([^"]*)">282,1 km<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
   })
 

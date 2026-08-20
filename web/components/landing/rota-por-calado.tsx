@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -542,7 +542,7 @@ export function RotaPorCalado() {
       <figcaption className="mt-4">
         <label htmlFor="calado-demo" className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <span className="rotulo text-dim">Calado do seu barco</span>
-          <span className="valor-forte font-mono-instr">
+          <span className="valor-forte tabular-nums">
             {formatarMetros(caladoM)} m
           </span>
         </label>
@@ -575,21 +575,21 @@ export function RotaPorCalado() {
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-4 sm:grid-cols-4">
           <div>
             <dt className="rotulo-dado">Trecho</dt>
-            <dd className="valor mt-0.5 font-mono-instr">
+            <dd className="valor mt-0.5 tabular-nums">
               {rota.distanciaNm != null ? `${formatarMetros(rota.distanciaNm)} M` : "—"}
             </dd>
           </div>
           <div>
             <dt className="rotulo-dado">Bloqueia abaixo de</dt>
-            <dd className="valor mt-0.5 font-mono-instr">{formatarMetros(limiarM)} m</dd>
+            <dd className="valor mt-0.5 tabular-nums">{formatarMetros(limiarM)} m</dd>
           </div>
           <div>
             <dt className="rotulo-dado">Malha da costa</dt>
-            <dd className="valor mt-0.5 font-mono-instr">100 m</dd>
+            <dd className="valor mt-0.5 tabular-nums">100 m</dd>
           </div>
           <div>
             <dt className="rotulo-dado">Célula da sonda</dt>
-            <dd className="valor mt-0.5 font-mono-instr">450 m</dd>
+            <dd className="valor mt-0.5 tabular-nums">450 m</dd>
           </div>
         </dl>
 

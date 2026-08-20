@@ -115,16 +115,16 @@ export default async function FinanceiroPage({
             o degrau de KPI — `.valor-forte`. Antes eram `text-3xl` e
             `text-xl`, dois tamanhos que não existem em régua nenhuma e que
             deixavam o número sem peso e sem a cor de dado. */}
-        <p className="mt-1 font-mono-instr valor-instrumento">{formatarReais(r.despesasCentavos)}</p>
+        <p className="mt-1 tabular-nums valor-instrumento">{formatarReais(r.despesasCentavos)}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
             <p className="rotulo text-dim">Entradas</p>
-            <p className="mt-0.5 font-mono-instr valor-forte text-ok">{formatarReais(r.entradasCentavos)}</p>
+            <p className="mt-0.5 tabular-nums valor-forte text-ok">{formatarReais(r.entradasCentavos)}</p>
           </div>
           <div>
             <p className="rotulo text-dim">Saldo do mês</p>
-            <p className={`mt-0.5 font-mono-instr valor-forte ${r.saldoCentavos < 0 ? "text-crit" : ""}`}>
+            <p className={`mt-0.5 tabular-nums valor-forte ${r.saldoCentavos < 0 ? "text-crit" : ""}`}>
               {formatarReais(r.saldoCentavos)}
             </p>
           </div>
@@ -135,13 +135,13 @@ export default async function FinanceiroPage({
             {r.aPagarCentavos > 0 && (
               <p className="corpo flex justify-between">
                 <span className="text-dim">A pagar</span>
-                <span className="font-mono-instr valor">{formatarReais(r.aPagarCentavos)}</span>
+                <span className="tabular-nums valor">{formatarReais(r.aPagarCentavos)}</span>
               </p>
             )}
             {r.aReceberCentavos > 0 && (
               <p className="corpo mt-1 flex justify-between">
                 <span className="text-dim">A receber</span>
-                <span className="font-mono-instr valor">{formatarReais(r.aReceberCentavos)}</span>
+                <span className="tabular-nums valor">{formatarReais(r.aReceberCentavos)}</span>
               </p>
             )}
             {/* O PRD é taxativo: orçamento/proposta não é despesa. "Pendente"

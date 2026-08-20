@@ -68,7 +68,7 @@ export default async function CascoPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="casco"
-        descricao="Deck, fibra, inox, vidros e estofados — o que vence por data e o app avisa antes."
+        descricao="Deck, fibra, inox, vidros e estofados."
         acao={editavel ? (
           // `alvo=cat:casco_outros` e não `/barco/itens/novo` pelado: "Outros"
           // é o balde do Casco, então o formulário abre já na área certa (a

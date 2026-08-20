@@ -91,7 +91,7 @@ export default async function SelosPage() {
                 </div>
               ))}
             </div>
-            <p className="apoio mt-3 font-mono-instr tabular-nums text-dim">
+            <p className="apoio mt-3 tabular-nums tabular-nums text-dim">
               {verified.completos} de {verified.total} requisitos atendidos
             </p>
           </>
@@ -107,7 +107,7 @@ export default async function SelosPage() {
                   <SeloGold size={20} variant="ativo" /> Commander Gold
                 </p>
                 {/* Onda 93 (achado 5.12) — `.rotulo` no lugar de
-                    `font-mono-instr text-xs uppercase tracking-[.08em]`: mesma
+                    `tabular-nums text-xs uppercase tracking-[.08em]`: mesma
                     voz, com o piso de 11px e o tracking declarado. */}
                 <span className="rotulo text-dim">
                   {ROTULO_STATUS_SELO[statusSelo]}

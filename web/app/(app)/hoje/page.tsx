@@ -72,9 +72,9 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
     <>
       {/* Onda 93 (achado 5.12) — os três rótulos eram
           `text-xs uppercase tracking-[.12em]`, que é `.rotulo` reescrita à
-          mão com o tracking derivado (.12 contra .16). O `font-mono-instr` do
+          mão com o tracking derivado (.12 contra .16). O `tabular-nums` do
           pai já dava a fonte; agora a classe dá as quatro coisas de uma vez. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 tabular-nums text-sm tabular-nums">
         <span><span className="rotulo mr-1.5 text-dim">Onda</span>{boletim.ondaM != null ? `${boletim.ondaM.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}</span>
         <span>
           <span className="rotulo mr-1.5 text-dim">Vento</span>
@@ -109,7 +109,7 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
       {boletim.proximaMareEstimada && (
         <p className="apoio mt-2 text-dim">
           {ROTULO_MARE[boletim.proximaMareEstimada.tipo]} estimada às{" "}
-          <span className="font-mono-instr tabular-nums">
+          <span className="tabular-nums tabular-nums">
             {String(boletim.proximaMareEstimada.hora).padStart(2, "0")}h
           </span>{" "}
           ·{" "}
@@ -864,13 +864,13 @@ export default async function HojePage({
                   <Avatar key={t.id} url={urlsTripulacao.get(t.id) ?? null} nome={t.nome} tamanho="size-9" />
                 ))}
                 {tripulantesExtras > 0 && (
-                  <span className="flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 font-mono-instr text-xs text-dim">
+                  <span className="flex size-9 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 tabular-nums text-xs text-dim">
                     +{tripulantesExtras}
                   </span>
                 )}
               </div>
               <p className="apoio mt-2 text-dim">
-                <span className="font-mono-instr tabular-nums">{tripulantes.length}</span>{" "}
+                <span className="tabular-nums tabular-nums">{tripulantes.length}</span>{" "}
                 {tripulantes.length === 1 ? "pessoa tem" : "pessoas têm"} acesso a este barco
               </p>
             </>

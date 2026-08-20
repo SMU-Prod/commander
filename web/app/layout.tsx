@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { IBM_Plex_Mono, Inter } from "next/font/google"
+import { Inter } from "next/font/google"
 import { Analytics } from "@/components/analytics"
 import "./globals.css"
 
@@ -23,7 +23,7 @@ import "./globals.css"
  * escuros bons — inclusive o que serve de referência aqui.
  *
  * A MONO FICA. O número de instrumento continua em IBM Plex Mono: ela já
- * está afinada com o resto do app (.rotulo, --font-mono-instr), tem a
+ * está afinada com o resto do app (.rotulo, --tabular-nums), tem a
  * largura fixa que mantém dígito alinhado em coluna, e na referência os
  * números de painel são visivelmente monoespaçados. Trocar as duas de uma
  * vez seria duas variáveis mudando no mesmo experimento.
@@ -35,12 +35,16 @@ const inter = Inter({
   // referência; isso mora em globals.css, não aqui.
 })
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-mono",
-})
-
+/* ONDA 112 — A SEGUNDA FAMÍLIA SAIU.
+   O dono, olhando o app publicado: *"temos tipografias diferentes dessas
+   novas"*. Era a IBM Plex Mono, e ela não estava num canto: desenhava TODO
+   rótulo de seção e TODO número do app, em 297 pontos — monoespaçada maiúscula
+   ao lado da Inter em toda tela.
+   O §16 do guia pede uma família só, e o §5 dá o mecanismo para o que a mono
+   resolvia: `tabular-nums`, que a Inter tem por ser variable font. Os 297 usos
+   viraram a utilitária do próprio Tailwind.
+   De brinde, sai um download de fonte inteiro (quatro pesos estáticos), que é
+   o §14 do guia falando de desempenho. */
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 const DESCRICAO = "Manutenção em dia, documentos alertados e um histórico que vale dinheiro na hora de vender."
 
@@ -93,13 +97,12 @@ const temaInicial = `try{if(localStorage.getItem("tema")!=="light")document.docu
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // As classes de VARIÁVEL das fontes ficam no <html>, não no <body> — a
-    // pilha --pilha-mono-instr (globals.css) é definida em :root e referencia
-    // var(--font-plex-mono): custom property resolve var() no elemento onde
-    // ELA é computada, então com a variável da fonte um nível abaixo (body) a
-    // pilha computava "guaranteed-invalid" no html e todo mundo herdava o
-    // inválido — rótulo e instrumento caíam silenciosamente na fonte do corpo.
-    <html lang="pt-BR" className={`${inter.variable} ${plexMono.variable}`} suppressHydrationWarning>
+    // A classe de VARIÁVEL da fonte fica no <html>, não no <body>: custom
+    // property resolve `var()` no elemento onde ELA é computada, e a pilha do
+    // `body` em `globals.css` referencia `--font-sans-app`. Com a variável um
+    // nível abaixo, a pilha computaria "guaranteed-invalid" no html e todo
+    // mundo herdaria o inválido — foi um defeito real, na onda 62.
+    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: temaInicial }} />
         <Analytics />

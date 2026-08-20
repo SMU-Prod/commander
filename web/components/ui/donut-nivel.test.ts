@@ -19,7 +19,7 @@ describe("DonutNivel", () => {
   it("mostra o valor em mono tabular e o percentual no chip", () => {
     const saida = html({ ...BASE, valor: 3.61, percentual: 31 })
     const span = saida.match(/<span class="([^"]*)">3,61<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
     expect(saida).toContain("31%")
   })

@@ -313,7 +313,7 @@ export default async function NotificacoesPage({
               {/* `.rotulo-dado` — mesmo piso de 11px, pela escala: é legenda
                   de um valor dentro de um cartão, que é exatamente o papel
                   que a onda 79 criou essa classe para cobrir. */}
-              <p className="rotulo-dado mt-0.5 font-mono-instr tabular-nums">
+              <p className="rotulo-dado mt-0.5 tabular-nums tabular-nums">
                 {formatarCarimbo(a.enviado_em)}
               </p>
             </div>
@@ -331,7 +331,7 @@ export default async function NotificacoesPage({
                 {f.rotulo}
                 {/* A contagem é número: fica em mono tabular mesmo com o rótulo
                     em sans — é exatamente a divisão que o app faz em toda lista. */}
-                {f.total > 0 && <span className="ml-1.5 font-mono-instr tabular-nums">{f.total}</span>}
+                {f.total > 0 && <span className="ml-1.5 tabular-nums tabular-nums">{f.total}</span>}
               </Chip>
             ))}
           </ChipLinha>

@@ -90,10 +90,10 @@ export default async function HorasDaSaidaPage({ params }: { params: Promise<{ i
                     ? m.horas_atuais.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                     : undefined
                 }
-                className="font-mono-instr tabular-nums"
+                className="tabular-nums tabular-nums"
               >
                 {m.horas_atuais != null && (
-                  <p className="mt-1 font-mono-instr rotulo-dado tabular-nums text-dim">
+                  <p className="mt-1 tabular-nums rotulo-dado tabular-nums text-dim">
                     atual: {m.horas_atuais.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h
                   </p>
                 )}

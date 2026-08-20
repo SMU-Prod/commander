@@ -407,7 +407,7 @@ function VistaMes({
                   {/* 46px era um número escolhido no olho; a régua da casa é
                       44 e a célula continua acima dela. O dia é DADO —
                       `.valor` traz o tabular e a cor de dado (onda 87). */}
-                  <span className={`font-mono-instr valor ${
+                  <span className={`tabular-nums valor ${
                     !dia.doMes ? "text-dim/40" : dia.data === hoje ? "font-bold text-accent-forte" : ""
                   }`}>
                     {Number(dia.data.slice(8))}
@@ -505,7 +505,7 @@ function LinhaAgendaData({ item }: { item: ItemAgenda }) {
           (achado 5.12 da auditoria). Cabe nos 42px: dois dígitos de mono a
           20px medem ~24px. */}
       <span className="w-[42px] shrink-0 text-center">
-        <span className="block font-mono-instr valor-forte font-semibold leading-none">{dia}</span>
+        <span className="block tabular-nums valor-forte font-semibold leading-none">{dia}</span>
         <span className="rotulo mt-1 block leading-none text-dim">{semana}</span>
       </span>
       <span className="min-w-0 flex-1">

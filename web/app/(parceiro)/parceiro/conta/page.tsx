@@ -43,7 +43,7 @@ export default async function ParceiroContaPage() {
               o degrau exato disso — o `corpo` que estava aqui dá os mesmos
               14px e nada mais: nem tabular, nem a cor de dado que separa o
               valor do rótulo ao lado.
-              SEM `font-mono-instr`, e é decisão e não esquecimento:
+              SEM `tabular-nums`, e é decisão e não esquecimento:
               `precoEmTexto` devolve tanto "R$ 24,90/mês" quanto "Grátis",
               "Grátis inicialmente" e "A definir". A fonte de instrumento
               serve pra dígito em coluna; aplicada a palavra corrida ela vira

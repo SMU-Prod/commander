@@ -92,7 +92,7 @@ export function rotuloDaSaude(estado: EstadoSaude | null): string {
  * `ESTADOS_QUE_PESAM_NA_SAUDE` — esta função só apresenta.
  *
  * DEVOLVE PARTES E NÃO UMA FRASE (revisão da onda 57). Enquanto era string, a
- * tela punha `font-mono-instr tabular-nums` no parágrafo inteiro e as OITO
+ * tela punha `tabular-nums tabular-nums` no parágrafo inteiro e as OITO
  * PALAVRAS iam em monoespaçada junto com os números. Fonte de instrumento é
  * para NÚMERO (docs/DESIGN.md §5): com as partes separadas, quem renderiza
  * põe a mono só no numeral, como o cartão da Tripulação já faz.

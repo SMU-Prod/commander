@@ -159,7 +159,7 @@ export default async function AfazeresPage({
         {a.prazo && (
           <>
             {" · até "}
-            <span className="font-mono-instr tabular-nums">{a.prazo.split("-").reverse().join("/")}</span>
+            <span className="tabular-nums tabular-nums">{a.prazo.split("-").reverse().join("/")}</span>
           </>
         )}
         {/* Tarefa que veio de avaria ou manutenção diz de onde veio — é o
@@ -266,7 +266,7 @@ export default async function AfazeresPage({
                   <option key={d} value={d}>{ROTULO_DESTINO_AFAZER[d]}</option>
                 ))}
               </CampoSelect>
-              <Campo label="Prazo" id="prazo" name="prazo" type="date" className="font-mono-instr" />
+              <Campo label="Prazo" id="prazo" name="prazo" type="date" className="tabular-nums" />
             </div>
             {/* AUDITORIA 19/08, A16 — O SELETOR QUE FALTAVA.
                 `responsavel_id` era validado pela policy de INSERT e nenhuma

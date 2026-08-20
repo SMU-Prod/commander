@@ -65,7 +65,7 @@ export default async function EditarSistemaPage({
           name="pagina"
           inputMode="numeric"
           defaultValue={s.pagina ?? ""}
-          className="font-mono-instr tabular-nums"
+          className="tabular-nums tabular-nums"
         />
         <Campo label="Observação — opcional" id="observacao" name="observacao" defaultValue={s.observacao ?? ""} />
         <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>

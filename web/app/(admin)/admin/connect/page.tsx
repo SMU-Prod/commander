@@ -85,7 +85,7 @@ function SemFonte({ rotulo }: { rotulo: string }) {
   return (
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-dashed border-line bg-panel p-3">
       <p className="rotulo text-dim">{rotulo}</p>
-      <p className="font-mono-instr valor-forte mt-1 font-semibold text-dim">—</p>
+      <p className="tabular-nums valor-forte mt-1 font-semibold text-dim">—</p>
       <p className="apoio mt-0.5 text-dim">Aguardando liberação de leitura</p>
     </div>
   )

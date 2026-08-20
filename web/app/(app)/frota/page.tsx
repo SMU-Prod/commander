@@ -103,13 +103,13 @@ export default async function FrotaPage({
 
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <p className="rotulo text-dim">Total da frota</p>
-        <p className="mt-1 font-mono-instr text-2xl font-semibold tabular-nums">
+        <p className="mt-1 tabular-nums text-2xl font-semibold tabular-nums">
           {formatarReais(r.totalCentavos)}
         </p>
         <p className="apoio mt-1 text-dim">
           {painel.embarcacoes.length === 1 ? "1 unidade" : `${painel.embarcacoes.length} unidades`}
           {" · desde "}
-          <span className="font-mono-instr tabular-nums">{desde.split("-").reverse().join("/")}</span>
+          <span className="tabular-nums tabular-nums">{desde.split("-").reverse().join("/")}</span>
         </p>
       </div>
 
@@ -199,7 +199,7 @@ export default async function FrotaPage({
                 {/* O valor em texto: a barra dá a proporção, e a proporção
                     sozinha não responde "quanto foi", que é a pergunta que
                     leva alguém a abrir esta tela. */}
-                <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
+                <span className="shrink-0 tabular-nums text-sm font-semibold tabular-nums">
                   {formatarReais(u.totalCentavos)}
                 </span>
               </div>

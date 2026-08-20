@@ -21,7 +21,7 @@ export function SeloNaoLidas({ quantidade }: { quantidade: number }) {
       // A frase por extenso porque o leitor de tela anunciaria só "2" — e "2"
       // ao lado de um nome não diz o que são dois.
       aria-label={`${quantidade} ${quantidade === 1 ? "mensagem não lida" : "mensagens não lidas"}`}
-      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1.5 font-mono-instr text-xs font-semibold tabular-nums text-ink"
+      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1.5 tabular-nums text-xs font-semibold tabular-nums text-ink"
     >
       {rotulo}
     </span>

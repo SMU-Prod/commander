@@ -68,7 +68,7 @@ export default async function DetalheSolicitacaoGoldPage({
           {PASSOS_GOLD.map((passo, i) => (
             <div key={passo} className="flex items-center gap-3 border-b border-line py-2.5 last:border-0">
               <span
-                className={`flex size-6 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border font-mono-instr text-xs ${
+                className={`flex size-6 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border tabular-nums text-xs ${
                   i <= passoAtual ? "border-accent-forte text-accent-forte" : "border-line text-dim"
                 }`}
               >
@@ -87,7 +87,7 @@ export default async function DetalheSolicitacaoGoldPage({
             {ROTULO_FAIXA_PORTE[solicitacao.faixa_porte]} —{" "}
             {solicitacao.quem_paga === "proprio" ? "você paga" : "você vai gerar um link para outra pessoa pagar"}
           </p>
-          <p className="corpo mt-1 font-mono-instr tabular-nums text-accent-forte">
+          <p className="corpo mt-1 tabular-nums tabular-nums text-accent-forte">
             {formatarPrecoGold(preco?.valor_centavos ?? null)}
           </p>
 
@@ -101,7 +101,7 @@ export default async function DetalheSolicitacaoGoldPage({
             solicitacao.quem_paga === "interessado" ? (
               <div className="mt-3 space-y-2">
                 <p className="apoio text-dim">Envie este link para quem vai pagar. Ele mostra Pix e cartão, com QR Code na própria página.</p>
-                <p className="corpo break-all rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 font-mono-instr text-xs">
+                <p className="corpo break-all rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 tabular-nums text-xs">
                   {pagamento.link_pagamento}
                 </p>
                 <a

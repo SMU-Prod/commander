@@ -162,15 +162,15 @@ export default async function CombustivelPage({
                   rotulo={`Saldo teórico de ${t.nome}`}
                 />
                 <p className="apoio mt-2 text-dim">
-                  Inicial <span className="font-mono-instr tabular-nums">{formatarLitros(Number(t.saldo_inicial_litros))}</span>
-                  {" · entradas "}<span className="font-mono-instr tabular-nums text-ok">+{formatarLitros(entradas)}</span>
-                  {" · saídas "}<span className="font-mono-instr tabular-nums">−{formatarLitros(saidas)}</span>
+                  Inicial <span className="tabular-nums tabular-nums">{formatarLitros(Number(t.saldo_inicial_litros))}</span>
+                  {" · entradas "}<span className="tabular-nums tabular-nums text-ok">+{formatarLitros(entradas)}</span>
+                  {" · saídas "}<span className="tabular-nums tabular-nums">−{formatarLitros(saidas)}</span>
                 </p>
 
                 {/* A comparação com a régua — o coração do §11. */}
                 {div && (
                   <p className={`apoio mt-2 ${div.exigeMotivo ? "text-warn" : "text-dim"}`}>
-                    Última medição: <span className="font-mono-instr tabular-nums">{formatarLitros(div.fisico)}</span>
+                    Última medição: <span className="tabular-nums tabular-nums">{formatarLitros(div.fisico)}</span>
                     {" — "}{div.frase}
                   </p>
                 )}
@@ -192,7 +192,7 @@ export default async function CombustivelPage({
                     <option value="saida">Saída para unidade</option>
                     <option value="medicao">Medição da régua</option>
                   </CampoSelect>
-                  <Campo label="Litros" id={`litros-${t.id}`} name="litros" inputMode="decimal" className="font-mono-instr tabular-nums" />
+                  <Campo label="Litros" id={`litros-${t.id}`} name="litros" inputMode="decimal" className="tabular-nums tabular-nums" />
                 </div>
                 <CampoSelect
                   label="Destino — obrigatório na saída"
@@ -213,7 +213,7 @@ export default async function CombustivelPage({
                 />
                 <div className="grid grid-cols-3 gap-3">
                   <Campo label="Fornecedor" id={`forn-${t.id}`} name="fornecedor" />
-                  <Campo label="Valor (R$)" id={`valor-${t.id}`} name="valor" inputMode="decimal" className="font-mono-instr tabular-nums" />
+                  <Campo label="Valor (R$)" id={`valor-${t.id}`} name="valor" inputMode="decimal" className="tabular-nums tabular-nums" />
                   {/* §11: "valor total E/OU preço/litro" — quem abastece anota
                       um ou outro, conforme o que a bomba mostrou, e o app
                       completa (`totalCentavosPorLitro`). Este campo não
@@ -224,7 +224,7 @@ export default async function CombustivelPage({
                     id={`preco-litro-${t.id}`}
                     name="preco_litro"
                     inputMode="decimal"
-                    className="font-mono-instr tabular-nums"
+                    className="tabular-nums tabular-nums"
                     dica="Se preencher o total, este é ignorado."
                   />
                 </div>
@@ -258,7 +258,7 @@ export default async function CombustivelPage({
                               : ""}
                         </span>
                         <span className="apoio block text-dim">
-                          <span className="font-mono-instr tabular-nums">
+                          <span className="tabular-nums tabular-nums">
                             {new Date(m.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                           </span>
                           {/* A15 — de quem veio o combustível. Só aparece
@@ -271,12 +271,12 @@ export default async function CombustivelPage({
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="block font-mono-instr text-sm tabular-nums">
+                        <span className="block tabular-nums text-sm tabular-nums">
                           {m.tipo === "saida" ? "−" : m.tipo === "entrada" ? "+" : ""}
                           {formatarLitros(Number(m.litros))}
                         </span>
                         {m.valor_centavos != null && (
-                          <span className="apoio block font-mono-instr tabular-nums text-dim">
+                          <span className="apoio block tabular-nums tabular-nums text-dim">
                             {formatarReais(m.valor_centavos)}
                             {/* A10 — o formulário sempre pediu o valor e a
                                 tela nunca o converteu em R$/L, que é o número
@@ -311,10 +311,10 @@ export default async function CombustivelPage({
               <div key={u.embarcacaoId} className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-0">
                 <span className="min-w-0">
                   <span className="corpo block truncate">{u.nome}</span>
-                  <span className="apoio block font-mono-instr text-dim">{u.frase}</span>
+                  <span className="apoio block tabular-nums text-dim">{u.frase}</span>
                 </span>
                 {u.litrosPorHora != null && (
-                  <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
+                  <span className="shrink-0 tabular-nums text-sm font-semibold tabular-nums">
                     {u.litrosPorHora.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} L/h
                   </span>
                 )}
@@ -333,11 +333,11 @@ export default async function CombustivelPage({
         <Campo label="Nome" id="nome" name="nome" placeholder="Ex.: Tanque da base — Marina da Glória" />
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Combustível" id="combustivel" name="combustivel" placeholder="Gasolina" />
-          <Campo label="Capacidade (L)" id="capacidade" name="capacidade" inputMode="decimal" className="font-mono-instr tabular-nums" />
+          <Campo label="Capacidade (L)" id="capacidade" name="capacidade" inputMode="decimal" className="tabular-nums tabular-nums" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Campo label="Saldo inicial (L)" id="saldo_inicial" name="saldo_inicial" inputMode="decimal" className="font-mono-instr tabular-nums" />
-          <Campo label="Mínimo (L)" id="minimo" name="minimo" inputMode="decimal" className="font-mono-instr tabular-nums" />
+          <Campo label="Saldo inicial (L)" id="saldo_inicial" name="saldo_inicial" inputMode="decimal" className="tabular-nums tabular-nums" />
+          <Campo label="Mínimo (L)" id="minimo" name="minimo" inputMode="decimal" className="tabular-nums tabular-nums" />
         </div>
         <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
           Cadastrar tanque

@@ -123,13 +123,13 @@ export default async function MarketplacePage({
             {ROTULO_CURTO_TIPO_DEMANDA[d.tipo]}
           </span>
           <span className="flex-1" />
-          <span className="font-mono-instr text-xs tabular-nums text-dim">{tempoRelativo(d.criado_em, agora)}</span>
+          <span className="tabular-nums text-xs tabular-nums text-dim">{tempoRelativo(d.criado_em, agora)}</span>
         </div>
         <p className="titulo-card mt-2">{tituloDeDemanda(mapa, d)}</p>
         <p className="apoio mt-0.5 text-dim">
           {subtituloProprio ?? `${d.autor_nome} · ${nomeDaRegiao(mapa, d.regiao_id)}`}
         </p>
-        {prazo && <p className="mt-2 font-mono-instr text-xs tabular-nums text-warn">{prazo}</p>}
+        {prazo && <p className="mt-2 tabular-nums text-xs tabular-nums text-warn">{prazo}</p>}
       </Link>
     )
   }
@@ -204,12 +204,12 @@ export default async function MarketplacePage({
       {todas.length > 0 && (
         <ChipLinha className="mt-4">
           <Chip href={hrefTipo(null)} ativo={filtroTipo === null}>
-            Tudo <span className="ml-1.5 font-mono-instr tabular-nums">{todas.length}</span>
+            Tudo <span className="ml-1.5 tabular-nums tabular-nums">{todas.length}</span>
           </Chip>
           {TIPOS_DEMANDA.filter((t) => contagem[t] > 0 || t === filtroTipo).map((t) => (
             <Chip key={t} href={hrefTipo(t)} ativo={filtroTipo === t}>
               {ROTULO_CURTO_TIPO_DEMANDA[t]}{" "}
-              <span className="ml-1.5 font-mono-instr tabular-nums">{contagem[t]}</span>
+              <span className="ml-1.5 tabular-nums tabular-nums">{contagem[t]}</span>
             </Chip>
           ))}
         </ChipLinha>

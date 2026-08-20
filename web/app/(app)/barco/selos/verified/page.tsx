@@ -80,7 +80,7 @@ export default async function VerifiedPage() {
           <p className="rotulo text-dim">Situação do selo</p>
           <SituacaoVerified selo={selo} />
         </div>
-        <p className="apoio mt-2 font-mono-instr tabular-nums text-dim">
+        <p className="apoio mt-2 tabular-nums tabular-nums text-dim">
           {verified.completos} de {verified.total} requisitos atendidos
         </p>
 

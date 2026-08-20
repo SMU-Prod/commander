@@ -217,7 +217,7 @@ export default async function OcorrenciasPage({
                        tracking (quem leva é `.rotulo`, que é caixa alta). */
                     <span
                       key={c}
-                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 font-mono-instr rotulo-dado text-dim-chip"
+                      className="rounded-[var(--raio-controle)] border border-line px-2 py-1 tabular-nums rotulo-dado text-dim-chip"
                     >
                       {c}
                     </span>

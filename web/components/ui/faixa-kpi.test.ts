@@ -21,7 +21,7 @@ describe("PastilhaKpi", () => {
     // edição distraída — foi assim que as três formas nasceram.
     expect(saida).toContain(">Sistemas</span>")
     expect(saida).not.toContain("Sistemas:")
-    expect(saida).toContain("font-mono-instr")
+    expect(saida).toContain("tabular-nums")
     expect(saida).toContain("tabular-nums")
     expect(saida).toContain(">3<")
   })

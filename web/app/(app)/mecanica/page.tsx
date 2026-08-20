@@ -267,7 +267,7 @@ export default async function MecanicaPage({
           <form action={abrirServico} className={`sombra-1 space-y-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-4 ${TETO_FORMULARIO}`}>
             <Campo label="Problema informado" id="problema_informado" name="problema_informado" placeholder="Ex.: vibração acima de 4.000 rpm" />
             <CampoTextarea label="Diagnóstico — opcional" id="diagnostico" name="diagnostico" rows={2} />
-            <Campo label="Entrada na oficina" id="entrada_em" name="entrada_em" type="date" className="font-mono-instr" />
+            <Campo label="Entrada na oficina" id="entrada_em" name="entrada_em" type="date" className="tabular-nums" />
             {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão se
                 TOCA, então `--raio-controle`; menos redondo que o painel de
                 propósito, porque raio maior contém e raio menor aperta. Vale
@@ -295,7 +295,7 @@ export default async function MecanicaPage({
                 <div className="flex items-center gap-2">
                   <p className="titulo-card min-w-0 flex-1">{o.servico_proposto}</p>
                   {o.valor_centavos != null && (
-                    <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
+                    <span className="shrink-0 tabular-nums text-sm font-semibold tabular-nums">
                       {formatarReais(o.valor_centavos)}
                     </span>
                   )}
@@ -305,7 +305,7 @@ export default async function MecanicaPage({
                   {o.valido_ate && (
                     <span className={vencido ? "text-crit" : ""}>
                       {" · "}{vencido ? "venceu em " : "vale até "}
-                      <span className="font-mono-instr tabular-nums">
+                      <span className="tabular-nums tabular-nums">
                         {o.valido_ate.split("-").reverse().join("/")}
                       </span>
                     </span>
@@ -316,7 +316,7 @@ export default async function MecanicaPage({
                   <div className="mt-3 rounded-[var(--raio-controle)] border border-line bg-panel2 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="rotulo text-dim">Votação</p>
-                      <span className="font-mono-instr text-xs font-semibold tabular-nums">{apuracao.rotulo}</span>
+                      <span className="tabular-nums text-xs font-semibold tabular-nums">{apuracao.rotulo}</span>
                     </div>
                     <p className="apoio mt-1">{ROTULO_SITUACAO_VOTACAO[situacaoDaVotacao(apuracao)]}</p>
                     <p className="apoio mt-1 text-dim">{linhaDaApuracao(apuracao)}</p>
@@ -350,7 +350,7 @@ export default async function MecanicaPage({
                     {votacao?.encerrada_em ? (
                       <p className="apoio mt-2 text-dim">
                         Apurada em{" "}
-                        <span className="font-mono-instr tabular-nums">
+                        <span className="tabular-nums tabular-nums">
                           {new Date(votacao.encerrada_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                         </span>
                       </p>
@@ -398,7 +398,7 @@ export default async function MecanicaPage({
                           {plano && (
                             <>
                               {" · troca a cada "}
-                              <span className="font-mono-instr tabular-nums">
+                              <span className="tabular-nums tabular-nums">
                                 {[
                                   plano.intervaloHoras != null ? `${plano.intervaloHoras} h` : null,
                                   plano.intervaloMeses != null ? `${plano.intervaloMeses} meses` : null,
@@ -410,7 +410,7 @@ export default async function MecanicaPage({
                       </span>
                       <span className="apoio shrink-0 text-right">
                         {c.partNumberOem
-                          ? <span className="font-mono-instr">{c.partNumberOem}</span>
+                          ? <span className="tabular-nums">{c.partNumberOem}</span>
                           : <span className="text-dim">sem código no catálogo</span>}
                       </span>
                     </div>
@@ -442,10 +442,10 @@ export default async function MecanicaPage({
             <Campo label="Serviço proposto" id="servico_proposto" name="servico_proposto" />
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Fornecedor" id="fornecedor" name="fornecedor" />
-              <Campo label="Valor (R$)" id="valor" name="valor" inputMode="decimal" className="font-mono-instr tabular-nums" />
+              <Campo label="Valor (R$)" id="valor" name="valor" inputMode="decimal" className="tabular-nums tabular-nums" />
             </div>
             <Campo label="Peças" id="pecas" name="pecas" placeholder="Ex.: impeller + wear ring" />
-            <Campo label="Válido até" id="valido_ate" name="valido_ate" type="date" className="font-mono-instr" dica="Orçamento vencido não vai a votação." />
+            <Campo label="Válido até" id="valido_ate" name="valido_ate" type="date" className="tabular-nums" dica="Orçamento vencido não vai a votação." />
             <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
               Salvar orçamento
             </button>
@@ -532,7 +532,7 @@ function LinhaServico({
               </>
             )}
             {s.horas != null && (
-              <span className="font-mono-instr tabular-nums">{s.horas.toLocaleString("pt-BR")} h · </span>
+              <span className="tabular-nums tabular-nums">{s.horas.toLocaleString("pt-BR")} h · </span>
             )}
             {s.publicado_em ? "publicado aos cotistas" : "não publicado"}
           </p>
@@ -600,7 +600,7 @@ function CartaoServico({
           </>
         )}
         {s.horas != null && (
-          <span className="font-mono-instr tabular-nums">{s.horas.toLocaleString("pt-BR")} h · </span>
+          <span className="tabular-nums tabular-nums">{s.horas.toLocaleString("pt-BR")} h · </span>
         )}
         {/* §7: o cotista só vê o que o ADM publicou. A etiqueta diz em que pé
             está, pro mecânico não achar que já foi. */}
@@ -618,7 +618,7 @@ function CartaoServico({
             </CampoSelect>
             <Campo
               label="Horas" id={`horas-${prefixoId}-${s.id}`} name="horas" inputMode="decimal"
-              className="font-mono-instr tabular-nums"
+              className="tabular-nums tabular-nums"
             />
           </div>
           <Campo
@@ -635,7 +635,7 @@ function CartaoServico({
             id={`valor-${prefixoId}-${s.id}`}
             name="valor"
             inputMode="decimal"
-            className="font-mono-instr tabular-nums"
+            className="tabular-nums tabular-nums"
             dica="Só entra no Financeiro quando o estado virar Concluído."
           />
           {duplicidade && (

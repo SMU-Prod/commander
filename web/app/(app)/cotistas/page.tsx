@@ -89,7 +89,7 @@ export default async function CotistasPage({
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-baseline justify-between">
           <p className="rotulo text-dim">Vagas ocupadas</p>
-          <p className="font-mono-instr text-base font-semibold tabular-nums">{vagas.rotulo}</p>
+          <p className="tabular-nums text-base font-semibold tabular-nums">{vagas.rotulo}</p>
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
           <div
@@ -122,7 +122,7 @@ export default async function CotistasPage({
           name="cotas_total"
           inputMode="numeric"
           defaultValue={String(painel.embarcacao.cotas_total)}
-          className="font-mono-instr tabular-nums"
+          className="tabular-nums tabular-nums"
           dica="É o número de vagas do link de convite. Zero significa que a unidade não é de cotas."
         />
         {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão é peça
@@ -139,7 +139,7 @@ export default async function CotistasPage({
       <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         {urlLink ? (
           <>
-            <p className="break-all font-mono-instr text-xs text-dim">{urlLink}</p>
+            <p className="break-all tabular-nums text-xs text-dim">{urlLink}</p>
             {/* AUDITORIA 19/08, B3 — A COPY DIZIA O QUE O BACKEND NÃO FAZ.
                 Ela prometia "cada cadastro ocupa uma vaga; ao lotar, o link
                 para de aceitar sozinho", e não existe resgate automático
@@ -231,7 +231,7 @@ export default async function CotistasPage({
                   <>
                     <p className="apoio mt-1 text-dim">
                       Suspenso em{" "}
-                      <span className="font-mono-instr tabular-nums">
+                      <span className="tabular-nums tabular-nums">
                         {new Date(v.suspenso_em!).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                       </span>
                     </p>

@@ -62,7 +62,7 @@ export default async function NovoSistemaPage({
             ))}
           </CampoSelect>
         )}
-        <Campo label="Página do manual — opcional" id="pagina" name="pagina" inputMode="numeric" placeholder="Ex.: 42" className="font-mono-instr tabular-nums" />
+        <Campo label="Página do manual — opcional" id="pagina" name="pagina" inputMode="numeric" placeholder="Ex.: 42" className="tabular-nums tabular-nums" />
         <Campo label="Observação — opcional" id="observacao" name="observacao" placeholder="Ex.: trocar o termostato a cada 2 anos" />
         <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Salvar sistema</button>
       </form>

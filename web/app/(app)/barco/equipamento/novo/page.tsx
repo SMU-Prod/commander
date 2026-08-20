@@ -68,7 +68,7 @@ export default async function NovoEquipamentoPage({
             <Campo label="Modelo" id="modelo" name="modelo" placeholder="9EFKOZD" />
           </div>
           <div className={linhaCampos}>
-            <Campo label="Nº de série" id="numero_serie" name="numero_serie" className="font-mono-instr" />
+            <Campo label="Nº de série" id="numero_serie" name="numero_serie" className="tabular-nums" />
             <Campo label="Identificação interna" id="identificacao_interna" name="identificacao_interna" placeholder="Motor 1" />
           </div>
           {/* Isto era `grid-cols-3`: a 390px cada célula ficava com 111px, e
@@ -77,12 +77,12 @@ export default async function NovoEquipamentoPage({
               alturas diferentes, em escadinha. Duas colunas dão 173px, que
               é o suficiente pros rótulos caberem inteiros. */}
           <div className={linhaCampos}>
-            <Campo label="Ano" id="ano" name="ano" inputMode="numeric" className="font-mono-instr tabular-nums" />
-            <Campo label="Potência (hp)" id="potencia_hp" name="potencia_hp" inputMode="numeric" className="font-mono-instr tabular-nums" />
+            <Campo label="Ano" id="ano" name="ano" inputMode="numeric" className="tabular-nums tabular-nums" />
+            <Campo label="Potência (hp)" id="potencia_hp" name="potencia_hp" inputMode="numeric" className="tabular-nums tabular-nums" />
           </div>
           <div className={linhaCampos}>
-            <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="numeric" placeholder="4" className="font-mono-instr tabular-nums" />
-            <Campo label="Horas atuais" id="horas_atuais" name="horas_atuais" inputMode="decimal" className="font-mono-instr tabular-nums" />
+            <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="numeric" placeholder="4" className="tabular-nums tabular-nums" />
+            <Campo label="Horas atuais" id="horas_atuais" name="horas_atuais" inputMode="decimal" className="tabular-nums tabular-nums" />
           </div>
           <Campo label="Combustível" id="combustivel" name="combustivel" list="combustiveis" placeholder="Diesel S10">
             <datalist id="combustiveis">

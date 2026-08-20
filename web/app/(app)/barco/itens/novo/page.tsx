@@ -68,7 +68,7 @@ export default async function NovoItemPage({
             id="part_number_oem"
             name="part_number_oem"
             placeholder="Ex.: 3838852"
-            className="font-mono-instr"
+            className="tabular-nums"
             dica="O código que você usa pra comprar de novo — OEM ou equivalente."
           />
         </div>
@@ -103,8 +103,8 @@ export default async function NovoItemPage({
           ))}
         </CampoSelect>
         <div className={linhaCampos}>
-          <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal" placeholder="500" className="font-mono-instr tabular-nums" />
-          <Campo label="E/ou a cada X meses" id="intervalo_meses" name="intervalo_meses" inputMode="numeric" placeholder="18" className="font-mono-instr tabular-nums" />
+          <Campo label="A cada X horas" id="intervalo_horas" name="intervalo_horas" inputMode="decimal" placeholder="500" className="tabular-nums tabular-nums" />
+          <Campo label="E/ou a cada X meses" id="intervalo_meses" name="intervalo_meses" inputMode="numeric" placeholder="18" className="tabular-nums tabular-nums" />
         </div>
         <Campo label="Ou vencimento em data fixa" id="data_fixa" name="data_fixa" type="date" />
         {/* "Horas no último serviço" quebra em duas linhas nos 173px da
@@ -112,7 +112,7 @@ export default async function NovoItemPage({
             dois controles pela base. */}
         <div className={linhaCampos}>
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date" defaultValue={hojeISO()} />
-          <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
+          <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="tabular-nums tabular-nums" />
         </div>
         <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Criar manutenção</button>
       </form>

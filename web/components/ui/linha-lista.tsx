@@ -92,8 +92,8 @@ export function LinhaLista({
   // esta onda não deixa valor nenhum mais fraco do que estava.
   const direita = trailing ?? (valor != null && (
     <span className="shrink-0 text-right">
-      <p className={`font-mono-instr valor font-semibold ${valorClassName}`}>{valor}</p>
-      {valorSecundario && <p className="apoio font-mono-instr tabular-nums text-dim">{valorSecundario}</p>}
+      <p className={`tabular-nums valor font-semibold ${valorClassName}`}>{valor}</p>
+      {valorSecundario && <p className="apoio tabular-nums tabular-nums text-dim">{valorSecundario}</p>}
     </span>
   ))
   // `var(--raio-cartao)`, não `14px` cravado — mesma razão do `Cartao`, que

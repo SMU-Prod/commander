@@ -10,7 +10,7 @@ import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
 // mesmo critério que vestiu o grupo de controles do Mapbox em globals.css: quem
 // se TOCA é controle, quem CONTÉM conteúdo é cartão. Campo de formulário é
 // controle, então 8.
-const campo = "w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 font-mono-instr text-base tabular-nums"
+const campo = "w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3 py-3 tabular-nums text-base tabular-nums"
 // Onda 87 — `.rotulo` já É mono, 11px, caixa alta e rastreada; o que estava
 // aqui era ela reescrita à mão, com o tracking derivado (.14 contra .16).
 const rotulo = "mb-1.5 block rotulo text-dim"

@@ -93,7 +93,7 @@ export default async function AtualizacoesPage({
         </Selo>
       </div>
       {(e.horas != null || e.combustivel_pct != null) && (
-        <p className="apoio mt-1 font-mono-instr text-dim">
+        <p className="apoio mt-1 tabular-nums text-dim">
           {[
             e.horas != null ? `${Number(e.horas).toLocaleString("pt-BR")} h` : null,
             e.combustivel_pct != null ? `${e.combustivel_pct}% combustível` : null,
@@ -160,8 +160,8 @@ export default async function AtualizacoesPage({
               placeholder="Ex.: devolvi com o tanque cheio e o casco limpo."
             />
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Horas" id="horas" name="horas" inputMode="decimal" className="font-mono-instr tabular-nums" />
-              <Campo label="Combustível (%)" id="combustivel_pct" name="combustivel_pct" inputMode="numeric" className="font-mono-instr tabular-nums" />
+              <Campo label="Horas" id="horas" name="horas" inputMode="decimal" className="tabular-nums tabular-nums" />
+              <Campo label="Combustível (%)" id="combustivel_pct" name="combustivel_pct" inputMode="numeric" className="tabular-nums tabular-nums" />
             </div>
             <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto`}>
               Enviar à administradora

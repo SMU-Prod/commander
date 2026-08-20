@@ -22,7 +22,7 @@ export function Avatar({
      no claro, 4,34:1 no escuro, medidos — é o mesmo motivo que fez nascer o
      token --texto-dim-chip). Com `text-texto` dá 15,1:1 e 12,1:1. */
   return (
-    <span className={`${tamanho} flex shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 font-mono-instr text-sm text-texto`}>
+    <span className={`${tamanho} flex shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel2 tabular-nums text-sm text-texto`}>
       {iniciais}
     </span>
   )

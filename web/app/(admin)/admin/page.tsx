@@ -91,7 +91,7 @@ function Cartao({ metrica }: { metrica: Metrica }) {
           especificidade zero só SUGERE peso 500, e o cartão de métrica já era
           600; `tabular-nums` sai porque a classe traz o alinhamento de dígito
           junto — mantê-lo à mão seria repetir o que o degrau já garante. */}
-      <p className="font-mono-instr valor-forte mt-1 font-semibold">{metrica.valor}</p>
+      <p className="tabular-nums valor-forte mt-1 font-semibold">{metrica.valor}</p>
       {metrica.apoio && <p className="apoio mt-0.5 text-dim">{metrica.apoio}</p>}
     </div>
   )

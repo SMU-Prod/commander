@@ -57,13 +57,13 @@ export default async function EditarEquipamentoPage({
             <Campo label="Modelo" id="modelo" name="modelo" defaultValue={eq.modelo ?? ""} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo label="Nº de série" id="numero_serie" name="numero_serie" defaultValue={eq.numero_serie ?? ""} className="font-mono-instr" />
+            <Campo label="Nº de série" id="numero_serie" name="numero_serie" defaultValue={eq.numero_serie ?? ""} className="tabular-nums" />
             <Campo label="Identificação interna" id="identificacao_interna" name="identificacao_interna" defaultValue={eq.identificacao_interna ?? ""} />
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Campo label="Ano" id="ano" name="ano" inputMode="numeric" defaultValue={eq.ano ?? ""} className="font-mono-instr tabular-nums" />
-            <Campo label="Potência (hp)" id="potencia_hp" name="potencia_hp" inputMode="numeric" defaultValue={eq.potencia_hp ?? ""} className="font-mono-instr tabular-nums" />
-            <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="numeric" defaultValue={eq.quantidade ?? ""} className="font-mono-instr tabular-nums" />
+            <Campo label="Ano" id="ano" name="ano" inputMode="numeric" defaultValue={eq.ano ?? ""} className="tabular-nums tabular-nums" />
+            <Campo label="Potência (hp)" id="potencia_hp" name="potencia_hp" inputMode="numeric" defaultValue={eq.potencia_hp ?? ""} className="tabular-nums tabular-nums" />
+            <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="numeric" defaultValue={eq.quantidade ?? ""} className="tabular-nums tabular-nums" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Combustível" id="combustivel" name="combustivel" defaultValue={eq.combustivel ?? ""} />
@@ -73,7 +73,7 @@ export default async function EditarEquipamentoPage({
               name="horas_atuais"
               inputMode="decimal"
               defaultValue={numeroParaCampoPtBr(eq.horas_atuais)}
-              className="font-mono-instr tabular-nums"
+              className="tabular-nums tabular-nums"
             />
           </div>
           <Campo label="Observações" id="observacoes" name="observacoes" defaultValue={eq.observacoes ?? ""} />

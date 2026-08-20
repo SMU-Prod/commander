@@ -304,7 +304,7 @@ export default async function LandingPage() {
             <div key={ato.ordem}>
               <div className="flex items-center gap-2 border-b border-line pb-3">
                 <Icone nome={ato.icone} className="size-4 shrink-0 text-dim" />
-                <span className="rotulo font-mono-instr text-dim">{ato.ordem}</span>
+                <span className="rotulo tabular-nums text-dim">{ato.ordem}</span>
               </div>
               <h3 className="titulo-card mt-3">{ato.titulo}</h3>
               <p className="corpo mt-1.5 text-dim">{ato.tese}</p>
@@ -394,7 +394,7 @@ export default async function LandingPage() {
           <div className="rounded-[var(--raio-painel)] border border-line bg-panel p-5">
             <p className="titulo-card">{PLANOS.proprietario_free.rotulo}</p>
             <p className="mt-3">
-              <span className="valor-instrumento font-mono-instr">Grátis</span>
+              <span className="valor-instrumento tabular-nums">Grátis</span>
             </p>
             <p className="corpo mt-2 text-dim">
               1 embarcação, {LIMITES_FREE.diarioRegistros} Diários de Bordo completos e o resto do app aberto
@@ -410,7 +410,7 @@ export default async function LandingPage() {
             </span>
             <p className="titulo-card">{PLANOS.commander.rotulo}</p>
             <p className="mt-3">
-              <span className="valor-instrumento font-mono-instr">
+              <span className="valor-instrumento tabular-nums">
                 {formatarPreco(PLANOS.commander.valorCentavos!)}
               </span>
               <span className="corpo text-dim"> /mês</span>
@@ -420,7 +420,7 @@ export default async function LandingPage() {
           <div className="rounded-[var(--raio-painel)] border border-line bg-panel p-5">
             <p className="titulo-card">{PLANOS.commander_pro.rotulo}</p>
             <p className="mt-3">
-              <span className="valor-instrumento font-mono-instr">
+              <span className="valor-instrumento tabular-nums">
                 {formatarPreco(PLANOS.commander_pro.valorCentavos!)}
               </span>
               <span className="corpo text-dim"> /mês</span>

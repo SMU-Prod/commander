@@ -120,7 +120,7 @@ export default async function SaudePage() {
                   {contagem.map((p, i) => (
                     <span key={p.rotulo}>
                       {i > 0 && " · "}
-                      <span className="font-mono-instr tabular-nums text-texto">{p.numero}</span> {p.rotulo}
+                      <span className="tabular-nums tabular-nums text-texto">{p.numero}</span> {p.rotulo}
                     </span>
                   ))}
                   {". "}
@@ -175,7 +175,7 @@ export default async function SaudePage() {
                       <span key={c.aba} className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-3 py-1.5">
                         <span aria-hidden="true" className="size-1.5 rounded-[var(--raio-pilula)] bg-ok" />
                         <span className="apoio text-dim">
-                          {ROTULO_ABA[c.aba]} <span className="font-mono-instr tabular-nums text-texto">{c.quantidade}</span>
+                          {ROTULO_ABA[c.aba]} <span className="tabular-nums tabular-nums text-texto">{c.quantidade}</span>
                         </span>
                       </span>
                     ))}

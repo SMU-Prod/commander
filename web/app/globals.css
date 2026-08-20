@@ -368,21 +368,13 @@
   --hub-manutencoes: #ff9f1c;
 }
 
-/* Onda 62 — a pilha do mono de instrumento vira IBM Plex Mono (canvas do
-   dono, docs/design-mobile/): a MESMA fonte carregada em todo dispositivo, em
-   vez de "o mono que o sistema tiver". A pilha ui-monospace fica de fallback
-   pro instante antes da fonte chegar (e pro caso de falha de carga);
-   --font-plex-mono vem do next/font em app/layout.tsx.
-
-   POR QUE ISTO MORA FORA DO @theme: `@theme inline` NÃO emite a variável no
-   :root — só inlina o valor nas utilities geradas (`font-mono-instr` nos
-   componentes). Até a onda 62, `.rotulo` fazia `var(--font-mono-instr)`
-   apontando pro token do @theme: a var não existia no DOM, a declaração
-   inteira era inválida e o rótulo herdava silenciosamente a fonte do body —
-   mono só no papel. A pilha agora é uma custom property de verdade, e o
-   @theme referencia ELA. */
 :root {
-  --pilha-mono-instr: var(--font-plex-mono), ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+  /* ONDA 112 — A PILHA MONO FOI APAGADA. Ela existia para o numeral de
+     instrumento e para o `.rotulo`; os 297 usos de `font-mono-instr` viraram
+     `tabular-nums`, que é a utilitária do próprio Tailwind e o mecanismo que o
+     §5 do guia prescreve para métrica. Uma fonte a menos para baixar, e a
+     segunda família do app deixou de existir — ver `docs/DESIGN-SYSTEM.md`
+     §15.2, que era o desvio declarado e agora está pago. */
   /* ONDA 102 (HAULIX §49) — A CURVA DE MOVIMENTO, QUE O APP NÃO TINHA.
      O documento é literal: "motion 120–180ms, `cubic-bezier(.2,.8,.2,1)`". A
      casa tinha a DURAÇÃO escrita à mão em dois lugares (`duration-100` nas
@@ -435,7 +427,6 @@
   --color-hub-equipamentos: var(--hub-equipamentos);
   --color-hub-documentos: var(--hub-documentos);
   --color-hub-manutencoes: var(--hub-manutencoes);
-  --font-mono-instr: var(--pilha-mono-instr);
 }
 
 /* Onda 24 (passe de arte, /navegar) — cartões flutuantes sobre o mapa
@@ -831,15 +822,23 @@ body.fundo-tela-mapa {
      que escrevem `tracking-[.16em]` à mão (logo, mock da landing, herói da
      embarcação) estão FORA desta camada e vão no relatório. */
   .rotulo {
-    /* var(--pilha-mono-instr), e NÃO var(--font-mono-instr): o token do
-       @theme inline não existe como custom property no DOM — ver o comentário
-       na definição da pilha, acima do @theme. */
-    font-family: var(--pilha-mono-instr);
+    /* ONDA 112 — A FAMÍLIA SAIU DAQUI, E ERA A SEGUNDA TIPOGRAFIA DO APP.
+       O dono: *"temos tipografias diferentes dessas novas"*. Era esta linha:
+       `.rotulo` cravava IBM Plex Mono, e ela desenhava TODO rótulo de seção,
+       toda pílula de instrumento e todo número do app — "PRECISA DA SUA
+       ATENÇÃO", "SEU ANO NO MAR", "MOTOR BB", "BOM PRA SAIR". Monoespaçada
+       maiúscula ao lado de Inter não é detalhe: é a coisa que mais se vê.
+       O §16 do guia pede UMA família, e o §5 dá o mecanismo para o que a mono
+       resolvia — `tabular-nums`, que a Inter tem por ser variable font.
+       Sem `font-family` aqui, a classe herda a do `body` (Inter). */
     font-size: .75rem;      /* 12px — o piso do §4 do Guia ("12 rótulo") */
-    /* 500: o §11 define Caption em 500, e a Plex Mono é estática com esse
-       peso disponível (400/500/600/700) — nada arredonda. */
     font-weight: 500;
-    letter-spacing: .06em;
+    /* .04em E NÃO .06em, e o motivo estava escrito no comentário acima desde a
+       onda 98: os `.06em` eram a COMPENSAÇÃO da mono ("mono já tem avanço
+       fixo; em caixa alta, .04em fecha as hastes de M/N contra as vizinhas").
+       Sem a mono, a compensação vira excesso — e `.04em` é o valor do §43 da
+       referência para uma grotesca, que é o que a Inter é. */
+    letter-spacing: .04em;
     line-height: 1.36;
     text-transform: uppercase;
   }

@@ -84,7 +84,7 @@ function PilulaKpi({ rotulo, valor }: { rotulo: string; valor: string }) {
     // de dois tamanhos avulsos que ninguém comparou (onda 87).
     <span className="flex items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line px-2.5 py-1.5">
       <span className="rotulo text-dim-chip">{rotulo}</span>
-      <span className="font-mono-instr valor font-semibold">{valor}</span>
+      <span className="tabular-nums valor font-semibold">{valor}</span>
     </span>
   )
 }
@@ -185,7 +185,7 @@ export default async function TripulacaoPage({
       {criado && (
         <div className="mt-4 rounded-[var(--raio-cartao)] border border-ok/40 bg-panel p-4">
           <p className="titulo-card">Convite criado</p>
-          <p className="mt-1 break-all font-mono-instr text-xs text-dim">{linkConvite(criado)}</p>
+          <p className="mt-1 break-all tabular-nums text-xs text-dim">{linkConvite(criado)}</p>
           {/* Era uma caixa de 37px — 7px abaixo da régua — com o verde do
               cartão vazando pro alvo. O verde continua na BORDA do cartão,
               que é onde ele significa "deu certo"; a ação veste a pílula de
@@ -342,7 +342,7 @@ export default async function TripulacaoPage({
             // Sem `tracking` avulso: a mono já é larga o bastante para o
             // código ser lido letra a letra, e `.06em` era mais um dos onze
             // trackings à mão que a auditoria contou (achado 5.12).
-            titulo={<span className="font-mono-instr tabular-nums">{c.codigo}</span>}
+            titulo={<span className="tabular-nums tabular-nums">{c.codigo}</span>}
             subtitulo={`${c.nivel === "completo" ? "Completo" : "Operacional"} · expira ${new Date(c.expira_em).toLocaleDateString("pt-BR")}`}
             trailing={
               <form action={revogarConvite}>
@@ -369,9 +369,9 @@ export default async function TripulacaoPage({
         <>
           <p className="corpo mt-6 text-dim">
             {vagas.restantes === 1 ? (
-              <>Resta <span className="font-mono-instr valor">1</span> vaga no seu plano.</>
+              <>Resta <span className="tabular-nums valor">1</span> vaga no seu plano.</>
             ) : (
-              <>Restam <span className="font-mono-instr valor">{vagas.restantes}</span> vagas no seu plano.</>
+              <>Restam <span className="tabular-nums valor">{vagas.restantes}</span> vagas no seu plano.</>
             )}{" "}
             Convite aguardando resposta também ocupa vaga.
           </p>

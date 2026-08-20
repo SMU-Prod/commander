@@ -73,7 +73,7 @@ export function DonutNivel({
     // CARTÃO, o mostrador é estreito e centrado.
     <div className={`relative w-full ${className}`}>
       {percentual != null && (
-        <span className="absolute right-0 top-0 z-10 inline-flex items-center rounded-[var(--raio-pilula)] border border-accent/40 px-2 py-0.5 font-mono-instr text-xs font-semibold tabular-nums text-accent">
+        <span className="absolute right-0 top-0 z-10 inline-flex items-center rounded-[var(--raio-pilula)] border border-accent/40 px-2 py-0.5 tabular-nums text-xs font-semibold tabular-nums text-accent">
           {pct}%
         </span>
       )}
@@ -148,15 +148,15 @@ export function DonutNivel({
           }`}
         >
           <div className="flex items-baseline gap-1">
-            <span className="font-mono-instr text-[clamp(1.125rem,13cqw,2.125rem)] font-semibold leading-none tabular-nums text-texto">
+            <span className="tabular-nums text-[clamp(1.125rem,13cqw,2.125rem)] font-semibold leading-none tabular-nums text-texto">
               {semLeitura ? "—" : formatarNumero(valor)}
             </span>
-            <span className="font-mono-instr text-[clamp(0.625rem,4.5cqw,0.8125rem)] leading-none text-dim">
+            <span className="tabular-nums text-[clamp(0.625rem,4.5cqw,0.8125rem)] leading-none text-dim">
               {unidade}
             </span>
           </div>
           {apoio && (
-            <span className="inline-flex items-center rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 font-mono-instr text-xs tabular-nums text-dim">
+            <span className="inline-flex items-center rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 tabular-nums text-xs tabular-nums text-dim">
               {apoio}
             </span>
           )}

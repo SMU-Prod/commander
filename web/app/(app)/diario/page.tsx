@@ -238,7 +238,7 @@ export default async function DiarioPage({
                       className={`size-5 shrink-0 ${ehSaida ? "text-accent-forte" : "text-dim"}`}
                     />
                     <p className="titulo-card min-w-0 flex-1 line-clamp-2">{titulo}</p>
-                    <span className="shrink-0 font-mono-instr text-xs tabular-nums text-dim">
+                    <span className="shrink-0 tabular-nums text-xs tabular-nums text-dim">
                       {formatarDataCurta(e.data)}
                     </span>
                   </div>
@@ -286,7 +286,7 @@ export default async function DiarioPage({
                           {e.horas_no_momento != null && (
                             <>
                               {e.contato_id ? " · " : ""}horímetro{" "}
-                              <span className="font-mono-instr tabular-nums text-texto">
+                              <span className="tabular-nums tabular-nums text-texto">
                                 {e.horas_no_momento.toLocaleString("pt-BR")} h
                               </span>
                             </>
@@ -294,7 +294,7 @@ export default async function DiarioPage({
                           {e.custo_centavos != null && (
                             <>
                               {e.contato_id || e.horas_no_momento != null ? " · " : ""}
-                              <span className="font-mono-instr tabular-nums text-texto">{formatarReais(e.custo_centavos)}</span>
+                              <span className="tabular-nums tabular-nums text-texto">{formatarReais(e.custo_centavos)}</span>
                             </>
                           )}
                         </p>
@@ -302,7 +302,7 @@ export default async function DiarioPage({
                   {(e.importado_do_plotter || (urlAnexo && !ehSaida)) && (
                     <p className="mt-2 flex flex-wrap items-center gap-1.5">
                       {e.importado_do_plotter && (
-                        <span className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
+                        <span className="inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 tabular-nums rotulo-dado text-dim">
                           <Icone nome="guardado" className="size-3" /> Importada do plotter
                         </span>
                       )}

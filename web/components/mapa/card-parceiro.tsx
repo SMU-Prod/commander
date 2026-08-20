@@ -135,17 +135,17 @@ export function CardParceiro({
           <div className="corpo mt-3 space-y-1">
             {parceiro.preco_diaria_centavos != null && (
               <p>
-                Diária: <span className="font-mono-instr tabular-nums">{formatarReais(parceiro.preco_diaria_centavos)}</span>
+                Diária: <span className="tabular-nums tabular-nums">{formatarReais(parceiro.preco_diaria_centavos)}</span>
               </p>
             )}
             {parceiro.categoria === "posto" && parceiro.preco_diesel_centavos != null && (
               <p>
-                Diesel: <span className="font-mono-instr tabular-nums">{formatarReais(parceiro.preco_diesel_centavos)}</span>/L
+                Diesel: <span className="tabular-nums tabular-nums">{formatarReais(parceiro.preco_diesel_centavos)}</span>/L
               </p>
             )}
             {parceiro.calado_max_m != null && (
               <p>
-                Calado máximo: <span className="font-mono-instr tabular-nums">{parceiro.calado_max_m.toLocaleString("pt-BR")} m</span>
+                Calado máximo: <span className="tabular-nums tabular-nums">{parceiro.calado_max_m.toLocaleString("pt-BR")} m</span>
               </p>
             )}
             {parceiro.categoria === "pousada" && parceiro.traslado_incluso && <p>Traslado incluso</p>}

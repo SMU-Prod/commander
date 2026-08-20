@@ -206,10 +206,10 @@ export default async function ResumosPage({
               <p className="rotulo text-dim">Custo do período</p>
               <span className="apoio text-dim">{r.rotulo}</span>
             </div>
-            <p className="font-mono-instr text-3xl tabular-nums">{formatarReais(r.totalGastosCentavos)}</p>
+            <p className="tabular-nums text-3xl tabular-nums">{formatarReais(r.totalGastosCentavos)}</p>
             {mediaMensal != null && (
               <p className="apoio mt-1 text-dim">
-                média mensal <span className="font-mono-instr tabular-nums">{formatarReais(mediaMensal)}</span>
+                média mensal <span className="tabular-nums tabular-nums">{formatarReais(mediaMensal)}</span>
               </p>
             )}
             {/* Onda 79 (instrumentos) — mesma troca de `GraficoMesesGastos`
@@ -248,7 +248,7 @@ export default async function ResumosPage({
                   <div key={g.grupo}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="corpo font-medium">{g.grupo}</span>
-                      <span className="font-mono-instr valor font-semibold">{formatarReais(g.totalCentavos)}</span>
+                      <span className="tabular-nums valor font-semibold">{formatarReais(g.totalCentavos)}</span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
                       <div
@@ -268,7 +268,7 @@ export default async function ResumosPage({
           <div className="mt-3 flex gap-2">
             <div className="sombra-1 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
               <p className="rotulo text-dim">Custo por hora</p>
-              <p className="mt-1.5 font-mono-instr valor-forte font-semibold">
+              <p className="mt-1.5 tabular-nums valor-forte font-semibold">
                 {custoHora != null ? formatarReais(custoHora) : "—"}
               </p>
               <p className="apoio mt-0.5 text-dim">
@@ -286,7 +286,7 @@ export default async function ResumosPage({
             </div>
             <div className="sombra-1 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
               <p className="rotulo text-dim">Consumo médio</p>
-              <p className="mt-1.5 font-mono-instr valor-forte font-semibold">—</p>
+              <p className="mt-1.5 tabular-nums valor-forte font-semibold">—</p>
               <p className="apoio mt-0.5 text-dim">sem abastecimento com litragem</p>
             </div>
           </div>
@@ -297,9 +297,9 @@ export default async function ResumosPage({
               <p className="corpo text-dim">Nenhum abastecimento registrado no período.</p>
             ) : (
               <p className="corpo">
-                <span className="font-mono-instr text-xl tabular-nums">{r.abastecimentos.quantidade}</span>{" "}
+                <span className="tabular-nums text-xl tabular-nums">{r.abastecimentos.quantidade}</span>{" "}
                 abastecimento{r.abastecimentos.quantidade === 1 ? "" : "s"} ·{" "}
-                <span className="font-mono-instr tabular-nums">{formatarReais(r.abastecimentos.totalCentavos)}</span>
+                <span className="tabular-nums tabular-nums">{formatarReais(r.abastecimentos.totalCentavos)}</span>
               </p>
             )}
           </div>
@@ -317,7 +317,7 @@ export default async function ResumosPage({
               { rotulo: "Horas de motor", valor: `${Math.round(r.horasMotor)} h` },
             ].map((c) => (
               <div key={c.rotulo} className="p-3 text-center">
-                <p className="font-mono-instr text-xl tabular-nums">{c.valor}</p>
+                <p className="tabular-nums text-xl tabular-nums">{c.valor}</p>
                 <p className="apoio mt-0.5 text-dim">{c.rotulo}</p>
               </div>
             ))}
@@ -329,7 +329,7 @@ export default async function ResumosPage({
               <p className="corpo text-dim">Nenhuma manutenção registrada no período.</p>
             ) : (
               <p className="corpo">
-                <span className="font-mono-instr text-xl tabular-nums">{r.manutencoesRealizadas}</span>{" "}
+                <span className="tabular-nums text-xl tabular-nums">{r.manutencoesRealizadas}</span>{" "}
                 manutenç{r.manutencoesRealizadas === 1 ? "ão registrada" : "ões registradas"} no diário
               </p>
             )}
@@ -338,11 +338,11 @@ export default async function ResumosPage({
           <SecaoPagina icone="alerta">Ocorrências</SecaoPagina>
           <div className="sombra-1 grid grid-cols-2 divide-x divide-line rounded-[var(--raio-cartao)] border border-line bg-panel">
             <div className="p-3 text-center">
-              <p className="font-mono-instr text-xl tabular-nums">{r.ocorrenciasAbertasNoPeriodo}</p>
+              <p className="tabular-nums text-xl tabular-nums">{r.ocorrenciasAbertasNoPeriodo}</p>
               <p className="apoio mt-0.5 text-dim">Abertas no período</p>
             </div>
             <div className="p-3 text-center">
-              <p className="font-mono-instr text-xl tabular-nums">{r.ocorrenciasResolvidasNoPeriodo}</p>
+              <p className="tabular-nums text-xl tabular-nums">{r.ocorrenciasResolvidasNoPeriodo}</p>
               <p className="apoio mt-0.5 text-dim">Resolvidas no período</p>
             </div>
           </div>
@@ -364,10 +364,10 @@ export default async function ResumosPage({
                     {r.evolucaoMensal.map((m) => (
                       <tr key={m.mes} className="border-b border-line last:border-0">
                         <td className="corpo px-3 py-2">{m.rotulo}</td>
-                        <td className="corpo px-3 py-2 text-right font-mono-instr tabular-nums">{m.saidas}</td>
-                        <td className="corpo px-3 py-2 text-right font-mono-instr tabular-nums">{Math.round(m.horasMotor)} h</td>
+                        <td className="corpo px-3 py-2 text-right tabular-nums tabular-nums">{m.saidas}</td>
+                        <td className="corpo px-3 py-2 text-right tabular-nums tabular-nums">{Math.round(m.horasMotor)} h</td>
                         {vejaGastos && (
-                          <td className="corpo px-3 py-2 text-right font-mono-instr tabular-nums">{formatarReais(m.gastosCentavos)}</td>
+                          <td className="corpo px-3 py-2 text-right tabular-nums tabular-nums">{formatarReais(m.gastosCentavos)}</td>
                         )}
                       </tr>
                     ))}
@@ -389,7 +389,7 @@ export default async function ResumosPage({
                 {h.total === 0 ? (
                   <span className="apoio text-dim">Nada cadastrado</span>
                 ) : (
-                  <span className="flex items-center gap-3 font-mono-instr text-xs tabular-nums text-dim">
+                  <span className="flex items-center gap-3 tabular-nums text-xs tabular-nums text-dim">
                     {h.ok > 0 && <span className="inline-flex items-center gap-1"><Farol status="ok" /> {h.ok}</span>}
                     {h.atencao > 0 && <span className="inline-flex items-center gap-1"><Farol status="atencao" /> {h.atencao}</span>}
                     {h.vencido > 0 && <span className="inline-flex items-center gap-1"><Farol status="vencido" /> {h.vencido}</span>}
@@ -408,7 +408,7 @@ export default async function ResumosPage({
               r.aVencer.map((i) => (
                 <div key={`${i.nome}-${i.quando}`} className="flex items-center justify-between border-b border-line py-3 last:border-0">
                   <span className="corpo">{i.nome}</span>
-                  <span className="apoio font-mono-instr tabular-nums text-dim">{i.quando.split("-").reverse().join("/")}</span>
+                  <span className="apoio tabular-nums tabular-nums text-dim">{i.quando.split("-").reverse().join("/")}</span>
                 </div>
               ))
             )}
@@ -437,7 +437,7 @@ export default async function ResumosPage({
                 { rotulo: "No mar", valor: totaisAno.horasNoMar > 0 ? `${Math.round(totaisAno.horasNoMar)} h` : "—" },
               ].map((c) => (
                 <div key={c.rotulo} className="p-3 text-center">
-                  <p className="font-mono-instr text-xl tabular-nums">{c.valor}</p>
+                  <p className="tabular-nums text-xl tabular-nums">{c.valor}</p>
                   <p className="apoio mt-0.5 text-dim">{c.rotulo}</p>
                 </div>
               ))}

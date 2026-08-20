@@ -45,10 +45,10 @@ export function ProgressoRota({
           {origem} <span className="text-dim">→</span> {destino}
         </p>
         <p className="shrink-0 whitespace-nowrap">
-          <span className="font-mono-instr text-sm font-semibold tabular-nums text-texto">
+          <span className="tabular-nums text-sm font-semibold tabular-nums text-texto">
             {formatarNumero(distanciaTotal)} {unidade}
           </span>{" "}
-          <span className="font-mono-instr text-xs tabular-nums text-dim">{pct}%</span>
+          <span className="tabular-nums text-xs tabular-nums text-dim">{pct}%</span>
         </p>
       </div>
 
@@ -71,11 +71,11 @@ export function ProgressoRota({
           <Icone nome="relogio" className="size-3.5 shrink-0 text-dim" />
           <span className="truncate">
             Chegada estimada (ETA):{" "}
-            <span className="font-mono-instr tabular-nums text-texto">{eta}</span>
+            <span className="tabular-nums tabular-nums text-texto">{eta}</span>
           </span>
         </p>
         <p className="apoio shrink-0 whitespace-nowrap pl-[22px] text-dim sm:pl-0">
-          <span className="font-mono-instr tabular-nums text-texto">
+          <span className="tabular-nums tabular-nums text-texto">
             {formatarNumero(restante)} {unidade}
           </span>{" "}
           restantes

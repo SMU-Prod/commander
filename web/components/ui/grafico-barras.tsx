@@ -97,7 +97,7 @@ export function GraficoBarras({
                   <p className="rotulo mb-1 text-dim">{p.rotulo}</p>
                   <p className="flex items-baseline gap-3 whitespace-nowrap">
                     <span className="apoio text-dim">{metrica}</span>
-                    <span className="ml-auto font-mono-instr text-sm font-semibold tabular-nums text-texto">
+                    <span className="ml-auto tabular-nums text-sm font-semibold tabular-nums text-texto">
                       {formatarNumero(valores[i])}
                       {sufixo}
                     </span>
@@ -145,7 +145,7 @@ export function GraficoBarras({
         {pontos.map((p, i) => (
           <span
             key={`${p.rotulo}-${i}`}
-            className={`min-w-0 flex-1 truncate text-center font-mono-instr text-xs leading-none tabular-nums text-dim ${i % 2 === 1 && i !== pontos.length - 1 ? "max-sm:invisible" : ""}`}
+            className={`min-w-0 flex-1 truncate text-center tabular-nums text-xs leading-none tabular-nums text-dim ${i % 2 === 1 && i !== pontos.length - 1 ? "max-sm:invisible" : ""}`}
           >
             {p.rotulo}
           </span>

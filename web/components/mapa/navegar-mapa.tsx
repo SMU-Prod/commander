@@ -356,7 +356,7 @@ function Mostrador({
 }) {
   if (variante === "cartao") {
     return (
-      <div className="rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums">
+      <div className="rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 tabular-nums tabular-nums">
         <p className="rotulo-dado !text-meter-dim">{rotulo}</p>
         <p className="text-2xl text-accent">
           {valor} {unidade && <span className="text-sm text-meter-dim">{unidade}</span>}
@@ -367,7 +367,7 @@ function Mostrador({
   return (
     <div className="text-center">
       <p className="rotulo-dado !text-meter-dim">{rotulo}</p>
-      <p className={`font-mono-instr tabular-nums text-accent ${tamanho === "lg" ? "text-lg" : "text-sm"}`}>
+      <p className={`tabular-nums tabular-nums text-accent ${tamanho === "lg" ? "text-lg" : "text-sm"}`}>
         {valor}
         {unidade && <span className="text-xs text-meter-dim"> {unidade}</span>}
       </p>
@@ -1778,7 +1778,7 @@ export function NavegarMapa({
                     (painel.velKt, que é a velocidade média entre pontos
                     gravados e continua só existindo durante a gravação). */}
                 {sogKt != null && (
-                  <span className="rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-meter px-2.5 py-1 font-mono-instr text-xs tabular-nums text-accent">
+                  <span className="rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-meter px-2.5 py-1 tabular-nums text-xs tabular-nums text-accent">
                     {sogKt.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kt
                   </span>
                 )}
@@ -1955,7 +1955,7 @@ export function NavegarMapa({
                     >
                       {estado === "salvando" ? "Salvando…" : estado === "parado" ? "Tentar salvar de novo" : "Encerrar e salvar no diário"}
                     </button>
-                    <p className="mt-2 text-center font-mono-instr text-xs tabular-nums text-meter-dim">
+                    <p className="mt-2 text-center tabular-nums text-xs tabular-nums text-meter-dim">
                       {painel.qtd} pontos gravados
                       {painel.qtd >= MAX_PONTOS_TRILHA ? " · limite atingido — a trilha será salva até aqui" : ""}
                     </p>
@@ -2107,7 +2107,7 @@ export function NavegarMapa({
               {/* Canvas tela-1c — o rodapé mono do painel: diz que a trilha
                   está gravando SÓ quando está (nunca inventa), e repete o
                   aviso de sempre — isto não é auxílio à navegação. */}
-              <p className="mt-2.5 text-center font-mono-instr text-xs text-meter-dim">
+              <p className="mt-2.5 text-center tabular-nums text-xs text-meter-dim">
                 {estado === "gravando" ? "Trilha gravando · não é auxílio à navegação" : "Não é auxílio à navegação"}
               </p>
             </div>
@@ -2214,7 +2214,7 @@ export function NavegarMapa({
             <div className="sombra-2 w-56 rounded-[var(--raio-cartao)] border border-line bg-panel/97 p-3">
               <label htmlFor="raio-ancora" className="rotulo mb-1 flex items-center justify-between text-dim">
                 Raio do alarme
-                <span className="font-mono-instr tabular-nums text-dim">{raioM} m</span>
+                <span className="tabular-nums tabular-nums text-dim">{raioM} m</span>
               </label>
               <input
                 id="raio-ancora"

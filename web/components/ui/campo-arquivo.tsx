@@ -17,7 +17,7 @@ import { Icone } from "../icone"
  * um `<label>` que veste o visual de botão da casa. O clique no rótulo abre
  * o seletor nativo do sistema; o teclado alcança pelo próprio input.
  *
- * O nome do arquivo escolhido aparece em `font-mono-instr`: é identificador,
+ * O nome do arquivo escolhido aparece em `tabular-nums`: é identificador,
  * não prosa — mesma régua de "todo número/código em fonte de instrumento".
  * Sem escolha, o texto diz o que se espera (formato e tamanho), que é a
  * informação que o rótulo nativo nunca deu.
@@ -60,7 +60,7 @@ export function CampoArquivo({
         </span>
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
-            escolhido ? "font-mono-instr text-texto" : "text-dim"
+            escolhido ? "tabular-nums text-texto" : "text-dim"
           }`}
         >
           {escolhido ?? ajuda ?? "Nenhum arquivo escolhido"}

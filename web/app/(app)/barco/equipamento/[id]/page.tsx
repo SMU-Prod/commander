@@ -331,7 +331,7 @@ export default async function EquipamentoPage({
             // NÃO `.rotulo`: estes chips carregam o NOME do equipamento irmão,
             // e `.rotulo` é caixa alta — passaria a reescrever o conteúdo.
             <Link key={e.id} href={`/barco/equipamento/${e.id}`}
-              className={`whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 py-2 font-mono-instr rotulo-dado ${
+              className={`whitespace-nowrap rounded-[var(--raio-pilula)] border px-4 py-2 tabular-nums rotulo-dado ${
                 e.id === id ? "border-accent bg-accent font-semibold text-acao-texto" : "border-line bg-panel text-dim"
               }`}>
               {nomeCurto(e)}
@@ -349,7 +349,7 @@ export default async function EquipamentoPage({
           está no chip do cabeçalho, repetir aqui era dizer duas vezes. */}
       <div className="mt-3 rounded-[var(--raio-cartao)] border border-line bg-meter p-4 text-meter-texto">
         <p className="rotulo text-meter-dim">Horímetro</p>
-        <div className="mt-2 flex items-baseline gap-2 font-mono-instr tabular-nums">
+        <div className="mt-2 flex items-baseline gap-2 tabular-nums tabular-nums">
           <span className="text-4xl font-semibold">
             {equipamento.horas_atuais != null
               ? equipamento.horas_atuais.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -617,7 +617,7 @@ export default async function EquipamentoPage({
             titulo={e.descricao ?? e.tipo}
             subtitulo={
               <>
-                <span className="font-mono-instr tabular-nums">
+                <span className="tabular-nums tabular-nums">
                   {e.data.split("-").reverse().join("/")}
                   {e.horas_no_momento != null ? ` · ${e.horas_no_momento.toLocaleString("pt-BR")} h` : ""}
                   {e.custo_centavos != null ? ` · ${formatarReais(e.custo_centavos)}` : ""}

@@ -165,7 +165,7 @@ export default async function PerfilParceiroPage({
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="titulo-card">{ROTULO_TIPO_VAGA[v.tipo]}</p>
                   {v.disponiveis != null && (
-                    <p className="corpo font-mono-instr tabular-nums">
+                    <p className="corpo tabular-nums tabular-nums">
                       {v.disponiveis}
                       {v.total != null ? ` de ${v.total}` : ""} livre{v.disponiveis === 1 ? "" : "s"}
                     </p>
@@ -178,10 +178,10 @@ export default async function PerfilParceiroPage({
                   ) : (
                     <>
                       {v.preco_diaria_centavos != null && (
-                        <p>Diária: <span className="font-mono-instr tabular-nums">{formatarReais(v.preco_diaria_centavos)}</span></p>
+                        <p>Diária: <span className="tabular-nums tabular-nums">{formatarReais(v.preco_diaria_centavos)}</span></p>
                       )}
                       {v.preco_mensal_centavos != null && (
-                        <p>Mensal: <span className="font-mono-instr tabular-nums">{formatarReais(v.preco_mensal_centavos)}</span></p>
+                        <p>Mensal: <span className="tabular-nums tabular-nums">{formatarReais(v.preco_mensal_centavos)}</span></p>
                       )}
                     </>
                   )}
@@ -210,7 +210,7 @@ export default async function PerfilParceiroPage({
             {p.calado_max_m != null && (
               <p>
                 <span className="text-dim">Calado máximo:</span>{" "}
-                <span className="font-mono-instr tabular-nums">{p.calado_max_m.toLocaleString("pt-BR")} m</span>
+                <span className="tabular-nums tabular-nums">{p.calado_max_m.toLocaleString("pt-BR")} m</span>
               </p>
             )}
             {p.atracacao && <p><span className="text-dim">Atracação:</span> {p.atracacao}</p>}
@@ -236,14 +236,14 @@ export default async function PerfilParceiroPage({
           <div className="sombra-1 corpo space-y-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
             {p.preco_diesel_centavos != null && (
               <p>
-                Combustível: <span className="font-mono-instr tabular-nums">{formatarReais(p.preco_diesel_centavos)}</span>/L
+                Combustível: <span className="tabular-nums tabular-nums">{formatarReais(p.preco_diesel_centavos)}</span>/L
               </p>
             )}
             {p.preco_diaria_centavos != null &&
               !perfilTem(p.categoria, "vagas") &&
               !perfilTem(p.categoria, "acomodacoes") && (
                 <p>
-                  Diária: <span className="font-mono-instr tabular-nums">{formatarReais(p.preco_diaria_centavos)}</span>
+                  Diária: <span className="tabular-nums tabular-nums">{formatarReais(p.preco_diaria_centavos)}</span>
                 </p>
               )}
             <p className="apoio text-dim">
@@ -295,7 +295,7 @@ export default async function PerfilParceiroPage({
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="corpo font-medium">{a.nome}</p>
                     {a.valor_diaria_centavos != null && (
-                      <p className="corpo font-mono-instr tabular-nums">{formatarReais(a.valor_diaria_centavos)}</p>
+                      <p className="corpo tabular-nums tabular-nums">{formatarReais(a.valor_diaria_centavos)}</p>
                     )}
                   </div>
                   <p className="apoio text-dim">

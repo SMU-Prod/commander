@@ -82,7 +82,7 @@ export default async function EstoquePage({
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5">
       <div className="flex items-center gap-2">
         <p className="titulo-card min-w-0 flex-1 truncate">{i.nome}</p>
-        <span className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums">
+        <span className="shrink-0 tabular-nums text-sm font-semibold tabular-nums">
           {Number(i.quantidade).toLocaleString("pt-BR")}
           {i.unidade ? ` ${i.unidade}` : ""}
         </span>
@@ -109,7 +109,7 @@ export default async function EstoquePage({
           name="quantidade"
           inputMode="decimal"
           wrapperClassName="w-24"
-          className="font-mono-instr tabular-nums"
+          className="tabular-nums tabular-nums"
         />
         {/* AUDITORIA 19/08, B5 — O SELETOR QUE O CABEÇALHO JÁ PROMETIA.
             "A unidade entra na RETIRADA", diz o comentário lá em cima, e a
@@ -274,13 +274,13 @@ export default async function EstoquePage({
                       {m.embarcacao_id &&
                         ` · ${nomeDaUnidade.get(m.embarcacao_id) ?? "unidade fora da sua lista"}`}
                       {" · "}
-                      <span className="font-mono-instr tabular-nums">
+                      <span className="tabular-nums tabular-nums">
                         {new Date(m.criado_em).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                       </span>
                       {m.motivo && ` · ${m.motivo}`}
                     </span>
                   </span>
-                  <span className="shrink-0 font-mono-instr text-sm tabular-nums">
+                  <span className="shrink-0 tabular-nums text-sm tabular-nums">
                     {m.tipo === "retirada" ? "−" : m.tipo === "entrada" ? "+" : ""}
                     {Number(m.quantidade).toLocaleString("pt-BR")}
                     {item?.unidade ? ` ${item.unidade}` : ""}
@@ -304,13 +304,13 @@ export default async function EstoquePage({
           <Campo label="Unidade" id="unidade" name="unidade" placeholder="un, L, m" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="decimal" className="font-mono-instr tabular-nums" />
+          <Campo label="Quantidade" id="quantidade" name="quantidade" inputMode="decimal" className="tabular-nums tabular-nums" />
           <Campo
             label="Mínimo"
             id="minimo"
             name="minimo"
             inputMode="decimal"
-            className="font-mono-instr tabular-nums"
+            className="tabular-nums tabular-nums"
             dica="Em branco, o item nunca avisa."
           />
         </div>

@@ -250,7 +250,7 @@ export default async function RelatoriosPage({
                 <p className="rotulo text-dim">Despesas</p>
                 {/* `.valor-forte` — mesmo 20px do `text-xl` que estava aqui,
                     agora com peso e cor de dado (onda 87). */}
-                <p className="mt-0.5 font-mono-instr valor-forte">{formatarReais(r.despesasCentavos)}</p>
+                <p className="mt-0.5 tabular-nums valor-forte">{formatarReais(r.despesasCentavos)}</p>
                 {c.despesasPercentual != null && (
                   <p className={`apoio mt-0.5 inline-flex items-center gap-0.5 ${
                     c.despesasPercentual > 0 ? "text-crit" : c.despesasPercentual < 0 ? "text-ok" : "text-dim"
@@ -262,7 +262,7 @@ export default async function RelatoriosPage({
               </div>
               <div>
                 <p className="rotulo text-dim">Entradas</p>
-                <p className="mt-0.5 font-mono-instr valor-forte text-ok">{formatarReais(r.entradasCentavos)}</p>
+                <p className="mt-0.5 tabular-nums valor-forte text-ok">{formatarReais(r.entradasCentavos)}</p>
                 {c.entradasPercentual != null && (
                   <p className={`apoio mt-0.5 inline-flex items-center gap-0.5 ${
                     c.entradasPercentual >= 0 ? "text-ok" : "text-crit"
@@ -277,13 +277,13 @@ export default async function RelatoriosPage({
             <div className="mt-4 border-t border-line pt-3">
               <p className="corpo flex justify-between">
                 <span className="text-dim">Saldo do período</span>
-                <span className={`font-mono-instr valor font-semibold ${r.saldoCentavos < 0 ? "text-crit" : "text-ok"}`}>
+                <span className={`tabular-nums valor font-semibold ${r.saldoCentavos < 0 ? "text-crit" : "text-ok"}`}>
                   {formatarReais(r.saldoCentavos)}
                 </span>
               </p>
               <p className="corpo mt-1 flex justify-between">
                 <span className="text-dim">Média mensal de despesa</span>
-                <span className="font-mono-instr valor">{formatarReais(r.mediaMensalDespesasCentavos)}</span>
+                <span className="tabular-nums valor">{formatarReais(r.mediaMensalDespesasCentavos)}</span>
               </p>
               <p className="corpo mt-1 flex justify-between">
                 <span className="text-dim">Maior categoria</span>

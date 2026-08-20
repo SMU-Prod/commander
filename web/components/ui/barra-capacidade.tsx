@@ -65,17 +65,17 @@ export function BarraCapacidade({
       <div className="flex items-center gap-2">
         {icone && <Icone nome={icone} className="size-4 shrink-0 text-dim" />}
         <p className="min-w-0 flex-1 truncate">
-          <span className="font-mono-instr text-base font-semibold tabular-nums text-texto">
+          <span className="tabular-nums text-base font-semibold tabular-nums text-texto">
             {unidadeAntes && `${unidade} `}
             {semLeitura ? "—" : formatarNumero(usado)}
           </span>{" "}
-          <span className="font-mono-instr text-xs tabular-nums text-dim">
+          <span className="tabular-nums text-xs tabular-nums text-dim">
             / {formatarNumero(total)}
             {!unidadeAntes && ` ${unidade}`}
           </span>
         </p>
         <span
-          className={`inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 font-mono-instr text-xs font-semibold tabular-nums ${BORDA_TOM[tom]}`}
+          className={`inline-flex shrink-0 items-center rounded-[var(--raio-pilula)] border px-2 py-0.5 tabular-nums text-xs font-semibold tabular-nums ${BORDA_TOM[tom]}`}
         >
           {semLeitura ? "—" : `${pct}%`}
         </span>

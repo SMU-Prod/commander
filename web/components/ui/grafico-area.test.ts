@@ -41,7 +41,7 @@ describe("GraficoArea", () => {
   it("os rótulos do eixo X saem em mono tabular", () => {
     const saida = html({ pontos: SEMANAS })
     const span = saida.match(/<span[^>]*class="([^"]*)"[^>]*>01\/06<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
   })
 

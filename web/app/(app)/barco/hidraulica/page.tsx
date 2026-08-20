@@ -44,7 +44,7 @@ export default async function HidraulicaPage() {
         voltarHref="/barco"
         voltarRotulo="Barco"
         hub="hidraulica"
-        descricao="Água doce é o que a embarcação bebe/usa; Grey Water é o esgoto de pia e chuveiro; Black Water é o esgoto do banheiro — sistemas separados, com manutenção própria cada um."
+        descricao="Água doce, Grey Water, Black Water e as bombas."
       />
 
       {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.

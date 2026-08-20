@@ -26,7 +26,7 @@ import { TOQUE } from "@/lib/ui/acoes"
  *    ONDA 98 — o alvo continua 44; o DESENHO desce para 34 (§21 do HAULIX).
  *    Ver o comentário no corpo, logo acima do `return`.
  *
- * 2. TIPOGRAFIA `text-sm` sans, não `font-mono-instr ... tracking-wide`. A
+ * 2. TIPOGRAFIA `text-sm` sans, não `tabular-nums ... tracking-wide`. A
  *    fonte mono é o mostrador de instrumento — serve pra NÚMERO (horímetro,
  *    R$, coordenada), onde alinhar dígito em coluna é o que importa. Aplicada
  *    a palavra corrida com tracking ela vira soletração: "Em acompanhamento"
@@ -95,7 +95,7 @@ export function Chip({
       >
         {children}
         {contagem != null && (
-          <span className="font-mono-instr text-xs tabular-nums opacity-80">{contagem}</span>
+          <span className="tabular-nums text-xs tabular-nums opacity-80">{contagem}</span>
         )}
       </span>
     </Link>
@@ -160,7 +160,7 @@ export function ChipDado({ rotulo, children }: { rotulo: string; children: React
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--raio-pilula)] border border-line px-2 py-1">
       <span className="rotulo text-dim">{rotulo}</span>
-      <span className="font-mono-instr valor font-semibold tabular-nums">{children}</span>
+      <span className="tabular-nums valor font-semibold tabular-nums">{children}</span>
     </span>
   )
 }

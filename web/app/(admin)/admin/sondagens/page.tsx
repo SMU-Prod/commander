@@ -170,7 +170,7 @@ function Numero({ rotulo, valor, apoio }: { rotulo: string; valor: string; apoio
   return (
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{rotulo}</p>
-      <p className="font-mono-instr valor-forte mt-1 font-semibold">{valor}</p>
+      <p className="tabular-nums valor-forte mt-1 font-semibold">{valor}</p>
       {apoio && <p className="apoio mt-0.5 text-dim">{apoio}</p>}
     </div>
   )
@@ -180,7 +180,7 @@ function SemFonte({ rotulo, detalhe }: { rotulo: string; detalhe: string }) {
   return (
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-dashed border-line bg-panel p-3">
       <p className="rotulo text-dim">{rotulo}</p>
-      <p className="font-mono-instr valor-forte mt-1 font-semibold text-dim">—</p>
+      <p className="tabular-nums valor-forte mt-1 font-semibold text-dim">—</p>
       <p className="apoio mt-0.5 text-dim">{detalhe}</p>
     </div>
   )

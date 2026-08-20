@@ -57,7 +57,7 @@ export default async function EditarEmbarcacaoPage({
           <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="ano">Ano</label>
-              <input id="ano" name="ano" inputMode="numeric" defaultValue={e.ano ?? ""} className={`${campo} font-mono-instr tabular-nums`} />
+              <input id="ano" name="ano" inputMode="numeric" defaultValue={e.ano ?? ""} className={`${campo} tabular-nums tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="marina">Marina</label>
@@ -105,17 +105,17 @@ export default async function EditarEmbarcacaoPage({
             <div>
               <label className={rot} htmlFor="comprimento_m">Compr. (m)</label>
               <input id="comprimento_m" name="comprimento_m" inputMode="decimal" placeholder="14,60"
-                defaultValue={numeroParaCampoPtBr(e.comprimento_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.comprimento_m)} className={`${campo} tabular-nums tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="boca_m">Boca (m)</label>
               <input id="boca_m" name="boca_m" inputMode="decimal" placeholder="4,35"
-                defaultValue={numeroParaCampoPtBr(e.boca_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.boca_m)} className={`${campo} tabular-nums tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="calado_m">Calado (m)</label>
               <input id="calado_m" name="calado_m" inputMode="decimal" placeholder="1,20"
-                defaultValue={numeroParaCampoPtBr(e.calado_m)} className={`${campo} font-mono-instr tabular-nums`} />
+                defaultValue={numeroParaCampoPtBr(e.calado_m)} className={`${campo} tabular-nums tabular-nums`} />
             </div>
           </div>
           <div className={linhaCampos}>
@@ -149,7 +149,7 @@ export default async function EditarEmbarcacaoPage({
           <div className={linhaCampos}>
             <div>
               <label className={rot} htmlFor="tie">TIE</label>
-              <input id="tie" name="tie" defaultValue={e.tie ?? ""} className={`${campo} font-mono-instr`} />
+              <input id="tie" name="tie" defaultValue={e.tie ?? ""} className={`${campo} tabular-nums`} />
             </div>
             <div>
               <label className={rot} htmlFor="capitania">Capitania</label>

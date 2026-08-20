@@ -67,8 +67,8 @@ export function ImportarFrotaCliente() {
         />
         <p className="apoio text-dim">
           Colunas que o app entende:{" "}
-          <span className="font-mono-instr">{COLUNAS_IMPORTACAO.join(" · ")}</span>. Só o{" "}
-          <span className="font-mono-instr">nome</span> é obrigatório — é o mesmo que o cadastro
+          <span className="tabular-nums">{COLUNAS_IMPORTACAO.join(" · ")}</span>. Só o{" "}
+          <span className="tabular-nums">nome</span> é obrigatório — é o mesmo que o cadastro
           avulso pede. O que faltar você completa depois, na ficha de cada unidade.
         </p>
       </div>
@@ -89,7 +89,7 @@ export function ImportarFrotaCliente() {
                     planilha de 40 linhas é inútil. */}
                 {validacao.erros.map((e) => (
                   <p key={`${e.linha}-${e.problema}`} className="apoio text-warn">
-                    <span className="font-mono-instr tabular-nums">Linha {e.linha}</span> — {e.problema}
+                    <span className="tabular-nums tabular-nums">Linha {e.linha}</span> — {e.problema}
                   </p>
                 ))}
                 <p className="apoio pt-1 text-dim">

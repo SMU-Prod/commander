@@ -222,7 +222,7 @@ export function SondagemPainel({
   // pra este fundo fixo). Onda 80 — rótulo em CAIXA DE FRASE
   // (`.rotulo-dado`, ver app/globals.css), não mais uppercase rastreado: é
   // a mesma troca que o resto da tela fez, ver navegar-mapa.tsx.
-  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 font-mono-instr tabular-nums"
+  const mostrador = "rounded-[var(--raio-cartao)] border border-mapa-instrumento-borda bg-meter px-3 py-2 tabular-nums tabular-nums"
   const etiqueta = "rotulo-dado !text-meter-dim"
 
   return (

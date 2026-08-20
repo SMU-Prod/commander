@@ -71,7 +71,7 @@ export default async function ContatosPage({
                 <p className="titulo-card">{c.nome}</p>
                 <p className="apoio mt-0.5 text-dim">{c.apoio}</p>
               </div>
-              <span className="shrink-0 font-mono-instr valor font-semibold">{c.valor}</span>
+              <span className="shrink-0 tabular-nums valor font-semibold">{c.valor}</span>
               {href && (
                 <a
                   href={href}

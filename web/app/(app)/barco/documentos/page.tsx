@@ -156,7 +156,7 @@ export default async function DocumentosPage({
             {destaque.venc ? (
               <>
                 Venceu em{" "}
-                <span className="font-mono-instr tabular-nums text-crit">
+                <span className="tabular-nums tabular-nums text-crit">
                   {destaque.venc.split("-").reverse().join("/")}
                 </span>
               </>
@@ -272,8 +272,8 @@ export default async function DocumentosPage({
               subtitulo={doc?.arquivo_path ? "Arquivo anexado" : "Sem arquivo anexado"}
               trailing={
                 <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                  <span className={`font-mono-instr valor font-semibold ${corData}`}>{dataTxt}</span>
-                  {diasTxt && <span className="apoio font-mono-instr tabular-nums text-dim">{diasTxt}</span>}
+                  <span className={`tabular-nums valor font-semibold ${corData}`}>{dataTxt}</span>
+                  {diasTxt && <span className="apoio tabular-nums tabular-nums text-dim">{diasTxt}</span>}
                   {url ? (
                     <a href={url} target="_blank" rel="noopener noreferrer" className="apoio text-accent-forte">Abrir</a>
                   ) : editavel ? (

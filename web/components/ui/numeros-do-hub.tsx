@@ -79,7 +79,7 @@ export function NumerosDoHub({
               a coluna em três de ~110px, e sem isso ele estoura. */}
           <span className="rotulo-dado leading-tight break-words text-dim">{n.rotulo}</span>
           <span
-            className={`font-mono-instr tabular-nums text-[28px] font-bold leading-none ${
+            className={`tabular-nums tabular-nums text-[28px] font-bold leading-none ${
               n.estado === "critico" ? "text-crit" : n.estado === "atencao" ? "text-warn" : h.tom
             }`}
           >

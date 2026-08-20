@@ -73,7 +73,7 @@ export function CaminhoInicial({
       valor={
         peso === "assunto" ? (
           <>
-            <span className="font-mono-instr font-semibold tabular-nums">{faltam}</span>
+            <span className="tabular-nums font-semibold tabular-nums">{faltam}</span>
             <span className="apoio text-dim"> {faltam === 1 ? "passo" : "passos"}</span>
           </>
         ) : undefined
@@ -118,6 +118,6 @@ function MarcaDoPasso({ numero, feito }: { numero: number; feito: boolean }) {
       <Icone nome="check" className="size-3.5 text-dim" />
     </span>
   ) : (
-    <span className={`${forma} apoio font-mono-instr tabular-nums`}>{numero}</span>
+    <span className={`${forma} apoio tabular-nums tabular-nums`}>{numero}</span>
   )
 }

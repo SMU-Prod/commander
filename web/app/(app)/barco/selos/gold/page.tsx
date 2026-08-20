@@ -98,7 +98,7 @@ export default async function GoldPage({
             {precos.map((p) => (
               <div key={p.faixa} className="flex items-center justify-between border-b border-line py-2.5 last:border-0">
                 <p className="corpo text-dim">{p.rotulo}</p>
-                <p className="corpo font-mono-instr tabular-nums">{formatarPrecoGold(p.valor_centavos)}</p>
+                <p className="corpo tabular-nums tabular-nums">{formatarPrecoGold(p.valor_centavos)}</p>
               </div>
             ))}
           </div>

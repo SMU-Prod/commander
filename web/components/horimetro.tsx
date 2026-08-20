@@ -62,7 +62,7 @@ export function Horimetro({
     ? horas.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
     : "—"
   return (
-    <div className="rounded-[var(--raio-cartao)] border border-line bg-meter text-meter-texto px-3 py-2 font-mono-instr tabular-nums">
+    <div className="rounded-[var(--raio-cartao)] border border-line bg-meter text-meter-texto px-3 py-2 tabular-nums tabular-nums">
       <div className="rotulo mb-1 flex items-center justify-between text-meter-dim">
         {rotulo}{" "}
         {status ? (

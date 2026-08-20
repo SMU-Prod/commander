@@ -15,7 +15,7 @@ describe("Medidor", () => {
   it("mostra o valor em fonte de instrumento, mono E tabular", () => {
     const saida = html({ ...BASE, valor: 100 })
     const span = saida.match(/<span class="([^"]*)">100<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
   })
 

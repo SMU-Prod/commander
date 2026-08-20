@@ -237,7 +237,7 @@ export default async function LoginPage({
             <>Ainda não tem conta?&nbsp;<span className="font-semibold text-accent-forte">Cadastrar embarcação</span></>
           )}
         </a>
-        <p className="text-center font-mono-instr text-xs leading-relaxed text-dim">
+        <p className="text-center tabular-nums text-xs leading-relaxed text-dim">
           O Commander não é auxílio à navegação.<br />
           Consulte sempre a carta náutica oficial.
         </p>

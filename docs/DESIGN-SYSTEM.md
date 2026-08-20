@@ -350,7 +350,35 @@ para cor: o card de Equipamentos é o único neutro da grade. Escolhido
 **Ação pendente:** confirmar com o dono. Se o guia ganhar uma cor oficial para
 Equipamentos, ela substitui esta em um commit só.
 
-### 15.2 IBM Plex Mono continua no numeral de instrumento
+### 15.2 ~~IBM Plex Mono no numeral de instrumento~~ — DÍVIDA PAGA (onda 112)
+
+**Este desvio não existe mais.** A Plex Mono saiu do app inteiro em 20/08/2026,
+depois de o dono olhar o publicado e apontar: *"temos tipografias diferentes
+dessas novas"*.
+
+Ele estava certo e o desvio não se sustentava. O argumento original era que a
+mono vivia "só no numeral de instrumento" — a medição diz outra coisa: **297
+pontos de uso**, e a classe `.rotulo` também a carregava, ou seja ela desenhava
+**todo rótulo de seção do app** ("PRECISA DA SUA ATENÇÃO", "SEU ANO NO MAR",
+"MOTOR BB", "BOM PRA SAIR"). Monoespaçada maiúscula ao lado de Inter, em toda
+tela.
+
+O que ela resolvia — numeral de largura fixa, para o número não saltar ao
+mudar — virou `tabular-nums`, que é a utilitária do próprio Tailwind e o
+mecanismo que o §5 do guia prescreve ("métricas usam tabular-nums"). A Inter é
+variable font e entrega figuras tabulares nativamente.
+
+Efeitos colaterais, os dois bons: **uma família só**, como o §16 pede; e **um
+download de fonte a menos** (quatro pesos estáticos), que é o §14 falando de
+desempenho.
+
+`lib/ui/tipografia.test.ts` cobra as duas coisas: que `app/layout.tsx` importe
+**exatamente uma** família, e que `globals.css` declare `font-family` **num
+lugar só** — o `body`. Uma `font-family` dentro de um componente é como a
+segunda família entra de volta, e foi assim que `.rotulo` carregou a mono por
+cinquenta ondas sem ninguém somar o total.
+
+### 15.2-b (histórico) A justificativa que valeu até a onda 111
 
 O §16 pede "uma única família tipográfica em toda a aplicação", e o §5 oferece
 `tabular-nums` como mecanismo para métrica. O repositório mantém **IBM Plex

@@ -71,7 +71,7 @@ export default async function NovaSenhaPage({
           <BotaoEnviar larguraCheia className="mt-1" rotulo="Salvar senha" />
         </form>
 
-        <p className="mt-auto pt-10 text-center font-mono-instr text-xs leading-relaxed text-dim">
+        <p className="mt-auto pt-10 text-center tabular-nums text-xs leading-relaxed text-dim">
           O Commander não é auxílio à navegação.<br />
           Consulte sempre a carta náutica oficial.
         </p>

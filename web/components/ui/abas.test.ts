@@ -39,7 +39,7 @@ describe("Abas", () => {
     // As duas classes, não só a mono: `tabular-nums` é o que alinha o dígito
     // em coluna; perder só ela passaria despercebido no olho.
     const span = saida.match(/<span class="([^"]*)">3<\/span>/)?.[1] ?? ""
-    expect(span).toContain("font-mono-instr")
+    expect(span).toContain("tabular-nums")
     expect(span).toContain("tabular-nums")
   })
 

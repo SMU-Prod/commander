@@ -204,7 +204,7 @@ export function VerViagemMapa({
                 {estado?.carregando ? (
                   <span className="shrink-0">calculando…</span>
                 ) : perna.distanciaNm != null ? (
-                  <span className="shrink-0 font-mono-instr tabular-nums">
+                  <span className="shrink-0 tabular-nums tabular-nums">
                     {perna.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
                     {perna.etaMin != null && ` · ${Math.round(perna.etaMin)} min`}
                   </span>
@@ -218,7 +218,7 @@ export function VerViagemMapa({
           })}
           <p className="apoio flex items-center justify-between gap-2 pt-1 font-medium">
             <span>Total{!viagem.completa && " (parcial — falta trecho acima)"}</span>
-            <span className="font-mono-instr tabular-nums">
+            <span className="tabular-nums tabular-nums">
               {viagem.distanciaTotalNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
               {viagem.etaTotalMin != null && ` · ${Math.round(viagem.etaTotalMin / 60)} h ${Math.round(viagem.etaTotalMin % 60)} min`}
             </span>
@@ -236,7 +236,7 @@ export function VerViagemMapa({
               value={velocidadeTexto}
               onChange={(e) => setVelocidadeTexto(e.target.value)}
               placeholder="Ex.: 18"
-              className={`${campo} font-mono-instr tabular-nums`}
+              className={`${campo} tabular-nums tabular-nums`}
             />
             <p className="apoio mt-1 text-dim">Sem saída com trilha registrada ainda — não é salvo, só estima aqui.</p>
           </div>

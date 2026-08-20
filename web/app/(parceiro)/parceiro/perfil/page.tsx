@@ -68,7 +68,7 @@ function precoParaCampo(centavos: number | null): string {
  *  focar o campo, e trocá-lo por 14 pagaria a hierarquia com a tela pulando
  *  na cara de quem digita. Tamanho de controle e tamanho de dado são réguas
  *  diferentes. */
-const NUMERO = "font-mono-instr tabular-nums"
+const NUMERO = "tabular-nums tabular-nums"
 
 /**
  * A LINHA DE CAIXA DE SELEÇÃO — E OS 44px QUE ELA NÃO TINHA.

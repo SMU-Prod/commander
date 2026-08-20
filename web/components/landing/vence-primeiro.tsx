@@ -126,7 +126,7 @@ export function VencePrimeiro({
     <div>
       <label htmlFor="horas-demo" className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="rotulo text-dim">Horímetro do motor</span>
-        <span className="valor-forte font-mono-instr">{horas.toLocaleString("pt-BR")} h</span>
+        <span className="valor-forte tabular-nums">{horas.toLocaleString("pt-BR")} h</span>
       </label>
       {/* `accent-[var(--acao)]` e não um hexadecimal: o controle nativo pinta
           trilho e polegar pela `accent-color`, e é o token que impede o dourado
@@ -159,7 +159,7 @@ export function VencePrimeiro({
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="valor font-mono-instr whitespace-nowrap">{textoRestante(c.resultado)}</p>
+              <p className="valor tabular-nums whitespace-nowrap">{textoRestante(c.resultado)}</p>
               <div className="mt-1 flex justify-end">
                 <Selo estado={seloDoFarol(c.resultado.status)}>{rotuloDoFarol(c.resultado.status)}</Selo>
               </div>
@@ -170,8 +170,8 @@ export function VencePrimeiro({
 
       <p id="vence-primeiro-veredito" aria-live="polite" className="corpo mt-4 text-dim">
         O impelidor tem duas contagens correndo:{" "}
-        <span className="font-mono-instr text-texto">{textoRestante(porHoras)}</span> pelo horímetro e{" "}
-        <span className="font-mono-instr text-texto">{textoRestante(porData)}</span> pelo calendário. Neste
+        <span className="tabular-nums text-texto">{textoRestante(porHoras)}</span> pelo horímetro e{" "}
+        <span className="tabular-nums text-texto">{textoRestante(porData)}</span> pelo calendário. Neste
         momento quem acende o farol é a de {mandaHoras ? "horas" : "dias"} — o Commander sempre assume a pior
         das duas.
       </p>

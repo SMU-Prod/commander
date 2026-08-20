@@ -230,7 +230,7 @@ export function PlanejarViagemMapa({
           <div className="space-y-2">
             {paradas.map((p, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/15 font-mono-instr text-xs font-semibold text-accent-forte">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] bg-accent/15 tabular-nums text-xs font-semibold text-accent-forte">
                   {i + 1}
                 </span>
                 <input
@@ -262,7 +262,7 @@ export function PlanejarViagemMapa({
                   {estado?.carregando ? (
                     <span className="shrink-0">calculando…</span>
                   ) : perna.distanciaNm != null ? (
-                    <span className="shrink-0 font-mono-instr tabular-nums">
+                    <span className="shrink-0 tabular-nums tabular-nums">
                       {perna.distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
                       {perna.etaMin != null && ` · ${Math.round(perna.etaMin)} min`}
                     </span>
@@ -276,7 +276,7 @@ export function PlanejarViagemMapa({
             })}
             <p className="apoio flex items-center justify-between gap-2 pt-1 font-medium">
               <span>Total{!viagem.completa && " (parcial — falta trecho acima)"}</span>
-              <span className="font-mono-instr tabular-nums">
+              <span className="tabular-nums tabular-nums">
                 {viagem.distanciaTotalNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
                 {viagem.etaTotalMin != null && ` · ${Math.round(viagem.etaTotalMin / 60)} h ${Math.round(viagem.etaTotalMin % 60)} min`}
               </span>
@@ -336,7 +336,7 @@ export function PlanejarViagemMapa({
                 value={velocidadeTexto}
                 onChange={(e) => setVelocidadeTexto(e.target.value)}
                 placeholder="Ex.: 18"
-                className={`${campo} font-mono-instr tabular-nums`}
+                className={`${campo} tabular-nums tabular-nums`}
               />
               <p className="apoio mt-1 text-dim">
                 Sem saída com trilha registrada ainda — informe pra ver o ETA por perna. Não é salvo, só estima esta viagem.

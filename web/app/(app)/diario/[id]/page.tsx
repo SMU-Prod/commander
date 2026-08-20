@@ -24,10 +24,10 @@ import { CompartilharBotao } from "./compartilhar-botao"
 // `--raio-cartao` (14px) pelo critério de quem se toca / quem contém: este
 // bloco não se toca, ele CONTÉM o par rótulo/valor. Cartão, então 14.
 const instrumento = "rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
-// Onda 87 — era `font-mono-instr text-xs uppercase tracking-[.14em]`,
+// Onda 87 — era `tabular-nums text-xs uppercase tracking-[.14em]`,
 // que é `.rotulo` reescrito à mão com o tracking derivado (.14 contra .16).
 const rotuloInstrumento = "rotulo text-dim"
-const valorInstrumento = "mt-0.5 font-mono-instr text-xl tabular-nums"
+const valorInstrumento = "mt-0.5 tabular-nums text-xl tabular-nums"
 
 /**
  * A saída como atividade (onda 18, Pilar Strava do Mar) — mapa da trilha,
@@ -177,7 +177,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
       {/* Badge "importada do plotter" (onda 21) — a saida nao foi gravada ao
           vivo pelo app, e o dono precisa saber disso olhando a tela. */}
       {e.importado_do_plotter && (
-        <p className="mt-1.5 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 font-mono-instr rotulo-dado text-dim">
+        <p className="mt-1.5 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 tabular-nums rotulo-dado text-dim">
           <Icone nome="guardado" className="size-3" /> Importada do plotter
         </p>
       )}
@@ -254,7 +254,7 @@ export default async function SaidaPage({ params }: { params: Promise<{ id: stri
               `.valor` no lugar do `text-sm` solto, e os rótulos colados neles
               passam a ser `.rotulo` de verdade (era 11px com tracking .12em
               escrito à mão — uma cópia do `.rotulo` que derivou). */}
-          <div className="flex gap-4 font-mono-instr valor">
+          <div className="flex gap-4 tabular-nums valor">
             <span>
               <span className="mr-1.5 rotulo text-dim">Onda</span>
               {e.mar_onda_m != null ? `${e.mar_onda_m.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} m` : "—"}
