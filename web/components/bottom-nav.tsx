@@ -11,8 +11,16 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
     icone: "inicio",
   },
   {
+    // ONDA 105 — "MEU BARCO" POR EXTENSO, COMO NAS IMAGENS DO GUIA.
+    // O rótulo era "Barco" por uma restrição de largura que a CAIXA ALTA criava:
+    // a 375px cada coluna tem ~75px e "MEU BARCO" em maiúsculas mede ~62px,
+    // raspando. Em caixa de título mede ~48px e sobra folga. A troca de caixa
+    // vem das próprias imagens (§1, normativas para composição) e paga o
+    // vocabulário completo do §2.1 da spec do dono — que é o mesmo nome usado
+    // no Menu e no trilho. Nomes diferentes pro mesmo lugar é a coisa que mais
+    // faz alguém achar que se perdeu.
     href: "/barco",
-    rotulo: "Barco",
+    rotulo: "Meu Barco",
     icone: "embarcacao",
   },
   {
@@ -46,9 +54,33 @@ const abas: { href: string; rotulo: string; icone: NomeIcone }[] = [
     icone: "ancora",
   },
   {
-    href: "/menu",
-    rotulo: "Menu",
-    icone: "menu",
+    // ONDA 105 — "MENU" SAI DA BARRA E "AGENDA" ENTRA. A DECISÃO É DAS IMAGENS.
+    // ==========================================================================
+    // As oito imagens do Guia de Design v1 desenham a mesma barra em todas:
+    // **Início · Meu Barco · Diário · Agenda · Serviços**. E o §13 do guia
+    // fecha: *"no mobile, sidebar vira menu e as CINCO ÁREAS PRINCIPAIS
+    // permanecem na bottom navigation"* — a sidebar das imagens tem exatamente
+    // esses cinco.
+    //
+    // ISSO REVERTE A DECISÃO DE 15/08, e a reversão é do dono, não minha. O
+    // comentário grande abaixo preserva o "não" dele à Agenda aqui, e o motivo
+    // era físico: só cabem cinco, e "Comandantes" já tinha forçado uma exceção
+    // tipográfica. O motivo continua verdadeiro — o que mudou é QUEM sai. A
+    // Agenda entra ocupando a vaga do Menu, não uma sexta.
+    //
+    // O MENU NÃO PERDE PORTA: ele sobe para o botão de hambúrguer no canto
+    // esquerdo do cabeçalho, presente em toda tela do celular — que é onde as
+    // imagens o desenham. Trocar uma aba por um hambúrguer sem esse botão
+    // existir teria deixado Minha Conta, Ajustes e Assinatura sem caminho
+    // nenhum no telefone; o botão entra no MESMO commit (`faixa-topo.tsx`).
+    //
+    // POR QUE A AGENDA MERECE A VAGA MAIS QUE O MENU: menu é navegação sobre
+    // navegação — um lugar que só leva a outros lugares. Agenda é um lugar. A
+    // barra de baixo tem cinco vagas e elas valem mais em destino do que em
+    // índice.
+    href: "/agenda",
+    rotulo: "Agenda",
+    icone: "calendario",
   },
 ]
 
@@ -153,7 +185,7 @@ export function BottomNav() {
                  demora, a pessoa toca de novo. `TOQUE` (e não `TOQUE_AMPLO`)
                  porque cada aba tem ~78px de largura: aqui os 3% são o
                  afundar certo, não um tremor. */
-              className={`relative flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium uppercase ${TOQUE} ${
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium ${TOQUE} ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >

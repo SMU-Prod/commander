@@ -158,18 +158,44 @@ function CascaTopo({
   marca,
   conta,
   children,
+  hamburguer = false,
   className = "",
 }: {
   avisos: number
   marca: React.ReactNode
   conta?: React.ReactNode
   children?: React.ReactNode
+  /** ONDA 105 — o botão de menu do canto esquerdo, como nas imagens do guia.
+   *  Só no celular: a partir de `lg` quem navega é o `TrilhoLateral`. */
+  hamburguer?: boolean
   className?: string
 }) {
   return (
     <header
       className={`mb-4 flex h-14 items-center gap-2 border-b border-line lg:mb-5 lg:gap-4 ${className}`}
     >
+      {/* O HAMBÚRGUER É PRÉ-REQUISITO DA TROCA NA BARRA DE BAIXO, não enfeite.
+          "Menu" saiu das cinco vagas para a Agenda entrar (as oito imagens do
+          guia desenham a barra assim, e o §13 confirma). Sem este botão, Minha
+          Conta, Ajustes, Assinatura, Tripulação e Financeiro ficariam sem
+          caminho nenhum no telefone — a lista inteira do Menu some junto com a
+          aba. Ele entra no MESMO commit que tira a aba, e é onde as imagens o
+          desenham: canto esquerdo, antes da marca.
+          `-ml-2` devolve ao layout a folga que os 44px de alvo acrescentam à
+          esquerda, pro logo não descolar da margem da página. */}
+      {hamburguer && (
+        <Link
+          href="/menu"
+          aria-label="Menu"
+          /* `lg:hidden` no próprio botão porque a `FaixaTopo` completa NÃO é
+             `lg:hidden` — ela é a faixa do desktop também, e lá quem navega é o
+             trilho. Um hambúrguer ao lado de um trilho sempre aberto seriam
+             duas portas para a mesma sala. */
+          className="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-controle)] text-dim hover:bg-panel2 lg:hidden"
+        >
+          <Icone nome="menu" className="size-5" />
+        </Link>
+      )}
       {marca}
       {children}
       <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -210,6 +236,7 @@ export function FaixaMarca({ avisos }: { avisos: number }) {
     <CascaTopo
       avisos={avisos}
       className="lg:hidden"
+      hamburguer
       marca={
         <Link href="/hoje" className="shrink-0 text-base">
           <Logo />
@@ -307,6 +334,7 @@ export function FaixaTopo({
   return (
     <CascaTopo
       avisos={avisos}
+      hamburguer
       marca={
         <span className="flex min-w-0 items-center gap-2 lg:hidden">
           {/* `text-base` porque `Logo` dimensiona o símbolo em `1.6em` do corpo

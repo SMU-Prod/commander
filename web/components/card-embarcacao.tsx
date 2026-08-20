@@ -157,9 +157,13 @@ export function CardEmbarcacao({
   urlCapa,
   podeEditarFotos,
   temFotos = false,
+  semNome = false,
   className = "",
 }: {
   embarcacao: Embarcacao
+  /** ONDA 105 — some com o nome do barco no herói porque o título da tela já
+   *  o diz (a plaqueta dourada de `TituloTela`). Só `/barco` passa. */
+  semNome?: boolean
   /** Só onde não há um cartão de Saúde na mesma tela — ver o cabeçalho. */
   statusGeral?: StatusFarol
   /**
@@ -344,8 +348,16 @@ export function CardEmbarcacao({
                   tipo de folga que ninguém escolheu.
                   `<h2>` pelo mesmo motivo do ramo com foto, trinta linhas
                   acima: o `<h1>` da tela agora é o título da área. */}
-              <h2 className={`${NOME_DO_BARCO} mt-2 leading-tight`}>{embarcacao.nome}</h2>
-              {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+              {/* ONDA 105 — O NOME SAI DAQUI QUANDO O TÍTULO DA TELA JÁ O DIZ.
+                  Nas imagens 1, 6 e 7 o nome da embarcação aparece UMA vez, na
+                  plaqueta dourada abaixo de "Meu Barco", e o herói é só a foto.
+                  Em `/barco` o `TituloTela` passou a desenhar essa plaqueta —
+                  manter o `<h2>` aqui deixava "Barco de Teste" duas vezes em
+                  120px de tela, que é ruído com cara de bug. Em `/hoje` o
+                  título da área é "Início" e não diz barco nenhum, então lá o
+                  nome continua aqui, que é onde ele responde "qual barco". */}
+              {!semNome && <h2 className={`${NOME_DO_BARCO} mt-2 leading-tight`}>{embarcacao.nome}</h2>}
+              {legendaDoBarco && <p className={`apoio text-meter-dim ${semNome ? "mt-2" : "mt-1"}`}>{legendaDoBarco}</p>}
               {saude?.partes && <LeituraDaSaude partes={saude.partes} />}
             </div>
             {saude && <AnelSaude {...saude} />}

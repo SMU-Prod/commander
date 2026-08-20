@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData } from "@/lib/domain/semaforo"
@@ -61,6 +62,12 @@ export default async function ManutencoesPage() {
           </Link>
         ) : undefined}
       />
+
+      {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.
+          É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
+          `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
+          registrado em `docs/DESIGN-SYSTEM.md`. */}
+      <HeroiTecnico chave="manutencoes" className="mb-4" />
 
       {linhas.length === 0 ? (
         <EstadoVazio

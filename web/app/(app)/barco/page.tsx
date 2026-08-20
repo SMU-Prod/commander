@@ -359,7 +359,12 @@ export default async function BarcoPage({
           originou esta tela inteira (spec §3). "Meu Barco" é o rótulo do §2.1,
           por extenso — aqui há largura para ele, ao contrário da barra de
           baixo, que continua em "Barco" por medida física. */}
-      <TituloTela>Meu Barco</TituloTela>
+      {/* ONDA 105 — o nome da embarcação sobe para a plaqueta do título, como
+          nas imagens 1, 6 e 7. Ele já existia na tela (dentro do
+          `CardEmbarcacao`), então isto não acrescenta dado nenhum: muda de
+          lugar, e o lugar novo é o que responde "de qual barco é esta central"
+          antes de qualquer cartão. */}
+      <TituloTela subtitulo={embarcacao.nome}>Meu Barco</TituloTela>
 
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -395,6 +400,7 @@ export default async function BarcoPage({
         urlCapa={urlCapa}
         podeEditarFotos={podeEditar(permissoes, "fotos")}
         temFotos={temFotos}
+        semNome
       />
 
       {/* OS OITO CARDS GRANDES.

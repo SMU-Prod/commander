@@ -6,6 +6,7 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIA_SEGURANCA } from "@/lib/domain/diario"
 import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
@@ -47,6 +48,12 @@ export default async function SegurancaPage() {
           </Link>
         ) : undefined}
       />
+
+      {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.
+          É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
+          `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
+          registrado em `docs/DESIGN-SYSTEM.md`. */}
+      <HeroiTecnico chave="seguranca" className="mb-4" />
 
       {ocorrencias.length > 0 && (
         <>

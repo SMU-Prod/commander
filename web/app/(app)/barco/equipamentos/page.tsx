@@ -4,6 +4,7 @@ import { Farol } from "@/components/farol"
 import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
@@ -56,6 +57,12 @@ export default async function EquipamentosPage() {
           </Link>
         ) : undefined}
       />
+
+      {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.
+          É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
+          `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
+          registrado em `docs/DESIGN-SYSTEM.md`. */}
+      <HeroiTecnico chave="equipamentos" className="mb-4" />
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (

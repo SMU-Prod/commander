@@ -4,6 +4,7 @@ import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIAS_HIDRAULICA, ROTULO_HIDRAULICA } from "@/lib/domain/diario"
 import { ESTADOS_QUE_PESAM_NA_SAUDE, ROTULO_ESTADO } from "@/lib/domain/ocorrencias"
@@ -37,6 +38,12 @@ export default async function HidraulicaPage() {
         hub="hidraulica"
         descricao="Água doce é o que a embarcação bebe/usa; Grey Water é o esgoto de pia e chuveiro; Black Water é o esgoto do banheiro — sistemas separados, com manutenção própria cada um."
       />
+
+      {/* ONDA 105 — o objeto grande do topo, como nas oito imagens do guia.
+          É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
+          `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
+          registrado em `docs/DESIGN-SYSTEM.md`. */}
+      <HeroiTecnico chave="hidraulica" className="mb-4" />
 
       {ocorrencias.length > 0 && (
         <>
