@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
-import { Chip, ChipDado } from "@/components/ui/chip"
+import { Chip } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { ObjetoHub } from "@/components/ui/objeto-hub"
@@ -258,40 +258,41 @@ export default async function DiarioPage({
                     {ehSaida && <Icone nome="chevron" className="size-4 shrink-0 text-dim" />}
                   </div>
                   {ehSaida && (
-                    /* ONDA 93 — A FILEIRA VOLTA PRA CASA. Estas três pílulas
-                       são a origem do `ChipDado` (a onda 91 promoveu o desenho
-                       DAQUI pro componente) e continuavam escritas à mão logo
-                       abaixo dele — o jeito clássico de as duas cópias
-                       derivarem. Agora o dono do desenho é um só.
-                       O que muda na tela: o valor sai em `.valor` (14px) no
-                       lugar dos 12px que este arquivo escrevia. É a régua de
-                       hierarquia da onda 87 — 12px ao lado de um rótulo de
-                       11px liam como a mesma voz — e custa 2,4px de altura no
-                       chip (26,5 → 28,9). Os `mt-1` abaixo pagam essa conta
-                       com folga; a medida completa está no bloco do fim.
-                       `mt-1` e não `mt-2`: é o mesmo respiro que `LinhaLista`
-                       usa entre o texto e o slot `chips` — a fileira de chips
-                       do app passa a ter um valor só. */
-                    <div className="mt-1 flex flex-wrap gap-1.5">
+                    /* ONDA 123 — AS CÁPSULAS CAEM ("os badges cápsulas do
+                       diário estão muito grandes", dono, 20/08 — e a imagem 5
+                       do guia dá razão a ele: o registro de lá escreve
+                       "4 h 20 min" numa LINHA FINA de leitura, sem pílula
+                       nenhuma). A fileira de `ChipDado` media 28,9px e ainda
+                       quebrava em duas a 390px, agora que o medalhão come
+                       48px de largura; a linha entrega os mesmos três
+                       instrumentos em 18px, sempre numa linha só.
+                       A voz continua a da dupla rótulo/valor: rótulo em
+                       `rotulo-dado` cinza, número em tabular claro — e
+                       "sem GPS" segue vestindo AUSÊNCIA (cinza, peso normal),
+                       nunca a voz de um número de verdade: o diário não
+                       inventa distância nem confunde "zero" com "não sei". */
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
                       {duracaoEvento != null && (
-                        <ChipDado rotulo="No mar">{textoDuracao(duracaoEvento)}</ChipDado>
+                        <span className="rotulo-dado text-dim">
+                          No mar <span className="valor tabular-nums text-texto">{textoDuracao(duracaoEvento)}</span>
+                        </span>
                       )}
-                      <ChipDado rotulo="Trilha">
+                      <span className="rotulo-dado text-dim">
+                        Trilha{" "}
                         {distanciaNm != null ? (
-                          `${distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN`
+                          <span className="valor tabular-nums text-texto">
+                            {distanciaNm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} MN
+                          </span>
                         ) : (
-                          // "sem GPS" no lugar de 0 MN — o diário não inventa
-                          // distância (nota do próprio canvas). E ele veste
-                          // AUSÊNCIA, não leitura: cinza e peso normal contra o
-                          // branco seminegrito que o `ChipDado` dá a um número
-                          // de verdade. Sem isso, "sem GPS" teria exatamente a
-                          // mesma voz de "12,4 MN" — que é a confusão entre
-                          // "zero" e "não sei" com outra roupa.
-                          <span className="font-normal text-dim">sem GPS</span>
+                          <span>sem GPS</span>
                         )}
-                      </ChipDado>
-                      {aBordo > 0 && <ChipDado rotulo="A bordo">{aBordo}</ChipDado>}
-                    </div>
+                      </span>
+                      {aBordo > 0 && (
+                        <span className="rotulo-dado text-dim">
+                          A bordo <span className="valor tabular-nums text-texto">{aBordo}</span>
+                        </span>
+                      )}
+                    </p>
                   )}
                   {ehSaida
                     ? apoioSaida && <p className="apoio mt-1 text-dim">{apoioSaida}</p>
