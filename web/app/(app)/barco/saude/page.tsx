@@ -110,7 +110,7 @@ export default async function SaudePage() {
           <div className={`sombra-1 mt-6 rounded-[var(--raio-cartao)] border bg-panel p-4 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].borda}`}>
             <div className="flex items-center gap-2.5">
               <Icone nome="escudo" className={`size-5 shrink-0 ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`} />
-              <p className={`text-lg font-semibold leading-tight ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`}>
+              <p className={`text-xl font-semibold leading-tight ${CASCA_ESTADO[FAROL_ESTADO_SAUDE[saude.estado]].texto}`}>
                 {ROTULO_ESTADO_SAUDE[saude.estado]}
               </p>
             </div>

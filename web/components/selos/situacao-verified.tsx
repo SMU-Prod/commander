@@ -33,7 +33,7 @@ export function SituacaoVerified({
   const texto = textoPrazoVerified(selo) ?? ROTULO_SITUACAO_VERIFIED[selo.situacao]
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-2.5 py-0.5 font-mono-instr text-[11px] tracking-wide ${ESTILO[selo.situacao]} ${className}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--raio-pilula)] border px-2.5 py-0.5 font-mono-instr text-xs tracking-wide ${ESTILO[selo.situacao]} ${className}`}
     >
       {texto}
     </span>

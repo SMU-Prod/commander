@@ -1802,7 +1802,7 @@ export function NavegarMapa({
             >
               <span
                 aria-hidden="true"
-                className="flex size-5 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda text-[11px] font-bold"
+                className="flex size-5 items-center justify-center rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda text-xs font-bold"
               >
                 ?
               </span>
@@ -1955,7 +1955,7 @@ export function NavegarMapa({
                     >
                       {estado === "salvando" ? "Salvando…" : estado === "parado" ? "Tentar salvar de novo" : "Encerrar e salvar no diário"}
                     </button>
-                    <p className="mt-2 text-center font-mono-instr text-[11px] tabular-nums text-meter-dim">
+                    <p className="mt-2 text-center font-mono-instr text-xs tabular-nums text-meter-dim">
                       {painel.qtd} pontos gravados
                       {painel.qtd >= MAX_PONTOS_TRILHA ? " · limite atingido — a trilha será salva até aqui" : ""}
                     </p>
@@ -2107,7 +2107,7 @@ export function NavegarMapa({
               {/* Canvas tela-1c — o rodapé mono do painel: diz que a trilha
                   está gravando SÓ quando está (nunca inventa), e repete o
                   aviso de sempre — isto não é auxílio à navegação. */}
-              <p className="mt-2.5 text-center font-mono-instr text-[11px] text-meter-dim">
+              <p className="mt-2.5 text-center font-mono-instr text-xs text-meter-dim">
                 {estado === "gravando" ? "Trilha gravando · não é auxílio à navegação" : "Não é auxílio à navegação"}
               </p>
             </div>

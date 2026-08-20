@@ -400,7 +400,41 @@ Duas conclusões que fecham a porta do atalho:
 - **Encomendar o pacote.** Oito objetos, perspectiva 3/4, luz principal
   superior esquerda, fundo transparente, WebP + PNG de fallback (§14).
 
-### 15.4 O tema claro
+### 15.4 O mapa desenha rótulo com a fonte do Mapbox, não com a do app
+
+`web/lib/mapa/camadas-viagem.ts` declara `"text-font": ["DIN Pro Bold", "Arial
+Unicode MS Bold"]` nos rótulos das camadas de viagem. São três famílias no
+produto, contra a "única" do §16.
+
+**Não é deriva, é limite do motor.** O Mapbox GL não desenha texto com a fonte
+do documento: ele monta os rótulos a partir de *glyphs* pré-renderizados
+servidos pelo próprio Mapbox. Usar Inter ali exige hospedar o atlas de glyphs
+da Inter e apontar o `glyphs` do estilo para ele — trabalho de infraestrutura,
+não de CSS.
+
+**Enquanto isso:** o texto do mapa é rótulo de carta (nome de ponto, distância
+do trecho), não interface do app. Fica registrado para não ser "descoberto"
+como bug numa próxima auditoria.
+
+### 15.5 A escala tem 11 degraus, e o guia declara 6
+
+O §4 declara 12/14/16/20/24/28–32 no mobile e 12/14/16/22/30–32/32–40 no
+desktop. A união dos dois — que é o que um app responsivo com os mesmos
+componentes pode usar — dá **12, 14, 16, 20, 22, 24, 28, 30, 32, 36, 40**, e é
+essa a lista que `lib/ui/tipografia.test.ts` cobra.
+
+Antes da onda 110 rodavam **19 tamanhos**: 10, 11, 11.5, 12, 13, 14, 15, 16,
+17, 18, 20, 24, 26, 28, 30, 32, 34, 36 e 48. Nenhum foi decidido — cada um
+entrou numa onda diferente resolvendo um caso, e ninguém tinha como ver a
+soma. `11.5px` existia em um arquivo só.
+
+**Três exceções sobrevivem**, com teto por arquivo no teste: o wordmark
+(`logo.tsx`, dimensionado por quem chama), o número de pendências dentro do
+escudo de 56px (`card-embarcacao.tsx`, tamanho ditado pelo continente) e o
+cartão flutuante sobre o mapa (`navegar-mapa.tsx`, que tem escala própria
+desde a onda 24, junto com o chão navy fixo e as cores próprias).
+
+### 15.6 O tema claro
 
 O guia não o menciona. Ele existe como preferência de produto e segue a regra
 de tradução do §3.3. Se o dono decidir que o Commander é escuro e ponto, o tema

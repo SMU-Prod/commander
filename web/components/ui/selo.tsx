@@ -34,7 +34,7 @@ export function Selo({ estado, children }: { estado: EstadoSelo; children?: Reac
     // substituiu a pílula escrita à mão do boletim do mar, que estava a 11px:
     // o selo de estado ficou MENOR do que a coisa que ele veio padronizar.
     //
-    // ONDA 91 (achado 5.12) — `.rotulo` no lugar de `text-[11px] uppercase
+    // ONDA 91 (achado 5.12) — `.rotulo` no lugar de `text-xs uppercase
     // tracking-[.09em]`. Os três juntos eram uma cópia à mão da voz de rótulo
     // que derivou: o app tinha ONZE valores de tracking para o mesmo gesto
     // "palavra em caixa alta, rastreada", e o `.16em` que `.rotulo` declara

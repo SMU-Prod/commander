@@ -120,7 +120,7 @@ export function SeloGold({
       </svg>
 
       {mostrarPlaca && (
-        <span className="flex flex-col items-center rounded-md border border-accent-forte/40 bg-accent/10 px-2 py-1 text-center font-mono-instr text-[10px] leading-tight text-accent-forte">
+        <span className="flex flex-col items-center rounded-md border border-accent-forte/40 bg-accent/10 px-2 py-1 text-center font-mono-instr text-xs leading-tight text-accent-forte">
           <span>Avaliado em {formatarData(dataAvaliacao!)}</span>
           <span>Válido até {formatarData(validadeAte!)}</span>
         </span>

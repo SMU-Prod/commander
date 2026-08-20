@@ -113,7 +113,7 @@ export default async function FinanceiroPage({
         {/* ONDA 87, os três degraus do número (globals.css). O gasto do mês é
             o assunto desta tela — `.valor-instrumento`; entradas e saldo são
             o degrau de KPI — `.valor-forte`. Antes eram `text-3xl` e
-            `text-lg`, dois tamanhos que não existem em régua nenhuma e que
+            `text-xl`, dois tamanhos que não existem em régua nenhuma e que
             deixavam o número sem peso e sem a cor de dado. */}
         <p className="mt-1 font-mono-instr valor-instrumento">{formatarReais(r.despesasCentavos)}</p>
 

@@ -33,7 +33,7 @@ export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Repu
     <div className={`sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3.5 ${className}`}>
       <div className="flex items-center gap-4">
         <div className="shrink-0">
-          <p className="font-mono-instr text-[34px] font-semibold leading-none tabular-nums">
+          <p className="font-mono-instr text-[32px] font-semibold leading-none tabular-nums">
             {formatarMedia(reputacao.media)}
           </p>
           <p className="rotulo mt-1 text-dim">de 5,0</p>
@@ -41,7 +41,7 @@ export function ResumoReputacao({ reputacao, className = "" }: { reputacao: Repu
         <div className="min-w-0 flex-1 space-y-[5px]">
           {barrasDaDistribuicao(reputacao).map((b) => (
             <div key={b.estrela} className="flex items-center gap-2">
-              <span className="w-3 shrink-0 font-mono-instr text-[11px] tabular-nums text-dim">{b.estrela}</span>
+              <span className="w-3 shrink-0 font-mono-instr text-xs tabular-nums text-dim">{b.estrela}</span>
               <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
                 <div
                   className={`h-full rounded-[var(--raio-pilula)] ${b.destaque ? "bg-accent" : "bg-dim"}`}

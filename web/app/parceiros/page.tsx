@@ -9,7 +9,7 @@ import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
  *  52px de altura, nenhum dos dois na escala do docs/DESIGN.md §5 — e quem
  *  vem da landing para cá via rodapé encontrava dois botões diferentes para
  *  o mesmo gesto. */
-const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`
+const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-base font-semibold text-acao-texto ${TOQUE_AMPLO}`
 
 // Onda 25 (auditoria CMO P0) — página pública de vendas pro parceiro
 // comercial (marina, posto, pousada, restaurante). Antes só existia
@@ -95,13 +95,13 @@ export default function ParceirosPage() {
             E a classe também não serve, pelo mesmo motivo medido na irmã desta
             página (`app/page.tsx`, hero): `.titulo-pagina` carrega
             `font-size: 1.5rem` e, vindo depois na cascata de layers, vence o
-            `text-4xl`/`sm:text-5xl` na mesma tag — o título de venda cairia pra
+            `text-4xl`/`sm:text-4xl` na mesma tag — o título de venda cairia pra
             24px. Aqui o tamanho é o argumento. Fica escrito à mão, replicando a
             voz da classe (peso, aperto, entrelinha) num corpo maior. */}
-        <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-5xl">
+        <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.02em] text-balance sm:text-4xl">
           Seu ponto no mapa que os donos de barco já usam.
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-lg text-dim">
+        <p className="mx-auto mt-6 max-w-xl text-xl text-dim">
           Quem navega no Commander vê seu negócio na hora certa: no meio do trajeto, procurando onde parar.
           Autoatendimento, sem mensalidade de agência.
         </p>

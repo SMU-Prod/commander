@@ -96,7 +96,7 @@ export function PatrocinioDashboard({ anuncios }: { anuncios: AnuncioPatrocinado
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <p className="rotulo text-dim">{ROTULO_PATROCINADO}</p>
         {lista.length > 1 && (
-          <span className="font-mono-instr text-[11px] tabular-nums text-dim">
+          <span className="font-mono-instr text-xs tabular-nums text-dim">
             {i + 1} de {lista.length}
           </span>
         )}

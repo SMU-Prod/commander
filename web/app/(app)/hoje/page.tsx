@@ -71,7 +71,7 @@ async function BoletimDoMar({ lat, lon }: { lat: number; lon: number }) {
   return (
     <>
       {/* Onda 93 (achado 5.12) — os três rótulos eram
-          `text-[11px] uppercase tracking-[.12em]`, que é `.rotulo` reescrita à
+          `text-xs uppercase tracking-[.12em]`, que é `.rotulo` reescrita à
           mão com o tracking derivado (.12 contra .16). O `font-mono-instr` do
           pai já dava a fonte; agora a classe dá as quatro coisas de uma vez. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono-instr text-sm tabular-nums">
@@ -1113,7 +1113,7 @@ export default async function HojePage({
                    · `--altura-controle` no lugar do `min-h-11` cravado — a
                      régua de toque tem token desde a onda 91, e este era um
                      dos dois lugares desta tela que ainda escreviam o número;
-                   · `.apoio` (12px/500) no lugar de `text-[11px] font-medium`:
+                   · `.apoio` (12px/500) no lugar de `text-xs font-medium`:
                      11 é o PISO da escala, reservado a etiqueta de
                      instrumento, e estes cinco são rótulos de navegação que se
                      LEEM. Foi exatamente disto que o dono reclamou — "fontes

@@ -28,7 +28,7 @@ export default async function ParceiroLayout({ children }: { children: React.Rea
   return (
     <div className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pb-10 pt-6">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <div className="text-lg"><Logo /></div>
+        <div className="text-xl"><Logo /></div>
         {meu && <span className="apoio text-dim">{ROTULO_TIPO_PARTNER[meu.parceiro.categoria]}</span>}
       </div>
 

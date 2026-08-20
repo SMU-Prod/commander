@@ -32,7 +32,7 @@ import { mensagemAviso, mensagemErro } from "@/lib/seguranca/mensagens-auth"
  */
 
 const campo =
-  "h-12 w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 text-[15px] text-texto placeholder:text-dim"
+  "h-12 w-full rounded-[var(--raio-controle)] border border-line bg-campo px-3.5 text-base text-texto placeholder:text-dim"
 
 export default async function LoginPage({
   searchParams,
@@ -91,7 +91,7 @@ export default async function LoginPage({
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_10%,rgb(212_175_55/.10),transparent_60%)]" />
         <div className="relative">
           <div className="text-base"><Logo /></div>
-          <p className="mt-6 max-w-[26ch] text-[26px] font-semibold leading-tight text-meter-texto">
+          <p className="mt-6 max-w-[26ch] text-2xl font-semibold leading-tight text-meter-texto">
             Manutenção em dia, documentos alertados e um histórico que vale
             dinheiro na hora de vender.
           </p>
@@ -237,7 +237,7 @@ export default async function LoginPage({
             <>Ainda não tem conta?&nbsp;<span className="font-semibold text-accent-forte">Cadastrar embarcação</span></>
           )}
         </a>
-        <p className="text-center font-mono-instr text-[11px] leading-relaxed text-dim">
+        <p className="text-center font-mono-instr text-xs leading-relaxed text-dim">
           O Commander não é auxílio à navegação.<br />
           Consulte sempre a carta náutica oficial.
         </p>

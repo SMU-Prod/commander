@@ -45,10 +45,10 @@ export function ProgressoRota({
           {origem} <span className="text-dim">→</span> {destino}
         </p>
         <p className="shrink-0 whitespace-nowrap">
-          <span className="font-mono-instr text-[13px] font-semibold tabular-nums text-texto">
+          <span className="font-mono-instr text-sm font-semibold tabular-nums text-texto">
             {formatarNumero(distanciaTotal)} {unidade}
           </span>{" "}
-          <span className="font-mono-instr text-[12px] tabular-nums text-dim">{pct}%</span>
+          <span className="font-mono-instr text-xs tabular-nums text-dim">{pct}%</span>
         </p>
       </div>
 

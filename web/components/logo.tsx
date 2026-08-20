@@ -56,7 +56,7 @@ export function Logo({ compacto = false }: { compacto?: boolean }) {
           NÃO virou a classe `.rotulo`, e a razão é medível: `.rotulo` crava
           `font-size: 11px` e a família mono, e este wordmark é dimensionado
           POR QUEM CHAMA — `text-lg` no painel do parceiro, `text-base` nas
-          telas de convite, `text-sm` no login do celular, `text-[11px]` no
+          telas de convite, `text-sm` no login do celular, `text-xs` no
           onboarding — com o `<img>` ao lado medindo `1.6em` do mesmo corpo.
           Com a classe, a palavra congelaria em 11px, o símbolo continuaria
           escalando, e a marca sairia desalinhada em cinco telas. Aqui a

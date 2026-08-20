@@ -89,7 +89,7 @@ export default async function CotistasPage({
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
         <div className="flex items-baseline justify-between">
           <p className="rotulo text-dim">Vagas ocupadas</p>
-          <p className="font-mono-instr text-[15px] font-semibold tabular-nums">{vagas.rotulo}</p>
+          <p className="font-mono-instr text-base font-semibold tabular-nums">{vagas.rotulo}</p>
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-[var(--raio-pilula)] bg-panel2">
           <div
@@ -219,7 +219,7 @@ export default async function CotistasPage({
                 <div className="flex items-center gap-2">
                   <p className="titulo-card min-w-0 flex-1 truncate">{nome}</p>
                   {suspenso && (
-                    <span className="shrink-0 rounded-[var(--raio-pilula)] border border-crit/40 px-2 py-0.5 text-[11px] text-crit">
+                    <span className="shrink-0 rounded-[var(--raio-pilula)] border border-crit/40 px-2 py-0.5 text-xs text-crit">
                       Suspenso
                     </span>
                   )}

@@ -499,8 +499,8 @@ function LinhaAgendaData({ item }: { item: ItemAgenda }) {
     : item.detalhe ?? ""
   const conteudo = (
     <>
-      {/* `.valor-forte` (20px) e `.rotulo` (11px) no lugar de `text-[17px]` e
-          `text-[11px] tracking-[.12em]`: 17px não é degrau de escala nenhuma,
+      {/* `.valor-forte` (20px) e `.rotulo` (11px) no lugar de `text-base` e
+          `text-xs tracking-[.12em]`: 17px não é degrau de escala nenhuma,
           e o rótulo era uma cópia à mão do `.rotulo` que derivou no tracking
           (achado 5.12 da auditoria). Cabe nos 42px: dois dígitos de mono a
           20px medem ~24px. */}

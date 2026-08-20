@@ -59,7 +59,7 @@ export function ContadorAvisos({
        legível nos dois sem cor literal nova. */
     <span
       aria-label={`${avisos} avisos que pedem atenção`}
-      className={`absolute ${POSICAO[posicao]} flex h-4 min-w-4 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1 font-mono-instr text-[11px] font-semibold leading-4 tabular-nums text-ink`}
+      className={`absolute ${POSICAO[posicao]} flex h-4 min-w-4 items-center justify-center rounded-[var(--raio-pilula)] bg-crit px-1 font-mono-instr text-xs font-semibold leading-4 tabular-nums text-ink`}
     >
       {avisos > 9 ? "9+" : avisos}
     </span>

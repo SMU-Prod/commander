@@ -42,7 +42,7 @@ export default async function NovaSenhaPage({
         <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_20%_10%,rgb(212_175_55/.10),transparent_60%)]" />
         <div className="relative">
           <div className="text-base"><Logo /></div>
-          <p className="mt-6 max-w-[26ch] text-[26px] font-semibold leading-tight text-meter-texto">
+          <p className="mt-6 max-w-[26ch] text-2xl font-semibold leading-tight text-meter-texto">
             Escolha uma senha nova e volte pro seu barco.
           </p>
         </div>
@@ -71,7 +71,7 @@ export default async function NovaSenhaPage({
           <BotaoEnviar larguraCheia className="mt-1" rotulo="Salvar senha" />
         </form>
 
-        <p className="mt-auto pt-10 text-center font-mono-instr text-[11px] leading-relaxed text-dim">
+        <p className="mt-auto pt-10 text-center font-mono-instr text-xs leading-relaxed text-dim">
           O Commander não é auxílio à navegação.<br />
           Consulte sempre a carta náutica oficial.
         </p>

@@ -30,7 +30,7 @@ export function Kpi({
   return (
     <div className="min-w-0">
       <p className="rotulo truncate text-dim">{rotulo}</p>
-      {/* ONDA 87 — `.valor-forte` no lugar do `text-[20px]` escrito à mão:
+      {/* ONDA 87 — `.valor-forte` no lugar do `text-xl` escrito à mão:
           mesmo 20px, agora vindo do degrau declarado da escala. As cores de
           COR_VALOR continuam mandando (a classe entrega a cor com
           especificidade zero — ver o bloco `:where` em globals.css). */}

@@ -112,8 +112,8 @@ export function GraficoArea({
             style={{ top: `${marca.pos}%` }}
             // ONDA 91 (achado 5.6, mesmo conserto do eixo X de
             // `GraficoBarras`): 11px é o piso declarado em `globals.css`, e
-            // `text-[10px]` no celular ficava um pixel abaixo dele.
-            className="absolute right-0 -translate-y-1/2 font-mono-instr text-[11px] leading-none tabular-nums text-dim"
+            // `text-xs` no celular ficava um pixel abaixo dele.
+            className="absolute right-0 -translate-y-1/2 font-mono-instr text-xs leading-none tabular-nums text-dim"
           >
             {marca.texto}
             {sufixo}
@@ -189,7 +189,7 @@ export function GraficoArea({
               <span
                 key={`${p.rotulo}-${i}`}
                 style={{ left: `${x}%` }}
-                className={`absolute top-0 whitespace-nowrap font-mono-instr text-[11px] leading-none tabular-nums text-dim ${ancora} ${raleiaNoCelular ? "max-sm:invisible" : ""}`}
+                className={`absolute top-0 whitespace-nowrap font-mono-instr text-xs leading-none tabular-nums text-dim ${ancora} ${raleiaNoCelular ? "max-sm:invisible" : ""}`}
               >
                 {p.rotulo}
               </span>

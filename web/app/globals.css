@@ -498,9 +498,15 @@
 body {
   background: var(--fundo);
   color: var(--texto);
-  /* Onda 62 — IBM Plex Sans no lugar da Urbanist (canvas do dono; a decisão
-     e o porquê estão em docs/DESIGN.md §5, Tipografia). A variável vem do
-     next/font em app/layout.tsx. */
+  /* ONDA 110 — ESTE COMENTÁRIO DIZIA "IBM PLEX SANS" E A FONTE É INTER HÁ
+     TRINTA ONDAS. A troca foi na onda 80 (a Plex é a grotesca de engenharia e
+     chama atenção para si; a Inter deixa o número falar, e é variable font);
+     o comentário ficou descrevendo a família anterior. Não é preciosismo: é a
+     PRIMEIRA linha que alguém lê antes de mexer em tipografia, e ela estava
+     mandando calibrar contra uma fonte que o app não carrega.
+     A variável vem do next/font em `app/layout.tsx`. A régua da escala está
+     no §4 do `docs/DESIGN-SYSTEM.md` e é cobrada por
+     `lib/ui/tipografia.test.ts`. */
   font-family: var(--font-sans-app), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -829,7 +835,7 @@ body.fundo-tela-mapa {
        @theme inline não existe como custom property no DOM — ver o comentário
        na definição da pilha, acima do @theme. */
     font-family: var(--pilha-mono-instr);
-    font-size: .6875rem;    /* 11px — Caption, e o piso da escala */
+    font-size: .75rem;      /* 12px — o piso do §4 do Guia ("12 rótulo") */
     /* 500: o §11 define Caption em 500, e a Plex Mono é estática com esse
        peso disponível (400/500/600/700) — nada arredonda. */
     font-weight: 500;
@@ -864,7 +870,7 @@ body.fundo-tela-mapa {
      pede `.rotulo-dado` explicitamente. Hoje só os componentes desta onda
      (grade rótulo/valor, faixa de KPI) e a ficha de equipamento pedem. */
   .rotulo-dado {
-    font-size: .6875rem;    /* mesmo piso de 11px — nenhuma voz nova na escala */
+    font-size: .75rem;      /* mesmo piso de 12px — nenhuma voz nova na escala */
     /* 450 — o peso que o §11 reserva a METADATA, e é exatamente o papel desta
        classe (a legenda de um valor dentro do cartão). A Inter é variável
        (`app/layout.tsx`), então 450 é um peso de verdade e não arredonda para

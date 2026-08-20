@@ -89,8 +89,8 @@ import { supabaseServer } from "@/lib/supabase/server"
  * servidor — cookie forjado não entra em lugar nenhum; o que muda é quantas
  * vezes a validação precisa ser paga.
  */
-const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`
-const CTA_CONTORNO = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] border border-line px-6 text-center text-[15px] font-semibold text-texto ${TOQUE_AMPLO}`
+const CTA = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] bg-accent px-6 text-center text-base font-semibold text-acao-texto ${TOQUE_AMPLO}`
+const CTA_CONTORNO = `inline-flex h-12 items-center justify-center rounded-[var(--raio-controle)] border border-line px-6 text-center text-base font-semibold text-texto ${TOQUE_AMPLO}`
 
 /**
  * A EXTENSÃO DO APP, AGRUPADA PELA VIDA DO BARCO — NÃO PELO MENU.

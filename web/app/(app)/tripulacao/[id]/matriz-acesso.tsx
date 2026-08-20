@@ -162,7 +162,7 @@ export function MatrizDeAcesso({ permissoesIniciais }: { permissoesIniciais: Per
       </div>
 
       <div className="mt-3 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
-        {/* `.rotulo` no lugar de `text-[11px] uppercase tracking-[.14em]`:
+        {/* `.rotulo` no lugar de `text-xs uppercase tracking-[.14em]`:
             é o MESMO desenho escrito à mão, e `.14em` era mais um dos onze
             trackings que a auditoria contou pro mesmo gesto (achado 5.12). */}
         <div className="flex items-center gap-3 border-b border-line py-2">

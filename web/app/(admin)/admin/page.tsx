@@ -83,7 +83,7 @@ function Cartao({ metrica }: { metrica: Metrica }) {
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{metrica.rotulo}</p>
       {/* ONDA 87 — O DEGRAU SE ESCOLHE PELO PAPEL DO NÚMERO, NÃO PELO TAMANHO
-          QUE ELE TINHA. `text-lg` são 18px, e 18px não é degrau nenhum da
+          QUE ELE TINHA. `text-xl` são 18px, e 18px não é degrau nenhum da
           escala: é o tamanho que sobrou quando ninguém tinha declarado a voz do
           número. Este aqui é o número de um cartão de KPI, e a escala tem
           exatamente um degrau pra isso — `.valor-forte`, 20px (globals.css).

@@ -147,7 +147,7 @@ function Numero({ rotulo, valor, apoio }: { rotulo: string; valor: string; apoio
     <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
       <p className="rotulo text-dim">{rotulo}</p>
       {/* Mesmo cartão de KPI do dashboard, mesmo degrau: `.valor-forte` (20px)
-          no lugar dos 18px de `text-lg`, que não eram degrau de escala nenhum.
+          no lugar dos 18px de `text-xl`, que não eram degrau de escala nenhum.
           O porquê longo está em `app/(admin)/admin/page.tsx` — não repetido
           aqui pra não haver duas versões da mesma decisão divergindo. */}
       <p className="font-mono-instr valor-forte mt-1 font-semibold">{valor}</p>

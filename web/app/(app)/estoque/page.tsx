@@ -215,7 +215,7 @@ export default async function EstoquePage({
             {repor.map((i) => (
               <div key={i.id} className="relative">
                 <span
-                  className={`absolute -top-1 right-3 z-10 rounded-[var(--raio-pilula)] border px-2 py-0.5 text-[11px] ${
+                  className={`absolute -top-1 right-3 z-10 rounded-[var(--raio-pilula)] border px-2 py-0.5 text-xs ${
                     i.estado === "zerado" ? "border-crit/40 bg-panel text-crit" : "border-aten/40 bg-panel text-warn"
                   }`}
                 >

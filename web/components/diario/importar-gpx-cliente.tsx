@@ -277,14 +277,14 @@ export function ImportarGpxCliente() {
                       {c.pontosDescartados > 0 && ` · ${c.pontosDescartados} ponto(s) com coordenada inválida descartado(s)`}
                     </p>
                     {c.duplicada && (
-                      <p className="mt-1 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr text-[11px] text-dim">
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 font-mono-instr text-xs text-dim">
                         Já importada antes — será pulada
                       </p>
                     )}
                     {contribuirCorredor ? (
-                      <p className="mt-1 font-mono-instr text-[11px] text-accent-forte">Vai pro diário e também vira passagens no mapa de corredores</p>
+                      <p className="mt-1 font-mono-instr text-xs text-accent-forte">Vai pro diário e também vira passagens no mapa de corredores</p>
                     ) : (
-                      <p className="mt-1 font-mono-instr text-[11px] text-dim">Vai só para o diário</p>
+                      <p className="mt-1 font-mono-instr text-xs text-dim">Vai só para o diário</p>
                     )}
                   </div>
                 </label>

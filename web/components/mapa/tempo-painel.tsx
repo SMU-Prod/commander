@@ -248,7 +248,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
                 )}
               </p>
               {estado.boletim.rajadaKt != null && (
-                <p className="mt-0.5 text-[11px] text-meter-dim">rajada {Math.round(estado.boletim.rajadaKt)} kt</p>
+                <p className="mt-0.5 text-xs text-meter-dim">rajada {Math.round(estado.boletim.rajadaKt)} kt</p>
               )}
             </div>
             <div className={mostrador}>
@@ -258,7 +258,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
                 <span className="text-sm text-meter-dim"> m</span>
               </p>
               {estado.boletim.periodoS != null && (
-                <p className="mt-0.5 text-[11px] text-meter-dim">período {Math.round(estado.boletim.periodoS)} s</p>
+                <p className="mt-0.5 text-xs text-meter-dim">período {Math.round(estado.boletim.periodoS)} s</p>
               )}
             </div>
             <div className={mostrador}>
@@ -285,7 +285,7 @@ export function TempoPainel({ posicao }: { posicao: { la: number; lo: number } |
               motivo nomeia a causa. Aqui pesa ainda mais — este painel abre
               sobre a carta, na hora de decidir se sai. */}
           {estado.boletim.selo.motivo && (
-            <p className={`mt-1 text-[11px] ${estado.boletim.selo.nivel === "crit" ? "text-crit" : "text-warn"}`}>
+            <p className={`mt-1 text-xs ${estado.boletim.selo.nivel === "crit" ? "text-crit" : "text-warn"}`}>
               Por causa de {estado.boletim.selo.motivo}.
             </p>
           )}

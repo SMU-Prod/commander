@@ -117,7 +117,7 @@ export default async function MarketplacePage({
         className="sombra-1 block rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
       >
         <div className="flex items-center gap-2">
-          {/* `.rotulo` no lugar de `text-[11px] uppercase tracking-[.08em]`:
+          {/* `.rotulo` no lugar de `text-xs uppercase tracking-[.08em]`:
               o mesmo desenho, escrito à mão e com o tracking derivado. */}
           <span className="rotulo rounded-[var(--raio-pilula)] border border-line px-2 py-0.5 text-dim-chip">
             {ROTULO_CURTO_TIPO_DEMANDA[d.tipo]}

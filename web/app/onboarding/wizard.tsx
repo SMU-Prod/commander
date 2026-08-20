@@ -131,7 +131,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
           inferior nem pra onde navegar, o wordmark é o que diz onde a pessoa
           está — e o contador "N de 4" fica na mesma linha, em mono. */}
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px]">
+        <div className="text-xs">
           <Logo />
         </div>
         <span className="font-mono-instr text-xs tabular-nums text-dim">
@@ -250,7 +250,7 @@ export function WizardOnboarding({ jaTemBarco, erro }: { jaTemBarco: boolean; er
             type="button"
             hidden={passo === TOTAL_PASSOS - 1}
             onClick={avancar}
-            className={`h-12 w-full rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`}
+            className={`h-12 w-full rounded-[var(--raio-controle)] bg-accent text-base font-semibold text-acao-texto ${TOQUE_AMPLO}`}
           >
             Continuar
           </button>

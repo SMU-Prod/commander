@@ -185,7 +185,7 @@ export function BottomNav() {
                  demora, a pessoa toca de novo. `TOQUE` (e não `TOQUE_AMPLO`)
                  porque cada aba tem ~78px de largura: aqui os 3% são o
                  afundar certo, não um tremor. */
-              className={`relative flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-[11px] font-medium ${TOQUE} ${
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-[5px] pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2 text-xs font-medium ${TOQUE} ${
                 ativa ? "text-accent-forte" : "text-dim"
               }`}
             >

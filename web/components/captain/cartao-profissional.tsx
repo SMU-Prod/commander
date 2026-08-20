@@ -58,7 +58,7 @@ export function CartaoProfissional({
             própria pessoa — quando declarou, o verde de "dá pra chamar";
             quando não, "Sem dados" neutro, nunca inventado. */}
         <span
-          className={`max-w-[40%] shrink-0 truncate rounded-[var(--raio-pilula)] border px-2 py-1 font-mono-instr text-[11px] tracking-wide ${
+          className={`max-w-[40%] shrink-0 truncate rounded-[var(--raio-pilula)] border px-2 py-1 font-mono-instr text-xs tracking-wide ${
             perfil.disponibilidade ? "border-ok/40 text-ok" : "border-line text-dim"
           }`}
         >
@@ -76,7 +76,7 @@ export function CartaoProfissional({
         {rep.quantidade > 0 ? (
           <SeloReputacao reputacao={rep} href={`/avaliacoes/${perfil.usuario_id}`} />
         ) : (
-          <span className="rounded-[var(--raio-pilula)] border border-line px-2.5 py-1 font-mono-instr text-[11px] tracking-wide text-dim">
+          <span className="rounded-[var(--raio-pilula)] border border-line px-2.5 py-1 font-mono-instr text-xs tracking-wide text-dim">
             Sem avaliações
           </span>
         )}

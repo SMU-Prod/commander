@@ -52,7 +52,7 @@ export function CartaoAvaliacao({
           </p>
         </div>
         <span
-          className="shrink-0 font-mono-instr text-[13px] font-semibold tabular-nums"
+          className="shrink-0 font-mono-instr text-sm font-semibold tabular-nums"
           aria-label={`${avaliacao.nota} de 5 estrelas`}
         >
           {formatarMedia(avaliacao.nota)} ★

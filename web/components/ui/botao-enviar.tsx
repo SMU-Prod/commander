@@ -124,7 +124,7 @@ export function enviandoPadrao(rotulo: string): string {
 const CONTORNO = `h-[var(--altura-controle)] rounded-[var(--raio-pilula)] border px-5 text-sm font-medium ${TOQUE}`
 
 const DESENHO = {
-  principal: `h-[var(--altura-campo)] rounded-[var(--raio-controle)] bg-accent text-[15px] font-semibold text-acao-texto ${TOQUE_AMPLO}`,
+  principal: `h-[var(--altura-campo)] rounded-[var(--raio-controle)] bg-accent text-base font-semibold text-acao-texto ${TOQUE_AMPLO}`,
   contorno: `${CONTORNO} border-line bg-panel2 text-texto`,
   // Borda a 60% e não os 40% do `Selo`: o selo é etiqueta e só precisa ser
   // lido, este precisa ser ACHADO pelo dedo — a forma visível é o que a onda

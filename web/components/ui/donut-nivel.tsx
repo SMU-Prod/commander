@@ -73,7 +73,7 @@ export function DonutNivel({
     // CARTÃO, o mostrador é estreito e centrado.
     <div className={`relative w-full ${className}`}>
       {percentual != null && (
-        <span className="absolute right-0 top-0 z-10 inline-flex items-center rounded-[var(--raio-pilula)] border border-accent/40 px-2 py-0.5 font-mono-instr text-[11px] font-semibold tabular-nums text-accent">
+        <span className="absolute right-0 top-0 z-10 inline-flex items-center rounded-[var(--raio-pilula)] border border-accent/40 px-2 py-0.5 font-mono-instr text-xs font-semibold tabular-nums text-accent">
           {pct}%
         </span>
       )}
@@ -156,7 +156,7 @@ export function DonutNivel({
             </span>
           </div>
           {apoio && (
-            <span className="inline-flex items-center rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 font-mono-instr text-[11px] tabular-nums text-dim">
+            <span className="inline-flex items-center rounded-[var(--raio-pilula)] border border-line bg-panel px-2 py-0.5 font-mono-instr text-xs tabular-nums text-dim">
               {apoio}
             </span>
           )}

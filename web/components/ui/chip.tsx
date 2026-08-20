@@ -9,7 +9,7 @@ import { TOQUE } from "@/lib/ui/acoes"
  * intenção — dois níveis, o primeiro em dourado cheio ("o que estou vendo"), o
  * segundo em contorno ("recorte dentro disso") — mas estava copiado à mão em
  * doze telas e cada cópia foi derivando de tamanho: `px-3.5 py-1.5
- * text-[11.5px]`, `px-3 py-1 text-[11px]`, `px-3.5 py-2`, `px-3 py-1.5 apoio`,
+ * text-xs`, `px-3 py-1 text-xs`, `px-3.5 py-2`, `px-3 py-1.5 apoio`,
  * `h-10 px-3.5 text-sm`. Seis alturas diferentes pro mesmo gesto. Telas irmãs
  * (Histórico, Lançamentos, Ocorrências, Resumos, Diário) pareciam produtos
  * diferentes lado a lado, e nenhuma dessas alturas alcançava o alvo de toque
@@ -95,7 +95,7 @@ export function Chip({
       >
         {children}
         {contagem != null && (
-          <span className="font-mono-instr text-[11px] tabular-nums opacity-80">{contagem}</span>
+          <span className="font-mono-instr text-xs tabular-nums opacity-80">{contagem}</span>
         )}
       </span>
     </Link>

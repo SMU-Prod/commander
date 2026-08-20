@@ -78,7 +78,7 @@ function rotuloDoAcesso(v: Vinculo): string {
 
 function PilulaKpi({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    // `.rotulo` + `.valor` no lugar de `text-[11px] tracking-[.12em]` +
+    // `.rotulo` + `.valor` no lugar de `text-xs tracking-[.12em]` +
     // `text-xs`: é a MESMA dupla rótulo-cinza / valor-branco que
     // `PastilhaKpi` desenha, agora escrita com as classes da escala em vez
     // de dois tamanhos avulsos que ninguém comparou (onda 87).

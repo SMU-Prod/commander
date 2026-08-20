@@ -24,10 +24,10 @@ import { CompartilharBotao } from "./compartilhar-botao"
 // `--raio-cartao` (14px) pelo critério de quem se toca / quem contém: este
 // bloco não se toca, ele CONTÉM o par rótulo/valor. Cartão, então 14.
 const instrumento = "rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
-// Onda 87 — era `font-mono-instr text-[11px] uppercase tracking-[.14em]`,
+// Onda 87 — era `font-mono-instr text-xs uppercase tracking-[.14em]`,
 // que é `.rotulo` reescrito à mão com o tracking derivado (.14 contra .16).
 const rotuloInstrumento = "rotulo text-dim"
-const valorInstrumento = "mt-0.5 font-mono-instr text-lg tabular-nums"
+const valorInstrumento = "mt-0.5 font-mono-instr text-xl tabular-nums"
 
 /**
  * A saída como atividade (onda 18, Pilar Strava do Mar) — mapa da trilha,

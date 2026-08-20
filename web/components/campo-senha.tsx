@@ -30,13 +30,13 @@ export function CampoSenha({
           minLength={8}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-[15px] text-texto placeholder:text-dim focus:outline-none"
+          className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-texto placeholder:text-dim focus:outline-none"
         />
         <button
           type="button"
           onClick={() => setVisivel((v) => !v)}
           aria-pressed={visivel}
-          className="h-full shrink-0 px-3.5 text-[13px] font-medium text-dim-chip"
+          className="h-full shrink-0 px-3.5 text-sm font-medium text-dim-chip"
         >
           {visivel ? "ocultar" : "mostrar"}
         </button>
