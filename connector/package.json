@@ -1,0 +1,35 @@
+{
+  "name": "signalk-commander-connector",
+  "version": "0.1.0",
+  "description": "Envia dados do seu barco (Signal K) para a sua conta no Commander — opt-in por categoria, lotes resilientes, somente leitura.",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk",
+    "commander",
+    "nautica",
+    "telemetria"
+  ],
+  "main": "plugin/index.js",
+  "files": [
+    "plugin",
+    "README.md"
+  ],
+  "license": "Apache-2.0",
+  "author": "Commander",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run --dir test",
+    "e2e": "npm run build && vitest run --dir e2e --testTimeout 180000 --hookTimeout 60000"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@signalk/server-api": "^2.31.1",
+    "@types/node": "^26.2.0",
+    "signalk-server": "^2.31.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

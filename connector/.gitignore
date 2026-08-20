@@ -1,0 +1,5 @@
+# Artefatos do connector — o build (plugin/) nasce do tsc no prepublishOnly,
+# e o e2e cria diretórios temporários de servidor/config em e2e/.tmp/.
+node_modules/
+plugin/
+e2e/.tmp/
