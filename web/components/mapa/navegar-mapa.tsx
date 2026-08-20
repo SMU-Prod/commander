@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { Map as MapaMapbox, Marker as MarcadorMapbox, MapMouseEvent, GeoJSONSource, MapEventOf } from "mapbox-gl"
 import { AvisoNavegar } from "@/components/mapa/aviso-navegar"
+import { useCamadaSondagens } from "@/components/mapa/camada-sondagens"
 import { CardParceiro } from "@/components/mapa/card-parceiro"
 import { MapaNautico } from "@/components/mapa/mapa-nautico"
 import { SondagemPainel } from "@/components/mapa/sondagem-painel"
@@ -721,6 +722,12 @@ export function NavegarMapa({
   // até aqui via `aoMudarCamadas`. Nasce ligado (mesmo padrão de sempre) e só
   // muda quando o painel dispara a primeira leitura do localStorage no mount.
   const [mostrarParceiros, setMostrarParceiros] = useState(true)
+  // "Sondagens da comunidade" (auditoria 360 de 20/08, recomendação nº 3) —
+  // também desenhada por fora do MapaNautico, mas em módulo próprio
+  // (components/mapa/camada-sondagens.ts, o hook entra mais abaixo). Nasce
+  // DESLIGADA (ver CAMADAS_PADRAO); o valor real chega no mount pelo mesmo
+  // `aoMudarCamadas`.
+  const [mostrarSondagens, setMostrarSondagens] = useState(false)
   const marcadoresRef = useRef<MarcadorMapbox[]>([])
   const [parceiroAberto, setParceiroAberto] = useState<Parceiro | null>(null)
   // Destino traçado pelo card do parceiro, pelo modo "definir destino"
@@ -1056,6 +1063,13 @@ export function NavegarMapa({
     pintar("ancora-circulo-preenchimento", "fill-color", cores.crit)
     pintar("ancora-circulo-contorno", "line-color", cores.crit)
   }, [mapaPronto, versaoEstilo, cores])
+
+  // Sondagens da comunidade — todo o desenho/consulta mora em
+  // components/mapa/camada-sondagens.ts (este arquivo já passa de 135 KB; a
+  // auditoria de 20/08 manda extrair módulo, não engordar). Chamado DEPOIS do
+  // efeito de criação acima de propósito: assim a camada entra na pilha com
+  // "rumo-linha"/rota já existentes e fica por baixo delas.
+  useCamadaSondagens(mapaPronto, versaoEstilo, mostrarSondagens, cores)
 
   // Linha de rumo posição→destino, redesenhada a cada nova posição.
   useEffect(() => {
@@ -1691,7 +1705,10 @@ export function NavegarMapa({
       <h1 className="sr-only">Navegar</h1>
       <MapaNautico
         aoIniciar={setMapaPronto}
-        aoMudarCamadas={(c: EstadoCamadas) => setMostrarParceiros(c.parceiros)}
+        aoMudarCamadas={(c: EstadoCamadas) => {
+          setMostrarParceiros(c.parceiros)
+          setMostrarSondagens(c.sondagens)
+        }}
         className="h-full w-full"
       />
 

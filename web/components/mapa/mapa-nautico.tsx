@@ -378,13 +378,15 @@ function Interruptor({ ligado, aoAlternar, rotulo }: { ligado: boolean; aoAltern
  *  aproximada + posição do aparelho no talo (alta precisão, rumo,
  *  acompanhamento). Sem token, degrada com aviso — nunca quebra a tela.
  *
- *  Três camadas opcionais, controláveis pelo painel do botão "camadas" (ver
+ *  Quatro camadas opcionais, controláveis pelo painel do botão "camadas" (ver
  *  ControleCamadas acima): Balizamento (OpenSeaMap) e Parceiros ligados por
- *  padrão, Profundidade desligada por padrão. A escolha persiste em
- *  localStorage (web/lib/mapa/camadas.ts) — o navegante configura uma vez.
- *  "Parceiros" é desenhado por quem usa este componente (os pinos não
- *  pertencem ao MapaNautico), por isso o estado das 3 chaves sobe pra quem
- *  usa via `aoMudarCamadas`, disparado no mount e em toda mudança. */
+ *  padrão, Profundidade e Sondagens da comunidade desligadas por padrão. A
+ *  escolha persiste em localStorage (web/lib/mapa/camadas.ts) — o navegante
+ *  configura uma vez. "Parceiros" e "Sondagens" são desenhados por quem usa
+ *  este componente (os pinos e os círculos de sondagem não pertencem ao
+ *  MapaNautico — ver components/mapa/camada-sondagens.ts), por isso o estado
+ *  das 4 chaves sobe pra quem usa via `aoMudarCamadas`, disparado no mount e
+ *  em toda mudança. */
 export function MapaNautico({
   aoIniciar,
   aoMudarCamadas,
@@ -962,6 +964,30 @@ export function MapaNautico({
               <p className="apoio rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
                 Profundidade aproximada — ~450 m de resolução perto da região de operação, ~3,7 km no resto da costa
                 brasileira e mar adjacente. Orientação geral, NÃO substitui a carta náutica oficial.
+              </p>
+            )}
+
+            {/* Sondagens da comunidade (auditoria 360 de 20/08, recomendação
+                nº 3) — quarta camada do painel. Como "parceiros", quem
+                desenha é quem usa o MapaNautico (hoje só /navegar, via
+                components/mapa/camada-sondagens.ts); aqui mora só o
+                interruptor + o aviso honesto, no mesmo desenho do aviso da
+                batimetria logo acima. */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="corpo">Sondagens da comunidade</p>
+                <p className="apoio text-dim">Profundidade medida por outros barcos</p>
+              </div>
+              <Interruptor
+                ligado={camadas.sondagens}
+                aoAlternar={() => alternarCamada("sondagens")}
+                rotulo="Sondagens da comunidade"
+              />
+            </div>
+            {camadas.sondagens && (
+              <p className="apoio rounded-[var(--raio-controle)] border border-warn/40 bg-warn/10 px-3 py-2 text-warn">
+                Dado colaborativo, sem verificação oficial — mediana do que outros navegantes mediram em células de
+                ~15 m. Onde não há ponto, ninguém mediu ainda. Orientação geral, NÃO substitui a carta náutica oficial.
               </p>
             )}
 

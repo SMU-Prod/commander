@@ -1,7 +1,11 @@
-/** As 3 camadas opcionais do mapa náutico (pedido do Pedro: "tem a opção de
+/** As camadas opcionais do mapa náutico (pedido do Pedro: "tem a opção de
  *  tirar infos") — cada uma controlável, com a escolha persistida por
- *  navegante em `localStorage` (configura uma vez, vale pra sempre). */
-export type ChaveCamada = "balizamento" | "profundidade" | "parceiros"
+ *  navegante em `localStorage` (configura uma vez, vale pra sempre).
+ *  "sondagens" entrou na auditoria 360 de 20/08/2026 (recomendação nº 3):
+ *  as profundidades medidas por outros barcos (agregado por célula, ver
+ *  migration 025) finalmente voltam pra tela — ver
+ *  components/mapa/camada-sondagens.ts. */
+export type ChaveCamada = "balizamento" | "profundidade" | "parceiros" | "sondagens"
 
 /** Estilo do mapa (onda 10, pedido do dono comparando com o Navionics):
  *  "nautico" é o `mapbox://styles/mapbox/standard` com tema faded de sempre;
@@ -18,12 +22,16 @@ const CHAVE_STORAGE = "commander:camadas-mapa"
 /** Balizamento (OpenSeaMap) e Parceiros (pinos) ligados por padrão — é o que
  *  o app sempre mostrou. Profundidade nasce DESLIGADA de propósito: é uma
  *  camada aproximada (~450 m de resolução), ligar é escolha consciente do
- *  navegante, não um default silencioso. Estilo nasce "nautico" — o
+ *  navegante, não um default silencioso. Sondagens da comunidade nasce
+ *  DESLIGADA pelo mesmo motivo, com um agravante: é dado COLABORATIVO, sem
+ *  verificação oficial nenhuma — ligar tem que ser decisão de quem entendeu
+ *  o aviso do painel, nunca um default. Estilo nasce "nautico" — o
  *  instrumento de bordo de sempre, satélite/relevo são escolha explícita. */
 export const CAMADAS_PADRAO: EstadoCamadas = {
   balizamento: true,
   profundidade: false,
   parceiros: true,
+  sondagens: false,
   estilo: "nautico",
 }
 
@@ -49,6 +57,7 @@ export function carregarCamadas(): EstadoCamadas {
       balizamento: ehBooleano(salvo.balizamento) ? salvo.balizamento : CAMADAS_PADRAO.balizamento,
       profundidade: ehBooleano(salvo.profundidade) ? salvo.profundidade : CAMADAS_PADRAO.profundidade,
       parceiros: ehBooleano(salvo.parceiros) ? salvo.parceiros : CAMADAS_PADRAO.parceiros,
+      sondagens: ehBooleano(salvo.sondagens) ? salvo.sondagens : CAMADAS_PADRAO.sondagens,
       estilo: ehEstiloValido(salvo.estilo) ? salvo.estilo : CAMADAS_PADRAO.estilo,
     }
   } catch {
@@ -58,7 +67,7 @@ export function carregarCamadas(): EstadoCamadas {
   }
 }
 
-/** Persiste o estado completo das 3 chaves de uma vez (mesmo padrão de
+/** Persiste o estado completo das 4 chaves de uma vez (mesmo padrão de
  *  `fundear`/`desarmarAncora` em navegar-mapa.tsx: falha de storage é
  *  engolida — perder a persistência da preferência não pode quebrar o
  *  toggle em si, que já aconteceu na tela antes desta chamada). */
