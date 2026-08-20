@@ -1,16 +1,22 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
+import { Abas } from "@/components/ui/abas"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { TIPO_ROTULO } from "@/lib/domain/diario"
+import { formatarReais } from "@/lib/domain/gastos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import {
-  calcularSemaforo, PESO, temInformacaoSuficiente, type StatusFarol,
+  calcularSemaforo, formatarDataCurta, PESO, temInformacaoSuficiente, type StatusFarol,
 } from "@/lib/domain/semaforo"
+import { supabaseServer } from "@/lib/supabase/server"
+import type { Evento } from "@/lib/db/types"
 
 /**
  * ONDA 101 — O HUB DOS MOTORES, que era uma seção da /barco.
@@ -30,7 +36,27 @@ import {
  * `min-height: 0` em oito arquivos, contra a régua de 44px. Tela nova nasce
  * certa; os oito herdados estão no relatório.
  */
-export default async function MotoresPage() {
+/**
+ * ONDA 128 — AS ABAS DA IMAGEM 1 DO GUIA, no hub piloto.
+ * A tela normativa de Motores desenha cinco abas (Visão geral · Manutenções
+ * · Sistemas · Histórico · Alertas) entre o objeto e os números. Entram as
+ * QUATRO que o produto sabe responder com dado real — "Sistemas" fica de
+ * fora até existir a entidade (aba apontando pra nada é a mentira que o §6
+ * proíbe; quando subsistema virar cadastro, ela entra aqui). O estado mora
+ * na URL (`?aba=`), como todo `Abas` da casa, e a ativa veste a borda do
+ * PRÓPRIO hub (§5 — cor do hub no estado ativo dele).
+ */
+const ABAS_MOTORES = ["geral", "manutencoes", "historico", "alertas"] as const
+type AbaMotores = (typeof ABAS_MOTORES)[number]
+
+export default async function MotoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ aba?: string }>
+}) {
+  const { aba: abaBruta } = await searchParams
+  const aba = (ABAS_MOTORES.some((a) => a === abaBruta) ? abaBruta : "geral") as AbaMotores
+
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   if (!podeVer(painel.permissoes, "motores")) {
@@ -58,11 +84,34 @@ export default async function MotoresPage() {
   // é `temInformacaoSuficiente`, a mesma de `statusDoMotor`: item sem
   // intervalo nem data não conta nem a favor nem contra.
   const itensDosMotores = painel.itens.filter((i) => motores.some((m) => m.id === i.equipamento_id))
-  const pedemAtencao = itensDosMotores.filter((i) => {
+  // O estado de cada item, calculado uma vez e consumido pelas três abas que
+  // o leem (trinca, Manutenções, Alertas) — `null` quando o item não tem
+  // informação suficiente pra votar.
+  const estadoDoItem = (i: (typeof itensDosMotores)[number]): StatusFarol | null => {
     const horas = motores.find((m) => m.id === i.equipamento_id)?.horas_atuais ?? null
     const calc = itemMonitoradoToItemCalc(i)
-    return temInformacaoSuficiente(calc, horas) && calcularSemaforo(calc, horas, hoje).status !== "ok"
-  }).length
+    return temInformacaoSuficiente(calc, horas) ? calcularSemaforo(calc, horas, hoje).status : null
+  }
+  const itensComEstado = itensDosMotores.map((i) => ({ item: i, estado: estadoDoItem(i) }))
+  const emAlerta = itensComEstado.filter((x) => x.estado != null && x.estado !== "ok")
+  const pedemAtencao = emAlerta.length
+
+  // O HISTÓRICO só desce do banco quando a aba dele está aberta — as outras
+  // três respondem com o `painel` que já está em mãos, e pagar a consulta em
+  // toda abertura do hub seria custo sem leitor.
+  let historico: Pick<Evento, "id" | "tipo" | "data" | "descricao" | "custo_centavos" | "horas_no_momento" | "equipamento_id">[] = []
+  if (aba === "historico" && motores.length > 0) {
+    const supabase = await supabaseServer()
+    const { data } = await supabase
+      .from("eventos")
+      .select("id, tipo, data, descricao, custo_centavos, horas_no_momento, equipamento_id")
+      .eq("embarcacao_id", painel.embarcacao.id)
+      .in("equipamento_id", motores.map((m) => m.id))
+      .order("data", { ascending: false })
+      .limit(30)
+    historico = data ?? []
+  }
+  const nomeDoMotor = (id: string | null) => motores.find((m) => m.id === id)?.posicao ?? "Motor"
 
   return (
     <main>
@@ -86,44 +135,154 @@ export default async function MotoresPage() {
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="motores" className="mt-5 mb-4" />
 
-      {/* ONDA 109 — a trinca da imagem 3, com o vocabulário desta tela: quantos
-          motores, quantas manutenções penduradas neles, e quantas pedem
-          atenção. Os números saem de `painel`, que já está em mãos. */}
-      <NumerosDoHub
-        chave="motores"
+      {/* ONDA 128 — as abas da imagem 1, entre o objeto e os números, com a
+          borda ativa na cor DESTE hub. Contagem em Manutenções e Alertas
+          porque as duas custam zero (saem do painel); Histórico não mostra
+          número de propósito — contá-lo obrigaria a consulta que a aba
+          fechada existe pra não pagar. */}
+      <Abas
         className="mb-4"
-        numeros={[
-          { rotulo: "Motores", valor: String(motores.length), icone: "motor" },
-          { rotulo: "Manutenções", valor: String(itensDosMotores.length), icone: "relogio" },
-          {
-            rotulo: "Atenção",
-            valor: String(pedemAtencao),
-            icone: "alerta",
-            estado: pedemAtencao > 0 ? "atencao" : undefined,
-          },
+        ativa={aba}
+        classeAtiva="border-hub-motores"
+        abas={[
+          { valor: "geral", rotulo: "Visão geral", href: "/barco/motores" },
+          { valor: "manutencoes", rotulo: "Manutenções", href: "/barco/motores?aba=manutencoes", contagem: itensDosMotores.length },
+          { valor: "historico", rotulo: "Histórico", href: "/barco/motores?aba=historico" },
+          { valor: "alertas", rotulo: "Alertas", href: "/barco/motores?aba=alertas", contagem: pedemAtencao },
         ]}
       />
 
-      {motores.length === 0 ? (
-        <EstadoVazio
-          className="mt-6"
-          icone="motor"
-          titulo="Nenhum motor cadastrado ainda"
-          descricao="Cadastre pra ganhar horímetro e checklist de manutenção automáticos."
-          acao={editavel ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Cadastrar motor" } : undefined}
-        />
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {motores.map((m) => (
-            <Link key={m.id} href={`/barco/equipamento/${m.id}`}>
-              <Horimetro
-                rotulo={m.posicao ?? "Motor"}
-                horas={m.horas_atuais}
-                status={statusDoMotor(m.id)}
-              />
-            </Link>
-          ))}
-        </div>
+      {aba === "geral" && (
+        <>
+          {/* ONDA 109 — a trinca da imagem 3, com o vocabulário desta tela. */}
+          <NumerosDoHub
+            chave="motores"
+            className="mb-4"
+            numeros={[
+              { rotulo: "Motores", valor: String(motores.length), icone: "motor" },
+              { rotulo: "Manutenções", valor: String(itensDosMotores.length), icone: "relogio" },
+              {
+                rotulo: "Atenção",
+                valor: String(pedemAtencao),
+                icone: "alerta",
+                estado: pedemAtencao > 0 ? "atencao" : undefined,
+              },
+            ]}
+          />
+
+          {motores.length === 0 ? (
+            <EstadoVazio
+              className="mt-6"
+              icone="motor"
+              titulo="Nenhum motor cadastrado ainda"
+              descricao="Cadastre pra ganhar horímetro e checklist de manutenção automáticos."
+              acao={editavel ? { href: "/barco/equipamento/novo?tipo=motor", rotulo: "Cadastrar motor" } : undefined}
+            />
+          ) : (
+            <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
+              {motores.map((m) => (
+                <Link key={m.id} href={`/barco/equipamento/${m.id}`}>
+                  <Horimetro
+                    rotulo={m.posicao ?? "Motor"}
+                    horas={m.horas_atuais}
+                    status={statusDoMotor(m.id)}
+                  />
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {aba === "manutencoes" && (
+        itensComEstado.length === 0 ? (
+          <EstadoVazio
+            className="mt-6"
+            icone="ferramenta"
+            titulo="Nenhuma manutenção pendurada nos motores"
+            descricao="Cadastre os itens de manutenção na ficha de cada motor — troca de óleo, filtros, correias — e o semáforo passa a vigiar os prazos."
+          />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {itensComEstado.map(({ item, estado }) => (
+              <Link
+                key={item.id}
+                href={`/barco/equipamento/${item.equipamento_id}`}
+                className="sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="titulo-card truncate">{item.nome}</p>
+                  <p className="apoio mt-0.5 text-dim">{nomeDoMotor(item.equipamento_id)}</p>
+                </div>
+                {/* `estado === null` é "sem informação pra vigiar", e a tela
+                    diz isso em palavra — nunca um farol verde de mentira. */}
+                {estado ? <Farol status={estado} /> : <span className="apoio shrink-0 text-dim">sem prazo</span>}
+                <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+              </Link>
+            ))}
+          </div>
+        )
+      )}
+
+      {aba === "historico" && (
+        historico.length === 0 ? (
+          <EstadoVazio
+            className="mt-6"
+            icone="calendario"
+            titulo="Nenhum registro dos motores no Diário"
+            descricao="Manutenção, leitura de horas e avaria registradas no Diário de Bordo com um motor apontado aparecem aqui."
+          />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {historico.map((e) => (
+              <div key={e.id} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3">
+                <p className="rotulo-dado tabular-nums text-dim">
+                  {formatarDataCurta(e.data)} · {TIPO_ROTULO[e.tipo] ?? e.tipo} · {nomeDoMotor(e.equipamento_id)}
+                </p>
+                <p className="titulo-card mt-0.5">{e.descricao?.trim() || (TIPO_ROTULO[e.tipo] ?? e.tipo)}</p>
+                {(e.horas_no_momento != null || e.custo_centavos != null) && (
+                  <p className="apoio mt-1 text-dim">
+                    {e.horas_no_momento != null && (
+                      <>horímetro <span className="tabular-nums text-texto">{e.horas_no_momento.toLocaleString("pt-BR")} h</span></>
+                    )}
+                    {e.horas_no_momento != null && e.custo_centavos != null && " · "}
+                    {e.custo_centavos != null && (
+                      <span className="tabular-nums text-texto">{formatarReais(e.custo_centavos)}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {aba === "alertas" && (
+        emAlerta.length === 0 ? (
+          <EstadoVazio
+            className="mt-6"
+            icone="seguranca"
+            titulo="Nenhum alerta nos motores"
+            descricao="Tudo que o semáforo vigia está em dia. Alerta aparece aqui quando uma manutenção vence ou encosta no prazo."
+          />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {emAlerta.map(({ item, estado }) => (
+              <Link
+                key={item.id}
+                href={`/barco/equipamento/${item.equipamento_id}`}
+                className="sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="titulo-card truncate">{item.nome}</p>
+                  <p className="apoio mt-0.5 text-dim">{nomeDoMotor(item.equipamento_id)}</p>
+                </div>
+                {estado && <Farol status={estado} />}
+                <Icone nome="chevron" className="size-4 shrink-0 text-dim" />
+              </Link>
+            ))}
+          </div>
+        )
       )}
     </main>
   )

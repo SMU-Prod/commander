@@ -40,10 +40,22 @@ import Link from "next/link"
 export function Abas({
   abas,
   ativa,
+  classeAtiva = "border-accent-forte",
   className = "",
 }: {
   abas: { valor: string; rotulo: string; href: string; contagem?: number }[]
   ativa: string
+  /**
+   * ONDA 128 — o sublinhado da aba ativa na COR DO HUB, como as imagens do
+   * guia desenham dentro de cada hub (§5: cor do hub no estado ativo daquele
+   * sistema). Cada página de hub passa a PRÓPRIA borda ("border-hub-motores")
+   * — nunca a de outro hub, que é a regra que `lib/ui/hubs.test.ts` cobra.
+   * Só a BORDA muda de cor: o texto da ativa continua `text-texto`, porque
+   * tom de hub não pode virar cor de texto (corolário do §3.2 do
+   * DESIGN-SYSTEM — régua de 3:1 de grafismo, não os 4,5:1 de texto).
+   * Fora dos hubs, o padrão dourado continua o de sempre.
+   */
+  classeAtiva?: string
   className?: string
 }) {
   return (
@@ -60,7 +72,7 @@ export function Abas({
             href={a.href}
             aria-current={ehAtiva ? "page" : undefined}
             className={`flex min-h-[var(--altura-controle)] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-3 text-sm font-medium ${
-              ehAtiva ? "border-accent-forte text-texto" : "border-transparent text-dim"
+              ehAtiva ? `${classeAtiva} text-texto` : "border-transparent text-dim"
             }`}
           >
             {a.rotulo}
