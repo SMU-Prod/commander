@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
@@ -52,6 +53,15 @@ export default async function EletricaPage() {
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
+  // ONDA 109 — os números da trinca. `statusDe` já existe e é a régua desta
+  // tela; aqui o recorte é por ITEM e não por equipamento, porque "Atenção" tem
+  // que contar o que vence, não quantas máquinas existem.
+  const itensDaArea = painel.itens.filter((i) => equipamentos.some((e) => e.id === i.equipamento_id))
+  const pedemAtencao = itensDaArea.filter((i) => {
+    const eq = equipamentos.find((e) => e.id === i.equipamento_id)
+    return calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje).status !== "ok"
+  }).length
+
   const rotuloTipo: Record<string, string> = {
     gerador: "Gerador", bateria: "Baterias", painel: "Painel de bordo",
   }
@@ -82,6 +92,23 @@ export default async function EletricaPage() {
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="eletrica" className="mt-5 mb-4" />
+
+      {/* ONDA 109 — a trinca da imagem 3. O universo aqui é EQUIPAMENTO (é o
+          que a tela lista), e os itens dele entram como segunda coluna. */}
+      <NumerosDoHub
+        chave="eletrica"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Equipamentos", valor: String(equipamentos.length), icone: "raio" },
+          { rotulo: "Manutenções", valor: String(itensDaArea.length), icone: "relogio" },
+          {
+            rotulo: "Atenção",
+            valor: String(pedemAtencao),
+            icone: "alerta",
+            estado: pedemAtencao > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (

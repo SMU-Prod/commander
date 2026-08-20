@@ -6,6 +6,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { CATEGORIAS_CASCO, ROTULO_CASCO } from "@/lib/domain/diario"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
@@ -54,6 +55,13 @@ export default async function CascoPage() {
   const comItens = CATEGORIAS_CASCO.filter((c) => itensDaCategoria(c).length > 0)
   const semItens = CATEGORIAS_CASCO.filter((c) => itensDaCategoria(c).length === 0)
 
+  // ONDA 109 — a trinca da imagem 3. O universo é o MESMO que o card "Casco"
+  // da central técnica conta: item cuja categoria está em CATEGORIAS_CASCO.
+  const doCasco = painel.itens.filter((i) => (CATEGORIAS_CASCO as readonly string[]).includes(i.categoria ?? ""))
+  const estados = doCasco.map((i) => calcularSemaforo(itemMonitoradoToItemCalc(i), null, hoje).status)
+  const emDia = estados.filter((s) => s === "ok").length
+  const pedemAtencao = estados.filter((s) => s !== "ok").length
+
   return (
     <main>
       <CabecalhoDetalhe
@@ -82,6 +90,21 @@ export default async function CascoPage() {
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="casco" className="mt-5 mb-4" />
+
+      <NumerosDoHub
+        chave="casco"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Itens", valor: String(doCasco.length), icone: "embarcacao" },
+          { rotulo: "Em dia", valor: String(emDia), icone: "check" },
+          {
+            rotulo: "Atenção",
+            valor: String(pedemAtencao),
+            icone: "alerta",
+            estado: pedemAtencao > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
 
       {comItens.map((c) => (
         <div key={c}>

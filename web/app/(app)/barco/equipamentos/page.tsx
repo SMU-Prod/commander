@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { calcularSemaforo, PESO, type StatusFarol } from "@/lib/domain/semaforo"
@@ -40,6 +41,14 @@ export default async function EquipamentosPage() {
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? "ok"
 
+  // ONDA 109 — os números da trinca. Recorte por ITEM e não por equipamento:
+  // "Atenção" conta o que vence, não quantas máquinas existem.
+  const itensDaArea = painel.itens.filter((i) => equipamentos.some((e) => e.id === i.equipamento_id))
+  const pedemAtencao = itensDaArea.filter((i) => {
+    const eq = equipamentos.find((e) => e.id === i.equipamento_id)
+    return calcularSemaforo(itemMonitoradoToItemCalc(i), eq?.horas_atuais ?? null, hoje).status !== "ok"
+  }).length
+
   return (
     <main>
       {/* ONDA 104 (§8 do Guia) — cabeçalho padrão, com a identidade do hub. */}
@@ -63,6 +72,21 @@ export default async function EquipamentosPage() {
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="equipamentos" className="mt-5 mb-4" />
+
+      <NumerosDoHub
+        chave="equipamentos"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Equipamentos", valor: String(equipamentos.length), icone: "ferramenta" },
+          { rotulo: "Manutenções", valor: String(itensDaArea.length), icone: "relogio" },
+          {
+            rotulo: "Atenção",
+            valor: String(pedemAtencao),
+            icone: "alerta",
+            estado: pedemAtencao > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (

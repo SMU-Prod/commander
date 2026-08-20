@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import {
@@ -53,6 +54,16 @@ export default async function MotoresPage() {
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
 
+  // ONDA 109 — os números da trinca. Recorte por ITEM, e a régua de quem vota
+  // é `temInformacaoSuficiente`, a mesma de `statusDoMotor`: item sem
+  // intervalo nem data não conta nem a favor nem contra.
+  const itensDosMotores = painel.itens.filter((i) => motores.some((m) => m.id === i.equipamento_id))
+  const pedemAtencao = itensDosMotores.filter((i) => {
+    const horas = motores.find((m) => m.id === i.equipamento_id)?.horas_atuais ?? null
+    const calc = itemMonitoradoToItemCalc(i)
+    return temInformacaoSuficiente(calc, horas) && calcularSemaforo(calc, horas, hoje).status !== "ok"
+  }).length
+
   return (
     <main>
       <CabecalhoDetalhe
@@ -75,6 +86,24 @@ export default async function MotoresPage() {
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="motores" className="mt-5 mb-4" />
+
+      {/* ONDA 109 — a trinca da imagem 3, com o vocabulário desta tela: quantos
+          motores, quantas manutenções penduradas neles, e quantas pedem
+          atenção. Os números saem de `painel`, que já está em mãos. */}
+      <NumerosDoHub
+        chave="motores"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Motores", valor: String(motores.length), icone: "motor" },
+          { rotulo: "Manutenções", valor: String(itensDosMotores.length), icone: "relogio" },
+          {
+            rotulo: "Atenção",
+            valor: String(pedemAtencao),
+            icone: "alerta",
+            estado: pedemAtencao > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
 
       {motores.length === 0 ? (
         <EstadoVazio

@@ -6,12 +6,12 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
 import { CampoArquivo } from "@/components/ui/campo-arquivo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
-import { FaixaKpi, PastilhaKpi } from "@/components/ui/faixa-kpi"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { MigalhaPao } from "@/components/ui/migalha-pao"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { anexarArquivo, criarDocumento, excluirDocumento } from "@/lib/acoes/documentos"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { indiceDoDestaque, resumoDosDocumentos } from "@/lib/domain/documentos"
@@ -77,6 +77,10 @@ export default async function DocumentosPage({
   const vencidos = avaliados.filter((a) => a.r.status === "vencido").length
   const emAtencao = avaliados.filter((a) => a.r.status === "atencao").length
   const resumo = resumoDosDocumentos(total, comValidade, vencidos, emAtencao)
+  // ONDA 109 — "em dia" é o complemento de vencido e atenção dentro do que TEM
+  // validade; documento sem validade não vota, que é a mesma regra de
+  // honestidade de `temInformacaoSuficiente`.
+  const emDia = comValidade - vencidos - emAtencao
 
   return (
     <main>
@@ -89,15 +93,6 @@ export default async function DocumentosPage({
           referência). Mas com NENHUM documento cadastrado a faixa inteira
           sai: quatro zeros numa tela vazia é decorar o vazio, que a régua
           proíbe (docs/DESIGN.md §6, regra 4). */}
-      {total > 0 && (
-        <FaixaKpi className="mt-2">
-          <PastilhaKpi icone="documento" rotulo="Documentos" valor={String(total)} />
-          <PastilhaKpi icone="calendario" rotulo="Com validade" valor={String(comValidade)} />
-          <PastilhaKpi icone="alerta" rotulo="Vencidos" valor={String(vencidos)} />
-          <PastilhaKpi icone="relogio" rotulo="Atenção" valor={String(emAtencao)} />
-        </FaixaKpi>
-      )}
-
       <CabecalhoDetalhe
         className="mt-3"
         voltarHref="/barco"
@@ -116,6 +111,29 @@ export default async function DocumentosPage({
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="documentos" className="mt-5 mb-4" />
+
+      {/* ONDA 109 — A FAIXA DE QUATRO PASTILHAS VIROU A TRINCA DA IMAGEM 5.
+          O guia desenha esta tela com TRÊS cartões grandes ("12 documentos ·
+          10 em dia · 2 atenção"), e não com quatro pílulas de 28px acima do
+          título. Os números são os MESMOS de antes — nenhum cálculo mudou; o
+          que saiu foi "Com validade", que é censo e não muda o que a pessoa faz
+          hoje (o critério inteiro está em `numeros-do-hub.tsx`).
+          "Vencidos" entra como CRÍTICO e não como atenção: vermelho é
+          vencido/erro pelo §4, e um documento vencido é exatamente isso. */}
+      <NumerosDoHub
+        chave="documentos"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Documentos", valor: String(total), icone: "documento" },
+          { rotulo: "Em dia", valor: String(emDia), icone: "check" },
+          {
+            rotulo: vencidos > 0 ? "Vencidos" : "Atenção",
+            valor: String(vencidos > 0 ? vencidos : emAtencao),
+            icone: "alerta",
+            estado: vencidos > 0 ? "critico" : emAtencao > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
       {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a

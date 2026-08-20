@@ -6,6 +6,7 @@ import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
+import { AcaoDoHub, NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import { calcularSemaforo, formatarDataCurta, PESO, vencimentoPorData } from "@/lib/domain/semaforo"
@@ -45,6 +46,7 @@ export default async function ManutencoesPage() {
     .sort((a, b) =>
       PESO[b.r.status] - PESO[a.r.status]
       || (a.r.diasRestantes ?? Infinity) - (b.r.diasRestantes ?? Infinity))
+  const vencidas = linhas.filter((l) => l.r.status === "vencido").length
 
   return (
     <main>
@@ -68,6 +70,29 @@ export default async function ManutencoesPage() {
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
       <HeroiTecnico chave="manutencoes" className="mt-5 mb-4" />
+
+      {/* ONDA 109 — a trinca da imagem 3, com os números que ESTA tela tem.
+          "Vencidas" é o único que vira cor de estado, e só acima de zero. */}
+      <NumerosDoHub
+        chave="manutencoes"
+        className="mb-4"
+        numeros={[
+          { rotulo: "Itens", valor: String(linhas.length), icone: "relogio" },
+          { rotulo: "Em dia", valor: String(linhas.filter((l) => l.r.status === "ok").length), icone: "check" },
+          {
+            rotulo: "Vencidas",
+            valor: String(vencidas),
+            icone: "alerta",
+            estado: vencidas > 0 ? "critico" : undefined,
+          },
+        ]}
+      />
+
+      {editavel && (
+        <AcaoDoHub chave="manutencoes" href="/barco/itens/novo" className="mb-6">
+          Cadastrar manutenção
+        </AcaoDoHub>
+      )}
 
       {linhas.length === 0 ? (
         <EstadoVazio
