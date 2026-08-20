@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { CardEmbarcacao } from "@/components/card-embarcacao"
 import { Farol } from "@/components/farol"
 import { Icone, type NomeIcone } from "@/components/icone"
 import { PatrocinioDashboard } from "@/components/publicidade/patrocinio-dashboard"
@@ -14,7 +13,7 @@ import {
   calcularSemaforo, PESO, rotuloDoFarol, temInformacaoSuficiente, type StatusFarol,
 } from "@/lib/domain/semaforo"
 import {
-  carregarAcessoEmbarcacoes, carregarCapaDoHeroi, carregarPainel, hojeISO, itemMonitoradoToItemCalc,
+  carregarAcessoEmbarcacoes, carregarPainel, hojeISO, itemMonitoradoToItemCalc,
 } from "@/lib/consultas"
 import { mensagemDowngrade } from "@/lib/domain/assinatura-ciclo"
 import { ABAS_OCORRENCIA } from "@/lib/domain/ocorrencias"
@@ -90,18 +89,16 @@ export default async function BarcoPage({
   if (!painel) redirect("/onboarding")
   const { embarcacao, equipamentos, itens, permissoes } = painel
   const hoje = hojeISO()
-  // As três que sobraram, em paralelo. Nenhuma depende do resultado da outra e
-  // todas dependem só do que `carregarPainel` já devolveu — deixar qualquer uma
-  // fora do `Promise.all` custaria uma volta inteira de rede (~150 ms até São
-  // Paulo) por ordem de escrita de variável, que foi o defeito das ondas 96 e
-  // 100.
-  const [acesso, patrocinios, { urlCapa, temFotos }] = await Promise.all([
+  // As duas que sobraram, em paralelo (a capa saiu junto com o herói de foto
+  // na onda 133). Nenhuma depende da outra — fora do `Promise.all` seria uma
+  // volta inteira de rede por ordem de escrita de variável (defeito das
+  // ondas 96 e 100).
+  const [acesso, patrocinios] = await Promise.all([
     carregarAcessoEmbarcacoes(),
     // §20 — a segmentação mínima é a REGIÃO, e ela vem da embarcação aberta.
     // Nula significa "não sei onde este barco está": nesse caso só entra
     // campanha sem segmentação regional (ver `segmentacaoAtende`).
     carregarPatrocinioDashboard(embarcacao.regiao_id),
-    carregarCapaDoHeroi(),
   ])
   // Só avisa quando a embarcação ABERTA é uma das excedentes — um aviso
   // genérico em todo barco seria ruído pra quem está justamente no barco que
@@ -126,12 +123,6 @@ export default async function BarcoPage({
         return temInformacaoSuficiente(calc, horas) ? [calcularSemaforo(calc, horas, hoje).status] : []
       })
       .sort((a, b) => PESO[b] - PESO[a])[0] ?? null
-
-  // O escudo do herói: o pior farol do barco inteiro. Sem nenhum item com dado
-  // real fica `null` e o escudo simplesmente NÃO é desenhado (`statusGeral` é
-  // opcional em `CardEmbarcacao`) — ausência de farol lê como "ainda não sei",
-  // verde lê como "está tudo bem", e só a primeira é verdade.
-  const statusGeral = piorFarol(itens)
 
   const itensDe = (eqs: { id: string }[]) => itens.filter((i) => eqs.some((e) => e.id === i.equipamento_id))
 
@@ -392,17 +383,12 @@ export default async function BarcoPage({
         </div>
       )}
 
-      {/* O cabeçalho da ficha: identidade (foto real da embarcação, nome,
-          marina) e estado (o escudo). O spec §5 diz que o cabeçalho de estado
-          do barco só aparece em Início e Meu Barco — esta é a segunda. */}
-      <CardEmbarcacao
-        embarcacao={embarcacao}
-        statusGeral={statusGeral ?? undefined}
-        urlCapa={urlCapa}
-        podeEditarFotos={podeEditar(permissoes, "fotos")}
-        temFotos={temFotos}
-        semNome
-      />
+      {/* ONDA 133 — O HERÓI DE FOTO SAIU DESTA TELA ("retire as fotos do
+          barco na página Barcos, fica redundante", dono, 20/08). A Início já
+          é a casa do carrossel; aqui o título diz o nome do barco e a
+          estrela é a GRADE DE HUBS — a foto entre os dois só empurrava a
+          grade pra baixo repetindo o que a aba anterior acabou de mostrar.
+          O acesso às fotos continua na ação rápida "Foto" logo abaixo. */}
 
       {/* OS OITO CARDS GRANDES.
           `grid-cols-2` é o padrão e `lg:grid-cols-4` é a exceção, nesta ordem

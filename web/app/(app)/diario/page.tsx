@@ -398,7 +398,19 @@ export default async function DiarioPage({
               // veio matar; escopo de cor é a regra da casa (§5).
               // `bg-panel2` opaco de propósito: é quem esconde o fio na
               // passagem por trás do círculo.
-              const casca = "block min-w-0 flex-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-3 sombra-1"
+              // ONDA 133 — VIDRO TINTADO, na dose ("cards de alerta podem ser
+              // de outras cores da paleta... tem que saber medir", dono,
+              // 20/08 — e a imagem 5 do guia tinge o card de avaria de
+              // vermelho). A régua da medida: tinta SÓ no card que É sobre
+              // aquele estado — avaria é o único tipo do feed que é alarme —
+              // e sempre nas mesmas doses: gradiente do semântico a 10→5% por
+              // cima do vidro, borda a 35%. O resto do feed continua vidro
+              // neutro; seis cores empilhadas seria o "zoneado" de sempre.
+              const casca = `block min-w-0 flex-1 rounded-[var(--raio-cartao)] border bg-panel p-3 sombra-1 ${
+                e.tipo === "avaria"
+                  ? "border-crit/35 bg-gradient-to-b from-crit/10 to-crit/5"
+                  : "border-line"
+              }`
               const corMedalhao = ehSaida
                 ? "border-accent/40 text-accent-forte"
                 : e.tipo === "avaria"

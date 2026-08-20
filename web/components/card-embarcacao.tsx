@@ -319,44 +319,43 @@ export function CardEmbarcacao({
        agora são a máscara do próprio carrossel. */
     <div className={urlsCarrossel?.length ? className : `sombra-1 raio-painel overflow-hidden ${className}`}>
       {urlsCarrossel?.length ? (
-        /* COM CARROSSEL, A FOTO É A SUPERFÍCIE. Nada de `bg` aqui: qualquer
-           fundo pintaria um retângulo atrás das bordas esvaídas e traria a
-           linha de volta. A sobreposição (nome, legenda, leitura, anel) é a
-           MESMA anatomia do ramo de foto única — `pointer-events-none` no
-           conjunto para o swipe atravessar, devolvido só no anel, que é
-           `Link`. O véu de leitura vem de DENTRO da máscara (`veuInferior`),
-           pelo motivo escrito no próprio CarrosselBarco. */
-        <div className="relative">
-          <CarrosselBarco
-            urls={urlsCarrossel}
-            nomeBarco={embarcacao.nome}
-            veuInferior
-            acaoDireita={
-              acaoFotos || (statusGeral && !saude) ? (
-                <>
-                  {acaoFotos}
-                  {statusGeral && !saude && selo}
-                </>
-              ) : undefined
-            }
-          />
-          <span className="pointer-events-none absolute left-3 top-3">{burgee}</span>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end gap-3 p-4 pb-5">
+        /* ONDA 132 — A ANATOMIA DO MOCKUP DO DONO: nada mais escrito POR CIMA
+           da foto. O mock põe o carrossel limpo (palco central + vizinhas
+           espiando), o contador e a dica embaixo, e as ações de foto abaixo
+           deles — o nome, a legenda e o anel de Saúde descem pra uma
+           plaqueta sob o carrossel. O burgee sai deste modo: a marca já
+           está no topo do app, e sobre o palco ela virava ruído. */
+        <div>
+          <CarrosselBarco urls={urlsCarrossel} nomeBarco={embarcacao.nome} />
+          <div className="mt-3 flex items-end gap-3 px-1">
             <div className="min-w-0 flex-1">
-              {!semNome && (
-                <h2 className={NOME_DO_BARCO} style={SOMBRA_DO_NOME}>
-                  {embarcacao.nome}
-                </h2>
-              )}
-              {legendaDoBarco && <p className="apoio mt-1 text-meter-dim">{legendaDoBarco}</p>}
+              {!semNome && <h2 className={`${NOME_DO_BARCO} !text-texto leading-tight`}>{embarcacao.nome}</h2>}
+              {legendaDoBarco && <p className={`apoio text-dim ${semNome ? "" : "mt-1"}`}>{legendaDoBarco}</p>}
               {saude?.partes && <LeituraDaSaude partes={saude.partes} />}
             </div>
-            {saude && (
-              <span className="pointer-events-auto">
-                <AnelSaude {...saude} />
-              </span>
-            )}
+            {saude && <AnelSaude {...saude} />}
+            {statusGeral && !saude && selo}
           </div>
+          {/* As duas pílulas do mock — "Adicionar foto" e "Gerenciar fotos".
+              Os dois destinos são a mesma tela (o formulário de envio é a
+              âncora #adicionar dela); dois rótulos porque são dois GESTOS, e
+              o mock os separa. Só pra quem pode editar. */}
+          {podeEditarFotos && (
+            <div className="mt-3 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/barco/fotos#adicionar"
+                className="transicao-ui inline-flex min-h-[var(--altura-controle)] items-center gap-1.5 rounded-[var(--raio-pilula)] border border-line bg-panel2 px-4 text-sm font-medium text-texto hover:bg-panel3"
+              >
+                <Icone nome="camera" className="size-4" /> Adicionar foto
+              </Link>
+              <Link
+                href="/barco/fotos"
+                className="transicao-ui inline-flex min-h-[var(--altura-controle)] items-center gap-1.5 rounded-[var(--raio-pilula)] border border-accent/40 px-4 text-sm font-medium text-accent-forte hover:bg-accent/10"
+              >
+                <Icone nome="imagem" className="size-4" /> Gerenciar fotos
+              </Link>
+            </div>
+          )}
         </div>
       ) : urlCapa ? (
         /* COM FOTO, A FOTO CRESCE. Era `h-44 lg:h-64` — a MESMA altura do

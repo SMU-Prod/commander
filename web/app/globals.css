@@ -1232,3 +1232,51 @@ body.fundo-tela-mapa [data-bottom-nav] {
     box-shadow: none !important;
   }
 }
+
+/* =========================================================================
+   ONDA 131 - O VIDRO ("nossos cards NAO estao no glassmorphism... SAO
+   SOLIDOS", dono, 20/08, com as imagens normativas na mao).
+   =========================================================================
+   Tres decisoes, cada uma com motivo:
+
+   1. A ATMOSFERA VEM ANTES DO VIDRO. Vidro sobre fundo chapado e invisivel
+      - nao ha nada atras para desfocar. O tema escuro ganha dois brilhos
+      quase subliminares (ciano frio no alto, champanhe embaixo - as duas
+      familias da paleta), fixos, para o blur ter materia. Opacidades de
+      4-5% de proposito: atmosfera, nao decoracao.
+
+   2. OS TOKENS CONTINUAM SOLIDOS. O guardiao de contraste mede os tokens
+      (ver o comentario do --linha, mais acima: com alfa ele mediria o
+      melhor caso). O vidro e regra de UTILITARIA: .bg-panel/.bg-panel2
+      ganham cor translucida via color-mix + backdrop-blur SO no tema
+      escuro. Alfa alto (84/88%) de proposito: o composto sobre o fundo
+      fica a um fio do solido que o guardiao mediu.
+
+   3. FICAM FORA DO VIDRO: o tema claro inteiro (vidro e linguagem do
+      escuro; sob sol na marina o solido le melhor), .bg-meter e o mapa
+      (instrumento e navy fixo, chao proprio) e bg-campo (campo de form
+      recuado le como poco, nao como lamina).
+
+   Estas regras vivem FORA de qualquer @layer de proposito: regra sem layer
+   vence as utilitarias do Tailwind (que sao layered) sem guerra de
+   especificidade. Blur <= 12px pelo custo de GPU no celular.
+   Efeito colateral assumido: backdrop-filter cria stacking context por
+   cartao - ISOLA o conteudo do cartao, e o chrome (--z-chrome) continua
+   acima de tudo como a escada manda. */
+[data-theme="dark"] body {
+  background-color: var(--fundo);
+  background-image:
+    radial-gradient(60% 42% at 12% 0%, rgb(45 227 255 / 0.05), transparent 70%),
+    radial-gradient(52% 36% at 88% 100%, rgb(210 180 140 / 0.04), transparent 70%);
+  background-attachment: fixed;
+}
+[data-theme="dark"] .bg-panel {
+  background-color: color-mix(in srgb, var(--superficie) 84%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+[data-theme="dark"] .bg-panel2 {
+  background-color: color-mix(in srgb, var(--superficie-2) 88%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}

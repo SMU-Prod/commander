@@ -267,11 +267,19 @@ export default async function MotoresPage({
           />
         ) : (
           <div className="flex flex-col gap-2">
+            {/* ONDA 133 — vidro tintado pelo estado, na dose (a régua está em
+                app/(app)/diario/page.tsx, no card de avaria): vencido tinge
+                de crítico, atenção de âmbar — tinta 10→5% + borda 35%, e SÓ
+                aqui, porque esta aba É o alarme. */}
             {emAlerta.map(({ item, estado }) => (
               <Link
                 key={item.id}
                 href={`/barco/equipamento/${item.equipamento_id}`}
-                className="sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border border-line bg-panel p-3"
+                className={`sombra-1 flex items-center gap-3 rounded-[var(--raio-cartao)] border bg-panel p-3 ${
+                  estado === "vencido"
+                    ? "border-crit/35 bg-gradient-to-b from-crit/10 to-crit/5"
+                    : "border-warn/35 bg-gradient-to-b from-warn/10 to-warn/5"
+                }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="titulo-card truncate">{item.nome}</p>
