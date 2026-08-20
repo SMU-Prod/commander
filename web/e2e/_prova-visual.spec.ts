@@ -35,6 +35,8 @@ const TELAS: { rota: string; nome: string }[] = [
   { rota: "/barco/equipamentos", nome: "11-hub-equipamentos" },
   { rota: "/barco/documentos", nome: "12-hub-documentos" },
   { rota: "/barco/manutencoes", nome: "13-hub-manutencoes" },
+  // Onda 114 — a Agenda virou calendário-primeiro (imagem 5 do guia).
+  { rota: "/agenda", nome: "14-agenda" },
 ]
 
 // Onda 7 — a pasta sai por variável pra o MESMO comando gravar o "antes" e o

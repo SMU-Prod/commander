@@ -5,6 +5,7 @@ import { Icone } from "@/components/icone"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
+import { TituloTela } from "@/components/titulo-tela"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import {
   agruparPorDia,
@@ -84,12 +85,15 @@ export default async function AgendaPage({
   const podeCriar = podeGerenciarEventos(painel.permissoes)
 
   const hoje = hojeISO()
-  // ONDA 62 (canvas tela-1h) — a LISTA é a cara da Agenda: "o que está
-  // marcado" se responde lendo de cima pra baixo, não caçando bolinha na
-  // grade. Mês e Semana continuam a um toque; só o padrão mudou.
+  // ONDA 114 — O CALENDÁRIO VOLTA A SER A CARA DA AGENDA.
+  // A onda 62 tinha posto a Lista como padrão ("ler de cima pra baixo, não
+  // caçar bolinha na grade") — e a imagem 5 do Guia de Design decide o
+  // contrário: a tela de Agenda ABRE no mês, com os compromissos do dia
+  // selecionado logo abaixo da grade. O dono pediu "uma agenda real", e
+  // agenda real é calendário. Lista e Semana continuam a um toque.
   const visualizacao: Visualizacao = (VISUALIZACOES as readonly string[]).includes(vBruto ?? "")
     ? (vBruto as Visualizacao)
-    : "lista"
+    : "mes"
   const ancora = /^\d{4}-\d{2}-\d{2}$/.test(dBruto ?? "") ? (dBruto as string) : hoje
   const janela = janelaDaVisualizacao(visualizacao, ancora)
   const incluirConcluidos = feitos === "1"
@@ -238,9 +242,11 @@ export default async function AgendaPage({
 
   return (
     <main>
-      <h1 className="titulo-pagina">Agenda</h1>
-      {/* A frase do canvas (tela-1h): o que mora aqui, em seis palavras. */}
-      <p className="apoio mt-1 text-dim">Serviços, vencimentos e saídas planejadas.</p>
+      {/* ONDA 114 — o título entra no padrão centralizado das telas
+          principais (`TituloTela`, onda 105); ficar à esquerda aqui era a
+          última tela de primeiro nível fora do eixo. */}
+      <TituloTela className="mb-1">Agenda</TituloTela>
+      <p className="apoio mb-2 text-center text-dim">Serviços, vencimentos e saídas planejadas.</p>
 
       {erro && <p className="corpo mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2">{erro}</p>}
 
@@ -262,7 +268,12 @@ export default async function AgendaPage({
             </Chip>
           ))}
         </ChipLinha>
-        {podeCriar && (
+        {/* ONDA 114 — na vista de MÊS a pílula "Novo" some daqui: a imagem 5
+            põe o "+ Novo compromisso" como botão de largura cheia embaixo dos
+            compromissos do dia, e duas portas douradas pro mesmo formulário na
+            mesma tela é o que o §6.2 do DESIGN proíbe. Nas outras vistas, que
+            não têm o botão largo, a pílula fica. */}
+        {podeCriar && visualizacao !== "mes" && (
           <Link
             href="/agenda/novo"
             className="mb-1 flex h-11 shrink-0 items-center gap-1 rounded-[var(--raio-pilula)] bg-accent px-4 text-sm font-semibold text-acao-texto"
@@ -301,32 +312,35 @@ export default async function AgendaPage({
         ))}
       </div>
 
-      {/* `size-11` e não `size-9`: os dois botões que andam o calendário
-          tinham 36px — 8px abaixo da régua de toque (DESIGN §5) — e são os
-          dois alvos mais repetidos desta tela. E "Voltar para hoje" era
-          texto dourado de 18px espremido sob o título: virou pílula, que é
-          o que o app inteiro usa pra dizer "aqui se toca". */}
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <Link href={link({ d: anterior })} aria-label="Período anterior"
-          className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
-          <Icone nome="voltar" className="size-4" />
-        </Link>
-        <div className="min-w-0 text-center">
-          <p className="titulo-card truncate">{tituloPeriodo}</p>
-          {ancora.slice(0, 7) !== hoje.slice(0, 7) && (
-            <Link href={link({ d: hoje })} className={ALVO_ACAO}>
-              <span className={PILULA_ACAO}>Voltar para hoje</span>
-            </Link>
-          )}
+      {/* ONDA 114 — no MÊS a navegação de período mora DENTRO do cartão do
+          calendário (imagem 5: "‹ Agosto 2026 ›" é o cabeçalho da grade).
+          Esta barra solta só sobrevive para Semana e Lista, que não têm
+          cartão para abrigá-la.
+          `size-11` e não `size-9`: régua de toque (DESIGN §5). */}
+      {visualizacao !== "mes" && (
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <Link href={link({ d: anterior })} aria-label="Período anterior"
+            className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
+            <Icone nome="voltar" className="size-4" />
+          </Link>
+          <div className="min-w-0 text-center">
+            <p className="titulo-card truncate">{tituloPeriodo}</p>
+            {ancora.slice(0, 7) !== hoje.slice(0, 7) && (
+              <Link href={link({ d: hoje })} className={ALVO_ACAO}>
+                <span className={PILULA_ACAO}>Voltar para hoje</span>
+              </Link>
+            )}
+          </div>
+          <Link href={link({ d: proximo })} aria-label="Próximo período"
+            className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
+            <Icone nome="chevron" className="size-4" />
+          </Link>
         </div>
-        <Link href={link({ d: proximo })} aria-label="Próximo período"
-          className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border border-line bg-panel text-dim ${TOQUE}`}>
-          <Icone nome="chevron" className="size-4" />
-        </Link>
-      </div>
+      )}
 
       {visualizacao === "mes" && (
-        <VistaMes mesISO={ancora.slice(0, 7)} diaSelecionado={ancora} hoje={hoje} porDia={porDia} link={link} podeCriar={podeCriar} />
+        <VistaMes mesISO={ancora.slice(0, 7)} diaSelecionado={ancora} hoje={hoje} porDia={porDia} link={link} podeCriar={podeCriar}
+          anterior={anterior} proximo={proximo} />
       )}
       {visualizacao === "semana" && <VistaSemana ancora={ancora} hoje={hoje} porDia={porDia} />}
       {visualizacao === "lista" && <VistaLista itens={itens} hoje={hoje} podeCriar={podeCriar} />}
@@ -370,8 +384,16 @@ function LinhaAgenda({ item }: { item: ItemAgenda }) {
   )
 }
 
+/**
+ * ONDA 114 — A VISTA DE MÊS VIRA A DA IMAGEM 5 DO GUIA, peça por peça:
+ * navegação do mês DENTRO do cartão ("‹ Agosto 2026 ›" é o cabeçalho da
+ * grade, não uma barra solta acima dela); HOJE é um disco dourado cheio (na
+ * imagem, o "19" é o único dia preenchido); dia selecionado é anel; os
+ * compromissos do dia saem como BLOCOS com a hora em destaque à esquerda; e o
+ * "+ Novo compromisso" fecha a tela em largura cheia.
+ */
 function VistaMes({
-  mesISO, diaSelecionado, hoje, porDia, link, podeCriar,
+  mesISO, diaSelecionado, hoje, porDia, link, podeCriar, anterior, proximo,
 }: {
   mesISO: string
   diaSelecionado: string
@@ -379,12 +401,35 @@ function VistaMes({
   porDia: Map<string, ItemAgenda[]>
   link: (novo: { d: string }) => string
   podeCriar: boolean
+  anterior: string
+  proximo: string
 }) {
   const semanas = gradeDoMes(mesISO)
   const doDia = porDia.get(diaSelecionado) ?? []
   return (
     <>
       <div className="sombra-1 mt-4 rounded-[var(--raio-cartao)] border border-line bg-panel p-2">
+        {/* O cabeçalho do calendário. `rotuloMes` capitaliza; o pulo pra hoje
+            só aparece fora do mês corrente — dentro dele, o disco dourado JÁ
+            responde "onde estou". */}
+        <div className="flex items-center justify-between gap-2 px-1 pb-1">
+          <Link href={link({ d: anterior })} aria-label="Mês anterior"
+            className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-controle)] text-dim hover:bg-panel2 ${TOQUE}`}>
+            <Icone nome="voltar" className="size-4" />
+          </Link>
+          <div className="min-w-0 text-center">
+            <p className="titulo-card truncate">{rotuloMes(mesISO)}</p>
+            {mesISO !== hoje.slice(0, 7) && (
+              <Link href={link({ d: hoje })} className={ALVO_ACAO}>
+                <span className={PILULA_ACAO}>Hoje</span>
+              </Link>
+            )}
+          </div>
+          <Link href={link({ d: proximo })} aria-label="Próximo mês"
+            className={`flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-controle)] text-dim hover:bg-panel2 ${TOQUE}`}>
+            <Icone nome="chevron" className="size-4" />
+          </Link>
+        </div>
         <div className="grid grid-cols-7 text-center">
           {NOMES_DIA_SEMANA.map((n, i) => (
             <span key={i} className="rotulo py-1 text-dim">{n}</span>
@@ -395,20 +440,25 @@ function VistaMes({
             {semana.map((dia) => {
               const itens = porDia.get(dia.data) ?? []
               const selecionado = dia.data === diaSelecionado
+              const ehHoje = dia.data === hoje
               return (
                 <Link
                   key={dia.data}
                   href={link({ d: dia.data })}
                   aria-current={selecionado ? "date" : undefined}
                   className={`flex min-h-11 flex-col items-center gap-1 rounded-[var(--raio-controle)] py-1.5 ${
-                    selecionado ? "bg-accent/15 ring-1 ring-accent" : ""
+                    selecionado && !ehHoje ? "bg-accent/15 ring-1 ring-accent" : ""
                   }`}
                 >
-                  {/* 46px era um número escolhido no olho; a régua da casa é
-                      44 e a célula continua acima dela. O dia é DADO —
-                      `.valor` traz o tabular e a cor de dado (onda 87). */}
-                  <span className={`tabular-nums valor ${
-                    !dia.doMes ? "text-dim/40" : dia.data === hoje ? "font-bold text-accent-forte" : ""
+                  {/* HOJE é o disco cheio da imagem 5 — o número troca para a
+                      cor do chão (`text-acao-texto`) porque o chão dele virou
+                      ouro. É o ÚNICO preenchimento dourado da grade, então o
+                      orçamento de dois dourados da tela segue de pé (o outro é
+                      o botão largo lá embaixo). */}
+                  <span className={`flex size-7 items-center justify-center rounded-[var(--raio-pilula)] tabular-nums valor ${
+                    ehHoje
+                      ? "bg-accent font-bold text-acao-texto"
+                      : !dia.doMes ? "text-dim/40" : ""
                   }`}>
                     {Number(dia.data.slice(8))}
                   </span>
@@ -424,24 +474,77 @@ function VistaMes({
 
       <SecaoPagina icone="calendario">{rotuloDia(diaSelecionado)}</SecaoPagina>
       <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
-        {/* DESIGN §6 regra 4 — o vazio explica o valor da área e oferece a
-            ação. Só o título era uma constatação; agora ele diz o que cabe
-            num dia da Agenda e leva a marcar, que é o que a pessoa veio
-            fazer ao tocar num dia vazio da grade. */}
         {doDia.length === 0 ? (
           <EstadoVazio
             variant="linha"
             icone="calendario"
             titulo="Nada marcado neste dia"
             descricao="Saída, vistoria, visita do mecânico — e, com as camadas ligadas, os vencimentos do barco caem aqui sozinhos."
-            acao={podeCriar ? { href: "/agenda/novo", rotulo: "Marcar compromisso" } : undefined}
           />
         ) : (
-          doDia.map((i) => <LinhaAgenda key={i.chave} item={i} />)
+          doDia.map((i) => <LinhaAgendaDia key={i.chave} item={i} />)
         )}
       </div>
+
+      {/* O fecho da imagem 5: uma porta só pra marcar, do tamanho da tela.
+          Substitui a pílula "Novo" do topo E a ação do estado vazio — três
+          portas pro mesmo formulário era o que esta tela tinha antes. */}
+      {podeCriar && (
+        <Link
+          href="/agenda/novo"
+          className={`transicao-ui mt-4 flex min-h-[var(--altura-campo)] w-full items-center justify-center gap-2 rounded-[var(--raio-controle)] bg-accent corpo font-semibold text-acao-texto ${TOQUE}`}
+        >
+          <Icone nome="mais" className="size-4" /> Novo compromisso
+        </Link>
+      )}
     </>
   )
+}
+
+/**
+ * A linha de compromisso da imagem 5: a HORA num cartucho à esquerda, grande,
+ * e o assunto ao lado — em vez da hora miúda na ponta direita da linha comum.
+ * O cartucho carrega o ESTADO na cor (âmbar/vermelho quando o item vem de uma
+ * camada com prazo apertado; dourado quando é compromisso de gente; neutro
+ * sem hora), então a informação do farol não se perdeu — mudou de casa.
+ */
+function LinhaAgendaDia({ item }: { item: ItemAgenda }) {
+  const corCartucho = item.status === "vencido"
+    ? "bg-crit/15 text-crit"
+    : item.status === "atencao"
+      ? "bg-warn/15 text-warn"
+      : item.origem === "compromisso"
+        ? "bg-accent/15 text-accent-forte"
+        : "bg-panel2 text-dim"
+  const conteudo = (
+    <>
+      <span className={`flex h-11 w-16 shrink-0 flex-col items-center justify-center rounded-[var(--raio-controle)] ${corCartucho}`}>
+        {item.hora ? (
+          <span className="valor font-semibold tabular-nums">{item.hora}</span>
+        ) : (
+          <span className="rotulo">dia</span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`corpo block truncate font-medium ${item.concluido ? "line-through text-dim" : ""}`}>
+          {item.titulo}
+          {item.compartilhado && (
+            <Icone nome="pessoas" className="ml-1.5 inline size-3.5 align-[-2px] text-dim" />
+          )}
+        </span>
+        <span className="apoio block truncate text-dim">
+          {item.origem === "compromisso"
+            ? item.detalhe ?? "Compromisso"
+            : `${ROTULO_CAMADA[item.origem]}${item.detalhe ? ` · ${item.detalhe}` : ""}`}
+        </span>
+      </span>
+      {item.href && <Icone nome="chevron" className="size-4 shrink-0 text-dim" />}
+    </>
+  )
+  const classe = "flex w-full items-center gap-3 border-b border-line py-2.5 last:border-0"
+  return item.href
+    ? <Link href={item.href} className={`${classe} ${TOQUE}`}>{conteudo}</Link>
+    : <div className={classe}>{conteudo}</div>
 }
 
 function VistaSemana({
