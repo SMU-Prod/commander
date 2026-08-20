@@ -1,6 +1,7 @@
 "use client"
 import { useMemo, useState } from "react"
 import { Icone } from "@/components/icone"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoTextarea } from "@/components/ui/campo"
 import {
   classificarCompatibilidadeConnect,
@@ -135,9 +136,8 @@ export function FormularioInteresseConnect({ motorPrincipal }: { motorPrincipal:
         />
       )}
 
-      {classificacao && (
-        <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto">Registrar interesse</button>
-      )}
+      {/* ONDA 125 — "Registrando interesse…" no lugar do silêncio. */}
+      {classificacao && <BotaoEnviar rotulo="Registrar interesse" larguraCheia />}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { CamposTipoEquipamento } from "@/components/campos-tipo-equipamento"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo } from "@/components/ui/campo"
 import { CampoArquivo } from "@/components/ui/campo-arquivo"
 import { SeletorModeloMotor } from "@/components/seletor-modelo-motor"
@@ -11,7 +12,7 @@ import { carregarPainel } from "@/lib/consultas"
 import { carregarModelosDoCatalogo } from "@/lib/consultas-catalogo"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 import { podeEditar } from "@/lib/domain/permissoes"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoEquipamentoPage({
   searchParams,
@@ -100,7 +101,10 @@ export default async function NovoEquipamentoPage({
             ajuda="JPG, PNG ou WebP"
           />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Criar equipamento</button>
+        {/* ONDA 125 — `BotaoEnviar`: avisa "Criando equipamento…" e come o
+            segundo toque; de quebra sai o `py-3.5` (a sétima altura do
+            achado 5.10) e entra a altura de sistema. */}
+        <BotaoEnviar rotulo="Criar equipamento" />
       </form>
     </main>
   )

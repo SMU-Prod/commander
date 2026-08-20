@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -13,7 +14,6 @@ import {
   ROTULO_CATEGORIA_ESTOQUE, ROTULO_ESTADO_ESTOQUE,
 } from "@/lib/domain/estoque-combustivel"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 
 /**
  * ESTOQUE (onda 78 — PRD §10).
@@ -160,9 +160,9 @@ export default async function EstoquePage({
           wrapperClassName="min-w-[8rem] flex-1"
           placeholder="Só no ajuste"
         />
-        <button className="h-11 shrink-0 rounded-[var(--raio-controle)] border border-line px-4 text-sm font-medium">
-          Aplicar
-        </button>
+        {/* ONDA 125 — "Aplicando…" no lugar do silêncio; o segundo toque
+            aplicava o movimento de estoque duas vezes. */}
+        <BotaoEnviar rotulo="Aplicar" variante="contorno" className="shrink-0" />
       </form>
     </div>
   )
@@ -318,9 +318,7 @@ export default async function EstoquePage({
         {/* Era `rounded-xl` — 12px, degrau que a escala não tem. Botão se TOCA,
             então `--raio-controle`; menos redondo que o painel de propósito,
             porque raio maior contém e raio menor aperta. */}
-        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
-          Cadastrar item
-        </button>
+        <BotaoEnviar rotulo="Cadastrar item" variante="contorno" />
       </form>
     </main>
   )

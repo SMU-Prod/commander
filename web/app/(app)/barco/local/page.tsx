@@ -2,9 +2,10 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { UsarPosicao } from "@/components/usar-posicao"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { salvarLocalMarina } from "@/lib/acoes/local"
 import { carregarPainel } from "@/lib/consultas"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 // Onda 93 (achado 5.9) — era `10px` cravado. Vira `--raio-controle` (8px) pelo
 // mesmo critério que vestiu o grupo de controles do Mapbox em globals.css: quem
@@ -52,9 +53,8 @@ export default async function LocalPage({
               defaultValue={embarcacao.marina_lon ?? undefined} className={campo} />
           </div>
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>
-          Salvar posição
-        </button>
+        {/* ONDA 125 — "Salvando posição…" no lugar do silêncio. */}
+        <BotaoEnviar rotulo="Salvar posição" />
       </form>
     </main>
   )

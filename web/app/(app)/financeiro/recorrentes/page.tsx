@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { AcoesUniversais, FinanceiroNav } from "@/components/ui/financeiro-nav"
+import { BotaoPendente } from "@/components/ui/botao-pendente"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
@@ -114,9 +115,12 @@ export default async function RecorrentesPage({
                       mais consequente da tela (dar baixa em conta). Agora é
                       o alvo de 44px com a pílula de 30px dentro, igual à
                       ação de todo cabeçalho de seção. */}
-                  <button className={ALVO_ACAO}>
+                  {/* ONDA 125 — `BotaoPendente`: dar baixa em conta é o gesto
+                      mais consequente da tela, e o segundo toque lançava a
+                      MESMA baixa duas vezes. A pílula pulsa enquanto grava. */}
+                  <BotaoPendente className={ALVO_ACAO}>
                     <span className={PILULA_ACAO}>{rec.tipo === "entrada" ? "Recebi" : "Paguei"}</span>
-                  </button>
+                  </BotaoPendente>
                 </form>
               ) : (
                 <span className="apoio shrink-0 text-dim">{formatarReais(rec.valor_centavos)}</span>

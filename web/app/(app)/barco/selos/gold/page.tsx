@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { SeloGold } from "@/components/selos/selo-gold"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { criarSolicitacaoGold } from "@/lib/acoes/gold"
@@ -124,9 +125,10 @@ export default async function GoldPage({
                 <option value="proprio">Eu</option>
                 <option value="interessado">Outra pessoa (gero um link de pagamento)</option>
               </CampoSelect>
-              <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">
-                Quero o Commander Gold
-              </button>
+              {/* ONDA 125 — pedido PAGO sem aviso de envio era o pior lugar
+                  pro duplo-toque: duas solicitações Gold. O rótulo não começa
+                  com infinitivo, então o gerúndio automático não serve. */}
+              <BotaoEnviar rotulo="Quero o Commander Gold" rotuloEnviando="Enviando seu pedido…" larguraCheia />
             </form>
           ) : (
             <p className="apoio rounded-[var(--raio-cartao)] border border-line bg-panel p-4 text-dim">
@@ -163,9 +165,7 @@ export default async function GoldPage({
                 <option value="proprio">Eu</option>
                 <option value="interessado">Outra pessoa (gero um link de pagamento)</option>
               </CampoSelect>
-              <button className="w-full rounded-[var(--raio-controle)] border border-line bg-panel2 py-3 font-semibold">
-                Solicitar avaliação dessa embarcação
-              </button>
+              <BotaoEnviar rotulo="Solicitar avaliação dessa embarcação" variante="contorno" larguraCheia />
             </form>
           </details>
         </>

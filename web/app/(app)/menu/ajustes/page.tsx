@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { BotaoPendente } from "@/components/ui/botao-pendente"
 import { ALVO_ACAO, PILULA_ACAO } from "@/lib/ui/acoes"
 import { sair } from "@/lib/acoes/auth"
 import { meusPapeisAdmin } from "@/lib/admin"
@@ -212,9 +213,11 @@ export default async function AjustesPage() {
           invisível, e não é o "botão emoldurado" que o canvas recusou —
           esse é o dourado cheio, que continua fora daqui. */}
       <form action={sair} className="mt-6">
-        <button className={ALVO_ACAO}>
+        {/* ONDA 125 — a pílula pulsa enquanto a sessão encerra; sem isso o
+            toque parecia ignorado e a pessoa tocava de novo. */}
+        <BotaoPendente className={ALVO_ACAO}>
           <span className={PILULA_ACAO}>Sair da conta</span>
-        </button>
+        </BotaoPendente>
       </form>
 
       {/* O rodapé do canvas: versão real (package.json) + a ressalva que o

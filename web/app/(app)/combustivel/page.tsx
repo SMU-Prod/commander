@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { DonutNivel } from "@/components/ui/donut-nivel"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
@@ -14,7 +15,6 @@ import { inicioDoPeriodo } from "@/lib/domain/financeiro-frota"
 import { formatarReais } from "@/lib/domain/gastos"
 import { horasDeUso } from "@/lib/domain/patio"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 import type { Tanque, TanqueMovimento } from "@/lib/db/types"
 
 /**
@@ -239,9 +239,10 @@ export default async function CombustivelPage({
                     outros botões de formulário do app. Menos redondo que o
                     painel de propósito: raio maior contém, raio menor aperta.
                     Vale também pro "Cadastrar tanque" no fim da tela. */}
-                <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
-                  Registrar movimento
-                </button>
+                {/* ONDA 125 — "Registrando movimento…" no lugar do silêncio;
+                    a pílula de contorno é o desenho de submit secundário da
+                    casa (BotaoEnviar). */}
+                <BotaoEnviar rotulo="Registrar movimento" variante="contorno" />
               </form>
 
               {doTanque.length > 0 && (
@@ -339,9 +340,7 @@ export default async function CombustivelPage({
           <Campo label="Saldo inicial (L)" id="saldo_inicial" name="saldo_inicial" inputMode="decimal" className="tabular-nums tabular-nums" />
           <Campo label="Mínimo (L)" id="minimo" name="minimo" inputMode="decimal" className="tabular-nums tabular-nums" />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] border border-line py-3 text-sm font-semibold`}>
-          Cadastrar tanque
-        </button>
+        <BotaoEnviar rotulo="Cadastrar tanque" variante="contorno" />
       </form>
     </main>
   )

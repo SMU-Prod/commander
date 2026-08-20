@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { GuardaFormulario } from "@/components/guarda-formulario"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { Campo, CampoSelect } from "@/components/ui/campo"
 import { linhaCampos } from "@/lib/ui/form"
 import { criarItemMonitorado } from "@/lib/acoes/itens"
@@ -9,7 +10,7 @@ import {
   CATEGORIA_SEGURANCA, CATEGORIAS_CASCO, CATEGORIAS_HIDRAULICA, CATEGORIAS_MOTOR,
   ROTULO_CASCO, ROTULO_HIDRAULICA, ROTULO_MOTOR,
 } from "@/lib/domain/diario"
-import { ACAO_NAO_ESTICA, TETO_FORMULARIO } from "@/lib/ui/superficies"
+import { TETO_FORMULARIO } from "@/lib/ui/superficies"
 
 export default async function NovoItemPage({
   searchParams,
@@ -114,7 +115,9 @@ export default async function NovoItemPage({
           <Campo label="Último serviço em" id="ultimo_ciclo_data" name="ultimo_ciclo_data" type="date" defaultValue={hojeISO()} />
           <Campo label="Horas no último serviço" id="ultimo_ciclo_horas" name="ultimo_ciclo_horas" inputMode="decimal" className="tabular-nums tabular-nums" />
         </div>
-        <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3.5 font-semibold text-acao-texto`}>Criar manutenção</button>
+        {/* ONDA 125 — "Criando manutenção…" no lugar do silêncio (e a altura
+            de sistema no lugar do `py-3.5` do achado 5.10). */}
+        <BotaoEnviar rotulo="Criar manutenção" />
       </form>
     </main>
   )

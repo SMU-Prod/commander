@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { Icone } from "@/components/icone"
 import { BarraCapacidade } from "@/components/ui/barra-capacidade"
 import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
+import { BotaoPendente } from "@/components/ui/botao-pendente"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo } from "@/components/ui/campo"
@@ -145,11 +147,14 @@ export default async function FotosPage({
                     <form action={excluirFoto} className="absolute right-0 top-0">
                       <input type="hidden" name="foto_id" value={f.id} />
                       <input type="hidden" name="album" value={albumAtivo} />
-                      <button className="flex size-11 items-center justify-center" aria-label={`Excluir a foto ${f.legenda ?? "sem legenda"}`}>
+                      {/* ONDA 125 — `BotaoPendente`: o disco pulsa e trava
+                          enquanto a exclusão viaja, em vez de aceitar um
+                          segundo toque no vizinho errado. */}
+                      <BotaoPendente className="flex size-11 items-center justify-center" aria-label={`Excluir a foto ${f.legenda ?? "sem legenda"}`}>
                         <span className="flex size-7 items-center justify-center rounded-[var(--raio-pilula)] bg-mapa-instrumento/80 text-crit backdrop-blur">
                           <Icone nome="mais" className="size-4 rotate-45" />
                         </span>
-                      </button>
+                      </BotaoPendente>
                     </form>
                   )}
                 </div>
@@ -177,10 +182,10 @@ export default async function FotosPage({
                       <form action={definirCapa}>
                         <input type="hidden" name="foto_id" value={f.id} />
                         <input type="hidden" name="album" value={albumAtivo} />
-                        <button className="flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-line text-dim">
+                        <BotaoPendente className="flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--raio-controle)] border border-line text-dim">
                           <Icone nome="estrela" className="size-4 shrink-0" />
                           <span className="rotulo">Capa</span>
-                        </button>
+                        </BotaoPendente>
                       </form>
                     )}
                   </div>
@@ -245,7 +250,13 @@ export default async function FotosPage({
                 ajuda="JPG, PNG ou WebP, até 10 MB"
               />
               <Campo label="Legenda — opcional" id="legenda" name="legenda" placeholder="Ex.: convés após a última lavagem" />
-              <button className="w-full rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto">Enviar foto</button>
+              {/* ONDA 125 — o upload é a ação mais LENTA do app (arquivo de
+                  até 10 MB subindo pro storage) e era um botão mudo: a pessoa
+                  tocava, nada mudava, tocava de novo — e a foto subia duas
+                  vezes. `BotaoEnviar` diz "Enviando foto…" e come o segundo
+                  toque. De quebra, sai o `py-3` à mão (a sétima altura que o
+                  achado 5.10 flagrou) e entra a altura de sistema. */}
+              <BotaoEnviar rotulo="Enviar foto" larguraCheia />
             </form>
           ) : (
             <>

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
+import { IndicadorLink } from "@/components/ui/indicador-link"
 import { TOQUE } from "@/lib/ui/acoes"
 
 /**
@@ -97,6 +98,12 @@ export function Chip({
         {contagem != null && (
           <span className="tabular-nums text-xs tabular-nums opacity-80">{contagem}</span>
         )}
+        {/* ONDA 125 — o chip avisa que a troca está a caminho. Trocar filtro
+            ou álbum navega pela QUERY da mesma rota, e `loading.tsx` não
+            desenha nada nesse caso: a tela velha ficava parada, muda, até a
+            nova chegar — o "clico e não tem feedback" do relato do dono.
+            O ponto pulsante é o mesmo do BotaoEnviar; ver `IndicadorLink`. */}
+        <IndicadorLink />
       </span>
     </Link>
   )

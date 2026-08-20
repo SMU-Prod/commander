@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Campo, CampoSelect, CampoTextarea } from "@/components/ui/campo"
+import { BotaoEnviar } from "@/components/ui/botao-enviar"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
@@ -11,7 +12,6 @@ import {
   ROTULO_ACAO_ENVIO, ROTULO_ESTADO_ENVIO, ROTULO_TIPO_ENVIO,
 } from "@/lib/domain/cotista-plano"
 import { supabaseServer } from "@/lib/supabase/server"
-import { ACAO_NAO_ESTICA } from "@/lib/ui/superficies"
 import type { EnvioCotista } from "@/lib/db/types"
 
 /**
@@ -120,9 +120,9 @@ export default async function AtualizacoesPage({
               <option key={a} value={a}>{ROTULO_ACAO_ENVIO[a]}</option>
             ))}
           </CampoSelect>
-          <button className="h-11 shrink-0 rounded-[var(--raio-controle)] border border-line px-4 text-sm font-medium">
-            Registrar decisão
-          </button>
+          {/* ONDA 125 — grava decisão de moderação, justo onde o duplo-toque
+              é mais caro, e não avisava que estava enviando. */}
+          <BotaoEnviar rotulo="Registrar decisão" variante="contorno" className="shrink-0" />
         </form>
       )}
     </div>
@@ -163,9 +163,7 @@ export default async function AtualizacoesPage({
               <Campo label="Horas" id="horas" name="horas" inputMode="decimal" className="tabular-nums tabular-nums" />
               <Campo label="Combustível (%)" id="combustivel_pct" name="combustivel_pct" inputMode="numeric" className="tabular-nums tabular-nums" />
             </div>
-            <button className={`${ACAO_NAO_ESTICA} rounded-[var(--raio-controle)] bg-accent py-3 font-semibold text-acao-texto`}>
-              Enviar à administradora
-            </button>
+            <BotaoEnviar rotulo="Enviar à administradora" />
             {/* §15, dito na tela pra ninguém achar que já alterou a ficha. */}
             <p className="apoio text-dim">
               O que você envia vai para a administradora analisar. Nada muda no registro oficial da
