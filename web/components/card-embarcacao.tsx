@@ -284,6 +284,24 @@ export function CardEmbarcacao({
       <span className={`rotulo ${COR[statusGeral]}`}>{ROTULO[statusGeral]}</span>
     </div>
   )
+  /* ONDA 124 — A CÂMERA VOLTA PRA CIMA DA FOTO ("aonde consigo mudar a foto
+     do barco? tirou a opção?", dono, 20/08). O atalho de gerenciar fotos só
+     existia no herói SEM foto — com foto, a pessoa tinha que adivinhar o
+     caminho por Meu Barco. A ação agora mora onde o olho procura: um botão
+     de câmera sobre a própria foto, nos DOIS ramos que a desenham. Alvo de
+     44px (a régua) com o desenho de 32px por dentro; `bg-meter/70` e não o
+     navy literal do burgee — token, e o guardião de cores agradece. */
+  const acaoFotos = podeEditarFotos && (
+    <Link
+      href="/barco/fotos"
+      aria-label="Mudar as fotos do barco"
+      className="pointer-events-auto -m-1.5 flex size-11 shrink-0 items-center justify-center"
+    >
+      <span className="transicao-ui flex size-8 items-center justify-center rounded-[var(--raio-pilula)] bg-meter/70 text-meter-texto backdrop-blur hover:bg-meter/90">
+        <Icone nome="camera" className="size-4" />
+      </span>
+    </Link>
+  )
   return (
     /* `sombra-1` e não `sombra-2`: a elevação flutuante é reservada ao que de
        fato paira sobre outra coisa — bottom sheet, menu, pastilha sobre o
@@ -309,7 +327,19 @@ export function CardEmbarcacao({
            `Link`. O véu de leitura vem de DENTRO da máscara (`veuInferior`),
            pelo motivo escrito no próprio CarrosselBarco. */
         <div className="relative">
-          <CarrosselBarco urls={urlsCarrossel} nomeBarco={embarcacao.nome} veuInferior />
+          <CarrosselBarco
+            urls={urlsCarrossel}
+            nomeBarco={embarcacao.nome}
+            veuInferior
+            acaoDireita={
+              acaoFotos || (statusGeral && !saude) ? (
+                <>
+                  {acaoFotos}
+                  {statusGeral && !saude && selo}
+                </>
+              ) : undefined
+            }
+          />
           <span className="pointer-events-none absolute left-3 top-3">{burgee}</span>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end gap-3 p-4 pb-5">
             <div className="min-w-0 flex-1">
@@ -327,7 +357,6 @@ export function CardEmbarcacao({
               </span>
             )}
           </div>
-          {statusGeral && !saude && <div className="absolute right-3 top-3">{selo}</div>}
         </div>
       ) : urlCapa ? (
         /* COM FOTO, A FOTO CRESCE. Era `h-44 lg:h-64` — a MESMA altura do
@@ -375,7 +404,15 @@ export function CardEmbarcacao({
             </div>
             {saude && <AnelSaude {...saude} />}
           </div>
-          {statusGeral && !saude && <div className="absolute right-3 top-3">{selo}</div>}
+          {/* ONDA 124 — o canto direito vira aglomerado: câmera (quando a
+              pessoa pode editar fotos) + selo, lado a lado em vez de um por
+              cima do outro. É o mesmo desenho do slot do carrossel. */}
+          {(acaoFotos || (statusGeral && !saude)) && (
+            <div className="absolute right-3 top-3 flex items-center gap-1.5">
+              {acaoFotos}
+              {statusGeral && !saude && selo}
+            </div>
+          )}
         </div>
       ) : (
         /* SEM FOTO, O HERÓI DEIXA DE SER UMA MOLDURA VAZIA E VIRA A PLAQUETA.

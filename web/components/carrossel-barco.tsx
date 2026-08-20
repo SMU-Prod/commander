@@ -1,6 +1,6 @@
 "use client"
 /* eslint-disable @next/next/no-img-element */
-import { useRef, useState } from "react"
+import { useRef, useState, type ReactNode } from "react"
 
 /**
  * O CARROSSEL DE FOTOS DO BARCO — Início, pedido do dono na onda 120.
@@ -34,6 +34,7 @@ export function CarrosselBarco({
   urls,
   nomeBarco,
   veuInferior = false,
+  acaoDireita,
 }: {
   urls: string[]
   nomeBarco: string
@@ -44,6 +45,15 @@ export function CarrosselBarco({
    * exatamente a linha que este componente existe para não ter.
    */
   veuInferior?: boolean
+  /**
+   * ONDA 124 — o canto superior direito é UM lugar, com dono único: este
+   * slot. Quem usa o carrossel como herói pendura aqui a ação (a câmera de
+   * "mudar as fotos" da Início) e ela senta AO LADO do contador em vez de
+   * disputar o mesmo canto por cima — que foi exatamente o acidente que o
+   * slot evita. Conteúdo interativo deve trazer `pointer-events-auto`
+   * próprio: o aglomerado inteiro é vazado pro deslize passar.
+   */
+  acaoDireita?: ReactNode
 }) {
   const trilhoRef = useRef<HTMLDivElement>(null)
   const [indice, setIndice] = useState(0)
@@ -93,31 +103,37 @@ export function CarrosselBarco({
       </div>
 
       {urls.length > 1 && (
-        <>
-          {/* Dots + contador do §11. `pointer-events-none` nos dois: são
-              leitura — o gesto é o deslize, e um alvo de 6px seria uma
-              promessa de toque que a régua de 44px proíbe cumprir aqui.
-              O contador vai de chip no TOPO, e não junto aos dots: o rodapé
-              é o lugar do nome e do anel de Saúde de quem usa o carrossel
-              como herói, e "2 de 6" competindo com o nome do barco é ruído. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-2 flex items-center justify-center gap-1.5">
-            {urls.map((url, i) => (
-              <span
-                key={url}
-                aria-hidden="true"
-                className={`size-1.5 rounded-[var(--raio-pilula)] transition-colors ${
-                  i === indice ? "bg-accent" : "bg-meter-texto/40"
-                }`}
-              />
-            ))}
-          </div>
-          <p
-            aria-live="polite"
-            className="apoio pointer-events-none absolute right-3 top-3 rounded-[var(--raio-pilula)] bg-meter/60 px-2 py-0.5 tabular-nums text-meter-texto backdrop-blur"
-          >
-            {indice + 1} de {urls.length}
-          </p>
-        </>
+        /* Dots do §11. `pointer-events-none`: são leitura — o gesto é o
+           deslize, e um alvo de 6px seria uma promessa de toque que a régua
+           de 44px proíbe cumprir aqui. */
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 flex items-center justify-center gap-1.5">
+          {urls.map((url, i) => (
+            <span
+              key={url}
+              aria-hidden="true"
+              className={`size-1.5 rounded-[var(--raio-pilula)] transition-colors ${
+                i === indice ? "bg-accent" : "bg-meter-texto/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+      {/* O aglomerado do canto superior direito: ação de quem usa o herói +
+          contador do §11. O contador mora no TOPO, e não junto aos dots: o
+          rodapé é o lugar do nome e do anel de Saúde, e "2 de 6" competindo
+          com o nome do barco é ruído. */}
+      {(acaoDireita || urls.length > 1) && (
+        <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5">
+          {acaoDireita}
+          {urls.length > 1 && (
+            <p
+              aria-live="polite"
+              className="apoio rounded-[var(--raio-pilula)] bg-meter/60 px-2 py-0.5 tabular-nums text-meter-texto backdrop-blur"
+            >
+              {indice + 1} de {urls.length}
+            </p>
+          )}
+        </div>
       )}
     </section>
   )
