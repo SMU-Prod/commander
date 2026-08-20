@@ -42,7 +42,7 @@ export function textoDoAlerta(
   }
 }
 
-export type JanelaGeral = "mar_ruim" | "motor_parado"
+export type JanelaGeral = "mar_ruim" | "boletim_mar" | "motor_parado"
 
 export interface AvisoGeral {
   titulo: string
@@ -60,19 +60,26 @@ function formatarMetros(m: number): string {
 /** Avalia se o boletim do mar de hoje justifica interromper o dono com um push. So mar pesado
  *  (nivel "crit") vale o alerta — "atencao" e cotidiano demais pra virar notificacao.
  *  cicloRef = hoje: junto com a dedupe de alertas_enviados, garante no maximo 1 aviso/dia/embarcacao. */
-export function alertaDeMar(
+export function boletimDiarioDoMar(
   boletim: { ondaM: number | null; ventoKt: number | null; selo: SeloMar },
   hoje: string,
 ): AvisoGeral | null {
-  if (boletim.selo.nivel !== "crit") return null
+  // ONDA 135 — `alertaDeMar` virou BOLETIM. O dono relatou "os avisos de mar
+  // não estão chegando mais" numa semana em que o mar estava BOM: o alerta
+  // antigo só falava no crítico, e o silêncio honesto leu como defeito. O
+  // boletim fala TODO dia (a dedupe de alertas_enviados garante 1x/dia),
+  // mudando só o tom — mar ruim continua alarme na janela `mar_ruim`; bom e
+  // atenção saem na janela nova `boletim_mar`. Sem dado nenhum, silêncio:
+  // boletim vazio seria inventar mar.
+  if (boletim.ondaM === null && boletim.ventoKt === null) return null
   const partes: string[] = []
   if (boletim.ondaM !== null) partes.push(`onda ${formatarMetros(boletim.ondaM)} m`)
   if (boletim.ventoKt !== null) partes.push(`vento ${Math.round(boletim.ventoKt)} kt`)
-  const detalhe = partes.length ? ` — ${partes.join(" e ")}` : ""
+  const nivel = boletim.selo.nivel
   return {
-    titulo: "🌊 Mar ruim",
-    corpo: `Mar ruim na sua marina hoje${detalhe}.`,
-    janela: "mar_ruim",
+    titulo: nivel === "crit" ? "🌊 Mar ruim" : nivel === "atencao" ? "⚠️ Atenção no mar" : "☀️ Bom pra sair",
+    corpo: `${boletim.selo.rotulo} na sua marina hoje — ${partes.join(" e ")}.`,
+    janela: nivel === "crit" ? "mar_ruim" : "boletim_mar",
     cicloRef: hoje,
   }
 }

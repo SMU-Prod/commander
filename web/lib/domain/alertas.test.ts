@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { alertaDeMar, cicloRef, janelaDoAlerta, lembreteMotorParado, textoDoAlerta } from "./alertas"
+import { boletimDiarioDoMar, cicloRef, janelaDoAlerta, lembreteMotorParado, textoDoAlerta } from "./alertas"
 
 const r = (p: Partial<{ status: "ok" | "atencao" | "vencido"; horasRestantes: number | null; diasRestantes: number | null }>) => ({
   status: "ok" as const, horasRestantes: null, diasRestantes: null, ...p,
@@ -54,23 +54,38 @@ describe("textoDoAlerta", () => {
   })
 })
 
-describe("alertaDeMar", () => {
-  it("mar pesado avisa, com onda e vento no corpo", () => {
-    const a = alertaDeMar({ ondaM: 2.5, ventoKt: 25, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
+// Onda 135: alertaDeMar virou boletimDiarioDoMar. O dono relatou "os avisos
+// de mar nao estao chegando" numa semana de mar BOM — o alerta so falava no
+// critico, e silencio honesto leu como defeito. Agora o boletim fala TODO
+// dia (dedupe 1x/dia), mudando so o tom.
+describe("boletimDiarioDoMar", () => {
+  it("mar pesado avisa como antes, na janela mar_ruim", () => {
+    const a = boletimDiarioDoMar({ ondaM: 2.5, ventoKt: 25, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
     expect(a).not.toBeNull()
-    expect(a!.corpo).toBe("Mar ruim na sua marina hoje — onda 2,5 m e vento 25 kt.")
+    expect(a!.titulo).toBe("🌊 Mar ruim")
+    expect(a!.corpo).toBe("Mar pesado na sua marina hoje — onda 2,5 m e vento 25 kt.")
     expect(a!.janela).toBe("mar_ruim")
     expect(a!.cicloRef).toBe("2026-08-08") // ciclo = o dia, dedupe garante 1x/dia
   })
-  it("ok ou atencao nao avisa — so mar pesado justifica interromper o dono", () => {
-    expect(alertaDeMar({ ondaM: 0.5, ventoKt: 10, selo: { nivel: "ok", rotulo: "Bom pra sair" , motivo: null } }, "2026-08-08")).toBeNull()
-    expect(alertaDeMar({ ondaM: 1.5, ventoKt: 12, selo: { nivel: "atencao", rotulo: "Atenção no mar" , motivo: null } }, "2026-08-08")).toBeNull()
+  it("mar bom tambem fala — boletim do dia, nao alarme", () => {
+    const a = boletimDiarioDoMar({ ondaM: 0.6, ventoKt: 5, selo: { nivel: "ok", rotulo: "Bom pra sair" , motivo: null } }, "2026-08-20")
+    expect(a!.titulo).toBe("☀️ Bom pra sair")
+    expect(a!.corpo).toBe("Bom pra sair na sua marina hoje — onda 0,6 m e vento 5 kt.")
+    expect(a!.janela).toBe("boletim_mar")
+  })
+  it("atencao fala no tom de atencao", () => {
+    const a = boletimDiarioDoMar({ ondaM: 1.5, ventoKt: 12, selo: { nivel: "atencao", rotulo: "Atenção no mar" , motivo: null } }, "2026-08-08")
+    expect(a!.titulo).toBe("⚠️ Atenção no mar")
+    expect(a!.janela).toBe("boletim_mar")
+  })
+  it("sem dado nenhum, silencio — boletim vazio seria inventar mar", () => {
+    expect(boletimDiarioDoMar({ ondaM: null, ventoKt: null, selo: { nivel: "ok", rotulo: "Bom pra sair" , motivo: null } }, "2026-08-08")).toBeNull()
   })
   it("com so um dado disponivel, o corpo fala so do que tem", () => {
-    const soOnda = alertaDeMar({ ondaM: 2.1, ventoKt: null, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
-    expect(soOnda!.corpo).toBe("Mar ruim na sua marina hoje — onda 2,1 m.")
-    const soVento = alertaDeMar({ ondaM: null, ventoKt: 30, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
-    expect(soVento!.corpo).toBe("Mar ruim na sua marina hoje — vento 30 kt.")
+    const soOnda = boletimDiarioDoMar({ ondaM: 2.1, ventoKt: null, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
+    expect(soOnda!.corpo).toBe("Mar pesado na sua marina hoje — onda 2,1 m.")
+    const soVento = boletimDiarioDoMar({ ondaM: null, ventoKt: 30, selo: { nivel: "crit", rotulo: "Mar pesado" , motivo: null } }, "2026-08-08")
+    expect(soVento!.corpo).toBe("Mar pesado na sua marina hoje — vento 30 kt.")
   })
 })
 

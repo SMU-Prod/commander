@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import webpush from "web-push"
 import type { Embarcacao, Equipamento, ItemMonitorado, PushAssinatura, Vinculo } from "@/lib/db/types"
-import { alertaDeMar, cicloRef, janelaDoAlerta, lembreteMotorParado, textoDoAlerta } from "@/lib/domain/alertas"
+import { boletimDiarioDoMar, cicloRef, janelaDoAlerta, lembreteMotorParado, textoDoAlerta } from "@/lib/domain/alertas"
 import { itemMonitoradoToItemCalc } from "@/lib/domain/conversores"
 import { hojeISO } from "@/lib/domain/datas"
 import { abaDoEquipamento, abaDoItem } from "@/lib/domain/diario"
@@ -238,10 +238,11 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < embarcacoesComMarina.length; i++) {
     const resultado = boletins[i]
     if (resultado.status !== "fulfilled" || !resultado.value) continue // falha na API do tempo não derruba o resto
-    const aviso = alertaDeMar(resultado.value, hoje)
+    const aviso = boletimDiarioDoMar(resultado.value, hoje)
     if (!aviso) continue
-    // Mar ruim não é conteúdo de hub nenhum — é sobre sair ou não sair hoje.
-    // Todo mundo com vínculo recebe.
+    // O boletim do mar não é conteúdo de hub nenhum — é sobre sair ou não
+    // sair hoje. Todo mundo com vínculo recebe, TODO dia (onda 135): mar bom
+    // também fala, senão o silêncio de mar calmo lê como app quebrado.
     await registrarEDisparar(embarcacoesComMarina[i].id, {}, aviso.janela, aviso.cicloRef, aviso.titulo, aviso.corpo, null)
   }
 
