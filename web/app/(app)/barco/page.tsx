@@ -472,10 +472,11 @@ export default async function BarcoPage({
                   do hub, em miniatura — mesma câmera, mesma luz, mesma cor, o
                   que faz o card e a tela de destino serem visivelmente a mesma
                   coisa. O halo fica atrás, que é o "rim light" do §6. */}
-              <span className={`relative flex h-16 w-full items-center justify-center ${h.tom}`}>
-                <span aria-hidden="true" className={`absolute inset-x-6 inset-y-1 rounded-[var(--raio-pilula)] blur-lg ${h.halo}`} />
-                <ObjetoHub chave={h.chave} className="relative h-16 w-28" />
-              </span>
+              {/* ONDA 119 — o render recortado do guia preenche a largura do
+                  card, como na imagem 1. O halo desenhado saiu: o render traz
+                  a própria luz de recorte, e luz atrás de imagem opaca é
+                  código morto. */}
+              <ObjetoHub chave={h.chave} className="h-20 w-full" />
               {/* `<h2>` E NÃO `<p>`, e isto é conserto de achado, não capricho: a
                   auditoria de 19/08 mediu "nenhum `<h2>` ou `<h3>` na tela
                   inteira — 23 blocos e um único `<h1>`. Para leitor de tela,

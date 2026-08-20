@@ -3,6 +3,7 @@ import { Icone } from "@/components/icone"
 import type { StatusFarol } from "@/lib/domain/semaforo"
 import type { Embarcacao } from "@/lib/db/types"
 import { Logo } from "@/components/logo"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 
 const ROTULO: Record<StatusFarol, string> = {
   ok: "Tudo em dia",
@@ -351,14 +352,25 @@ export function CardEmbarcacao({
           className="relative bg-[#0b1d2d] px-4 py-3"
           style={{ backgroundImage: "radial-gradient(ellipse 120% 80% at 15% 0%, #16324a 0%, #0b1d2d 72%)" }}
         >
-          <div className="flex items-start gap-2">
+          {/* ONDA 119 — O IATE HOLOGRÁFICO ATRÁS DA PLAQUETA. É o estado "sem
+              foto" que a IMAGEM 1 do guia desenha: o render estilizado no
+              lugar onde a foto real vai entrar — a "ilustração técnica neutra"
+              do §3.5 do PRD, nunca uma foto fingindo ser o barco da pessoa.
+              O véu `from-meter/85` garante a leitura da plaqueta por cima; os
+              filhos seguintes ganham `relative` pela ordem de pintura (irmão
+              `absolute` anterior fica atrás). Quando a pessoa sobe a foto
+              real, este ramo inteiro dá lugar ao ramo com foto — render e
+              foto nunca aparecem juntos (§10 do guia). */}
+          <ObjetoHub chave="iate" className="absolute inset-0 h-full w-full !rounded-none opacity-80" />
+          <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-meter/90 via-meter/40 to-meter/10" />
+          <div className="relative flex items-start gap-2">
             {burgee}
             {statusGeral && !saude && <span className="ml-auto">{selo}</span>}
           </div>
           {/* Sem foto o anel fica na MESMA linha do nome, e não no canto de
               cima: aqui não há fotografia para o instrumento pousar em cima —
               ele é parte da plaqueta, colado ao que ele descreve. */}
-          <div className="flex items-end gap-3">
+          <div className="relative flex items-end gap-3">
             <div className="min-w-0 flex-1">
               {/* `leading-tight` (1.25 = os 30px que o §08–11 declara para o H1):
                   o `text-2xl` do Tailwind traz 32px de caixa, e 2px por herói é o
@@ -400,7 +412,7 @@ export function CardEmbarcacao({
                  passa a acompanhar o branco QUENTE do tema escuro em vez de
                  ficar preso ao azulado do claro — a mesma correção que a onda
                  98 fez no resto do app. Quatro cores literais a menos aqui. */
-              className="foco-por-dentro transicao-ui mt-2 flex min-h-[var(--altura-controle)] items-center gap-3 rounded-[var(--raio-controle)] border border-meter-texto/20 bg-meter-texto/8 px-3 hover:bg-meter-texto/14"
+              className="foco-por-dentro transicao-ui relative mt-2 flex min-h-[var(--altura-controle)] items-center gap-3 rounded-[var(--raio-controle)] border border-meter-texto/20 bg-meter-texto/8 px-3 hover:bg-meter-texto/14"
             >
               <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--raio-controle)] bg-meter-texto/12 text-meter-texto">
                 <Icone nome="camera" className="size-4" />

@@ -118,9 +118,11 @@ export default async function DiarioPage({
           `h-28` e não os 176px do herói de hub: a imagem 5 desenha o objeto
           MENOR nas telas operacionais ("elementos 3D nestas telas são menores
           e de apoio; nunca competem com dados e tarefas", §9 do guia). */}
-      <div aria-hidden="true" className="raio-painel relative mt-4 flex h-28 items-center justify-center overflow-hidden border border-line bg-panel text-dado">
-        <span className="absolute inset-x-10 inset-y-2 rounded-[var(--raio-pilula)] bg-dado/10 blur-lg" />
-        <ObjetoHub chave="casco" className="relative h-24 w-44" />
+      {/* ONDA 119 — o render do iate holográfico (recorte da imagem 1, ver
+          `objeto-hub.tsx`) no lugar da cena desenhada: é literalmente o barco
+          que a imagem 5 põe no topo do Diário. */}
+      <div aria-hidden="true" className="raio-painel relative mt-4 h-32 overflow-hidden border border-line bg-panel">
+        <ObjetoHub chave="iate" className="h-full w-full" />
       </div>
       {/* A frase de baixo do título é a do canvas (tela-3a): diz de uma vez o
           que mora aqui, pra primeira visita não precisar deduzir do filtro. */}
