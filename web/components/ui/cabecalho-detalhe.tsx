@@ -194,7 +194,12 @@ export function CabecalhoDetalhe({
               </h1>
               {selo}
             </div>
-            {descricao && <p className="apoio mt-1 text-dim">{descricao}</p>}
+            {/* ONDA 108 — 4px viraram 8. A linha de apoio nascia colada num
+                título de 24px: pelo ritmo base-4 do §5, o degrau entre um
+                título e a linha que o explica é 8, não 4. Com 4 o par lia como
+                um bloco de texto só, e era o "texto grudado nos elementos" que
+                o dono nomeou. */}
+            {descricao && <p className="apoio mt-2 text-dim">{descricao}</p>}
           </div>
           {acao}
           {acoes && <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-0 sm:shrink-0 sm:justify-end">{acoes}</div>}

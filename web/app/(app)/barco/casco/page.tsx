@@ -81,7 +81,7 @@ export default async function CascoPage() {
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="casco" className="mb-4" />
+      <HeroiTecnico chave="casco" className="mt-5 mb-4" />
 
       {comItens.map((c) => (
         <div key={c}>

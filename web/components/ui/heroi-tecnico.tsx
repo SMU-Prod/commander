@@ -1,4 +1,4 @@
-import { Icone } from "@/components/icone"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 import { hub, type ChaveHub } from "@/lib/ui/hubs"
 
 /**
@@ -129,12 +129,19 @@ export function HeroiTecnico({
         </g>
       </svg>
 
-      {/* O OBJETO. `-mt-4` o levanta para pousar sobre o anel de dentro em vez
-          de ficar no meio geométrico da caixa — objeto centrado numa cena que
-          tem chão parece colado; levantado, parece pousado.
-          `relative` para ficar acima do véu e do SVG sem z-index inventado:
-          ordem de pintura basta quando os irmãos anteriores são `absolute`. */}
-      <Icone nome={h.icone} className="relative -mt-4 size-24 sm:size-28" />
+      {/* O OBJETO — agora é `ObjetoHub`, ilustração isométrica desenhada peça a
+          peça (motor com bloco e coletor, casco com convés e costados, banco de
+          baterias, tanque e bomba...), e não mais o traço do ícone ampliado.
+          A troca é de VOLUME: o ícone é uma linha, o objeto tem três faces com
+          luz diferente — e é o que faz a cena ler como render em vez de
+          símbolo grande. Ver o cabeçalho de `objeto-hub.tsx`.
+          `-mt-3` o levanta para pousar sobre o anel de dentro em vez de ficar
+          no meio geométrico da caixa: objeto centrado numa cena que tem chão
+          parece colado; levantado, parece pousado.
+          `relative` para ficar acima do véu e do SVG de fundo sem z-index
+          inventado — ordem de pintura basta quando os irmãos anteriores são
+          `absolute`. */}
+      <ObjetoHub chave={chave} className="relative -mt-3 h-32 w-52 sm:h-36 sm:w-60" />
     </div>
   )
 }

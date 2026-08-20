@@ -74,7 +74,7 @@ export default async function MotoresPage() {
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="motores" className="mb-4" />
+      <HeroiTecnico chave="motores" className="mt-5 mb-4" />
 
       {motores.length === 0 ? (
         <EstadoVazio

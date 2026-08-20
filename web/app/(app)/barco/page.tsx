@@ -410,7 +410,12 @@ export default async function BarcoPage({
           mobile". A 390px cada card fica com 171px de largura e 120px de
           altura — grande de verdade, alvo inteiro, e os oito cabem em quatro
           fileiras sem rolagem lateral (que é o que as abas antigas pediam). */}
-      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {/* ONDA 108 — 8px de calha viraram 12, e a folga de cima 16 virou 24.
+          A régua é o ritmo base-4 do §5: 8 é o degrau de "peças da MESMA
+          coisa" (rótulo e valor dentro de um cartão); a distância ENTRE
+          cartões vizinhos é 12, e entre blocos de assunto diferente é 24.
+          Com 8 nos dois papéis, a grade dos oito lia como um bloco só. */}
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {hubs.filter((h) => podeVer(permissoes, h.aba)).map((h) => (
           <Link
             key={h.href}

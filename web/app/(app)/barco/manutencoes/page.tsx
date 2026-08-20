@@ -67,7 +67,7 @@ export default async function ManutencoesPage() {
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="manutencoes" className="mb-4" />
+      <HeroiTecnico chave="manutencoes" className="mt-5 mb-4" />
 
       {linhas.length === 0 ? (
         <EstadoVazio

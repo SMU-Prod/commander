@@ -67,14 +67,14 @@ export default async function SegurancaPage() {
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="seguranca" className="mb-3" />
+      <HeroiTecnico chave="seguranca" className="mt-5 mb-4" />
 
       {/* Os três números da imagem 3. "Atenção" é o único que pode virar cor de
           ESTADO — e só quando é maior que zero: "Atenção 0" em âmbar diria o
           contrário do que o zero diz (ver `numeros-do-hub.tsx`). */}
       <NumerosDoHub
         chave="seguranca"
-        className="mb-3"
+        className="mb-4"
         numeros={[
           { rotulo: "Itens", valor: String(itens.length), icone: "seguranca" },
           { rotulo: "Em dia", valor: String(emDia), icone: "check" },
@@ -91,7 +91,7 @@ export default async function SegurancaPage() {
         <AcaoDoHub
           chave="seguranca"
           href={`/barco/itens/novo?alvo=${encodeURIComponent(`cat:${CATEGORIA_SEGURANCA}`)}`}
-          className="mb-4"
+          className="mb-6"
         >
           Cadastrar item
         </AcaoDoHub>

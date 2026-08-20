@@ -23,6 +23,18 @@ const TELAS: { rota: string; nome: string }[] = [
   // Elétrica tinha o "Voltar" de 16px.
   { rota: "/barco/seguranca", nome: "6-hub-seguranca" },
   { rota: "/barco/eletrica", nome: "7-hub-eletrica" },
+  // Onda 108 — OS OITO OBJETOS PRECISAM SER OLHADOS JUNTOS, e não de dois em
+  // dois. Eles são desenhados por código (`components/ui/objeto-hub.tsx`), e o
+  // que quebra numa cena isométrica não é sintaxe: é escala e ordem de pintura
+  // — uma peça grande demais para a base, uma peça de trás desenhada por cima
+  // da da frente. Isso só aparece comparando. Foi assim que a boia de Segurança
+  // saiu maior que a base e encavalada no extintor sem nenhum teste reclamar.
+  { rota: "/barco/motores", nome: "8-hub-motores" },
+  { rota: "/barco/casco", nome: "9-hub-casco" },
+  { rota: "/barco/hidraulica", nome: "10-hub-hidraulica" },
+  { rota: "/barco/equipamentos", nome: "11-hub-equipamentos" },
+  { rota: "/barco/documentos", nome: "12-hub-documentos" },
+  { rota: "/barco/manutencoes", nome: "13-hub-manutencoes" },
 ]
 
 // Onda 7 — a pasta sai por variável pra o MESMO comando gravar o "antes" e o
@@ -47,8 +59,20 @@ test.describe("prova visual 390px", () => {
       })
       await page.waitForTimeout(600)
 
-      const texto = (await page.locator("body").innerText()).trim()
-      expect(texto.length, `tela ${rota} veio vazia — provavelmente esqueleto`).toBeGreaterThan(200)
+      // ONDA 108 — A TRAVA ANTI-ESQUELETO PASSA A MEDIR O TÍTULO, E NÃO O
+      // TAMANHO DO TEXTO.
+      // Ela cobrava 200 caracteres no `<body>`, e reprovou `/barco/motores`
+      // com a tela PERFEITA: hub com o objeto isométrico, dois mostradores de
+      // horímetro e nada mais — 63 caracteres. O número existia para pegar
+      // captura de esqueleto, e virou um teto de quanto texto uma tela pode
+      // ter. Uma tela de hub com pouco texto é o OBJETIVO do redesign, não o
+      // defeito.
+      // O `<h1>` é a medida certa: o esqueleto do app não desenha título
+      // nenhum (`components/ui/esqueleto.tsx` desenha barras), então título com
+      // texto é prova de que o conteúdo real chegou — e não impõe piso de
+      // verborragia a tela nenhuma.
+      const titulo = (await page.locator("h1").first().innerText().catch(() => "")).trim()
+      expect(titulo.length, `tela ${rota} veio sem <h1> — provavelmente esqueleto`).toBeGreaterThan(2)
 
       // DUAS CAPTURAS, e a diferença entre elas não é cosmética.
       //

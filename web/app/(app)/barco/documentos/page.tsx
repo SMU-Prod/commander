@@ -115,7 +115,7 @@ export default async function DocumentosPage({
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="documentos" className="mb-4" />
+      <HeroiTecnico chave="documentos" className="mt-5 mb-4" />
       {erro && <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 corpo">{erro}</p>}
 
       {/* O cartão do vencido (canvas tela-3d): borda lateral crítica, a

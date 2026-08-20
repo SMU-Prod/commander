@@ -62,7 +62,7 @@ export default async function EquipamentosPage() {
           É ilustração técnica, não render 3D nem foto: ver o cabeçalho de
           `components/ui/heroi-tecnico.tsx` e o desvio de biblioteca de assets
           registrado em `docs/DESIGN-SYSTEM.md`. */}
-      <HeroiTecnico chave="equipamentos" className="mb-4" />
+      <HeroiTecnico chave="equipamentos" className="mt-5 mb-4" />
 
       <div className="sombra-1 mt-6 rounded-[var(--raio-cartao)] border border-line bg-panel px-4">
         {equipamentos.length === 0 && (
