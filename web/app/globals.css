@@ -545,6 +545,38 @@ body.fundo-tela-mapa [data-bottom-nav] {
   display: none;
 }
 
+/* CAMADAS DE Z-INDEX — a escada inteira do app, declarada num lugar só.
+   ---------------------------------------------------------------------------
+   Nasceu de um defeito real (20/08/2026, print do dono): o tooltip do gráfico
+   de "Gastos do mês" na Início — que fica sempre aberto na barra em destaque —
+   rolava a página POR CIMA da barra de navegação de baixo. A física do
+   defeito: o tooltip era `z-20` dentro do conteúdo rolável e a barra fixa era
+   `z-10`; nenhum ancestral cria contexto de empilhamento novo, então os dois
+   resolvem no MESMO contexto (o raiz) e 20 ganha de 10 — não importa que a
+   barra seja `fixed` nem que venha depois no DOM.
+
+   A escada que impede a reincidência, de baixo pra cima:
+
+     --z-flutuante (20) — o que flutua DENTRO do conteúdo rolável: tooltip de
+       gráfico, menu do seletor, selo sobre medidor. É TETO, não sugestão:
+       flutuante de conteúdo nunca passa de 20, senão tampa navegação.
+     --z-chrome (30) — a casca fixa do app: bottom-nav e trilho lateral.
+       Acima de QUALQUER conteúdo rolável, sempre — navegação não some atrás
+       de tooltip. (A casca do topo não precisa do token: ela vive NO FLUXO,
+       dentro da moldura, e rola junto com a página — ver `faixa-topo.tsx`.)
+     toast (40) e modal (50) — por cima até do chrome, de propósito: aviso e
+       diálogo interrompem o app inteiro. Continuam como classe do Tailwind
+       nos próprios componentes (`toast.tsx`, `modal-gold.tsx`) porque token
+       sem necessidade nova é o `--elev-flutuante` de novo — declarado, nunca
+       consumido, apagado em revisão (ver o comentário da pastilha do trilho).
+
+   As telas de mapa em tela cheia são a exceção documentada: lá a casca some
+   inteira (bloco acima) e o mapa empilha os instrumentos dele em paz. */
+:root {
+  --z-flutuante: 20;
+  --z-chrome: 30;
+}
+
 /* Elevação — sombra tingida de navy, não preto puro */
 :root {
   --sombra-1: 0 1px 2px rgb(11 29 45 / .06), 0 1px 3px rgb(11 29 45 / .04);

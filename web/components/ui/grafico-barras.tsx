@@ -91,8 +91,18 @@ export function GraficoBarras({
                 style={{ height: `${altura}%` }}
                 className="relative mx-auto w-full max-w-[34px]"
               >
+                {/* `--z-flutuante`, não um número solto (20/08, print do
+                    dono): este tooltip fica sempre aberto na barra em
+                    `destaque` e ROLA com a página — com `z-20` cravado ele
+                    pintava por cima da bottom-nav (então `z-10`) ao rolar a
+                    Início, valor flutuando sobre o menu. A escada que impede
+                    a volta disso mora em `globals.css` ("CAMADAS DE
+                    Z-INDEX"): flutuante de conteúdo é TETO em 20, chrome é
+                    30 — tooltip nenhum tampa navegação. O z continua
+                    existindo pelo motivo de sempre: sem ele, a barra vizinha
+                    (posicionada) pintaria por cima do balão. */}
                 <div
-                  className={`pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 min-w-max -translate-x-1/2 rounded-[var(--raio-cartao)] border border-line bg-ink px-2.5 py-2 sombra-2 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${p.destaque ? "opacity-100" : "opacity-0"}`}
+                  className={`pointer-events-none absolute bottom-full left-1/2 z-[var(--z-flutuante)] mb-2 min-w-max -translate-x-1/2 rounded-[var(--raio-cartao)] border border-line bg-ink px-2.5 py-2 sombra-2 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${p.destaque ? "opacity-100" : "opacity-0"}`}
                 >
                   <p className="rotulo mb-1 text-dim">{p.rotulo}</p>
                   <p className="flex items-baseline gap-3 whitespace-nowrap">

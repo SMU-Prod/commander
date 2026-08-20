@@ -100,7 +100,13 @@ export function TrilhoLateral({
       // SEM `overflow-hidden` aqui, e isso é requisito e não descuido: as
       // pastilhas de rótulo vivem fora dos 72px. Qualquer `overflow` que não
       // seja `visible` neste <nav> corta o rótulo no meio da palavra.
-      className="no-imprimir fixed inset-y-0 left-0 z-20 hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-5 lg:flex"
+      // 20/08 — camada de chrome declarada (`--z-chrome`, globals.css), pelo
+      // mesmo motivo da bottom-nav: em `z-20` o trilho EMPATAVA com os
+      // flutuantes do conteúdo (tooltip de gráfico, menu do seletor), e
+      // empate se resolve por ordem de DOM — que aqui favorece o conteúdo,
+      // desenhado depois da moldura. Casca fixa fica acima de conteúdo
+      // rolável SEMPRE, e a escada que garante isso está escrita uma vez só.
+      className="no-imprimir fixed inset-y-0 left-0 z-[var(--z-chrome)] hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-5 lg:flex"
     >
       {/* ONDA 111 — A MARCA DO TRILHO ERA UM MONOGRAMA ESCRITO À MÃO.
           =====================================================================
@@ -204,9 +210,12 @@ export function TrilhoLateral({
                 offset, `globals.css`).
                 `pointer-events-none` para a pastilha nunca roubar o clique
                 do link nem de quem estiver embaixo dela.
-                `z-30` para ficar acima dos irmãos do trilho; o trilho inteiro
-                já é `z-20`, então ela cobre o conteúdo da página sem passar
-                por cima do toast (`z-40`).
+                `z-30` para ficar acima dos irmãos do trilho — é um número
+                INTERNO: o trilho tem `--z-chrome` e por isso é um contexto de
+                empilhamento próprio, então este 30 só disputa com os irmãos
+                daqui de dentro. Visto de fora, a pastilha vale o que o trilho
+                vale (chrome, 30): cobre o conteúdo da página sem passar por
+                cima do toast (`z-40`).
                 `sombra-2` é a elevação de "isto flutua" que o resto do app
                 usa em menu e pastilha (`--sombra-2` em `globals.css`, o
                 token de verdade — o `--elev-flutuante` que este comentário

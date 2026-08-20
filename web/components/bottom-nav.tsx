@@ -169,7 +169,13 @@ export function BottomNav() {
     // de mapa (`body.fundo-tela-mapa` em globals.css). Era ela que tampava a
     // folha de parceiros do Explorar: as duas eram `z-10` fixas no rodapé, e
     // quem vem depois no DOM pinta por cima.
-    <nav data-bottom-nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur lg:hidden">
+    // 20/08 (print do dono) — `z-10` cravado deu lugar à camada declarada de
+    // chrome: o tooltip do gráfico de "Gastos do mês" (z-20, conteúdo rolável)
+    // rolava a Início pintando POR CIMA desta barra — 20 ganha de 10 no mesmo
+    // contexto de empilhamento, e `fixed` não muda essa conta. A escada
+    // inteira mora em `globals.css` ("CAMADAS DE Z-INDEX"): flutuante de
+    // conteúdo 20 < chrome 30 < toast 40 < modal 50.
+    <nav data-bottom-nav className="no-imprimir fixed inset-x-0 bottom-0 z-[var(--z-chrome)] border-t border-line bg-ink/95 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)
