@@ -366,7 +366,41 @@ telemetria.
 mecânico de `font-mono-instr` → `tabular-nums`, e some um download de fonte
 (ganho no §14).
 
-### 15.3 O tema claro
+### 15.3 A biblioteca de renders 3D não existe — e não há uma pronta e gratuita
+
+O §6 pede uma biblioteca de renders 3D "exportada em tamanhos e ângulos
+padronizados" para os oito hubs. Ela não existe, e as telas usam
+`components/ui/heroi-tecnico.tsx` — ilustração técnica, que é o que o §5 do PRD
+manda usar antes da foto real.
+
+**Busca feita em 19/08/2026, com resultado negativo.** As bibliotecas 3D
+realmente CC0 (uso comercial, sem atribuição) não cobrem o vocabulário náutico:
+
+| Fonte | Licença | Tem os oito objetos? |
+|---|---|---|
+| [3dicons.co](https://3dicons.co/) | CC0, sem atribuição | **Não.** ~120 ícones de interface genérica (escudo, ferramentas, engrenagem, relógio, pasta). Sem motor marítimo, casco, bomba ou balsa |
+| [Kenney](https://kenney.nl/assets/category:3D) | CC0 | **Não.** Kits de jogo (cidade, masmorra, pirata). Nenhum pacote náutico |
+| [Poly Haven](https://polyhaven.com/models) | CC0 | **Não.** A categoria *Watercraft* está vazia |
+| [Sketchfab](https://sketchfab.com/tags/cc0) | varia por modelo | **Parcial.** Há motor marítimo, extintor e colete avulsos, mas cada um com licença própria — e "download grátis" ali costuma ser CC-BY, que **exige atribuição** |
+
+Duas conclusões que fecham a porta do atalho:
+
+1. **Misturar fontes fura o §6 do próprio guia** — *"não misturar sólido,
+   outline, emoji, clipart e 3D na mesma função"*. Oito hubs com quatro
+   procedências desenhariam quatro linguagens numa grade só.
+2. **Misturar licenças é risco real num produto pago.** O grátis de
+   Vecteezy/Pngtree/Freepik costuma exigir atribuição ou proibir uso
+   comercial no plano gratuito.
+
+**Os dois caminhos que funcionam**, quando o dono decidir:
+
+- **Blender + modelos CC0 avulsos.** Sourcing por hub no Sketchfab/Poly Haven,
+  conferindo licença um a um, e render local nos oito ângulos padronizados. O
+  ambiente já tem as ferramentas do Blender ligadas; falta o Blender aberto.
+- **Encomendar o pacote.** Oito objetos, perspectiva 3/4, luz principal
+  superior esquerda, fundo transparente, WebP + PNG de fallback (§14).
+
+### 15.4 O tema claro
 
 O guia não o menciona. Ele existe como preferência de produto e segue a regra
 de tradução do §3.3. Se o dono decidir que o Commander é escuro e ponto, o tema
