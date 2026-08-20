@@ -532,6 +532,18 @@ html:has(body.fundo-tela-mapa) {
 body.fundo-tela-mapa {
   background: transparent;
 }
+/* ONDA 117 — NENHUMA CASCA POR CIMA DE MAPA (pedido do dono, com print:
+   "aparece o menu, header e tudo no mapa... não deve ter isso em nenhum
+   mapa"). As telas de mapa em tela cheia (/navegar e o mapa do Explorar) já
+   marcam o body com esta classe; o cabeçalho e a barra de baixo somem juntos.
+   Também era a CAUSA do card de parceiro tampado: a folha do rodapé e a
+   bottom-nav eram ambas fixas em z-10, e quem vem depois no DOM pinta por
+   cima. Escondendo a barra, a folha volta inteira — e ganha o rodapé de
+   área segura no próprio componente. */
+body.fundo-tela-mapa [data-casca-topo],
+body.fundo-tela-mapa [data-bottom-nav] {
+  display: none;
+}
 
 /* Elevação — sombra tingida de navy, não preto puro */
 :root {

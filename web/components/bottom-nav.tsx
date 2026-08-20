@@ -165,7 +165,11 @@ export function BottomNav() {
     // Onda 57 — `lg:hidden` porque a partir de `lg` quem navega é o
     // `TrilhoLateral`. As duas ao mesmo tempo seriam duas navegações
     // principais competindo na mesma tela; o breakpoint é o mesmo lá e cá.
-    <nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur lg:hidden">
+    // ONDA 117 — `data-bottom-nav` é o gancho que some com a barra nas telas
+    // de mapa (`body.fundo-tela-mapa` em globals.css). Era ela que tampava a
+    // folha de parceiros do Explorar: as duas eram `z-10` fixas no rodapé, e
+    // quem vem depois no DOM pinta por cima.
+    <nav data-bottom-nav className="no-imprimir fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/95 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)

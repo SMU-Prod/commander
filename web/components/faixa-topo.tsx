@@ -172,6 +172,10 @@ function CascaTopo({
 }) {
   return (
     <header
+      // ONDA 117 — o gancho que some com o cabeçalho nas telas de mapa
+      // (`body.fundo-tela-mapa [data-casca-topo]` em globals.css). Mapa é
+      // instrumento de tela cheia: moldura por cima dele é defeito, não casca.
+      data-casca-topo
       className={`mb-4 flex h-14 items-center gap-2 border-b border-line lg:mb-5 lg:gap-4 ${className}`}
     >
       {/* O HAMBÚRGUER É PRÉ-REQUISITO DA TROCA NA BARRA DE BAIXO, não enfeite.

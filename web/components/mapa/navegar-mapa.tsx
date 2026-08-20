@@ -1687,7 +1687,7 @@ export function NavegarMapa({
     // Tela cheia: escapa do px-4/pt-5/pb-24 do layout com margens negativas;
     // a altura desconta a bottom nav fixa (~4rem). O mapa é a tela; todo o
     // resto flutua por cima.
-    <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
+    <main className="relative -mx-4 -mt-5 -mb-24 h-dvh">
       <h1 className="sr-only">Navegar</h1>
       <MapaNautico
         aoIniciar={setMapaPronto}
@@ -1816,7 +1816,7 @@ export function NavegarMapa({
             // mapa INTEIRO. Agora o corpo (medidor + abas + conteúdo) nunca
             // passa de metade — o mapa continua visível atrás mesmo com o
             // painel aberto.
-            <div className="max-h-[calc((100dvh-4rem)/2)] overflow-y-auto border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
+            <div className="max-h-[50dvh] overflow-y-auto border-t border-mapa-instrumento-borda px-4 pb-4 pt-3">
               {/* Instrumento §2 item 1 da spec Haulix — o medidor de arco no
                   lugar de texto solto pra SOG, o dado mais lido desta tela.
                   Vive numa caixinha que SEGUE O TEMA (bg-panel), não no navy

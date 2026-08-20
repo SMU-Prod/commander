@@ -74,6 +74,12 @@ export function ExplorarMapa({
   // consulta nova (a regra pura `filtrarParceiros` vive em lib/domain/explorar
   // e casa nome + rótulo do tipo, sem acento atrapalhar).
   const [termo, setTermo] = useState("")
+  // ONDA 117 — a busca nasce FECHADA. O topo do mapa empilhava três fileiras
+  // flutuantes (navegação + busca + chips) cobrindo o terço superior da carta
+  // — parte da "poluição" que o dono apontou. A busca vira uma lupa na
+  // primeira fileira e só abre quando alguém quer buscar; aberta, é a mesma
+  // pastilha de sempre.
+  const [buscaAberta, setBuscaAberta] = useState(false)
   const [parceiroAberto, setParceiroAberto] = useState<Parceiro | null>(null)
   const marcadoresRef = useRef<MarcadorMapbox[]>([])
 
@@ -133,7 +139,7 @@ export function ExplorarMapa({
   return (
     // Mesma técnica de tela cheia de NavegarMapa: escapa do px-4/pt-5/pb-24
     // do layout do grupo (app) com margens negativas.
-    <main className="relative -mx-4 -mt-5 -mb-24 h-[calc(100dvh-4rem)]">
+    <main className="relative -mx-4 -mt-5 -mb-24 h-dvh">
       <h1 className="sr-only">Explorar</h1>
       <MapaNautico
         aoIniciar={setMapaPronto}
@@ -157,6 +163,29 @@ export function ExplorarMapa({
           >
             Vitrine
           </Link>
+          {/* ONDA 117 — a lupa que abre a busca. Fora da amostra Free pelo
+              mesmo motivo de sempre (§24: a amostra não tem o que buscar). */}
+          {!amostraFree && (
+            <button
+              type="button"
+              onClick={() => {
+                // Fechar a busca LIMPA o termo: uma busca fechada continuando a
+                // filtrar os pinos seria um filtro invisível — pino sumindo do
+                // mapa sem nenhum controle à vista explicando por quê.
+                if (buscaAberta) setTermo("")
+                setBuscaAberta((v) => !v)
+              }}
+              aria-label={buscaAberta ? "Fechar busca" : "Buscar parceiro"}
+              aria-expanded={buscaAberta}
+              className={`sombra-2 flex size-11 shrink-0 items-center justify-center rounded-[var(--raio-pilula)] border ${
+                buscaAberta
+                  ? "border-accent bg-accent text-acao-texto"
+                  : "border-mapa-instrumento-borda bg-mapa-instrumento text-meter-texto"
+              }`}
+            >
+              <Icone nome="buscar" className="size-[17px]" />
+            </button>
+          )}
         </div>
         {/* Onda 62 (canvas tela-3h) — o campo de busca em pastilha, acima dos
             chips como na fatia: lupa, placeholder honesto e 44px de alvo. Não
@@ -164,11 +193,14 @@ export function ExplorarMapa({
             parceiros sorteados e a folha de resultados nem existe — uma busca
             que quase sempre acha nada leria como app vazio, não como paywall
             (§24: limite dito em voz alta, nunca encenado). */}
-        {!amostraFree && (
+        {/* A pastilha só existe com a busca ABERTA (lupa acima) — era uma das
+            três fileiras permanentes que cobriam o terço de cima da carta. */}
+        {!amostraFree && buscaAberta && (
           <div className="pointer-events-auto sombra-2 flex h-11 items-center gap-2.5 rounded-[var(--raio-pilula)] border border-mapa-instrumento-borda bg-mapa-instrumento px-4">
             <Icone nome="buscar" className="size-[17px] shrink-0 text-meter-dim" />
             <input
               type="search"
+              autoFocus
               value={termo}
               onChange={(e) => setTermo(e.target.value)}
               placeholder="Buscar marina, posto, ponto…"
@@ -223,7 +255,7 @@ export function ExplorarMapa({
           (o CardParceiro ocupa o mesmo lugar) e na amostra Free (ali o aviso
           de amostra é a mensagem mais importante do rodapé). */}
       {!amostraFree && !parceiroAberto && centro && (
-        <div className="sombra-2 absolute inset-x-0 bottom-0 z-10 rounded-t-[var(--raio-painel)] border-t border-mapa-instrumento-borda bg-mapa-instrumento px-4 pb-3 pt-3">
+        <div className="sombra-2 absolute inset-x-0 bottom-0 z-10 rounded-t-[var(--raio-painel)] border-t border-mapa-instrumento-borda bg-mapa-instrumento px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
           <div aria-hidden="true" className="mx-auto mb-2.5 h-1 w-9 rounded-[var(--raio-pilula)] bg-mapa-instrumento-borda" />
           <div className="mb-1 flex items-baseline gap-2">
             <p className="rotulo flex-1 text-meter-dim">

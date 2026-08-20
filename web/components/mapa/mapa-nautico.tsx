@@ -243,11 +243,64 @@ class ControleBussola implements IControl {
   private container: HTMLDivElement | null = null
   private rosa: SVGSVGElement | null = null
   private mapa: MapaMapbox | null = null
+  /**
+   * ONDA 117 — A BÚSSOLA PASSA A GIRAR COM O CELULAR ("quero uma bússola que
+   * funciona"). O rumo do aparelho vem do sensor de orientação:
+   *   · iOS Safari expõe `webkitCompassHeading` (graus horários a partir do
+   *     norte, pronto para usar) e EXIGE `requestPermission()` dentro de um
+   *     gesto do usuário — por isso o pedido mora no clique, não no mount;
+   *   · Android expõe `deviceorientationabsolute` com `alpha` anti-horário a
+   *     partir do norte quando `absolute` é verdadeiro — o rumo é `360 − α`.
+   *
+   * COM SENSOR, A ROSA É UMA BÚSSOLA FÍSICA: gira com o aparelho e ignora o
+   * rumo do MAPA — os dois juntos somariam dois referenciais numa agulha só e
+   * ela deixaria de apontar pra qualquer coisa. Sem sensor (desktop, permissão
+   * negada), ela volta a ser a rosa da carta: gira com o bearing do mapa, que
+   * é o comportamento que já estava no ar. O clique endireita o mapa nos dois
+   * modos.
+   */
+  private rumoAparelho: number | null = null
+  private pediuPermissao = false
+  private aoOrientar = (e: DeviceOrientationEvent) => {
+    const ios = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading
+    if (typeof ios === "number" && Number.isFinite(ios)) this.rumoAparelho = ios
+    else if (e.absolute && e.alpha != null) this.rumoAparelho = (360 - e.alpha) % 360
+    else return
+    this.aoGirar()
+  }
   private aoGirar = () => {
-    if (this.mapa && this.rosa) this.rosa.style.transform = `rotate(${-this.mapa.getBearing()}deg)`
+    if (!this.mapa || !this.rosa) return
+    const graus = this.rumoAparelho ?? this.mapa.getBearing()
+    this.rosa.style.transform = `rotate(${-graus}deg)`
+  }
+  /** iOS 13+: o sensor só liga depois de `requestPermission()` num gesto. */
+  private ligarSensor = () => {
+    if (this.pediuPermissao) return
+    this.pediuPermissao = true
+    type ComPermissao = { requestPermission?: () => Promise<"granted" | "denied"> }
+    const pedir = (DeviceOrientationEvent as unknown as ComPermissao).requestPermission
+    if (typeof pedir === "function") {
+      pedir.call(DeviceOrientationEvent)
+        .then((r) => {
+          if (r === "granted") window.addEventListener("deviceorientation", this.aoOrientar)
+        })
+        .catch(() => { /* negou: a rosa continua girando pela carta */ })
+    } else {
+      // Android/desktop: sem cerimônia — se o sensor não existir, o evento
+      // simplesmente nunca dispara e o fallback pela carta continua valendo.
+      window.addEventListener("deviceorientationabsolute" as "deviceorientation", this.aoOrientar)
+    }
   }
   onAdd(mapa: MapaMapbox): HTMLElement {
     this.mapa = mapa
+    // Onde não há cerimônia de permissão (Android), liga já no mount — a
+    // bússola tem que funcionar ao girar o celular sem ninguém descobrir que
+    // precisava tocar nela primeiro. No iOS o mount não pode pedir (não é
+    // gesto), então lá o primeiro toque na rosa liga o sensor.
+    type ComPermissao = { requestPermission?: () => Promise<"granted" | "denied"> }
+    if (typeof window !== "undefined" && typeof (DeviceOrientationEvent as unknown as ComPermissao).requestPermission !== "function") {
+      this.ligarSensor()
+    }
     const container = document.createElement("div")
     container.className = "mapboxgl-ctrl mapboxgl-ctrl-group"
     const botao = document.createElement("button")
@@ -269,6 +322,10 @@ class ControleBussola implements IControl {
       "</svg>"
     this.rosa = botao.querySelector("svg")
     botao.addEventListener("click", () => {
+      // O clique faz as duas coisas do mesmo gesto: liga o sensor onde a
+      // permissão exige gesto (iOS), e endireita a carta — que é o que o
+      // toque numa bússola de mapa sempre fez.
+      this.ligarSensor()
       this.mapa?.easeTo({ bearing: 0, pitch: 0, duration: 300 })
     })
     mapa.on("rotate", this.aoGirar)
@@ -279,6 +336,8 @@ class ControleBussola implements IControl {
   }
   onRemove(): void {
     this.mapa?.off("rotate", this.aoGirar)
+    window.removeEventListener("deviceorientation", this.aoOrientar)
+    window.removeEventListener("deviceorientationabsolute" as "deviceorientation", this.aoOrientar)
     this.container?.remove()
     this.container = null
     this.rosa = null

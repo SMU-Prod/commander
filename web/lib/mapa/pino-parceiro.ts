@@ -152,10 +152,16 @@ export function criarElementoMarcadorParceiro(p: Parceiro): HTMLDivElement {
   const corpo = document.createElement("div")
   corpo.className = destaque
     ? "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] ring-2 ring-accent"
-    : "relative flex size-9 items-center justify-center rounded-[var(--raio-pilula)] ring-2 ring-white"
+    // ONDA 117 — QUEM NÃO PAGA DESTAQUE ENCOLHE (36 → 28px, anel 2 → 1).
+    // O dono: "tem muita poluição no mapa". A causa medida: TODO pino saía a
+    // 36px com anel branco de 2px — vinte parceiros na baía viram vinte
+    // discos do mesmo peso, e o plano "destaque", que é o produto pago,
+    // deixava de se destacar. Com dois tamanhos o mapa ganha hierarquia e o
+    // destaque volta a valer o que custa.
+    : "relative flex size-7 items-center justify-center rounded-[var(--raio-pilula)] ring-1 ring-white/80"
   corpo.style.backgroundColor = p.cor
   const tracado = TRACADO_ICONE_PARCEIRO[p.icone] ?? TRACADO_ICONE_PARCEIRO[ICONE_FALLBACK]
-  corpo.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${tracado}</svg>`
+  corpo.innerHTML = `<svg viewBox="0 0 24 24" width="${destaque ? 18 : 14}" height="${destaque ? 18 : 14}" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${tracado}</svg>`
   el.appendChild(corpo)
 
   if (p.tem_poita) {
