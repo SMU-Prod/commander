@@ -22,6 +22,7 @@ import { carregarPatrocinioDashboard } from "@/lib/consultas-publicidade"
 import { podeEditar, podeVer, type Aba } from "@/lib/domain/permissoes"
 import { TOQUE, TOQUE_AMPLO } from "@/lib/ui/acoes"
 import { HUBS, type ChaveHub } from "@/lib/ui/hubs"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 import type { ItemMonitorado } from "@/lib/db/types"
 
 /**
@@ -463,9 +464,17 @@ export default async function BarcoPage({
                   O ícone vai num irmão `relative`, e não dentro do disco: filho
                   de elemento borrado herda o `filter`, e o traço sairia
                   desfocado junto. */}
-              <span className="relative flex size-10 shrink-0 items-center justify-center">
-                <span aria-hidden="true" className={`absolute inset-1 rounded-[var(--raio-pilula)] blur-md ${h.halo}`} />
-                <Icone nome={h.icone} className={`relative size-10 shrink-0 ${h.tom}`} />
+              {/* ONDA 118 — O OBJETO 3D ENTRA NO CARD, como nas imagens 1, 6 e
+                  7 do guia. O dono comparou o app com o PRD e a diferença que
+                  gritava era esta: nas imagens, cada um dos oito cards carrega
+                  o OBJETO do hub (motor, casco, baterias...), não um ícone de
+                  linha. `ObjetoHub` é a mesma cena isométrica do herói da tela
+                  do hub, em miniatura — mesma câmera, mesma luz, mesma cor, o
+                  que faz o card e a tela de destino serem visivelmente a mesma
+                  coisa. O halo fica atrás, que é o "rim light" do §6. */}
+              <span className={`relative flex h-16 w-full items-center justify-center ${h.tom}`}>
+                <span aria-hidden="true" className={`absolute inset-x-6 inset-y-1 rounded-[var(--raio-pilula)] blur-lg ${h.halo}`} />
+                <ObjetoHub chave={h.chave} className="relative h-16 w-28" />
               </span>
               {/* `<h2>` E NÃO `<p>`, e isto é conserto de achado, não capricho: a
                   auditoria de 19/08 mediu "nenhum `<h2>` ou `<h3>` na tela

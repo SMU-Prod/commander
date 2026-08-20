@@ -5,6 +5,7 @@ import { BarraFerramentas } from "@/components/ui/barra-ferramentas"
 import { Chip, ChipDado } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 import { carregarPainel } from "@/lib/consultas"
 import { duracaoHoras, textoDuracao, tituloDaSaida, tituloDoRegistro } from "@/lib/domain/bordo"
 import { agruparPorMes, eventoNoFiltro, nomeDoEquipamento, TIPO_ROTULO, type FiltroDiario } from "@/lib/domain/diario"
@@ -107,6 +108,20 @@ export default async function DiarioPage({
   return (
     <main>
       <h1 className="titulo-pagina">Diário de Bordo</h1>
+
+      {/* ONDA 118 — O BARCO ABRE O DIÁRIO, como na imagem 5 do guia: a tela
+          de Diário de lá tem a embarcação em 3D no topo, antes dos filtros e
+          da linha do tempo. A cena é a MESMA do hub Casco (`ObjetoHub`),
+          pintada em `--dado` (o azul-aço de série) e não na cor do hub: aqui
+          o barco não é o hub Casco, é o protagonista do Diário — usar o âmbar
+          do Casco diria "isto é sobre estrutura", e é sobre navegar.
+          `h-28` e não os 176px do herói de hub: a imagem 5 desenha o objeto
+          MENOR nas telas operacionais ("elementos 3D nestas telas são menores
+          e de apoio; nunca competem com dados e tarefas", §9 do guia). */}
+      <div aria-hidden="true" className="raio-painel relative mt-4 flex h-28 items-center justify-center overflow-hidden border border-line bg-panel text-dado">
+        <span className="absolute inset-x-10 inset-y-2 rounded-[var(--raio-pilula)] bg-dado/10 blur-lg" />
+        <ObjetoHub chave="casco" className="relative h-24 w-44" />
+      </div>
       {/* A frase de baixo do título é a do canvas (tela-3a): diz de uma vez o
           que mora aqui, pra primeira visita não precisar deduzir do filtro. */}
       {/* Importar do plotter (onda 21) — anos de trilha ja gravada no
