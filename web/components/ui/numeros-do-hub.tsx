@@ -119,16 +119,23 @@ export function AcaoDoHub({
   href,
   children,
   className = "",
+  scroll,
 }: {
   chave: ChaveHub
   href: string
   children: string
   className?: string
+  /** ONDA 146 — repasse do `scroll` do `<Link>`. O caso que pediu: a ficha
+   *  de equipamento abre a GAVETA por URL (`?registrar=1`), e rolar a
+   *  página pro topo por baixo do painel jogaria fora a posição de leitura
+   *  que a pessoa vai reencontrar ao fechar. Omitido, nada muda pros hubs. */
+  scroll?: boolean
 }) {
   const h = hub(chave)
   return (
     <Link
       href={href}
+      scroll={scroll}
       /* `min-h-[var(--altura-campo)]` (48px) e não `--altura-controle` (44):
          a régua da casa é que a ação que FECHA uma tela herda a altura do
          campo, e é o que alinha esta barra com o resto da coluna. */

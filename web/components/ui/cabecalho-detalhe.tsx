@@ -189,8 +189,19 @@ export function CabecalhoDetalhe({
                   <Icone nome={h.icone} className={`size-6 ${h.tom}`} />
                 </span>
               )}
+              {/* ONDA 146 — `titulo` passa a VENCER o rótulo da tabela também
+                  no modo hub, como o comentário lá de cima sempre prometeu
+                  ("`titulo` continua podendo sobrepor"). O caso que cobrou a
+                  promessa: a FICHA DE EQUIPAMENTO (imagem 12) tem medalhão e
+                  filete do hub, mas o nome é o do equipamento ("Motor BB"),
+                  não o do hub ("Motores"). As oito telas de hub não passam
+                  `titulo`, então saem byte a byte como saíam. O filete só se
+                  ancora em título de TEXTO — num `ReactNode` rico não há
+                  primeira palavra pra sublinhar sem quebrar a marcação. */}
               <h1 className="titulo-pagina min-w-0 line-clamp-2">
-                {h ? <PrimeiraPalavraComFilete texto={h.rotulo} filete={h.filete} /> : tituloFinal}
+                {h && typeof tituloFinal === "string"
+                  ? <PrimeiraPalavraComFilete texto={tituloFinal} filete={h.filete} />
+                  : tituloFinal}
               </h1>
               {selo}
             </div>

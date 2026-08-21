@@ -190,6 +190,52 @@ export async function salvarEquipamento(formData: FormData) {
   redirect(`/barco/equipamento/${id}?ok=${encodeURIComponent("Equipamento salvo")}`)
 }
 
+/**
+ * ONDA 146 — o "Remover" do palco da ficha (imagem 12 do guia).
+ *
+ * A foto real SEMPRE teve caminho de entrada (o upload da onda 15, via
+ * formulário de editar) e caminho de TROCA (subir outra por cima), mas
+ * nenhum de saída: quem subiu a foto errada só podia substituí-la. O palco
+ * novo mostra a pílula "Remover" ao lado de "Trocar foto", e ela precisa de
+ * uma action que devolva o equipamento ao estado "sem foto" — que volta a
+ * mostrar o render do hub, nunca um retângulo vazio.
+ *
+ * Mesma coreografia do resto do arquivo: o update com `.select()` confirma
+ * que a linha realmente mudou (RLS recusa em silêncio), o arquivo do
+ * storage só sai DEPOIS da confirmação (best-effort: arquivo órfão é
+ * aceitável, linha apontando pra arquivo apagado não é), e o retorno fala
+ * a verdade nos dois desfechos.
+ */
+export async function removerFotoEquipamento(formData: FormData) {
+  const supabase = await supabaseServer()
+  const painel = await carregarPainel()
+  if (!painel) redirect("/onboarding")
+  const id = String(formData.get("equipamento_id") ?? "")
+  const equipamento = painel.equipamentos.find((e) => e.id === id)
+  if (!equipamento) erroEditar(id, "Equipamento não encontrado.")
+  const fotoAtual = equipamento.foto_path
+  // Sem foto não há o que remover — dois toques seguidos no mesmo botão (ou
+  // uma aba antiga aberta) voltam pra ficha sem inventar erro.
+  if (!fotoAtual) redirect(`/barco/equipamento/${id}`)
+
+  const { data, error } = await supabase
+    .from("equipamentos").update({ foto_path: null }).eq("id", id).select("id").maybeSingle()
+  if (error || !data) {
+    redirect(
+      `/barco/equipamento/${id}?erro=${encodeURIComponent(
+        `Não deu para remover a foto. Se for comandante, pode ser que o proprietário não liberou seu acesso a ${ROTULO_ABA[abaDoEquipamento(equipamento.tipo)]} — senão, tente de novo.`,
+      )}`,
+    )
+  }
+
+  await supabase.storage.from("acervo").remove([fotoAtual])
+
+  revalidatePath("/barco")
+  revalidatePath("/barco/eletrica")
+  revalidatePath(`/barco/equipamento/${id}`)
+  redirect(`/barco/equipamento/${id}?ok=${encodeURIComponent("Foto removida")}`)
+}
+
 export async function excluirEquipamento(formData: FormData) {
   const supabase = await supabaseServer()
   const painel = await carregarPainel()

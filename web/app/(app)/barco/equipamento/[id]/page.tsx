@@ -1,31 +1,39 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Confirmar } from "@/components/confirmar"
+import { FormularioNovoEvento } from "@/components/campos-navegacao-evento"
 import { ROTULO_TIPO_BATERIA } from "@/components/campos-tipo-equipamento"
 import { DicaLeitorNativo } from "@/components/dica-leitor-nativo"
 import { Farol } from "@/components/farol"
+import { GuardaFormulario } from "@/components/guarda-formulario"
 import { Icone } from "@/components/icone"
 import { Abas } from "@/components/ui/abas"
+import { BloqueioPremium } from "@/components/ui/bloqueio-premium"
 import { BotaoCirculo } from "@/components/ui/botao-circulo"
 import { BASE_BOTAO_FICHA, BotaoFicha } from "@/components/ui/botao-ficha"
+import { BotaoPendente } from "@/components/ui/botao-pendente"
 import { CabecalhoCartao } from "@/components/ui/cabecalho-cartao"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { Chip, ChipLinha } from "@/components/ui/chip"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { FaixaAlerta } from "@/components/ui/faixa-alerta"
 import { FaixaKpi, PastilhaKpi } from "@/components/ui/faixa-kpi"
+import { Gaveta } from "@/components/ui/gaveta"
 import { GradeRotuloValor } from "@/components/ui/grade-rotulo-valor"
 import { LinhaLista } from "@/components/ui/linha-lista"
 import { MigalhaPao } from "@/components/ui/migalha-pao"
+import { AcaoDoHub } from "@/components/ui/numeros-do-hub"
+import { ObjetoHub } from "@/components/ui/objeto-hub"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
 import { Selo } from "@/components/ui/selo"
 import {
   calcularSemaforo, formatarDataCurta, linhaDaRegra, PESO, rotuloDoFarol, seloDoFarol,
   temInformacaoSuficiente, vencimentoPorData,
 } from "@/lib/domain/semaforo"
-import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarNivelPlano, carregarPainel, carregarUsoDiario, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
 import { carregarModeloDoCatalogo } from "@/lib/consultas-catalogo"
-import { excluirEquipamento } from "@/lib/acoes/equipamentos"
+import { criarEvento } from "@/lib/acoes/eventos"
+import { excluirEquipamento, removerFotoEquipamento } from "@/lib/acoes/equipamentos"
 import { faixaDeAno, identidadeDoMotor, nomeCompletoDoModelo } from "@/lib/domain/catalogo-motor"
 import { abaDoEquipamento } from "@/lib/domain/diario"
 // (ROTULO_MOTOR saiu junto com a linha de regra escrita à mão — a frase agora
@@ -34,10 +42,13 @@ import { prazoCompacto } from "@/lib/domain/inicio"
 import { carimboDaLeitura } from "@/lib/domain/leituras"
 import { ROTULO_ZONA } from "@/lib/domain/mapa-embarcacao"
 import { formatarReais } from "@/lib/domain/gastos"
+import { avisoAcervoAcimaDoTeto, mensagemBloqueio, recursoLiberado } from "@/lib/domain/plano-acesso"
 import { iconeDoSistema, ordenarSistemas, urlManualNaPagina } from "@/lib/domain/sistemas"
 import { mediaHorasPorSemana, previsaoDias } from "@/lib/domain/uso"
 import { podeEditar } from "@/lib/domain/permissoes"
 import { supabaseServer } from "@/lib/supabase/server"
+import { TOQUE } from "@/lib/ui/acoes"
+import { hub, type ChaveHub } from "@/lib/ui/hubs"
 import type { EquipamentoSistema } from "@/lib/db/types"
 
 export default async function EquipamentoPage({
@@ -49,10 +60,14 @@ export default async function EquipamentoPage({
   // lista de Manutenções mora na URL, mesmo padrão de `/barco/historico`
   // (`FILTROS_SETOR`/`FILTROS_STATUS` ali): navegável, compartilhável,
   // sobrevive a um F5.
-  searchParams: Promise<{ filtroManut?: string }>
+  // ONDA 146 — `registrar` abre a GAVETA de "Registrar manutenção" (imagem
+  // 12 do guia) pelo mesmo princípio: gaveta aberta é URL, então o voltar do
+  // navegador fecha e F5 reabre. `erro` é o retorno das actions que voltam
+  // pra ESTA tela (remover foto) — a ficha não tinha onde mostrar a recusa.
+  searchParams: Promise<{ filtroManut?: string; registrar?: string; erro?: string }>
 }) {
   const { id } = await params
-  const { filtroManut: filtroManutBruto } = await searchParams
+  const { filtroManut: filtroManutBruto, registrar, erro } = await searchParams
   const painel = await carregarPainel()
   if (!painel) redirect("/onboarding")
   const equipamento = painel.equipamentos.find((e) => e.id === id)
@@ -62,6 +77,20 @@ export default async function EquipamentoPage({
   const aba = abaDoEquipamento(equipamento.tipo)
   const editavel = podeEditar(painel.permissoes, aba)
   const hoje = hojeISO()
+
+  // ONDA 146 — o HUB desta ficha, pela mesma régua de `abaDoEquipamento`:
+  // motor mora em Motores, "outro" em Equipamentos, o resto (gerador,
+  // bateria, painel) em Elétrica. É a identidade que veste o medalhão do
+  // cabeçalho, a borda do palco e o CTA da gaveta — classes SEMPRE lidas da
+  // tabela de `lib/ui/hubs.ts`, nunca escritas à mão (§5: a cor do hub X só
+  // aparece no hub X, e esta ficha É do hub dela).
+  const chaveHub: ChaveHub = ehMotor ? "motores" : equipamento.tipo === "outro" ? "equipamentos" : "eletrica"
+  const hubDaFicha = hub(chaveHub)
+
+  // Registrar serviço grava no DIÁRIO (`criarEvento` exige `diario:editar`,
+  // independente da aba do equipamento) — o convite só aparece pra quem a
+  // action vai aceitar; oferecer e recusar depois seria clique morto.
+  const podeDiario = podeEditar(painel.permissoes, "diario")
 
   // Onda 64 — a identidade do catálogo (PRD 3D §16). Só motor consulta.
   const modeloCatalogo = ehMotor ? await carregarModeloDoCatalogo(equipamento.motor_modelo_id) : null
@@ -102,6 +131,14 @@ export default async function EquipamentoPage({
     ? (filtroManutBruto as (typeof VALORES_FILTRO_MANUT)[number])
     : null
   const itensExibidos = filtroManut ? itens.filter(({ r, temInfo }) => temInfo && r.status === filtroManut) : itens
+
+  // ONDA 146 — os dois lados da porta da gaveta, com o filtro preservado:
+  // abrir a gaveta não pode descartar o recorte que a pessoa escolheu na
+  // lista, e fechá-la devolve exatamente a URL de onde ela veio.
+  const baseFicha = `/barco/equipamento/${id}`
+  const hrefRegistrar = filtroManut ? `${baseFicha}?filtroManut=${filtroManut}&registrar=1` : `${baseFicha}?registrar=1`
+  const hrefFecharGaveta = filtroManut ? `${baseFicha}?filtroManut=${filtroManut}` : baseFicha
+  const registrarAberto = registrar === "1" && podeDiario
 
   const supabase = await supabaseServer()
   const urlFoto = equipamento.foto_path
@@ -170,6 +207,29 @@ export default async function EquipamentoPage({
         }),
     ),
   )
+  // ONDA 146 — o que a GAVETA precisa, buscado SÓ com ela aberta (a URL diz
+  // quando): a lista de prestadores pro select do formulário, e o gate de
+  // plano — a MESMA dupla de checagens de `/diario/novo`, porque a gaveta é
+  // aquele formulário morando aqui. Bloqueado, a gaveta mostra o cadeado
+  // honesto em vez do formulário que a action recusaria; e o aviso de acervo
+  // acima do teto vem ANTES do cadeado, porque a primeira coisa a ler é que
+  // nada foi apagado. `criarEvento` re-checa tudo no servidor de qualquer
+  // jeito — bloqueio só na interface é decorativo.
+  let contatosGaveta: { id: string; nome: string; especialidade: string | null }[] = []
+  let bloqueioGaveta: ReturnType<typeof mensagemBloqueio> | null = null
+  let avisoTetoGaveta: string | null = null
+  if (registrarAberto) {
+    const [nivel, usoDiario] = await Promise.all([carregarNivelPlano(), carregarUsoDiario()])
+    if (!recursoLiberado("diario_registros", nivel, usoDiario)) {
+      bloqueioGaveta = mensagemBloqueio("diario_registros", usoDiario)
+      avisoTetoGaveta = avisoAcervoAcimaDoTeto("diario_registros", nivel, usoDiario)
+    } else {
+      const { data: contatos } = await supabase
+        .from("contatos").select("id, nome, especialidade").order("nome")
+      contatosGaveta = contatos ?? []
+    }
+  }
+
   const irmaos = painel.equipamentos.filter((e) => e.tipo === equipamento.tipo)
   const rotuloTipo = ehMotor ? "Motor" : equipamento.tipo === "gerador" ? "Gerador" : equipamento.tipo === "bateria" ? "Baterias" : "Equipamento"
   const nomeCurto = (e: typeof equipamento) => `${rotuloTipo}${e.posicao ? ` ${e.posicao}` : ""}`
@@ -209,6 +269,29 @@ export default async function EquipamentoPage({
     ? `${equipamento.horas_atuais.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`
     : "—"
 
+  // ONDA 146 — o segundo número de instrumento do cabeçalho (imagem 12):
+  // "Próxima revisão" é o MENOR marco de horas entre os itens vigiados —
+  // último ciclo + intervalo, que é exatamente o `horasRestantes` que o
+  // semáforo já calculou, somado de volta ao horímetro. Nenhuma régua nova.
+  // Sem horímetro ou sem item com intervalo de horas, o número NÃO existe e
+  // nada é inventado: o convite de informar leitura já mora no cartucho do
+  // horímetro, e item sem intervalo já tem o estado "Incompleto" na lista.
+  const horasAtuais = equipamento.horas_atuais
+  const marcosDeRevisao = horasAtuais == null
+    ? []
+    : itens.flatMap(({ temInfo, r }) => (temInfo && r.horasRestantes != null ? [horasAtuais + r.horasRestantes] : []))
+  const proximaRevisaoTexto = marcosDeRevisao.length > 0
+    ? `${Math.min(...marcosDeRevisao).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} h`
+    : null
+
+  // A pílula que senta SOBRE o palco (foto ou render): paleta FIXA de
+  // instrumento — `meter` nos dois temas — porque o fundo dela é uma foto
+  // arbitrária ou o navy do cartucho, e cor de tema em cima de foto é
+  // loteria de contraste. Mesmo par translúcido dos controles sobre foto de
+  // `card-embarcacao.tsx` (`bg-meter/70` + `text-meter-texto` + blur), e o
+  // alvo de 44px vem do `min-h-[var(--altura-controle)]` da própria pílula.
+  const PILULA_PALCO = `inline-flex min-h-[var(--altura-controle)] items-center gap-1.5 rounded-[var(--raio-pilula)] border border-meter-texto/25 bg-meter/70 px-4 text-sm font-medium text-meter-texto backdrop-blur ${TOQUE}`
+
   // ONDA 79 (anatomia Haulix, spec §3 item 2) — o mesmo caminho que
   // `voltarHref`/`voltarRotulo` já descrevem, só que por EXTENSO: "Voltar"
   // é a aresta (a tela anterior); a migalha é a hierarquia inteira até
@@ -243,11 +326,19 @@ export default async function EquipamentoPage({
 
       {/* ONDA 60 — a anatomia de ficha da imagem 2 (docs/DESIGN-SYSTEM.md):
           título grande + chip de estado colado + subtítulo (marca/modelo) +
-          barra de ações. */}
+          barra de ações.
+          ONDA 146 (imagem 12) — entra o MEDALHÃO do hub ao lado do nome
+          (`hub=`, o mesmo cartucho+filete das oito telas de hub, agora com o
+          título DESTA ficha) e, na barra da direita, os dois números de
+          instrumento do mock: Horímetro atual e Próxima revisão — mini
+          cartuchos `bg-meter`, porque número de instrumento veste navy fixo
+          nesta casa. Cada um só existe COM dado por trás (sem leitura, o
+          convite mora no cartucho grande do horímetro logo abaixo). */}
       <CabecalhoDetalhe
         className="mt-3"
         voltarHref={ehMotor ? "/barco" : "/barco/eletrica"}
         voltarRotulo={ehMotor ? "Embarcação" : "Elétrica"}
+        hub={chaveHub}
         titulo={nomeCurto(equipamento)}
         // Canvas tela-3c: marca/modelo E ano na mesma linha de apoio
         // ("Volvo Penta IPS 700 · 2019") — dados que a ficha já tem.
@@ -269,21 +360,97 @@ export default async function EquipamentoPage({
         // "ficha" que este equipamento tem são estas duas — inventar um
         // terceiro nível vazio seria clique morto.
         acoes={
-          editavel ? (
+          equipamento.horas_atuais != null || proximaRevisaoTexto != null || editavel ? (
             <>
-              <BotaoFicha href={`/barco/equipamento/${id}/editar`}>Editar</BotaoFicha>
-              <form action={excluirEquipamento}>
-                <input type="hidden" name="equipamento_id" value={id} />
-                <Confirmar
-                  mensagem="Excluir equipamento e todo o seu histórico de itens?"
-                  rotulo="Excluir equipamento"
-                  className={`${BASE_BOTAO_FICHA} border-crit/30 bg-panel text-crit`}
-                />
-              </form>
+              {equipamento.horas_atuais != null && (
+                <span className="flex items-baseline gap-1.5 rounded-[var(--raio-controle)] border border-line bg-meter px-3 py-2">
+                  <span className="rotulo-dado text-meter-dim">Horímetro</span>
+                  <span className="tabular-nums text-sm font-semibold tabular-nums text-meter-texto">{horimetroTexto}</span>
+                </span>
+              )}
+              {proximaRevisaoTexto != null && (
+                <span className="flex items-baseline gap-1.5 rounded-[var(--raio-controle)] border border-line bg-meter px-3 py-2">
+                  <span className="rotulo-dado text-meter-dim">Próxima revisão</span>
+                  <span className="tabular-nums text-sm font-semibold tabular-nums text-meter-texto">{proximaRevisaoTexto}</span>
+                </span>
+              )}
+              {editavel && (
+                <>
+                  <BotaoFicha href={`/barco/equipamento/${id}/editar`}>Editar</BotaoFicha>
+                  <form action={excluirEquipamento}>
+                    <input type="hidden" name="equipamento_id" value={id} />
+                    <Confirmar
+                      mensagem="Excluir equipamento e todo o seu histórico de itens?"
+                      rotulo="Excluir equipamento"
+                      className={`${BASE_BOTAO_FICHA} border-crit/30 bg-panel text-crit`}
+                    />
+                  </form>
+                </>
+              )}
             </>
           ) : undefined
         }
       />
+
+      {/* O retorno de erro das actions que voltam pra ESTA tela (remover
+          foto) — mesmo vestido da faixa de erro de /diario/novo. Sem isto a
+          recusa era um redirect mudo. */}
+      {erro && (
+        <p className="mt-3 rounded-[var(--raio-controle)] border border-crit/40 bg-crit/10 px-3 py-2 text-sm">{erro}</p>
+      )}
+
+      {/* ONDA 146 — O PALCO DA FICHA (imagem 12 do guia, os dois primeiros
+          estados). Cartucho de instrumento — `raio-painel`, navy fixo
+          (`bg-meter`), borda na cor do hub lida da tabela — mostrando:
+
+            · COM foto real: a foto no palco inteiro, com as pílulas "Trocar
+              foto" e "Remover" do mock (só pra quem pode editar). Trocar
+              reaproveita o upload que o formulário de editar TEM desde a
+              onda 15 — nenhum segundo caminho de foto nasce aqui.
+            · SEM foto: o render do hub (`ObjetoHub`, o mesmo recorte
+              normativo das telas de hub) sobre o véu na cor do hub, com a
+              pílula "Adicionar foto real" — ilustração técnica neutra, nunca
+              uma foto que finja ser o equipamento da pessoa (PRD §3.5).
+
+          Este palco SUBSTITUI o retângulo de foto que morava lá embaixo
+          (onda 15/62) — e com ele saem as 8 cores literais que aquele bloco
+          escrevia à mão (o gradiente navy e o cinza do convite): o mapa de
+          `tokens.test.ts` zera pra este arquivo. */}
+      <div className={`raio-painel sombra-1 relative mt-5 overflow-hidden border bg-meter ${hubDaFicha.borda}`}>
+        {urlFoto ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */}
+            <img src={urlFoto} alt={`Foto de ${nomeCurto(equipamento)}`} className="h-52 w-full object-cover sm:h-64" />
+            {editavel && (
+              <div className="absolute bottom-3 right-3 flex flex-wrap justify-end gap-2">
+                <Link href={`/barco/equipamento/${id}/editar`} className={PILULA_PALCO}>
+                  <Icone nome="camera" className="size-4" /> Trocar foto
+                </Link>
+                <form action={removerFotoEquipamento}>
+                  <input type="hidden" name="equipamento_id" value={id} />
+                  <BotaoPendente aria-label="Remover a foto real" className={PILULA_PALCO}>
+                    Remover
+                  </BotaoPendente>
+                </form>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className={`relative flex h-52 items-center justify-center sm:h-64 ${hubDaFicha.tom}`}>
+            <span aria-hidden="true" className={`absolute inset-0 ${hubDaFicha.halo}`} />
+            <ObjetoHub chave={chaveHub} className="relative h-36 w-56 sm:h-44 sm:w-72" />
+            {editavel && (
+              <Link
+                href={`/barco/equipamento/${id}/editar`}
+                aria-label={`Adicionar foto real do seu ${rotuloFotoConvite}`}
+                className={`absolute bottom-3 right-3 ${PILULA_PALCO}`}
+              >
+                <Icone nome="camera" className="size-4" /> Adicionar foto real
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ONDA 79 (spec §3 item 4) — navegação de salto pras seções da
           própria ficha, mesmo componente `Abas` das telas com rota própria
@@ -379,6 +546,18 @@ export default async function EquipamentoPage({
           </Link>
         )}
       </div>
+
+      {/* ONDA 146 — o CTA da gaveta (imagem 12): "Registrar manutenção" na
+          cor DESTE hub, a mesma barra de largura cheia que fecha as telas de
+          hub (`AcaoDoHub`). Não fura o orçamento de dourado: o §5 autoriza a
+          cor do hub no card do próprio sistema, e o dourado da ficha segue
+          sendo só o "Informar leitura" acima. É um link pra `?registrar=1`
+          — a gaveta abre por URL, então o voltar do navegador a fecha. */}
+      {podeDiario && (
+        <AcaoDoHub chave={chaveHub} href={hrefRegistrar} scroll={false} className="mt-3">
+          Registrar manutenção
+        </AcaoDoHub>
+      )}
 
       {/* ONDA 79 — o painel de Manutenções ganha a anatomia de cartão
           Haulix inteira: cabeçalho em destaque (spec §3 item 5), alerta
@@ -497,32 +676,9 @@ export default async function EquipamentoPage({
         )}
       </div>{/* fecha #manutencoes */}
 
-      {/* Foto (onda 15, "motor vivo") — continua na ficha, mas abaixo do
-          instrumento e das manutenções: no canvas (tela-3c) o topo é do
-          horímetro e do que está pedindo ação; a foto é contexto. Sem foto,
-          convite claro em vez de retângulo vazio. */}
-      <div className="sombra-1 mt-6 overflow-hidden rounded-[var(--raio-cartao)] border border-line bg-[#0b1d2d]">
-        {urlFoto ? (
-          /* eslint-disable-next-line @next/next/no-img-element -- URL assinada e temporária do storage */
-          <img src={urlFoto} alt={`Foto de ${nomeCurto(equipamento)}`} className="h-56 w-full object-cover" />
-        ) : editavel ? (
-          <Link
-            href={`/barco/equipamento/${id}/editar`}
-            className="flex h-56 w-full flex-col items-center justify-center gap-2"
-            style={{ backgroundImage: "radial-gradient(ellipse 90% 70% at 50% 15%, #16324a 0%, #0b1d2d 70%)" }}
-          >
-            <Icone nome="camera" className="size-7 text-[#7c93ab]" />
-            <span className="corpo text-[#7c93ab]">Adicione uma foto real do seu {rotuloFotoConvite}</span>
-          </Link>
-        ) : (
-          <div
-            className="flex h-56 w-full items-center justify-center"
-            style={{ backgroundImage: "radial-gradient(ellipse 90% 70% at 50% 15%, #16324a 0%, #0b1d2d 70%)" }}
-          >
-            <Icone nome="camera" className="size-7 text-[#7c93ab]" />
-          </div>
-        )}
-      </div>
+      {/* A foto que morava aqui (onda 15/62) SUBIU: ela agora É o palco do
+          topo, como a imagem 12 desenha — ver o cartucho logo abaixo do
+          cabeçalho. */}
 
       {/* Sistemas (onda 15, "motor vivo") — o elo novo entre o equipamento e
           o manual do fabricante já guardado no acervo. Sistema com manual
@@ -606,11 +762,15 @@ export default async function EquipamentoPage({
         })}
       </div>
 
+      {/* ONDA 146 — "Registrar serviço" parou de NAVEGAR pra /diario/novo e
+          passou a abrir a GAVETA (`?registrar=1`): é o mesmo formulário, só
+          que sem tirar a pessoa da ficha. Some pra quem não pode escrever no
+          Diário — antes o link levava até lá pra ouvir a recusa. */}
       <SecaoPagina
         id="historico"
         className="scroll-mt-4"
         icone="calendario"
-        acao={{ href: `/diario/novo?alvo=${encodeURIComponent(`eq:${id}`)}`, rotulo: "Registrar serviço" }}
+        acao={podeDiario ? { href: hrefRegistrar, rotulo: "Registrar serviço" } : undefined}
       >
         Histórico
       </SecaoPagina>
@@ -658,6 +818,49 @@ export default async function EquipamentoPage({
             cabeçalho (onda 60) — dois caminhos pro mesmo formulário na mesma
             tela era exatamente o que a anatomia de ficha veio arrumar. */}
       </div>
+
+      {/* ONDA 146 — A GAVETA "Registrar manutenção" (terceiro estado da
+          imagem 12): o formulário de serviço que a ficha sempre ofereceu —
+          o MESMO `FormularioNovoEvento`/`criarEvento` de /diario/novo, já
+          fixo em Manutenção e com este equipamento escolhido no "Onde no
+          barco?" — agora abre POR CIMA da ficha em vez de navegar embora.
+          Data, o que foi feito, renovação de ciclo, custo, horímetro,
+          prestador e anexo: os campos do mock, com o `BotaoEnviar` de
+          sempre avisando o envio. O `GuardaFormulario` usa a MESMA chave da
+          tela do Diário de propósito: se a action recusar, o redirect de
+          erro cai em /diario/novo e o rascunho digitado aqui é restaurado
+          lá — nada se perde no caminho. Só entra na árvore com a URL
+          dizendo `registrar=1`; presença é abertura (ver gaveta.tsx). */}
+      {registrarAberto && (
+        <Gaveta titulo="Registrar manutenção" fecharHref={hrefFecharGaveta}>
+          {bloqueioGaveta ? (
+            <>
+              {avisoTetoGaveta && (
+                <p className="corpo mb-3 rounded-[var(--raio-controle)] border border-line bg-panel2 px-3 py-2 text-dim">
+                  {avisoTetoGaveta}
+                </p>
+              )}
+              <BloqueioPremium {...bloqueioGaveta} />
+            </>
+          ) : (
+            <form action={criarEvento} className="space-y-4">
+              <GuardaFormulario chave="diario:novo" />
+              <FormularioNovoEvento
+                tipoFixo
+                tipoInicial="manutencao"
+                dataInicial={hoje}
+                tripulacao={[]}
+                equipamentos={painel.equipamentos}
+                itens={painel.itens}
+                contatos={contatosGaveta}
+                alvoInicial={`eq:${id}`}
+                itemInicial=""
+                custoInicial=""
+              />
+            </form>
+          )}
+        </Gaveta>
+      )}
     </main>
   )
 }

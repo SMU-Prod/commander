@@ -91,6 +91,28 @@ describe("CabecalhoDetalhe — título rico", () => {
 })
 
 /**
+ * ONDA 146 — a ficha de equipamento veste o medalhão do hub COM o próprio
+ * nome. `hub` sozinho continua tirando o rótulo da tabela (as oito telas de
+ * hub não mudam); `hub` + `titulo` mostra o título de quem chamou, com o
+ * filete na primeira palavra dele — é o cabeçalho da imagem 12 do guia.
+ */
+describe("CabecalhoDetalhe — hub com título próprio", () => {
+  it("hub sem titulo: o rótulo continua vindo da tabela", () => {
+    const saida = html({ voltarHref: "/barco", hub: "motores" })
+    expect(saida).toContain("Motores")
+  })
+
+  it("hub com titulo: sai o nome de quem chamou, com filete e medalhão", () => {
+    const saida = html({ voltarHref: "/barco", hub: "motores", titulo: "Motor BB" })
+    expect(saida).toContain("Motor")
+    expect(saida).toContain(" BB")
+    expect(saida).not.toContain(">Motores<")
+    // O medalhão do hub continua presente (anel na cor do hub).
+    expect(saida).toContain("border-hub-motores/40")
+  })
+})
+
+/**
  * ONDA 91 — o título de tela deixou de ser cortado em uma linha.
  *
  * `/admin/gold/precos` ("Preços da avaliação Commander Gold", 34 caracteres)

@@ -61,7 +61,10 @@ const TETO_POR_ARQUIVO: Record<string, number> = {
   // lugar usando o logo antigo" que o dono viu no app publicado.
   "components/card-embarcacao.tsx": 16,
   "components/selos/selo-verified.tsx": 9,
-  "app/(app)/barco/equipamento/[id]/page.tsx": 8,
+  // `app/(app)/barco/equipamento/[id]/page.tsx` ZEROU na onda 146: as oito
+  // cores literais eram todas do retângulo de foto (o gradiente navy do
+  // convite e o cinza do texto), e o palco novo da imagem 12 veste
+  // `bg-meter`/`meter-texto` — os tokens que aquele bloco imitava à mão.
   "components/explorar/cards-parceiros.tsx": 4,
   // `components/landing/mock-telas.tsx` SAIU do mapa na onda 103, junto com o
   // arquivo. Ele desenhava um telefone com uma FOTO FALSA de embarcação — um
