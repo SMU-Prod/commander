@@ -106,7 +106,9 @@ export function TrilhoLateral({
       // empate se resolve por ordem de DOM — que aqui favorece o conteúdo,
       // desenhado depois da moldura. Casca fixa fica acima de conteúdo
       // rolável SEMPRE, e a escada que garante isso está escrita uma vez só.
-      className="no-imprimir fixed inset-y-0 left-0 z-[var(--z-chrome)] hidden w-[72px] flex-col items-center gap-1 border-r border-line bg-panel py-5 lg:flex"
+      // ONDA 145 — `vidro-chrome` no lugar do `bg-panel`: o trilho é casca
+      // fixa como a bottom-nav, e vidro de chrome vale nos dois temas.
+      className="no-imprimir vidro-chrome fixed inset-y-0 left-0 z-[var(--z-chrome)] hidden w-[72px] flex-col items-center gap-1 border-r border-line py-5 lg:flex"
     >
       {/* ONDA 111 — A MARCA DO TRILHO ERA UM MONOGRAMA ESCRITO À MÃO.
           =====================================================================

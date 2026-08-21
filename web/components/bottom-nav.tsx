@@ -175,7 +175,10 @@ export function BottomNav() {
     // contexto de empilhamento, e `fixed` não muda essa conta. A escada
     // inteira mora em `globals.css` ("CAMADAS DE Z-INDEX"): flutuante de
     // conteúdo 20 < chrome 30 < toast 40 < modal 50.
-    <nav data-bottom-nav className="no-imprimir fixed inset-x-0 bottom-0 z-[var(--z-chrome)] border-t border-line bg-ink/95 backdrop-blur lg:hidden">
+    // ONDA 145 — `vidro-chrome` (globals.css): a barra vira vidro de verdade
+    // nos dois temas, no lugar do `bg-ink/95` quase opaco. O conteúdo
+    // deslizando por baixo é o que faz o vidro ler como vidro.
+    <nav data-bottom-nav className="no-imprimir vidro-chrome fixed inset-x-0 bottom-0 z-[var(--z-chrome)] border-t border-line lg:hidden">
       <div className="mx-auto flex max-w-[430px]">
         {abas.map((a) => {
           const ativa = pathname.startsWith(a.href)

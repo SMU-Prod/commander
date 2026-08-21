@@ -1280,3 +1280,35 @@ body.fundo-tela-mapa [data-bottom-nav] {
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
+
+/* ONDA 145 - O CHROME DE VIDRO ("o menu nao esta em glassmorphism", dono,
+   20/08 a noite). A bottom-nav e o trilho de desktop sao as duas pecas
+   FIXAS que o conteudo desliza por baixo - exatamente onde o vidro le como
+   vidro. Diferente dos cartoes (vidro so no escuro), o chrome e vidro NOS
+   DOIS temas: barra translucida sobre conteudo rolando e linguagem de
+   sistema operacional, nao de tema. O saturate(1.4) e o toque que faz as
+   cores atras atravessarem vivas em vez de acinzentadas. O topo (faixa-topo)
+   fica de fora de proposito: ele vive no fluxo e rola junto - vidro ali nao
+   teria o que desfocar. */
+.vidro-chrome {
+  background-color: color-mix(in srgb, var(--superficie) 72%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+
+/* ONDA 146 — A ENTRADA DA GAVETA (components/ui/gaveta.tsx, imagem 12 do
+   guia). Duas coreografias pra UMA peça: no celular a folha SOBE do rodapé
+   (bottom-sheet, vocabulário nativo do polegar); a partir de `sm` ela
+   DESLIZA da direita (painel lateral de ficha, como o mock desenha). O véu
+   só desvanece. Durações curtas de propósito — confirmar, não animar — e a
+   regra global de `prefers-reduced-motion` lá em cima (o wildcard que zera
+   animation-duration) já cobre as três: quem pediu menos movimento vê a
+   gaveta simplesmente presente, que é o estado final. */
+@keyframes gaveta-sobe { from { transform: translateY(100%); } }
+@keyframes gaveta-desliza { from { transform: translateX(100%); } }
+@keyframes gaveta-desvanece { from { opacity: 0; } }
+.gaveta-veu { animation: gaveta-desvanece .2s var(--curva-ui) both; }
+.gaveta-painel { animation: gaveta-sobe .25s var(--curva-ui) both; }
+@media (min-width: 640px) {
+  .gaveta-painel { animation-name: gaveta-desliza; }
+}
