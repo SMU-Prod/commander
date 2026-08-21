@@ -113,54 +113,54 @@ const ATOS: { icone: NomeIcone; ordem: string; titulo: string; tese: string; ite
     titulo: "Antes de soltar a amarra",
     tese: "O estado do barco em uma tela, sem abrir gaveta nem ligar para o mecânico.",
     itens: [
-      "Ficha técnica em oito hubs: motores, casco, elétrica, hidráulica, segurança, equipamentos, documentos e manutenções.",
-      "Semáforo por item monitorado, com as duas contagens — horas e calendário — correndo juntas.",
-      "Aviso no aparelho a 30, 15 e 5 dias do vencimento, e no dia. Também quando o mar vira e quando o motor fica tempo demais parado.",
-      "Saúde por setor, e nada fica verde por falta de informação: sem dado, o app diz que não sabe.",
-      "Ocorrências abertas e resolvidas, com o nível de cada uma.",
-      "Checklist de saída, para o que se confere sempre.",
+      "Ficha técnica: oito hubs, de motores a documentos.",
+      "Semáforo por item: horas e calendário correndo juntos.",
+      "Avisos no aparelho: 30, 15 e 5 dias antes do vencimento, e no dia.",
+      "Saúde por setor: sem dado, o app diz que não sabe. Nada fica verde à toa.",
+      "Ocorrências: abertas e resolvidas, com o nível de cada uma.",
+      "Checklist de saída: o que se confere sempre.",
     ],
   },
   {
     icone: "mapa",
     ordem: "02",
     titulo: "No mar",
-    tese: "A navegação e a ficha do barco no mesmo aplicativo — é isto que não existe em outro lugar.",
+    tese: "Navegação e ficha do barco no mesmo aplicativo. É isto que não existe em outro lugar.",
     itens: [
-      "Rota traçada pela água, contornando a costa numa malha de 100 metros por célula.",
-      "Profundidade e calado: a rota recusa passar onde o seu barco não passa, e prefere água mais funda quando o desvio é barato.",
-      "Corredores: a trilha real dos barcos que já passaram vira preferência de rota para os próximos.",
-      "Modo navegando, alarme de âncora e homem ao mar.",
-      "Maré estimada e vento na tela, sempre rotulados como estimativa, com link para a tábua oficial.",
-      "A sonda de bordo entra no app pela rede da embarcação, no iPhone e no Android.",
+      "Rota pela água: contorna a costa numa malha de 100 metros.",
+      "Calado: a rota recusa passar onde o seu barco não passa.",
+      "Corredores: a trilha real de quem já passou vira preferência de rota.",
+      "A bordo: modo navegando, alarme de âncora e homem ao mar.",
+      "Tempo: maré estimada e vento na tela, com link para a tábua oficial.",
+      "Sonda: a profundidade do seu barco entra pela rede da embarcação.",
     ],
   },
   {
     icone: "documento",
     ordem: "03",
     titulo: "Depois que atraca",
-    tese: "O que aconteceu fica registrado sozinho — e continua com o barco.",
+    tese: "O que aconteceu fica registrado sozinho. E continua com o barco.",
     itens: [
-      "Diário de bordo com a trilha de GPS gravada dentro dele, com importação e exportação em GPX.",
-      "Fotos em álbuns, por embarcação.",
-      "Financeiro com lançamentos, despesas recorrentes e custo por hora de motor.",
-      "Resumos por mês, semestre e ano: gastos, uso e o seu ano no mar.",
-      "Exportação em PDF do resumo do período.",
-      "Histórico de manutenções e de serviços de mecânica, com orçamento.",
+      "Diário de bordo: a trilha do GPS gravada dentro dele, em GPX.",
+      "Fotos: álbuns por embarcação.",
+      "Financeiro: lançamentos, recorrentes e custo por hora de motor.",
+      "Resumos: mês, semestre e ano, com exportação em PDF.",
+      "Seu ano no mar: milhas, horas e saídas, contadas da trilha real.",
+      "Manutenções: histórico completo, com orçamento de serviço.",
     ],
   },
   {
     icone: "pessoas",
     ordem: "04",
     titulo: "Quem cuida do barco com você",
-    tese: "Comandante, tripulação, cotista e prestador — cada um enxergando só o que lhe cabe.",
+    tese: "Comandante, tripulação, cotista e prestador. Cada um enxerga só o que lhe cabe.",
     itens: [
-      `Convite por link, com permissão em ${ABAS.length} áreas, separadas em ver e editar.`,
-      "Carteira da tripulação, com saldo e devolução.",
-      "Agenda em mês, semana e lista.",
-      "Marketplace com cinco tipos de pedido: serviço, tripulação, produto, vaga e caminhão.",
-      "Quem atende aquela categoria na sua região é avisado quando surge um pedido compatível.",
-      "A conversa acontece dentro do app. Ninguém vê o seu telefone só por ler o pedido.",
+      `Convite por link: permissão em ${ABAS.length} áreas, separadas em ver e editar.`,
+      "Carteira da tripulação: saldo e devolução.",
+      "Agenda: mês, semana e lista.",
+      "Marketplace: serviço, tripulação, produto, vaga e caminhão.",
+      "Aviso certeiro: quem atende a categoria na sua região fica sabendo do pedido.",
+      "Conversa no app: ninguém vê o seu telefone só por ler o pedido.",
     ],
   },
 ]
@@ -185,7 +185,7 @@ const SO_AQUI: { titulo: string; corpo: string }[] = [
   {
     titulo: "Vistoria pedida pelo dono",
     corpo:
-      "Nenhum app de gestão náutica do mercado tem selo ou vistoria. As ferramentas que existem lá fora são feitas para o vistoriador, e o selo de seminovo é vendido ao revendedor — nunca ao dono do barco.",
+      "Nenhum app de gestão náutica do mercado tem selo ou vistoria. As ferramentas que existem lá fora são feitas para o vistoriador, e o selo de seminovo é vendido ao revendedor, nunca ao dono do barco.",
   },
   {
     titulo: "Maré daqui",
@@ -260,16 +260,17 @@ export default async function LandingPage() {
           app o teto de tela é 24): aqui ele é manchete, não título de tela.
           Escrito à mão pelo motivo mecânico de sempre: `.titulo-pagina` crava
           1.5rem em cascade layer e venceria o `sm:`. */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-24 lg:pt-16">
+      <section className="mx-auto grid max-w-6xl items-center gap-8 px-6 pb-12 pt-8 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:pb-16 lg:pt-12">
         <div>
           <p className="rotulo text-dim">Navegação e ficha do barco no mesmo app</p>
           <h1 className="mt-3 text-[32px] font-[650] leading-[1.15] tracking-[-0.022em] text-balance sm:text-[40px]">
             A rota passa onde o seu barco passa.
           </h1>
           <p className="corpo mt-4 max-w-md text-dim">
-            O Commander traça a rota pela água — contornando a costa, não o mapa de ruas — e recusa o caminho
-            onde o seu calado não cabe. É o mesmo aplicativo que guarda a manutenção, os prazos e o histórico
-            da embarcação.
+            O Commander traça a <strong className="font-semibold text-texto">rota pela água</strong>,
+            não pelo mapa de ruas. Recusa o caminho onde o{" "}
+            <strong className="font-semibold text-texto">seu calado não passa</strong>. E é o mesmo
+            aplicativo que guarda a manutenção, os prazos e o histórico da embarcação.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link href="/login" className={CTA}>
@@ -318,13 +319,14 @@ export default async function LandingPage() {
           Era o herói; onda 129 o desceu para depois do produto. O argumento
           de engenharia convence DEPOIS que a estética abriu a porta — e
           aqui ele ganha o contexto que o herói não dava. */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-14 sm:py-20 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-10 sm:py-14 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
         <div>
           <p className="rotulo text-dim">Navegação</p>
-          <h2 className="titulo-secao mt-2">Arraste o calado — a rota desvia sozinha.</h2>
+          <h2 className="titulo-secao mt-2">Arraste o calado. A rota desvia sozinha.</h2>
           <p className="corpo mt-3 max-w-md text-dim">
-            Isto não é um vídeo: é o mesmo cálculo do app, rodando agora no seu aparelho, com a mesma malha
-            de costa e a mesma grade de profundidade. Nenhum aplicativo de rua sabe onde o seu barco não cabe.
+            Isto não é um vídeo. É o{" "}
+            <strong className="font-semibold text-texto">cálculo real do app</strong> rodando agora no
+            seu aparelho, com a mesma malha de costa e a mesma grade de profundidade.
           </p>
         </div>
         <RotaPorCalado />
@@ -340,7 +342,7 @@ export default async function LandingPage() {
           exatamente o "destoa totalmente" que o dono nomeou. Um ícone por
           ATO continua — agora no medalhão circular do Diário, a moldura de
           ícone da casa. */}
-      <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
         <h2 className="titulo-secao">A vida do barco, do começo ao fim</h2>
         <p className="corpo mt-2 max-w-xl text-dim">
           O que o Commander faz, na ordem em que o dia acontece.
@@ -356,12 +358,26 @@ export default async function LandingPage() {
               </div>
               <h3 className="titulo-card mt-3">{ato.titulo}</h3>
               <p className="corpo mt-1.5 text-dim">{ato.tese}</p>
+              {/* ONDA 144 — "parece documento de Word": cada linha abre com a
+                  palavra-chave em peso e cor de destaque, e o resto recua. O
+                  dado (o que vem antes dos dois-pontos) vira o que o olho
+                  varre; a explicação vira apoio. */}
               <ul className="mt-4 space-y-2.5">
-                {ato.itens.map((item) => (
-                  <li key={item} className="apoio text-dim">
-                    {item}
-                  </li>
-                ))}
+                {ato.itens.map((item) => {
+                  const corte = item.indexOf(": ")
+                  return (
+                    <li key={item} className="apoio text-dim">
+                      {corte > 0 ? (
+                        <>
+                          <strong className="font-semibold text-texto">{item.slice(0, corte)}.</strong>{" "}
+                          {item.slice(corte + 2)}
+                        </>
+                      ) : (
+                        item
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}
@@ -369,16 +385,66 @@ export default async function LandingPage() {
       </section>
 
       {/* ===================================================================
+          COMPATIBILIDADE COM O BARCO — a capacidade existia e não era vendida
+          ===================================================================
+          Recomendação 14 da auditoria de 20/08, no dia em que o plugin foi
+          publicado no npm (signalk-commander-connector@1.0.0): o app fala com
+          a rede do barco por dois caminhos reais, e a vitrine agora diz isso.
+          Sem logo de fabricante e sem a marca "NMEA 2000" (certificação paga
+          — dizemos "compatível", como o dossiê do gateway documenta). */}
+      <section className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
+        <p className="rotulo text-dim">Conectado ao barco</p>
+        <h2 className="titulo-secao mt-2">O Commander fala com a rede da sua embarcação.</h2>
+        <p className="corpo mt-2 max-w-xl text-dim">
+          Motor, bateria, profundidade e posição, direto dos instrumentos que o barco já tem.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-dim">
+                <Icone nome="sinal" className="size-4" />
+              </span>
+              <h3 className="titulo-card">Tem Signal K a bordo?</h3>
+            </div>
+            <p className="corpo mt-3 text-dim">
+              Instale o plugin{" "}
+              <strong className="font-semibold text-texto">Commander Connector</strong> na App Store do
+              seu servidor Signal K. Pronto:{" "}
+              <strong className="font-semibold text-texto">o barco fala com a sua conta sozinho</strong>.
+              Horas de motor, posição e bateria chegam mesmo com você longe. Você escolhe o que
+              compartilha, e o código do plugin é aberto para qualquer pessoa auditar.
+            </p>
+          </div>
+          <div className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-panel2 text-dim">
+                <Icone nome="motor" className="size-4" />
+              </span>
+              <h3 className="titulo-card">Garmin, Raymarine, Simrad, B&G</h3>
+            </div>
+            <p className="corpo mt-3 text-dim">
+              Os instrumentos das grandes marcas publicam tudo na rede padrão do barco. Um{" "}
+              <strong className="font-semibold text-texto">gateway Wi-Fi de bordo</strong> entrega
+              esses dados ao Commander, e o{" "}
+              <strong className="font-semibold text-texto">ecobatímetro que você já tem</strong> passa
+              a alimentar o seu mapa de profundidade. Compatível com redes NMEA 2000; SeaTalk NG entra
+              com um cabo adaptador.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================
           A SEGUNDA DEMONSTRAÇÃO — E A CORREÇÃO DE UMA FRASE FALSA
           =================================================================== */}
-      <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
           <div>
             <p className="rotulo text-dim">Manutenção</p>
             <h2 className="titulo-secao mt-2">O que vence primeiro</h2>
             <p className="corpo mt-3 text-dim">
-              Uma revisão pode vencer a cada 300 horas de motor <em>ou</em> a cada 24 meses — as duas
-              contagens correm ao mesmo tempo, dentro do mesmo item. O Commander acompanha as duas e assume
+              Uma revisão pode vencer a cada 300 horas de motor <em>ou</em> a cada 24 meses. As duas
+              contagens correm juntas, dentro do mesmo item. O Commander acompanha as duas e assume
               sempre a pior, para você nunca descobrir na doca.
             </p>
             <p className="corpo mt-3 text-dim">
@@ -393,26 +459,35 @@ export default async function LandingPage() {
       {/* ===================================================================
           O FOSSO + OS SELOS — um assunto, duas metades
           =================================================================== */}
-      <section className="mx-auto max-w-6xl px-6 py-14 sm:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
         <h2 className="titulo-secao">Três coisas que só existem aqui</h2>
         {/* ONDA 129 — cartões da casa, mesma razão dos quatro atos acima. */}
         <dl className="mt-8 grid gap-4 sm:grid-cols-3">
-          {SO_AQUI.map((s) => (
-            <div key={s.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
-              <dt className="titulo-card">{s.titulo}</dt>
-              <dd className="corpo mt-2 text-dim">{s.corpo}</dd>
-            </div>
-          ))}
+          {SO_AQUI.map((s) => {
+            // Onda 144 — a EVIDÊNCIA na frente: a primeira frase de cada
+            // afirmação é o fato verificado, e sai em peso; o resto explica.
+            const corte = s.corpo.indexOf(". ")
+            const fato = corte > 0 ? s.corpo.slice(0, corte + 1) : s.corpo
+            const resto = corte > 0 ? s.corpo.slice(corte + 2) : ""
+            return (
+              <div key={s.titulo} className="sombra-1 rounded-[var(--raio-cartao)] border border-line bg-panel p-4">
+                <dt className="titulo-card">{s.titulo}</dt>
+                <dd className="corpo mt-2 text-dim">
+                  <strong className="font-semibold text-texto">{fato}</strong> {resto}
+                </dd>
+              </div>
+            )
+          })}
         </dl>
 
-        <div className="mt-12 grid gap-8 border-t border-line pt-8 sm:grid-cols-2 sm:gap-x-8">
+        <div className="mt-10 grid gap-6 border-t border-line pt-8 sm:grid-cols-2 sm:gap-x-8">
           <div>
             <h3 className="titulo-card">Commander Verified</h3>
             <p className="corpo mt-2 text-dim">
               Cinco critérios que o próprio app confere no seu barco: motores cadastrados, manutenções
-              acompanhadas, segurança cadastrada, documentação acompanhada e histórico ativo. Se algum deixar
-              de ser atendido, o selo entra em prazo de regularização de {DIAS_REGULARIZACAO_VERIFIED} dias —
-              acompanhe na tela do selo.
+              acompanhadas, segurança cadastrada, documentação acompanhada e histórico ativo. Se algum
+              deixar de ser atendido, o selo entra em prazo de regularização de{" "}
+              {DIAS_REGULARIZACAO_VERIFIED} dias, com o andamento na tela do selo.
             </p>
           </div>
           <div>
@@ -429,13 +504,13 @@ export default async function LandingPage() {
       {/* ===================================================================
           PLANOS (PRD FINAL §2)
           =================================================================== */}
-      <section id="planos" className="mx-auto max-w-4xl px-6 py-14 sm:py-20">
+      <section id="planos" className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
         <div className="text-center">
           <p className="rotulo text-dim">Planos</p>
           <h2 className="titulo-secao mt-2">Comece de graça. Pague quando fizer sentido.</h2>
           <p className="corpo mx-auto mt-3 max-w-md text-dim">
-            Os avisos de vencimento e os alertas de segurança valem em qualquer plano, inclusive no gratuito —
-            isso nunca fica atrás de assinatura.
+            Os avisos de vencimento e os alertas de segurança valem em qualquer plano, inclusive no
+            gratuito. <strong className="font-semibold text-texto">Segurança nunca fica atrás de assinatura.</strong>
           </p>
         </div>
 

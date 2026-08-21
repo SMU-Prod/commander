@@ -311,6 +311,9 @@ export function RotaPorCalado() {
   const [caladoDm, setCaladoDm] = useState(CALADO_INICIAL_DM)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const imagemRef = useRef<ImageData | null>(null)
+  // Onda 143: a carta estática de fundo e o canvas auxiliar do véu de raso.
+  const cartaRef = useRef<HTMLImageElement | null>(null)
+  const rasoRef = useRef<HTMLCanvasElement | null>(null)
   // O CACHE DO A* NÃO PODE SER UM REF, e a razão é a regra do React, não o
   // linter: os dois `useMemo` abaixo LEEM e ESCREVEM este mapa DURANTE a
   // renderização, e ref lido em render é justamente o que o React não garante
@@ -391,7 +394,7 @@ export function RotaPorCalado() {
     if (!ctx) return
     const { agua, profundidadePorCelula } = cenario
     const estilo = getComputedStyle(canvas)
-    // Os três tons saem do bloco `.bg-meter` de `app/globals.css` — o cartucho
+    // Os tons saem do bloco `.bg-meter` de `app/globals.css` — o cartucho
     // de instrumento, que é navy FIXO nos dois temas. É a regra que a onda 24
     // escreveu para `/navegar`: sobre carta é sempre a MESMA cor, não a do
     // tema do app. Uma carta que trocasse de paleta com o alternador deixaria
@@ -400,6 +403,48 @@ export function RotaPorCalado() {
     const corTerra = sobrepor(mar, lerCanais(estilo, "--meter-dim"), 0.42)
     const corRaso = sobrepor(mar, lerCanais(estilo, "--crit"), 0.5)
 
+    // ONDA 143 — A CARTA DE VERDADE POR BAIXO ("esse mapa aí não tem nada a
+    // ver com o nosso mapa", dono, 20/08). O fundo agora é a NOSSA carta da
+    // Baía de Guanabara (imagem estática do mesmo Mapbox do app, gerada uma
+    // vez com a bbox EXATA do recorte da máscara e servida como asset —
+    // custo por visitante: zero; um mapa interativo aqui pagaria um map
+    // load por visita na página mais acessada do produto). Por cima dela só
+    // o que o demo ENSINA: as células rasas pro calado escolhido, em
+    // translúcido. A pintura antiga de água/terra vira fallback pra quando
+    // a imagem ainda não chegou — o demo nunca fica cego.
+    const carta = cartaRef.current
+    if (carta && carta.complete && carta.naturalWidth > 0) {
+      ctx.drawImage(carta, 0, 0, agua.largura, agua.altura)
+      if (!imagemRef.current || imagemRef.current.width !== agua.largura) {
+        imagemRef.current = ctx.createImageData(agua.largura, agua.altura)
+      }
+      const px = imagemRef.current.data
+      const total = agua.largura * agua.altura
+      for (let i = 0; i < total; i++) {
+        const raso = agua.agua[i] === 1 && profundidadePorCelula[i] < limiarM
+        const p = i * 4
+        px[p] = corRaso[0]
+        px[p + 1] = corRaso[1]
+        px[p + 2] = corRaso[2]
+        // Alfa, não substituição: o vermelho marca o raso sem apagar a carta.
+        px[p + 3] = raso ? 150 : 0
+      }
+      // `putImageData` substitui pixels (apagaria a carta nos transparentes);
+      // o caminho com alfa é compor por `drawImage` de um canvas auxiliar.
+      if (!rasoRef.current) {
+        rasoRef.current = document.createElement("canvas")
+        rasoRef.current.width = agua.largura
+        rasoRef.current.height = agua.altura
+      }
+      const octx = rasoRef.current.getContext("2d")
+      if (octx) {
+        octx.putImageData(imagemRef.current, 0, 0)
+        ctx.drawImage(rasoRef.current, 0, 0)
+      }
+      return
+    }
+
+    // Fallback (carta ainda carregando): a pintura de células de sempre.
     // O `ImageData` é criado UMA vez e reescrito — `createImageData` a cada
     // mexida no controle aloca 420 KB por quadro só para jogar fora.
     if (!imagemRef.current || imagemRef.current.width !== agua.largura) {
@@ -417,6 +462,18 @@ export function RotaPorCalado() {
     }
     ctx.putImageData(imagemRef.current, 0, 0)
   }, [cenario, limiarM])
+
+  // A carta estática carrega uma vez; quando chega, repinta por cima do
+  // fallback. `useRef` e não estado: a imagem não re-renderiza nada além do
+  // canvas, que é imperativo de qualquer jeito.
+  useEffect(() => {
+    const img = new Image()
+    img.src = "/imagens/landing/carta-demo.jpg"
+    img.onload = () => {
+      cartaRef.current = img
+      pintarCarta()
+    }
+  }, [pintarCarta])
 
   useEffect(() => {
     pintarCarta()

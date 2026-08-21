@@ -38,8 +38,11 @@ export function ConectorToken() {
       <p className="titulo-card">Commander Connector</p>
       <p className="apoio mt-1 text-dim">
         Tem um servidor Signal K a bordo? Instale o plugin “Commander Connector” na App Store dele e
-        cole aqui o token — o barco passa a enviar os dados que você autorizar, mesmo com o celular
-        longe.
+        cole lá o token gerado aqui. O barco passa a enviar os dados que você autorizar, mesmo com o
+        celular longe.{" "}
+        <a href="/menu/conectar-barco" className="font-semibold text-accent-forte">
+          Ver o passo a passo
+        </a>
       </p>
 
       {estado.fase === "pronto" ? (
