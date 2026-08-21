@@ -4,12 +4,15 @@ import { Farol } from "@/components/farol"
 import { Horimetro } from "@/components/horimetro"
 import { Icone } from "@/components/icone"
 import { Abas } from "@/components/ui/abas"
+import { CartaoAoVivo } from "@/components/ui/ao-vivo"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarTelemetriaRecente } from "@/lib/consultas-telemetria"
 import { TIPO_ROTULO } from "@/lib/domain/diario"
+import { carimboAoVivo, motoresAoVivo, type MotorAoVivo } from "@/lib/domain/telemetria"
 import { formatarReais } from "@/lib/domain/gastos"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
 import {
@@ -113,6 +116,21 @@ export default async function MotoresPage({
   }
   const nomeDoMotor = (id: string | null) => motores.find((m) => m.id === id)?.posicao ?? "Motor"
 
+  // ONDA 141 — O CARTÃO "AO VIVO" DO COMMANDER CONNECTOR, só na Visão geral.
+  // A consulta nem sai do lugar nas outras abas (mesma régua do histórico), e
+  // a regra de ouro é do domínio: sem telemetria na janela de 48h não há
+  // cartão — nem convite; o convite de conectar já mora em Ajustes e no guia.
+  const aoVivo = aba === "geral" ? await carregarTelemetriaRecente() : null
+  const { motores: motoresVivos, tsMaisNovo } = motoresAoVivo(aoVivo?.leituras ?? {}, motores)
+  const carimboVivo = carimboAoVivo(tsMaisNovo)
+  // Par com leitura `null` não entra — null nunca vira zero nem traço; o
+  // domínio garante que todo motor listado tem ao menos um par de verdade.
+  const dadosDoMotor = (m: MotorAoVivo) => [
+    ...(m.rpm != null ? [{ rotulo: "Rotação", valor: `${Math.round(m.rpm).toLocaleString("pt-BR")} rpm` }] : []),
+    ...(m.temperaturaC != null ? [{ rotulo: "Temperatura", valor: `${Math.round(m.temperaturaC).toLocaleString("pt-BR")} °C` }] : []),
+    ...(m.horas != null ? [{ rotulo: "Horas", valor: `${Math.round(m.horas).toLocaleString("pt-BR")} h` }] : []),
+  ]
+
   return (
     <main>
       <CabecalhoDetalhe
@@ -155,6 +173,18 @@ export default async function MotoresPage({
 
       {aba === "geral" && (
         <>
+          {/* ONDA 141 — os números do conector, com o carimbo de frescor
+              honesto. O cartão SÓ existe quando o plugin falou na janela. */}
+          {carimboVivo != null && motoresVivos.length > 0 && (
+            <CartaoAoVivo
+              chave="motores"
+              carimbo={carimboVivo.texto}
+              aoVivo={carimboVivo.aoVivo}
+              className="mb-4"
+              grupos={motoresVivos.map((m) => ({ rotulo: m.rotulo, dados: dadosDoMotor(m) }))}
+            />
+          )}
+
           {/* ONDA 109 — a trinca da imagem 3, com o vocabulário desta tela. */}
           <NumerosDoHub
             chave="motores"

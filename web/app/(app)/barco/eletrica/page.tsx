@@ -5,12 +5,15 @@ import { Icone } from "@/components/icone"
 import { ROTULO_TIPO_BATERIA } from "@/components/campos-tipo-equipamento"
 import { Abas } from "@/components/ui/abas"
 import { SecaoPagina } from "@/components/ui/secao-pagina"
+import { CartaoAoVivo } from "@/components/ui/ao-vivo"
 import { CabecalhoDetalhe } from "@/components/ui/cabecalho-detalhe"
 import { EstadoVazio } from "@/components/ui/estado-vazio"
 import { HeroiTecnico } from "@/components/ui/heroi-tecnico"
 import { NumerosDoHub } from "@/components/ui/numeros-do-hub"
 import { carregarPainel, hojeISO, itemMonitoradoToItemCalc } from "@/lib/consultas"
+import { carregarTelemetriaRecente } from "@/lib/consultas-telemetria"
 import { abaDoEquipamento, TIPO_ROTULO } from "@/lib/domain/diario"
+import { bancosAoVivo, carimboAoVivo, type BancoAoVivo } from "@/lib/domain/telemetria"
 import { formatarReais } from "@/lib/domain/gastos"
 import { calcularSemaforo, formatarDataCurta, PESO, type StatusFarol } from "@/lib/domain/semaforo"
 import { podeEditar, podeVer } from "@/lib/domain/permissoes"
@@ -70,6 +73,23 @@ export default async function EletricaPage({
     contatosEletrica = ((data ?? []) as Contato[])
       .filter((c) => c.especialidade != null && semAcento(c.especialidade).includes("eletric"))
   }
+
+  // ONDA 141 — O CARTÃO "AO VIVO" DO COMMANDER CONNECTOR, só na Visão geral.
+  // Mesma régua dos contatos logo acima: a consulta nem sai do lugar nas
+  // outras abas. A regra de ouro é do domínio: sem telemetria na janela de
+  // 48h não há cartão — nem convite; o convite de conectar mora em Ajustes.
+  const aoVivo = aba === "geral" ? await carregarTelemetriaRecente() : null
+  const { bancos, tsMaisNovo } = bancosAoVivo(aoVivo?.leituras ?? {})
+  const carimboVivo = carimboAoVivo(tsMaisNovo)
+  // Uma casa decimal nas duas: 12,6 V é a leitura que separa banco cheio de
+  // banco pela metade, e corrente negativa (descarga) sai como veio — par com
+  // leitura `null` não entra, porque null nunca vira zero nem traço.
+  const umaCasa = (n: number) =>
+    n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const dadosDoBanco = (b: BancoAoVivo) => [
+    ...(b.voltagem != null ? [{ rotulo: "Voltagem", valor: `${umaCasa(b.voltagem)} V` }] : []),
+    ...(b.corrente != null ? [{ rotulo: "Corrente", valor: `${umaCasa(b.corrente)} A` }] : []),
+  ]
 
   const statusDe = (eqId: string): StatusFarol =>
     painel.itens
@@ -161,6 +181,19 @@ export default async function EletricaPage({
 
       {aba === "geral" && (
         <>
+          {/* ONDA 141 — voltagem e corrente por banco, direto do conector,
+              com o carimbo de frescor honesto. O cartão SÓ existe quando o
+              plugin falou na janela. */}
+          {carimboVivo != null && bancos.length > 0 && (
+            <CartaoAoVivo
+              chave="eletrica"
+              carimbo={carimboVivo.texto}
+              aoVivo={carimboVivo.aoVivo}
+              className="mb-4"
+              grupos={bancos.map((b) => ({ rotulo: b.rotulo, dados: dadosDoBanco(b) }))}
+            />
+          )}
+
           {/* ONDA 109 — a trinca da imagem 3. O universo aqui é EQUIPAMENTO (é o
               que a tela lista), e os itens dele entram como segunda coluna. */}
           <NumerosDoHub
